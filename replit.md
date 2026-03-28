@@ -4,6 +4,21 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## AniFlow — Anime Mobile App
+
+A mobile anime app built with Expo. Uses:
+- **@consumet/extensions** in the API server for anime data (Anilist for metadata/search/trending, AnimePahe for episodes/streaming)
+- **Anilist** (via META provider): trending, popular, search
+- **AnimePahe** (via ANIME provider): episode lists, streaming sources
+- Three screens: Home (trending/popular/recent), Search, Favorites
+- Detail screen: shows anime info + episode list, opens streaming URL
+
+### Key files
+- `artifacts/anime-app/` — Expo React Native app
+- `artifacts/anime-app/lib/consumet.ts` — API client for the anime routes
+- `artifacts/anime-app/context/FavoritesContext.tsx` — favorites via AsyncStorage
+- `artifacts/api-server/src/routes/anime.ts` — anime routes using @consumet/extensions
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

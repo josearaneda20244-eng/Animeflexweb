@@ -1,12 +1,22 @@
-const BASE_URL = "https://consumet-api.vercel.app";
+const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`;
+
+function resolveTitle(
+  title: string | { english?: string; romaji?: string; userPreferred?: string; native?: string } | undefined
+): string {
+  if (!title) return "Unknown";
+  if (typeof title === "string") return title;
+  return title.english || title.romaji || title.userPreferred || title.native || "Unknown";
+}
+
+export { resolveTitle };
 
 export interface AnimeResult {
   id: string;
-  title: string;
-  url: string;
+  title: string | { english?: string; romaji?: string; userPreferred?: string; native?: string };
+  url?: string;
   image: string;
   cover?: string;
-  releaseDate?: string;
+  releaseDate?: string | number;
   subOrDub?: string;
   type?: string;
   status?: string;
@@ -16,6 +26,7 @@ export interface AnimeResult {
   duration?: string;
   genres?: string[];
   description?: string;
+  color?: string;
 }
 
 export interface SearchResult {
@@ -25,16 +36,12 @@ export interface SearchResult {
 }
 
 export interface AnimeInfo extends AnimeResult {
-  description: string;
-  genres: string[];
+  description?: string;
+  genres?: string[];
   studios?: string[];
-  releaseDate?: string;
-  status?: string;
-  rating?: number;
-  duration?: string;
-  type?: string;
-  season?: string;
   episodes: Episode[];
+  episodePages?: number;
+  externalLinks?: Array<{ url: string; site: string }>;
 }
 
 export interface Episode {
@@ -66,31 +73,31 @@ async function get<T>(path: string): Promise<T> {
     headers: { Accept: "application/json" },
   });
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    const text = await response.text().catch(() => "");
+    throw new Error(`API error ${response.status}: ${text.slice(0, 200)}`);
   }
   return response.json() as Promise<T>;
 }
 
 export const consumet = {
   search: (query: string, page = 1): Promise<SearchResult> =>
-    get<SearchResult>(`/anime/zoro/${encodeURIComponent(query)}?page=${page}`),
+    get<SearchResult>(`/anime/search?q=${encodeURIComponent(query)}&page=${page}`),
 
   trending: (): Promise<SearchResult> =>
-    get<SearchResult>(`/anime/zoro/trending`),
+    get<SearchResult>(`/anime/trending`),
 
   popular: (): Promise<SearchResult> =>
-    get<SearchResult>(`/anime/zoro/popular`),
+    get<SearchResult>(`/anime/popular`),
 
   recentEpisodes: (): Promise<SearchResult> =>
-    get<SearchResult>(`/anime/zoro/recent-episodes`),
+    get<SearchResult>(`/anime/recent`),
 
   info: (id: string): Promise<AnimeInfo> =>
-    get<AnimeInfo>(`/anime/zoro/info?id=${encodeURIComponent(id)}`),
+    get<AnimeInfo>(`/anime/info?id=${encodeURIComponent(id)}`),
 
-  streaming: (episodeId: string, server?: string): Promise<StreamingData> => {
-    const serverParam = server ? `&server=${server}` : "";
-    return get<StreamingData>(
-      `/anime/zoro/watch?episodeId=${encodeURIComponent(episodeId)}${serverParam}`
-    );
-  },
+  infoByTitle: (title: string): Promise<AnimeInfo> =>
+    get<AnimeInfo>(`/anime/info-by-title?title=${encodeURIComponent(title)}`),
+
+  streaming: (episodeId: string): Promise<StreamingData> =>
+    get<StreamingData>(`/anime/watch?episodeId=${encodeURIComponent(episodeId)}`),
 };

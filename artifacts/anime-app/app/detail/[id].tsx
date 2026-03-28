@@ -5,14 +5,12 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   FlatList,
   Image,
   Linking,
   Platform,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -24,54 +22,75 @@ import EpisodeItem from "@/components/EpisodeItem";
 import { GenreBadge } from "@/components/GenreBadge";
 import Colors from "@/constants/colors";
 import { useFavorites } from "@/context/FavoritesContext";
-import { consumet, type Episode } from "@/lib/consumet";
+import { consumet, type Episode, type AnimeResult } from "@/lib/consumet";
 
-const { width } = Dimensions.get("window");
-const COVER_HEIGHT = 260;
+type Params = {
+  id: string;
+  title?: string;
+  image?: string;
+  cover?: string;
+  rating?: string;
+  type?: string;
+  status?: string;
+  releaseDate?: string;
+  totalEpisodes?: string;
+  description?: string;
+  genres?: string;
+};
 
 export default function DetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<Params>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [watchedEps, setWatchedEps] = useState<Set<string>>(new Set());
   const [loadingEp, setLoadingEp] = useState<string | null>(null);
 
+  const navTitle = params.title ?? "";
+  const navImage = params.image ?? "";
+  const navCover = params.cover ?? "";
+  const navRating = params.rating ? parseFloat(params.rating) : undefined;
+  const navGenres = params.genres ? (JSON.parse(params.genres) as string[]) : [];
+
   const infoQuery = useQuery({
-    queryKey: ["animeInfo", id],
-    queryFn: () => consumet.info(id!),
-    enabled: !!id,
+    queryKey: ["animeInfoByTitle", navTitle],
+    queryFn: () => consumet.infoByTitle(navTitle),
+    enabled: !!navTitle,
+    retry: 1,
   });
 
   const anime = infoQuery.data;
-  const fav = anime ? isFavorite(anime.id) : false;
 
-  const title =
-    typeof anime?.title === "string"
-      ? anime.title
-      : (anime?.title as any)?.english ||
-        (anime?.title as any)?.romaji ||
-        (anime?.title as any)?.userPreferred ||
-        "Unknown";
+  const animeForFav: AnimeResult = {
+    id: params.id,
+    title: navTitle,
+    image: navImage,
+    cover: navCover || undefined,
+    rating: navRating,
+    type: params.type || undefined,
+    status: params.status || undefined,
+    genres: navGenres,
+  };
+
+  const fav = isFavorite(params.id);
 
   const handleFav = () => {
-    if (!anime) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    toggleFavorite(anime);
+    toggleFavorite(animeForFav);
   };
 
   const handleEpisode = async (episode: Episode) => {
-    if (!id) return;
+    if (!episode?.id) return;
     setLoadingEp(episode.id);
     try {
       const data = await consumet.streaming(episode.id);
       const best =
-        data.sources.find((s) => s.quality === "1080p") ||
-        data.sources.find((s) => s.quality === "720p") ||
-        data.sources[0];
+        data.sources?.find((s) => s.quality === "1080p") ||
+        data.sources?.find((s) => s.quality === "720p") ||
+        data.sources?.[0];
 
       if (!best) {
-        Alert.alert("No streams found", "Could not find a stream for this episode.");
+        Alert.alert("Sin streams", "No se encontró un stream para este episodio.");
         return;
       }
 
@@ -84,46 +103,25 @@ export default function DetailScreen() {
         if (canOpen) {
           await Linking.openURL(best.url);
         } else {
-          Alert.alert(
-            "Stream URL",
-            best.url,
-            [
-              { text: "Copy URL", onPress: () => {} },
-              { text: "OK" },
-            ]
-          );
+          Alert.alert("URL del stream", best.url);
         }
       }
-    } catch (err) {
-      Alert.alert("Error", "Could not load episode. Please try again.");
+    } catch {
+      Alert.alert("Error", "No se pudo cargar el episodio. Intenta de nuevo.");
     } finally {
       setLoadingEp(null);
     }
   };
 
   const topPad = Platform.OS === "web" ? 67 : 0;
-
-  if (infoQuery.isLoading) {
-    return (
-      <View style={[styles.center, { paddingTop: topPad + insets.top }]}>
-        <ActivityIndicator color={Colors.primary} size="large" />
-      </View>
-    );
-  }
-
-  if (infoQuery.isError || !anime) {
-    return (
-      <View style={[styles.center, { paddingTop: topPad + insets.top }]}>
-        <Feather name="alert-circle" size={40} color={Colors.error} />
-        <Text style={styles.errorText}>Failed to load anime info.</Text>
-        <Pressable style={styles.retryBtn} onPress={() => infoQuery.refetch()}>
-          <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  const episodes = anime.episodes ?? [];
+  const episodes = anime?.episodes ?? [];
+  const description =
+    (anime?.description || params.description || "").replace(/<[^>]+>/g, "");
+  const genres = anime?.genres?.length ? anime.genres : navGenres;
+  const rating = navRating;
+  const displayStatus = anime?.status || params.status;
+  const displayType = anime?.type || params.type;
+  const displayEps = anime?.totalEpisodes || (params.totalEpisodes ? parseInt(params.totalEpisodes) : undefined);
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -138,21 +136,21 @@ export default function DetailScreen() {
           <View>
             <View style={styles.coverContainer}>
               <Image
-                source={{ uri: anime.cover || anime.image }}
+                source={{ uri: navCover || navImage }}
                 style={styles.cover}
                 resizeMode="cover"
               />
               <View style={styles.coverOverlay} />
 
               <Pressable
-                style={[styles.backBtn, { top: insets.top + 12 }]}
+                style={[styles.backBtn, { top: insets.top + (Platform.OS === "web" ? 12 : 12) }]}
                 onPress={() => router.back()}
               >
                 <Feather name="arrow-left" size={20} color="#fff" />
               </Pressable>
 
               <Pressable
-                style={[styles.favBtn, { top: insets.top + 12 }]}
+                style={[styles.favBtn, { top: insets.top + (Platform.OS === "web" ? 12 : 12) }]}
                 onPress={handleFav}
               >
                 <Feather
@@ -165,78 +163,89 @@ export default function DetailScreen() {
 
             <View style={styles.heroRow}>
               <Image
-                source={{ uri: anime.image }}
+                source={{ uri: navImage }}
                 style={styles.poster}
                 resizeMode="cover"
               />
               <View style={styles.heroInfo}>
-                <Text style={styles.animeTitle}>{title}</Text>
+                <Text style={styles.animeTitle}>{navTitle}</Text>
                 <View style={styles.metaRow}>
-                  {anime.rating && (
+                  {rating !== undefined && rating > 0 && (
                     <View style={styles.ratingBadge}>
                       <Feather name="star" size={12} color={Colors.warning} />
                       <Text style={styles.ratingText}>
-                        {typeof anime.rating === "number"
-                          ? (anime.rating / 10).toFixed(1)
-                          : anime.rating}
+                        {(rating / 10).toFixed(1)}
                       </Text>
                     </View>
                   )}
-                  {anime.type && (
+                  {displayType && (
                     <View style={styles.typeBadge}>
-                      <Text style={styles.typeText}>{anime.type}</Text>
+                      <Text style={styles.typeText}>{displayType}</Text>
                     </View>
                   )}
-                  {anime.status && (
+                  {displayStatus && (
                     <View
                       style={[
                         styles.statusBadge,
-                        anime.status === "Ongoing" && styles.statusOngoing,
+                        displayStatus === "Ongoing" && styles.statusOngoing,
                       ]}
                     >
-                      <Text style={styles.statusText}>{anime.status}</Text>
+                      <Text style={styles.statusText}>{displayStatus}</Text>
                     </View>
                   )}
                 </View>
-                {anime.releaseDate && (
-                  <Text style={styles.metaLabel}>
-                    <Feather name="calendar" size={11} color={Colors.textMuted} />{" "}
-                    {anime.releaseDate}
-                  </Text>
+                {params.releaseDate && params.releaseDate !== "undefined" && (
+                  <Text style={styles.metaLabel}>📅 {params.releaseDate}</Text>
                 )}
-                {anime.totalEpisodes && (
-                  <Text style={styles.metaLabel}>
-                    <Feather name="tv" size={11} color={Colors.textMuted} />{" "}
-                    {anime.totalEpisodes} Episodes
-                  </Text>
+                {displayEps && (
+                  <Text style={styles.metaLabel}>📺 {displayEps} Episodios</Text>
                 )}
               </View>
             </View>
 
-            {anime.genres && anime.genres.length > 0 && (
+            {genres.length > 0 && (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.genresScroll}
                 contentContainerStyle={styles.genresContent}
               >
-                {anime.genres.map((g) => (
+                {genres.map((g) => (
                   <GenreBadge key={g} genre={g} />
                 ))}
               </ScrollView>
             )}
 
-            {anime.description && (
+            {description.length > 0 && (
               <View style={styles.descSection}>
-                <Text style={styles.sectionLabel}>Synopsis</Text>
-                <Text style={styles.desc}>{anime.description.replace(/<[^>]+>/g, "")}</Text>
+                <Text style={styles.sectionLabel}>Sinopsis</Text>
+                <Text style={styles.desc}>{description}</Text>
               </View>
             )}
 
             <View style={styles.episodesHeader}>
-              <Text style={styles.sectionLabel}>Episodes</Text>
-              <Text style={styles.episodeCount}>{episodes.length} total</Text>
+              <Text style={styles.sectionLabel}>Episodios</Text>
+              {infoQuery.isLoading ? (
+                <ActivityIndicator color={Colors.primary} size="small" />
+              ) : (
+                <Text style={styles.episodeCount}>{episodes.length} total</Text>
+              )}
             </View>
+
+            {infoQuery.isError && (
+              <View style={styles.errorEps}>
+                <Feather name="alert-circle" size={20} color={Colors.error} />
+                <Text style={styles.errorEpsText}>
+                  No se pudieron cargar los episodios
+                </Text>
+                <Pressable
+                  style={styles.retrySmall}
+                  onPress={() => infoQuery.refetch()}
+                >
+                  <Text style={styles.retrySmallText}>Reintentar</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         }
         renderItem={({ item }) => (
@@ -254,10 +263,12 @@ export default function DetailScreen() {
           </View>
         )}
         ListEmptyComponent={
-          <View style={styles.emptyEps}>
-            <Feather name="tv" size={32} color={Colors.textMuted} />
-            <Text style={styles.emptyEpsText}>No episodes available</Text>
-          </View>
+          !infoQuery.isLoading && !infoQuery.isError ? (
+            <View style={styles.emptyEps}>
+              <Feather name="tv" size={32} color={Colors.textMuted} />
+              <Text style={styles.emptyEpsText}>Sin episodios disponibles</Text>
+            </View>
+          ) : null
         }
       />
     </View>
@@ -269,16 +280,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bg,
   },
-  center: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
   coverContainer: {
     width: "100%",
-    height: COVER_HEIGHT,
+    height: 260,
     position: "relative",
   },
   cover: {
@@ -287,19 +291,19 @@ const styles = StyleSheet.create({
   },
   coverOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(13,13,13,0.5)",
+    backgroundColor: "rgba(13,13,13,0.45)",
   },
   backBtn: {
     position: "absolute",
     left: 16,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.55)",
     padding: 8,
     borderRadius: 10,
   },
   favBtn: {
     position: "absolute",
     right: 16,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.55)",
     padding: 8,
     borderRadius: 10,
   },
@@ -395,6 +399,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     paddingHorizontal: 16,
+    marginBottom: 8,
   },
   desc: {
     color: Colors.textSecondary,
@@ -428,18 +433,26 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 15,
   },
-  errorText: {
+  errorEps: {
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+  },
+  errorEpsText: {
     color: Colors.textSecondary,
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: "center",
   },
-  retryBtn: {
+  retrySmall: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
-  retryText: {
+  retrySmallText: {
     color: "#fff",
     fontWeight: "600",
+    fontSize: 13,
   },
 });

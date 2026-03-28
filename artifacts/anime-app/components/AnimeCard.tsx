@@ -31,7 +31,29 @@ function AnimeCard({ anime, compact }: Props) {
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: "/detail/[id]", params: { id: anime.id } });
+    const resolvedTitle =
+      typeof anime.title === "string"
+        ? anime.title
+        : (anime.title as any)?.english ||
+          (anime.title as any)?.romaji ||
+          (anime.title as any)?.userPreferred ||
+          "Unknown";
+    router.push({
+      pathname: "/detail/[id]",
+      params: {
+        id: anime.id,
+        title: resolvedTitle,
+        image: anime.image,
+        cover: anime.cover || "",
+        rating: String(anime.rating ?? ""),
+        type: anime.type ?? "",
+        status: anime.status ?? "",
+        releaseDate: String(anime.releaseDate ?? ""),
+        totalEpisodes: String(anime.totalEpisodes ?? ""),
+        description: anime.description ?? "",
+        genres: JSON.stringify(anime.genres ?? []),
+      },
+    });
   };
 
   const handleFav = (e: any) => {
