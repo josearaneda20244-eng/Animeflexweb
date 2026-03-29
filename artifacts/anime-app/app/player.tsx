@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -28,36 +28,42 @@ type Params = {
 const { width } = Dimensions.get("window");
 const VIDEO_HEIGHT = Math.round(width * (9 / 16));
 
+// Resolution priority for sorting — higher index = lower priority
+const RES_PRIORITY = ["2160", "1080", "720", "480", "360"];
+
 function isDub(src: StreamingSource): boolean {
   const q = (src.quality ?? "").toLowerCase();
   return q.includes("eng") || q.includes("dub");
 }
 
-function parseQuality(src: StreamingSource): string {
-  const q = (src.quality ?? "").trim();
-  if (!q) return "Auto";
-  // Extract resolution like 360p / 720p / 1080p
-  const match = q.match(/(\d{3,4}p)/i);
-  if (match) return match[1];
-  return q;
+function parseResolution(src: StreamingSource): string {
+  const q = src.quality ?? "";
+  const m = q.match(/(\d{3,4})p/i);
+  if (m) return m[1] + "p";
+  // Try bare number (e.g. "800" without 'p')
+  const m2 = q.match(/\b(\d{3,4})\b/);
+  if (m2) return m2[1] + "p";
+  return q.trim() || "Auto";
 }
 
 function sortSources(sources: StreamingSource[]): StreamingSource[] {
-  const priority = ["1080", "720", "480", "360"];
   return [...sources].sort((a, b) => {
+    // Subs before dubs
     const subA = isDub(a) ? 1 : 0;
     const subB = isDub(b) ? 1 : 0;
     if (subA !== subB) return subA - subB;
-    const ia = priority.findIndex((p) => (a.quality ?? "").includes(p));
-    const ib = priority.findIndex((p) => (b.quality ?? "").includes(p));
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    // Higher resolution first
+    const res = (s: StreamingSource) => {
+      const m = (s.quality ?? "").match(/(\d{3,4})/);
+      return m ? parseInt(m[1]) : 0;
+    };
+    return res(b) - res(a);
   });
 }
 
-// On web we must proxy the stream (adds Referer headers, fixes CORS).
-// On native, expo-video can send headers directly.
-function getVideoUri(src: StreamingSource, headers: Record<string, string>): string {
-  if (Platform.OS === "web") {
+// Build the video URI — always proxy on web (fixes CORS + decrypts AES-128)
+function buildUri(src: StreamingSource): string {
+  if (Platform.OS === "web" || src.isM3U8) {
     return proxyStreamUrl(src.url);
   }
   return src.url;
@@ -67,7 +73,6 @@ export default function PlayerScreen() {
   const params = useLocalSearchParams<Params>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const videoRef = useRef<React.ComponentRef<typeof VideoView>>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
 
   const query = useQuery({
@@ -79,12 +84,16 @@ export default function PlayerScreen() {
   });
 
   const sources = query.data ? sortSources(query.data.sources ?? []) : [];
-  const headers = query.data?.headers ?? {};
+  const nativeHeaders =
+    Platform.OS !== "web" ? (query.data?.headers ?? {}) : {};
   const selected = sources[selectedIdx] ?? null;
 
-  const videoUri = selected ? getVideoUri(selected, headers) : null;
+  // Reset quality selection when episode changes
+  useEffect(() => {
+    setSelectedIdx(0);
+  }, [params.episodeId]);
 
-  const nativeHeaders = Platform.OS !== "web" ? headers : {};
+  const videoUri = selected ? buildUri(selected) : null;
 
   const player = useVideoPlayer(
     videoUri ? { uri: videoUri, headers: nativeHeaders } : null,
@@ -94,23 +103,18 @@ export default function PlayerScreen() {
     }
   );
 
-  // When source changes, swap to the new one and resume playback
+  // Swap source when quality changes
   useEffect(() => {
     if (!player || !videoUri) return;
     player.replace({ uri: videoUri, headers: nativeHeaders });
     player.play();
   }, [videoUri]);
 
-  // Auto-select first source once loaded
-  useEffect(() => {
-    if (sources.length > 0) setSelectedIdx(0);
-  }, [sources.length]);
-
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
-      {/* Header bar */}
+      {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <Feather name="arrow-left" size={20} color="#fff" />
@@ -123,35 +127,32 @@ export default function PlayerScreen() {
         </View>
       </View>
 
-      {/* Video area */}
-      <View style={[styles.playerWrapper, { height: VIDEO_HEIGHT }]}>
+      {/* Player area */}
+      <View style={[styles.playerArea, { height: VIDEO_HEIGHT }]}>
         {query.isLoading && (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Cargando fuentes...</Text>
+            <Text style={styles.hint}>Cargando episodio...</Text>
           </View>
         )}
-
         {query.isError && (
           <View style={styles.centered}>
             <Feather name="alert-circle" size={40} color={Colors.error} />
-            <Text style={styles.errorText}>No se pudo cargar el episodio</Text>
+            <Text style={styles.errorMsg}>No se pudo cargar el episodio</Text>
             <Pressable style={styles.retryBtn} onPress={() => query.refetch()}>
               <Text style={styles.retryText}>Reintentar</Text>
             </Pressable>
           </View>
         )}
-
         {!query.isLoading && !query.isError && !selected && (
           <View style={styles.centered}>
             <Feather name="tv" size={40} color={Colors.textMuted} />
-            <Text style={styles.noSourceText}>Sin fuentes disponibles</Text>
+            <Text style={styles.hint}>Sin fuentes disponibles</Text>
           </View>
         )}
-
         {selected && player && (
           <VideoView
-            ref={videoRef}
+            key={videoUri ?? "no-src"}
             player={player}
             style={styles.video}
             contentFit="contain"
@@ -162,18 +163,18 @@ export default function PlayerScreen() {
         )}
       </View>
 
-      {/* Quality selector + info */}
+      {/* Controls below the player */}
       <ScrollView
-        style={styles.content}
+        style={styles.scroll}
         contentContainerStyle={[
-          styles.contentInner,
+          styles.scrollContent,
           { paddingBottom: 40 + insets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
       >
         {sources.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Calidad de video</Text>
+            <Text style={styles.sectionTitle}>Calidad</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -182,20 +183,25 @@ export default function PlayerScreen() {
               {sources.map((src, i) => {
                 const active = i === selectedIdx;
                 const dub = isDub(src);
-                const label = parseQuality(src);
+                const label = parseResolution(src);
                 return (
                   <TouchableOpacity
                     key={i}
-                    style={[styles.qualityBtn, active && styles.qualityBtnActive]}
+                    style={[styles.qualityBtn, active && styles.qualityActive]}
                     onPress={() => setSelectedIdx(i)}
-                    activeOpacity={0.75}
+                    activeOpacity={0.7}
                   >
-                    <Text style={[styles.qualityLabel, active && styles.qualityLabelActive]}>
+                    <Text
+                      style={[
+                        styles.qualityLabel,
+                        active && styles.qualityLabelActive,
+                      ]}
+                    >
                       {label}
                     </Text>
                     {dub && (
                       <View style={styles.dubTag}>
-                        <Text style={styles.dubTagText}>DUB</Text>
+                        <Text style={styles.dubText}>DUB</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -205,26 +211,22 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* Subtitle tracks */}
         {(query.data?.subtitles ?? []).length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Subtítulos disponibles</Text>
-            <View style={styles.subList}>
-              {query.data!.subtitles!.map((sub, i) => (
-                <View key={i} style={styles.subRow}>
-                  <Feather name="type" size={13} color={Colors.primary} />
-                  <Text style={styles.subText}>{sub.lang}</Text>
-                </View>
-              ))}
-            </View>
+            <Text style={styles.sectionTitle}>Subtítulos</Text>
+            {query.data!.subtitles!.map((sub, i) => (
+              <View key={i} style={styles.subRow}>
+                <Feather name="type" size={13} color={Colors.primary} />
+                <Text style={styles.subText}>{sub.lang}</Text>
+              </View>
+            ))}
           </View>
         )}
 
-        {/* Info card */}
         <View style={styles.infoCard}>
-          <Feather name="info" size={14} color={Colors.textMuted} />
+          <Feather name="maximize" size={14} color={Colors.textMuted} />
           <Text style={styles.infoText}>
-            Usa los controles del reproductor para pausa, avanzar y pantalla completa.
+            Toca el video para ver los controles. Usa el ícono de pantalla completa para una mejor experiencia.
           </Text>
         </View>
       </ScrollView>
@@ -233,10 +235,7 @@ export default function PlayerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000",
-  },
+  container: { flex: 1, backgroundColor: "#000" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -253,79 +252,40 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   headerInfo: { flex: 1 },
-  headerAnime: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "700",
-    lineHeight: 20,
-  },
-  headerEp: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  playerWrapper: {
+  headerAnime: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  headerEp: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
+  playerArea: {
     width: "100%",
     backgroundColor: "#000",
     alignItems: "center",
     justifyContent: "center",
   },
-  video: {
-    width: "100%",
-    height: "100%",
-  },
+  video: { width: "100%", height: "100%" },
   centered: {
     flex: 1,
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
     gap: 14,
-    width: "100%",
   },
-  loadingText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-  },
-  errorText: {
-    color: Colors.error,
-    fontSize: 15,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  noSourceText: {
-    color: Colors.textMuted,
-    fontSize: 15,
-  },
+  hint: { color: Colors.textSecondary, fontSize: 14 },
+  errorMsg: { color: Colors.error, fontSize: 15, fontWeight: "600" },
   retryBtn: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 10,
   },
-  retryText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  content: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-  },
-  contentInner: {
-    padding: 20,
-    gap: 24,
-  },
-  section: {
-    gap: 12,
-  },
+  retryText: { color: "#fff", fontWeight: "700" },
+  scroll: { flex: 1, backgroundColor: Colors.bg },
+  scrollContent: { padding: 20, gap: 20 },
+  section: { gap: 12 },
   sectionTitle: {
     color: Colors.textPrimary,
     fontSize: 15,
     fontWeight: "700",
   },
-  qualityRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
+  qualityRow: { gap: 10, flexDirection: "row" },
   qualityBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -337,7 +297,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
-  qualityBtnActive: {
+  qualityActive: {
     backgroundColor: Colors.primary + "20",
     borderColor: Colors.primary,
   },
@@ -346,33 +306,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  qualityLabelActive: {
-    color: Colors.primary,
-  },
+  qualityLabelActive: { color: Colors.primary },
   dubTag: {
     backgroundColor: Colors.secondary + "30",
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  dubTagText: {
-    color: Colors.secondary,
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  subList: {
-    gap: 6,
-  },
-  subRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  subText: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-  },
+  dubText: { color: Colors.secondary, fontSize: 9, fontWeight: "800" },
+  subRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  subText: { color: Colors.textSecondary, fontSize: 13 },
   infoCard: {
     flexDirection: "row",
     alignItems: "flex-start",

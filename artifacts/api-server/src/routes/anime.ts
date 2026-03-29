@@ -1,4 +1,5 @@
 import { ANIME, META } from "@consumet/extensions";
+import { createDecipheriv } from "crypto";
 import { Readable } from "stream";
 import { Router, type IRouter } from "express";
 
@@ -21,7 +22,9 @@ function titleVariants(title: string): string[] {
   const variants: string[] = [title];
   const noPart = title.replace(/[\s:,\-–]+Part\s+\d+\s*$/i, "").trim();
   if (noPart !== title) variants.push(noPart);
-  const noSeason = title.replace(/[\s:,\-–]+(Season\s+\d+|\d+(st|nd|rd|th)\s+Season)\s*$/i, "").trim();
+  const noSeason = title
+    .replace(/[\s:,\-–]+(Season\s+\d+|\d+(st|nd|rd|th)\s+Season)\s*$/i, "")
+    .trim();
   if (noSeason !== title && noSeason !== noPart) variants.push(noSeason);
   const colonIdx = title.indexOf(":");
   if (colonIdx > 0) {
@@ -40,24 +43,39 @@ const PROXY_HEADERS = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
 };
 
-function getProxyBase(req: any): string {
-  // Client passes ?base=<their-own-proxy-url> so we rewrite m3u8 correctly
-  const clientBase = req.query.base as string | undefined;
-  if (clientBase) return decodeURIComponent(clientBase);
+// Simple in-memory key cache (keys are small, 16 bytes each)
+const keyCache = new Map<string, Buffer>();
 
-  // Fallback: use x-forwarded headers set by the Replit proxy
-  const proto =
-    (req.headers["x-forwarded-proto"] as string) ||
-    req.protocol ||
-    "https";
-  const host =
-    (req.headers["x-forwarded-host"] as string) ||
-    req.headers.host ||
-    "localhost";
-  return `${proto}://${host}/api/anime/hls-proxy`;
+async function fetchKey(keyUrl: string): Promise<Buffer> {
+  if (keyCache.has(keyUrl)) return keyCache.get(keyUrl)!;
+  const resp = await fetch(keyUrl, { headers: PROXY_HEADERS });
+  if (!resp.ok) throw new Error(`Key fetch failed: ${resp.status}`);
+  const buf = Buffer.from(await resp.arrayBuffer());
+  keyCache.set(keyUrl, buf);
+  // Evict oldest if cache grows too large
+  if (keyCache.size > 200) {
+    const firstKey = keyCache.keys().next().value;
+    if (firstKey) keyCache.delete(firstKey);
+  }
+  return buf;
 }
 
-// HLS proxy — pipes streams with proper headers and rewrites m3u8 playlists
+function makeIV(seq: number): Buffer {
+  const iv = Buffer.alloc(16, 0);
+  iv.writeUInt32BE(seq, 12);
+  return iv;
+}
+
+/**
+ * HLS Proxy — serves m3u8 playlists and decrypts AES-128 segments on the fly.
+ *
+ * For m3u8 files:
+ *   - Removes the #EXT-X-KEY encryption header (client won't see encrypted content)
+ *   - Rewrites segment URLs to point at this proxy with the key and sequence number
+ *
+ * For segment files:
+ *   - Fetches from CDN, decrypts with AES-128-CBC, returns raw MPEG-TS
+ */
 router.get("/anime/hls-proxy", async (req, res) => {
   const rawUrl = req.query.url as string;
   if (!rawUrl) {
@@ -73,29 +91,55 @@ router.get("/anime/hls-proxy", async (req, res) => {
     return;
   }
 
+  // The key and sequence are set when this proxy URL was generated for a segment
+  const rawKey = req.query.key as string | undefined;
+  const seq = parseInt((req.query.seq as string) || "0", 10);
+
   try {
     const upstream = await fetch(targetUrl, { headers: PROXY_HEADERS });
-
     if (!upstream.ok) {
       res.status(upstream.status).send(`Upstream error: ${upstream.status}`);
       return;
     }
 
-    const contentType = upstream.headers.get("content-type") ?? "application/octet-stream";
+    const contentType = upstream.headers.get("content-type") ?? "";
     const isM3U8 =
       targetUrl.includes(".m3u8") ||
       contentType.includes("mpegurl") ||
       contentType.includes("x-mpegURL");
 
     res.set("Access-Control-Allow-Origin", "*");
-    res.set("Cache-Control", "public, max-age=60");
+    res.set("Cache-Control", "public, max-age=300");
 
     if (isM3U8) {
+      // --- Playlist rewriting ---
       res.set("Content-Type", "application/vnd.apple.mpegurl");
       const text = await upstream.text();
       const baseUrl = targetUrl.slice(0, targetUrl.lastIndexOf("/") + 1);
-      const proxyBase = getProxyBase(req);
-      const selfUrl = `${proxyBase}?url=`;
+
+      // Determine the self-base for rewriting links
+      const clientBase = req.query.base as string | undefined;
+      const selfBase = clientBase
+        ? decodeURIComponent(clientBase)
+        : (() => {
+            const proto =
+              (req.headers["x-forwarded-proto"] as string) ||
+              req.protocol ||
+              "https";
+            const host =
+              (req.headers["x-forwarded-host"] as string) ||
+              req.headers.host ||
+              "localhost";
+            return `${proto}://${host}/api/anime/hls-proxy`;
+          })();
+
+      let currentKeyUrl = "";
+      let mediaSeq = 0;
+      let segCount = 0;
+
+      // Parse #EXT-X-MEDIA-SEQUENCE
+      const seqMatch = text.match(/#EXT-X-MEDIA-SEQUENCE:(\d+)/);
+      if (seqMatch) mediaSeq = parseInt(seqMatch[1], 10);
 
       const rewritten = text
         .split("\n")
@@ -103,27 +147,67 @@ router.get("/anime/hls-proxy", async (req, res) => {
           const trimmed = line.trim();
           if (trimmed === "") return line;
 
-          // Rewrite encryption key URI inside #EXT-X-KEY line
+          // Capture current key URL — but remove from output (server decrypts)
           if (trimmed.startsWith("#EXT-X-KEY")) {
-            return line.replace(/URI="([^"]+)"/, (_match, uri) => {
-              const absUri = uri.startsWith("http") ? uri : baseUrl + uri;
-              return `URI="${selfUrl}${encodeURIComponent(absUri)}"`;
-            });
+            const uriMatch = trimmed.match(/URI="([^"]+)"/);
+            if (uriMatch) {
+              currentKeyUrl = uriMatch[1].startsWith("http")
+                ? uriMatch[1]
+                : baseUrl + uriMatch[1];
+            }
+            // Strip the key tag — client receives plain MPEG-TS
+            return "";
           }
 
-          // Skip other # lines
+          // Leave other # tags alone
           if (trimmed.startsWith("#")) return line;
 
-          // Segment URL lines
-          const absUrl = trimmed.startsWith("http") ? trimmed : baseUrl + trimmed;
-          return selfUrl + encodeURIComponent(absUrl);
+          // Segment URL
+          const absSegUrl = trimmed.startsWith("http")
+            ? trimmed
+            : baseUrl + trimmed;
+          const segSeq = mediaSeq + segCount;
+          segCount++;
+
+          let newUrl = `${selfBase}?url=${encodeURIComponent(absSegUrl)}&seq=${segSeq}`;
+          if (currentKeyUrl) {
+            newUrl += `&key=${encodeURIComponent(currentKeyUrl)}`;
+            // Also pass base so sub-playlists are handled (multi-bitrate)
+            newUrl += `&base=${encodeURIComponent(selfBase)}`;
+          }
+          return newUrl;
         })
         .join("\n");
 
       res.send(rewritten);
+    } else if (rawKey) {
+      // --- Encrypted segment: decrypt and serve ---
+      const keyUrl = decodeURIComponent(rawKey);
+      const [key, encryptedBuf] = await Promise.all([
+        fetchKey(keyUrl),
+        upstream.arrayBuffer().then((b) => Buffer.from(b)),
+      ]);
+
+      const iv = makeIV(seq);
+      try {
+        const decipher = createDecipheriv("aes-128-cbc", key, iv);
+        const decrypted = Buffer.concat([
+          decipher.update(encryptedBuf),
+          decipher.final(),
+        ]);
+        res.set("Content-Type", "video/MP2T");
+        res.set("Content-Length", String(decrypted.length));
+        res.send(decrypted);
+      } catch {
+        // Decryption failed — serve raw and let the player figure it out
+        res.set("Content-Type", "video/MP2T");
+        res.send(encryptedBuf);
+      }
     } else {
-      // Binary data — pipe directly (segments, keys, etc.)
-      res.set("Content-Type", contentType);
+      // --- Unencrypted binary (key file, unencrypted segments) ---
+      const cl = upstream.headers.get("content-length");
+      if (cl) res.set("Content-Length", cl);
+      res.set("Content-Type", contentType || "application/octet-stream");
       const nodeStream = Readable.fromWeb(upstream.body as any);
       nodeStream.pipe(res);
     }
