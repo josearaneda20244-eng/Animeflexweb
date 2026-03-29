@@ -28,9 +28,6 @@ type Params = {
 const { width } = Dimensions.get("window");
 const VIDEO_HEIGHT = Math.round(width * (9 / 16));
 
-// Resolution priority for sorting — higher index = lower priority
-const RES_PRIORITY = ["2160", "1080", "720", "480", "360"];
-
 function isDub(src: StreamingSource): boolean {
   const q = (src.quality ?? "").toLowerCase();
   return q.includes("eng") || q.includes("dub");
@@ -40,7 +37,6 @@ function parseResolution(src: StreamingSource): string {
   const q = src.quality ?? "";
   const m = q.match(/(\d{3,4})p/i);
   if (m) return m[1] + "p";
-  // Try bare number (e.g. "800" without 'p')
   const m2 = q.match(/\b(\d{3,4})\b/);
   if (m2) return m2[1] + "p";
   return q.trim() || "Auto";
@@ -48,11 +44,9 @@ function parseResolution(src: StreamingSource): string {
 
 function sortSources(sources: StreamingSource[]): StreamingSource[] {
   return [...sources].sort((a, b) => {
-    // Subs before dubs
     const subA = isDub(a) ? 1 : 0;
     const subB = isDub(b) ? 1 : 0;
     if (subA !== subB) return subA - subB;
-    // Higher resolution first
     const res = (s: StreamingSource) => {
       const m = (s.quality ?? "").match(/(\d{3,4})/);
       return m ? parseInt(m[1]) : 0;
@@ -61,14 +55,84 @@ function sortSources(sources: StreamingSource[]): StreamingSource[] {
   });
 }
 
-// Build the video URI — always proxy on web (fixes CORS + decrypts AES-128)
-function buildUri(src: StreamingSource): string {
-  if (Platform.OS === "web" || src.isM3U8) {
-    return proxyStreamUrl(src.url);
-  }
-  return src.url;
+function proxyUrl(src: StreamingSource): string {
+  return proxyStreamUrl(src.url);
 }
 
+function buildEmbedUrl(
+  m3u8ProxyUrl: string,
+  apiBase: string,
+  title: string
+): string {
+  return (
+    `${apiBase}/api/anime/player-embed` +
+    `?m3u8=${encodeURIComponent(m3u8ProxyUrl)}` +
+    `&title=${encodeURIComponent(title)}`
+  );
+}
+
+// ─── Web iframe player ────────────────────────────────────────────────────────
+function WebPlayer({
+  embedUrl,
+  height,
+}: {
+  embedUrl: string;
+  height: number;
+}) {
+  return (
+    <iframe
+      key={embedUrl}
+      src={embedUrl}
+      style={{
+        width: "100%",
+        height,
+        border: "none",
+        background: "#000",
+        display: "block",
+      }}
+      allow="autoplay; fullscreen"
+      allowFullScreen
+    />
+  );
+}
+
+// ─── Native video player ──────────────────────────────────────────────────────
+function NativePlayer({
+  src,
+  headers,
+}: {
+  src: StreamingSource;
+  headers: Record<string, string>;
+}) {
+  const uri = src.isM3U8 ? proxyUrl(src) : src.url;
+
+  const player = useVideoPlayer(
+    { uri, headers },
+    (p) => {
+      p.loop = false;
+      p.play();
+    }
+  );
+
+  useEffect(() => {
+    player.replace({ uri, headers });
+    player.play();
+  }, [uri]);
+
+  return (
+    <VideoView
+      key={uri}
+      player={player}
+      style={styles.video}
+      contentFit="contain"
+      allowsFullscreen
+      allowsPictureInPicture
+      nativeControls
+    />
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function PlayerScreen() {
   const params = useLocalSearchParams<Params>();
   const router = useRouter();
@@ -88,29 +152,27 @@ export default function PlayerScreen() {
     Platform.OS !== "web" ? (query.data?.headers ?? {}) : {};
   const selected = sources[selectedIdx] ?? null;
 
-  // Reset quality selection when episode changes
   useEffect(() => {
     setSelectedIdx(0);
   }, [params.episodeId]);
 
-  const videoUri = selected ? buildUri(selected) : null;
+  // API base URL (for the embed endpoint)
+  const apiBase = (() => {
+    const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
+    return domain ? `https://${domain}` : "";
+  })();
 
-  const player = useVideoPlayer(
-    videoUri ? { uri: videoUri, headers: nativeHeaders } : null,
-    (p) => {
-      p.loop = false;
-      if (videoUri) p.play();
-    }
-  );
-
-  // Swap source when quality changes
-  useEffect(() => {
-    if (!player || !videoUri) return;
-    player.replace({ uri: videoUri, headers: nativeHeaders });
-    player.play();
-  }, [videoUri]);
+  const proxyM3u8 = selected ? proxyUrl(selected) : null;
+  const embedUrl =
+    Platform.OS === "web" && proxyM3u8
+      ? buildEmbedUrl(proxyM3u8, apiBase, params.animeTitle ?? "")
+      : null;
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+
+  const isLoading = query.isLoading;
+  const isError = query.isError;
+  const hasSource = !!selected;
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -129,13 +191,13 @@ export default function PlayerScreen() {
 
       {/* Player area */}
       <View style={[styles.playerArea, { height: VIDEO_HEIGHT }]}>
-        {query.isLoading && (
+        {isLoading && (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text style={styles.hint}>Cargando episodio...</Text>
           </View>
         )}
-        {query.isError && (
+        {isError && (
           <View style={styles.centered}>
             <Feather name="alert-circle" size={40} color={Colors.error} />
             <Text style={styles.errorMsg}>No se pudo cargar el episodio</Text>
@@ -144,26 +206,24 @@ export default function PlayerScreen() {
             </Pressable>
           </View>
         )}
-        {!query.isLoading && !query.isError && !selected && (
+        {!isLoading && !isError && !hasSource && (
           <View style={styles.centered}>
             <Feather name="tv" size={40} color={Colors.textMuted} />
             <Text style={styles.hint}>Sin fuentes disponibles</Text>
           </View>
         )}
-        {selected && player && (
-          <VideoView
-            key={videoUri ?? "no-src"}
-            player={player}
-            style={styles.video}
-            contentFit="contain"
-            allowsFullscreen
-            allowsPictureInPicture
-            nativeControls
-          />
+        {!isLoading && !isError && hasSource && (
+          <>
+            {Platform.OS === "web" && embedUrl ? (
+              <WebPlayer embedUrl={embedUrl} height={VIDEO_HEIGHT} />
+            ) : (
+              <NativePlayer src={selected!} headers={nativeHeaders} />
+            )}
+          </>
         )}
       </View>
 
-      {/* Controls below the player */}
+      {/* Controls */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -224,9 +284,10 @@ export default function PlayerScreen() {
         )}
 
         <View style={styles.infoCard}>
-          <Feather name="maximize" size={14} color={Colors.textMuted} />
+          <Feather name="info" size={14} color={Colors.textMuted} />
           <Text style={styles.infoText}>
-            Toca el video para ver los controles. Usa el ícono de pantalla completa para una mejor experiencia.
+            Usa el botón de pantalla completa del reproductor para una mejor
+            experiencia. Puedes adelantar y retroceder libremente.
           </Text>
         </View>
       </ScrollView>

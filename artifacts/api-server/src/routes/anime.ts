@@ -218,6 +218,167 @@ router.get("/anime/hls-proxy", async (req, res) => {
   }
 });
 
+/**
+ * Serves a self-contained HTML page that plays an HLS stream using HLS.js.
+ * HLS.js supports full seeking in any browser, unlike native <video>.
+ *
+ * Query params:
+ *   m3u8  — the (encoded) proxy URL of the m3u8 playlist
+ *   title — optional string shown in the page title
+ */
+router.get("/anime/player-embed", (req, res) => {
+  const rawM3u8 = req.query.m3u8 as string;
+  if (!rawM3u8) {
+    res.status(400).send("m3u8 param required");
+    return;
+  }
+
+  let m3u8Url: string;
+  try {
+    m3u8Url = decodeURIComponent(rawM3u8);
+  } catch {
+    res.status(400).send("Invalid m3u8 param");
+    return;
+  }
+
+  const title = (req.query.title as string | undefined) ?? "AniFlow";
+
+  res.set("Content-Type", "text/html; charset=utf-8");
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("X-Frame-Options", "ALLOWALL");
+  res.set("Cache-Control", "no-cache");
+
+  // language=html
+  res.send(`<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>${title.replace(/</g, "&lt;")}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+    #wrap { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    video { width: 100%; height: 100%; object-fit: contain; outline: none; }
+    #overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; color: #fff; font-family: system-ui, sans-serif;
+      font-size: 14px; text-align: center; padding: 20px;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+    #overlay.hidden { opacity: 0; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(255,255,255,.2);
+      border-top-color: #a855f7;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #errMsg { color: #f87171; font-weight: 600; }
+    #retryBtn {
+      display: none; pointer-events: all;
+      background: #a855f7; color: #fff; border: none;
+      padding: 8px 22px; border-radius: 8px;
+      cursor: pointer; font-size: 14px; font-weight: 600;
+    }
+    #retryBtn:hover { background: #9333ea; }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <video id="v" controls playsinline></video>
+  <div id="overlay">
+    <div class="spinner" id="spinner"></div>
+    <span id="msg">Cargando...</span>
+    <span id="errMsg"></span>
+    <button id="retryBtn" onclick="load()">Reintentar</button>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.18/dist/hls.min.js"></script>
+<script>
+  const SRC = ${JSON.stringify(m3u8Url)};
+  const video = document.getElementById('v');
+  const overlay = document.getElementById('overlay');
+  const spinner = document.getElementById('spinner');
+  const msg = document.getElementById('msg');
+  const errMsg = document.getElementById('errMsg');
+  const retryBtn = document.getElementById('retryBtn');
+  let hls;
+
+  function showError(text) {
+    spinner.style.display = 'none';
+    msg.textContent = '';
+    errMsg.textContent = text;
+    retryBtn.style.display = 'inline-block';
+  }
+
+  function hideOverlay() {
+    overlay.classList.add('hidden');
+  }
+
+  function load() {
+    errMsg.textContent = '';
+    retryBtn.style.display = 'none';
+    spinner.style.display = '';
+    msg.textContent = 'Cargando...';
+    overlay.classList.remove('hidden');
+
+    if (hls) { hls.destroy(); hls = null; }
+
+    if (Hls.isSupported()) {
+      hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        maxBufferLength: 60,
+        maxMaxBufferLength: 180,
+        startLevel: -1,
+        abrEwmaDefaultEstimate: 1500000,
+        fragLoadingTimeOut: 30000,
+        manifestLoadingTimeOut: 30000,
+      });
+      hls.loadSource(SRC);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        hideOverlay();
+        video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              showError('Error al reproducir el video. Intenta de nuevo.');
+              break;
+          }
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari native HLS
+      video.src = SRC;
+      video.addEventListener('loadedmetadata', () => {
+        hideOverlay();
+        video.play().catch(() => {});
+      }, { once: true });
+    } else {
+      showError('Tu navegador no soporta reproducción de video HLS.');
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>`);
+});
+
 router.get("/anime/trending", async (req, res) => {
   try {
     const data = await getAnilist().fetchTrendingAnime(1, 24);
