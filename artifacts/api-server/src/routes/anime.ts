@@ -1,4 +1,5 @@
 import { ANIME, META } from "@consumet/extensions";
+import { Readable } from "stream";
 import { Router, type IRouter } from "express";
 
 const router: IRouter = Router();
@@ -18,28 +19,120 @@ function getAnimePahe() {
 
 function titleVariants(title: string): string[] {
   const variants: string[] = [title];
-
-  // Remove "Part X" suffix
   const noPart = title.replace(/[\s:,\-–]+Part\s+\d+\s*$/i, "").trim();
   if (noPart !== title) variants.push(noPart);
-
-  // Remove "Season X" or "Xrd Season" suffix
   const noSeason = title.replace(/[\s:,\-–]+(Season\s+\d+|\d+(st|nd|rd|th)\s+Season)\s*$/i, "").trim();
   if (noSeason !== title && noSeason !== noPart) variants.push(noSeason);
-
-  // Remove subtitle after colon
   const colonIdx = title.indexOf(":");
   if (colonIdx > 0) {
     const beforeColon = title.slice(0, colonIdx).trim();
     if (!variants.includes(beforeColon)) variants.push(beforeColon);
   }
-
-  // First 4 words
   const words = title.split(" ").slice(0, 4).join(" ");
   if (!variants.includes(words) && words.length > 3) variants.push(words);
-
   return [...new Set(variants)];
 }
+
+const PROXY_HEADERS = {
+  Referer: "https://kwik.cx/",
+  Origin: "https://kwik.cx",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+};
+
+function getProxyBase(req: any): string {
+  // Client passes ?base=<their-own-proxy-url> so we rewrite m3u8 correctly
+  const clientBase = req.query.base as string | undefined;
+  if (clientBase) return decodeURIComponent(clientBase);
+
+  // Fallback: use x-forwarded headers set by the Replit proxy
+  const proto =
+    (req.headers["x-forwarded-proto"] as string) ||
+    req.protocol ||
+    "https";
+  const host =
+    (req.headers["x-forwarded-host"] as string) ||
+    req.headers.host ||
+    "localhost";
+  return `${proto}://${host}/api/anime/hls-proxy`;
+}
+
+// HLS proxy — pipes streams with proper headers and rewrites m3u8 playlists
+router.get("/anime/hls-proxy", async (req, res) => {
+  const rawUrl = req.query.url as string;
+  if (!rawUrl) {
+    res.status(400).json({ error: "url is required" });
+    return;
+  }
+
+  let targetUrl: string;
+  try {
+    targetUrl = decodeURIComponent(rawUrl);
+  } catch {
+    res.status(400).json({ error: "Invalid url" });
+    return;
+  }
+
+  try {
+    const upstream = await fetch(targetUrl, { headers: PROXY_HEADERS });
+
+    if (!upstream.ok) {
+      res.status(upstream.status).send(`Upstream error: ${upstream.status}`);
+      return;
+    }
+
+    const contentType = upstream.headers.get("content-type") ?? "application/octet-stream";
+    const isM3U8 =
+      targetUrl.includes(".m3u8") ||
+      contentType.includes("mpegurl") ||
+      contentType.includes("x-mpegURL");
+
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", "public, max-age=60");
+
+    if (isM3U8) {
+      res.set("Content-Type", "application/vnd.apple.mpegurl");
+      const text = await upstream.text();
+      const baseUrl = targetUrl.slice(0, targetUrl.lastIndexOf("/") + 1);
+      const proxyBase = getProxyBase(req);
+      const selfUrl = `${proxyBase}?url=`;
+
+      const rewritten = text
+        .split("\n")
+        .map((line) => {
+          const trimmed = line.trim();
+          if (trimmed === "") return line;
+
+          // Rewrite encryption key URI inside #EXT-X-KEY line
+          if (trimmed.startsWith("#EXT-X-KEY")) {
+            return line.replace(/URI="([^"]+)"/, (_match, uri) => {
+              const absUri = uri.startsWith("http") ? uri : baseUrl + uri;
+              return `URI="${selfUrl}${encodeURIComponent(absUri)}"`;
+            });
+          }
+
+          // Skip other # lines
+          if (trimmed.startsWith("#")) return line;
+
+          // Segment URL lines
+          const absUrl = trimmed.startsWith("http") ? trimmed : baseUrl + trimmed;
+          return selfUrl + encodeURIComponent(absUrl);
+        })
+        .join("\n");
+
+      res.send(rewritten);
+    } else {
+      // Binary data — pipe directly (segments, keys, etc.)
+      res.set("Content-Type", contentType);
+      const nodeStream = Readable.fromWeb(upstream.body as any);
+      nodeStream.pipe(res);
+    }
+  } catch (err) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Proxy failed" });
+    }
+  }
+});
 
 router.get("/anime/trending", async (req, res) => {
   try {

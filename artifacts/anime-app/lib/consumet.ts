@@ -1,18 +1,53 @@
 const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`;
+const PROXY_ENDPOINT = `${BASE_URL}/anime/hls-proxy`;
+
+/**
+ * Wraps a direct CDN stream URL through our HLS proxy server.
+ * The proxy adds the required Referer/Origin headers and rewrites
+ * m3u8 playlists so segment URLs also go through the proxy.
+ */
+export function proxyStreamUrl(directUrl: string): string {
+  return (
+    `${PROXY_ENDPOINT}` +
+    `?url=${encodeURIComponent(directUrl)}` +
+    `&base=${encodeURIComponent(PROXY_ENDPOINT)}`
+  );
+}
 
 function resolveTitle(
-  title: string | { english?: string; romaji?: string; userPreferred?: string; native?: string } | undefined
+  title:
+    | string
+    | {
+        english?: string;
+        romaji?: string;
+        userPreferred?: string;
+        native?: string;
+      }
+    | undefined
 ): string {
   if (!title) return "Unknown";
   if (typeof title === "string") return title;
-  return title.english || title.romaji || title.userPreferred || title.native || "Unknown";
+  return (
+    title.english ||
+    title.romaji ||
+    title.userPreferred ||
+    title.native ||
+    "Unknown"
+  );
 }
 
 export { resolveTitle };
 
 export interface AnimeResult {
   id: string;
-  title: string | { english?: string; romaji?: string; userPreferred?: string; native?: string };
+  title:
+    | string
+    | {
+        english?: string;
+        romaji?: string;
+        userPreferred?: string;
+        native?: string;
+      };
   url?: string;
   image: string;
   cover?: string;
@@ -59,6 +94,7 @@ export interface StreamingSource {
   url: string;
   quality?: string;
   isM3U8?: boolean;
+  isDub?: boolean;
 }
 
 export interface StreamingData {
@@ -81,13 +117,13 @@ async function get<T>(path: string): Promise<T> {
 
 export const consumet = {
   search: (query: string, page = 1): Promise<SearchResult> =>
-    get<SearchResult>(`/anime/search?q=${encodeURIComponent(query)}&page=${page}`),
+    get<SearchResult>(
+      `/anime/search?q=${encodeURIComponent(query)}&page=${page}`
+    ),
 
-  trending: (): Promise<SearchResult> =>
-    get<SearchResult>(`/anime/trending`),
+  trending: (): Promise<SearchResult> => get<SearchResult>(`/anime/trending`),
 
-  popular: (): Promise<SearchResult> =>
-    get<SearchResult>(`/anime/popular`),
+  popular: (): Promise<SearchResult> => get<SearchResult>(`/anime/popular`),
 
   recentEpisodes: (): Promise<SearchResult> =>
     get<SearchResult>(`/anime/recent`),
@@ -96,8 +132,12 @@ export const consumet = {
     get<AnimeInfo>(`/anime/info?id=${encodeURIComponent(id)}`),
 
   infoByTitle: (title: string): Promise<AnimeInfo> =>
-    get<AnimeInfo>(`/anime/info-by-title?title=${encodeURIComponent(title)}`),
+    get<AnimeInfo>(
+      `/anime/info-by-title?title=${encodeURIComponent(title)}`
+    ),
 
   streaming: (episodeId: string): Promise<StreamingData> =>
-    get<StreamingData>(`/anime/watch?episodeId=${encodeURIComponent(episodeId)}`),
+    get<StreamingData>(
+      `/anime/watch?episodeId=${encodeURIComponent(episodeId)}`
+    ),
 };
