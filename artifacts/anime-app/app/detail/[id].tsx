@@ -57,6 +57,14 @@ export default function DetailScreen() {
     staleTime: 1000 * 60 * 10,
   });
 
+  const paheQuery = useQuery({
+    queryKey: ["animePaheInfo", navTitle],
+    queryFn: () => consumet.infoByTitle(navTitle),
+    enabled: !!navTitle,
+    retry: 1,
+    staleTime: 1000 * 60 * 10,
+  });
+
   const anime = infoQuery.data;
   const fav = isFavorite(params.id);
 
@@ -80,10 +88,15 @@ export default function DetailScreen() {
     if (!episode?.id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setWatchedEps((prev) => new Set([...prev, episode.id]));
+
+    const paheEpisodes = paheQuery.data?.episodes ?? [];
+    const paheEp = paheEpisodes.find((e) => e.number === episode.number);
+    const resolvedId = paheEp?.id ?? episode.id;
+
     router.push({
       pathname: "/player",
       params: {
-        episodeId: episode.id,
+        episodeId: resolvedId,
         episodeNum: String(episode.number),
         animeTitle: navTitle,
       },
@@ -185,7 +198,12 @@ export default function DetailScreen() {
                   <ActivityIndicator color={Colors.primary} size="small" />
                   <Text style={styles.loadingText}>Cargando...</Text>
                 </View>
-              ) : infoQuery.isError ? null : (
+              ) : infoQuery.isError ? null : paheQuery.isLoading ? (
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color={Colors.primary} size="small" />
+                  <Text style={styles.loadingText}>Preparando reproducción...</Text>
+                </View>
+              ) : (
                 <Text style={styles.episodeCount}>{episodes.length} total</Text>
               )}
             </View>
