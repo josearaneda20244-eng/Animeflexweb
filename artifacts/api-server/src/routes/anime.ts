@@ -707,4 +707,174 @@ router.get("/anime/watch", async (req, res) => {
   }
 });
 
+/**
+ * OpenSubtitles subtitle search
+ * GET /api/anime/subtitles?title=...&episode=...&lang=es
+ */
+router.get("/anime/subtitles", async (req, res) => {
+  const title = (req.query.title as string | undefined)?.trim();
+  const episode = (req.query.episode as string | undefined)?.trim();
+  const lang = (req.query.lang as string | undefined)?.trim() ?? "es";
+
+  if (!title) {
+    res.status(400).json({ error: "Query param 'title' is required" });
+    return;
+  }
+
+  const apiKey = process.env.OPENSUBTITLES_API_KEY;
+  if (!apiKey) {
+    res.status(500).json({ error: "OPENSUBTITLES_API_KEY is not configured" });
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      query: title,
+      languages: lang,
+      type: "episode",
+    });
+    if (episode) params.set("episode_number", episode);
+
+    const searchRes = await fetch(
+      `https://api.opensubtitles.com/api/v1/subtitles?${params.toString()}`,
+      {
+        headers: {
+          "Api-Key": apiKey,
+          "User-Agent": "AnimeFLEX v1.0",
+          Accept: "application/json",
+        },
+      }
+    );
+
+    if (!searchRes.ok) {
+      const errText = await searchRes.text().catch(() => "");
+      req.log.error({ status: searchRes.status, body: errText }, "OpenSubtitles search failed");
+      res.status(searchRes.status).json({ error: "OpenSubtitles search failed", data: [] });
+      return;
+    }
+
+    const json = (await searchRes.json()) as {
+      data: Array<{
+        id: string;
+        attributes: {
+          language: string;
+          release: string;
+          files: Array<{ file_id: number; file_name: string }>;
+        };
+      }>;
+    };
+
+    const results = (json.data ?? []).slice(0, 5).map((item) => ({
+      id: item.id,
+      lang: item.attributes.language,
+      release: item.attributes.release ?? "",
+      fileId: item.attributes.files?.[0]?.file_id ?? null,
+      fileName: item.attributes.files?.[0]?.file_name ?? "",
+    }));
+
+    res.json({ data: results });
+  } catch (err) {
+    req.log.error({ err }, "Failed to search subtitles on OpenSubtitles");
+    res.status(500).json({ error: "Failed to search subtitles" });
+  }
+});
+
+/**
+ * Download subtitle URL from OpenSubtitles (returns a temporary download URL)
+ * POST /api/anime/subtitles/download  body: { fileId }
+ */
+router.post("/anime/subtitles/download", async (req, res) => {
+  const { fileId } = req.body as { fileId?: number };
+  if (!fileId) {
+    res.status(400).json({ error: "fileId is required" });
+    return;
+  }
+
+  const apiKey = process.env.OPENSUBTITLES_API_KEY;
+  if (!apiKey) {
+    res.status(500).json({ error: "OPENSUBTITLES_API_KEY is not configured" });
+    return;
+  }
+
+  try {
+    const dlRes = await fetch("https://api.opensubtitles.com/api/v1/download", {
+      method: "POST",
+      headers: {
+        "Api-Key": apiKey,
+        "User-Agent": "AnimeFLEX v1.0",
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ file_id: fileId, sub_format: "webvtt" }),
+    });
+
+    if (!dlRes.ok) {
+      const errText = await dlRes.text().catch(() => "");
+      req.log.error({ status: dlRes.status, body: errText }, "OpenSubtitles download failed");
+      res.status(dlRes.status).json({ error: "Download request failed" });
+      return;
+    }
+
+    const json = (await dlRes.json()) as { link?: string; message?: string };
+    if (!json.link) {
+      res.status(502).json({ error: json.message ?? "No download link returned" });
+      return;
+    }
+
+    res.json({ url: json.link });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get subtitle download link");
+    res.status(500).json({ error: "Failed to get subtitle download link" });
+  }
+});
+
+/**
+ * Subtitle proxy: fetches and re-serves a subtitle file (srt/vtt) to avoid CORS issues.
+ * GET /api/anime/subtitle-proxy?url=...
+ */
+router.get("/anime/subtitle-proxy", async (req, res) => {
+  const rawUrl = req.query.url as string | undefined;
+  if (!rawUrl) {
+    res.status(400).send("url param required");
+    return;
+  }
+
+  let targetUrl: string;
+  try {
+    targetUrl = decodeURIComponent(rawUrl);
+  } catch {
+    res.status(400).send("Invalid url param");
+    return;
+  }
+
+  try {
+    const upstream = await fetch(targetUrl, {
+      headers: { "User-Agent": "AnimeFLEX v1.0" },
+    });
+
+    if (!upstream.ok) {
+      res.status(upstream.status).send("Upstream error");
+      return;
+    }
+
+    const text = await upstream.text();
+
+    // Convert SRT → WebVTT if needed
+    let body = text;
+    if (!text.trimStart().startsWith("WEBVTT")) {
+      body = "WEBVTT\n\n" + text
+        .replace(/\r\n/g, "\n")
+        .replace(/(\d+:\d+:\d+),(\d+)/g, "$1.$2"); // SRT comma → VTT dot
+    }
+
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Content-Type", "text/vtt; charset=utf-8");
+    res.set("Cache-Control", "public, max-age=3600");
+    res.send(body);
+  } catch (err) {
+    req.log.error({ err }, "Subtitle proxy failed");
+    res.status(500).send("Subtitle proxy failed");
+  }
+});
+
 export default router;

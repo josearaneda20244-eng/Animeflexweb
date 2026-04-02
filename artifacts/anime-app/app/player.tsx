@@ -16,10 +16,16 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 import Colors from "@/constants/colors";
-import { consumet, proxyStreamUrl, type StreamingSource } from "@/lib/consumet";
+import {
+  consumet,
+  proxyStreamUrl,
+  proxySubtitleUrl,
+  type StreamingSource,
+  type SubtitleResult,
+} from "@/lib/consumet";
 
 type Params = {
   episodeId: string;
@@ -63,13 +69,23 @@ function proxyUrl(src: StreamingSource, referer?: string): string {
   return proxyStreamUrl(src.url, referer);
 }
 
-/* ── Web HLS Player ── */
-function WebPlayer({ m3u8Url, height }: { m3u8Url: string; height: number }) {
+/* ── Web HLS Player with subtitle track support ── */
+function WebPlayer({
+  m3u8Url,
+  height,
+  subtitleUrl,
+}: {
+  m3u8Url: string;
+  height: number;
+  subtitleUrl?: string | null;
+}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const trackRef = useRef<HTMLTrackElement | null>(null);
   const [webError, setWebError] = useState<string | null>(null);
   const [webLoading, setWebLoading] = useState(true);
 
+  // Load / reload HLS when the stream URL changes
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !m3u8Url) return;
@@ -112,10 +128,14 @@ function WebPlayer({ m3u8Url, height }: { m3u8Url: string; height: number }) {
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = m3u8Url;
-      video.addEventListener("loadedmetadata", () => {
-        setWebLoading(false);
-        video.play().catch(() => {});
-      }, { once: true });
+      video.addEventListener(
+        "loadedmetadata",
+        () => {
+          setWebLoading(false);
+          video.play().catch(() => {});
+        },
+        { once: true }
+      );
     } else {
       setWebError("Tu navegador no soporta reproducción HLS.");
       setWebLoading(false);
@@ -129,6 +149,42 @@ function WebPlayer({ m3u8Url, height }: { m3u8Url: string; height: number }) {
     };
   }, [m3u8Url]);
 
+  // Inject / remove subtitle <track> when subtitleUrl changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Remove old track if any
+    if (trackRef.current) {
+      try { video.removeChild(trackRef.current); } catch {}
+      trackRef.current = null;
+    }
+
+    if (subtitleUrl) {
+      // @ts-ignore — DOM API
+      const track = document.createElement("track");
+      track.kind = "subtitles";
+      track.label = "Español";
+      track.srclang = "es";
+      track.src = subtitleUrl;
+      track.default = true;
+      video.appendChild(track);
+      trackRef.current = track;
+
+      // Force browser to show the track
+      const tryEnable = () => {
+        const textTracks = video.textTracks;
+        for (let i = 0; i < textTracks.length; i++) {
+          textTracks[i].mode = "showing";
+        }
+      };
+      // Try immediately and after a short delay (some browsers are lazy)
+      tryEnable();
+      const timer = setTimeout(tryEnable, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [subtitleUrl]);
+
   return (
     <View style={{ width: "100%", height, backgroundColor: "#000", position: "relative" }}>
       {/* @ts-ignore */}
@@ -136,6 +192,7 @@ function WebPlayer({ m3u8Url, height }: { m3u8Url: string; height: number }) {
         ref={videoRef}
         controls
         playsInline
+        crossOrigin="anonymous"
         style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
       />
       {webLoading && !webError && (
@@ -188,12 +245,60 @@ function NativePlayer({
   );
 }
 
+/* ── Subtitle panel ── */
+function SubtitleRow({
+  sub,
+  isActive,
+  onPress,
+  isLoading,
+}: {
+  sub: SubtitleResult;
+  isActive: boolean;
+  onPress: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.subRow, isActive && styles.subRowActive]}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      {isActive && (
+        <LinearGradient
+          colors={[Colors.primary + "25", Colors.primary + "08"]}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+      <View style={[styles.subDot, isActive && styles.subDotActive]} />
+      <View style={styles.subInfo}>
+        <Text style={[styles.subLang, isActive && styles.subLangActive]}>
+          Español {sub.lang === "pt" ? "(PT)" : ""}
+        </Text>
+        {sub.release ? (
+          <Text style={styles.subRelease} numberOfLines={1}>
+            {sub.release}
+          </Text>
+        ) : null}
+      </View>
+      {isLoading && isActive ? (
+        <ActivityIndicator size="small" color={Colors.primary} />
+      ) : isActive ? (
+        <Feather name="check-circle" size={16} color={Colors.primary} />
+      ) : (
+        <Feather name="download" size={14} color={Colors.textMuted} />
+      )}
+    </TouchableOpacity>
+  );
+}
+
 /* ── Main Screen ── */
 export default function PlayerScreen() {
   const params = useLocalSearchParams<Params>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [activeSubId, setActiveSubId] = useState<string | null>(null);
+  const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["streaming", params.episodeId],
@@ -203,19 +308,57 @@ export default function PlayerScreen() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const epNum = parseInt(params.episodeNum) || undefined;
+
+  const subsQuery = useQuery({
+    queryKey: ["subtitles", params.animeTitle, epNum],
+    queryFn: () => consumet.searchSubtitles(params.animeTitle, epNum, "es"),
+    enabled: !!params.animeTitle,
+    staleTime: 1000 * 60 * 30,
+    retry: 1,
+  });
+
+  const downloadMutation = useMutation({
+    mutationFn: async (sub: SubtitleResult) => {
+      if (!sub.fileId) throw new Error("No fileId");
+      const { url } = await consumet.downloadSubtitle(sub.fileId);
+      return proxySubtitleUrl(url);
+    },
+    onSuccess: (proxiedUrl, sub) => {
+      setActiveSubId(sub.id);
+      setActiveSubUrl(proxiedUrl);
+    },
+  });
+
   const sources = query.data ? sortSources(query.data.sources ?? []) : [];
   const streamingHeaders = query.data?.headers ?? {};
   const nativeHeaders = Platform.OS !== "web" ? streamingHeaders : {};
   const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
 
-  useEffect(() => { setSelectedIdx(0); }, [params.episodeId]);
+  useEffect(() => {
+    setSelectedIdx(0);
+    // Reset subtitles when episode changes
+    setActiveSubId(null);
+    setActiveSubUrl(null);
+  }, [params.episodeId]);
 
   const proxyM3u8 = selected ? proxyUrl(selected, referer) : null;
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const isLoading = query.isLoading;
   const isError = query.isError;
   const hasSource = !!selected;
+  const subtitles = subsQuery.data?.data ?? [];
+
+  const handleSubPress = (sub: SubtitleResult) => {
+    if (activeSubId === sub.id) {
+      // Toggle off
+      setActiveSubId(null);
+      setActiveSubUrl(null);
+      return;
+    }
+    downloadMutation.mutate(sub);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -225,15 +368,23 @@ export default function PlayerScreen() {
           <Feather name="arrow-left" size={20} color="#fff" />
         </Pressable>
         <View style={styles.headerInfo}>
-          <Text style={styles.headerAnime} numberOfLines={1}>{params.animeTitle}</Text>
+          <Text style={styles.headerAnime} numberOfLines={1}>
+            {params.animeTitle}
+          </Text>
           <Text style={styles.headerEp}>Episodio {params.episodeNum}</Text>
         </View>
+        {activeSubUrl && (
+          <View style={styles.subActiveBadge}>
+            <Feather name="type" size={12} color="#fff" />
+            <Text style={styles.subActiveBadgeText}>ES</Text>
+          </View>
+        )}
         <Pressable style={styles.shareBtn}>
           <Feather name="share-2" size={18} color={Colors.textSecondary} />
         </Pressable>
       </View>
 
-      {/* Player area */}
+      {/* Player */}
       <View style={[styles.playerArea, { height: VIDEO_HEIGHT }]}>
         {isLoading && (
           <View style={styles.centered}>
@@ -259,9 +410,17 @@ export default function PlayerScreen() {
         {!isLoading && !isError && hasSource && (
           <>
             {Platform.OS === "web" && proxyM3u8 ? (
-              <WebPlayer m3u8Url={proxyM3u8} height={VIDEO_HEIGHT} />
+              <WebPlayer
+                m3u8Url={proxyM3u8}
+                height={VIDEO_HEIGHT}
+                subtitleUrl={activeSubUrl}
+              />
             ) : (
-              <NativePlayer src={selected!} headers={nativeHeaders} referer={referer} />
+              <NativePlayer
+                src={selected!}
+                headers={nativeHeaders}
+                referer={referer}
+              />
             )}
           </>
         )}
@@ -270,13 +429,18 @@ export default function PlayerScreen() {
       {/* Info + Controls */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 40 + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Episode info */}
         <View style={styles.epInfo}>
           <View>
-            <Text style={styles.epInfoAnime} numberOfLines={1}>{params.animeTitle}</Text>
+            <Text style={styles.epInfoAnime} numberOfLines={1}>
+              {params.animeTitle}
+            </Text>
             <Text style={styles.epInfoEp}>Episodio {params.episodeNum}</Text>
           </View>
         </View>
@@ -315,7 +479,12 @@ export default function PlayerScreen() {
                       size={12}
                       color={active ? Colors.primary : Colors.textMuted}
                     />
-                    <Text style={[styles.qualityLabel, active && styles.qualityLabelActive]}>
+                    <Text
+                      style={[
+                        styles.qualityLabel,
+                        active && styles.qualityLabelActive,
+                      ]}
+                    >
                       {label}
                     </Text>
                     {dub && (
@@ -330,23 +499,81 @@ export default function PlayerScreen() {
           </View>
         )}
 
-        {/* Subtitles */}
-        {(query.data?.subtitles ?? []).length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionAccent} />
-              <Text style={styles.sectionTitle}>Subtítulos disponibles</Text>
+        {/* Subtitles section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionAccent} />
+            <Text style={styles.sectionTitle}>Subtítulos en Español</Text>
+            {subsQuery.isLoading && (
+              <ActivityIndicator
+                size="small"
+                color={Colors.primary}
+                style={{ marginLeft: 8 }}
+              />
+            )}
+            {activeSubUrl && (
+              <View style={styles.subOnBadge}>
+                <Text style={styles.subOnText}>ACTIVO</Text>
+              </View>
+            )}
+          </View>
+
+          {subsQuery.isError && (
+            <View style={styles.subEmpty}>
+              <Feather name="wifi-off" size={16} color={Colors.textMuted} />
+              <Text style={styles.subEmptyText}>
+                No se pudo conectar con OpenSubtitles
+              </Text>
             </View>
+          )}
+
+          {!subsQuery.isLoading && !subsQuery.isError && subtitles.length === 0 && (
+            <View style={styles.subEmpty}>
+              <Feather name="message-square" size={16} color={Colors.textMuted} />
+              <Text style={styles.subEmptyText}>
+                No se encontraron subtítulos en español para este episodio
+              </Text>
+            </View>
+          )}
+
+          {subtitles.length > 0 && (
             <View style={styles.subList}>
-              {query.data!.subtitles!.slice(0, 5).map((sub, i) => (
-                <View key={i} style={styles.subRow}>
-                  <View style={styles.subDot} />
-                  <Text style={styles.subText}>{sub.lang}</Text>
-                </View>
+              {activeSubUrl && (
+                <TouchableOpacity
+                  style={styles.subOffBtn}
+                  onPress={() => {
+                    setActiveSubId(null);
+                    setActiveSubUrl(null);
+                  }}
+                >
+                  <Feather name="x-circle" size={14} color={Colors.error} />
+                  <Text style={styles.subOffText}>Desactivar subtítulos</Text>
+                </TouchableOpacity>
+              )}
+              {subtitles.map((sub) => (
+                <SubtitleRow
+                  key={sub.id}
+                  sub={sub}
+                  isActive={activeSubId === sub.id}
+                  isLoading={
+                    downloadMutation.isPending &&
+                    downloadMutation.variables?.id === sub.id
+                  }
+                  onPress={() => handleSubPress(sub)}
+                />
               ))}
             </View>
-          </View>
-        )}
+          )}
+
+          {downloadMutation.isError && (
+            <View style={styles.subErrorRow}>
+              <Feather name="alert-circle" size={14} color={Colors.error} />
+              <Text style={styles.subErrorText}>
+                No se pudo cargar el subtítulo. Intenta con otro.
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* Tip */}
         <View style={styles.tipCard}>
@@ -354,8 +581,8 @@ export default function PlayerScreen() {
             <Feather name="info" size={14} color={Colors.primary} />
           </View>
           <Text style={styles.tipText}>
-            Usa el botón de pantalla completa para una mejor experiencia.
-            Cambia la calidad si hay buffering.
+            Selecciona un subtítulo y aparecerá en el video automáticamente.
+            Si el primero no sincroniza bien, prueba con otro de la lista.
           </Text>
         </View>
       </ScrollView>
@@ -389,6 +616,16 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 10,
   },
+  subActiveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  subActiveBadgeText: { color: "#fff", fontSize: 11, fontWeight: "800" },
 
   playerArea: {
     width: "100%",
@@ -465,10 +702,71 @@ const styles = StyleSheet.create({
   },
   dubText: { color: Colors.dub, fontSize: 9, fontWeight: "800" },
 
-  subList: { gap: 6 },
-  subRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  subDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.primary },
-  subText: { color: Colors.textSecondary, fontSize: 13 },
+  subOnBadge: {
+    backgroundColor: Colors.primary + "25",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Colors.primary + "50",
+    marginLeft: "auto",
+  },
+  subOnText: { color: Colors.primary, fontSize: 9, fontWeight: "900" },
+
+  subList: { gap: 8 },
+  subRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: Colors.bgCard,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    overflow: "hidden",
+    position: "relative",
+  },
+  subRowActive: { borderColor: Colors.primary },
+  subDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.border },
+  subDotActive: { backgroundColor: Colors.primary },
+  subInfo: { flex: 1 },
+  subLang: { color: Colors.textSecondary, fontSize: 14, fontWeight: "600" },
+  subLangActive: { color: Colors.textPrimary },
+  subRelease: { color: Colors.textMuted, fontSize: 11, marginTop: 2 },
+
+  subOffBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: Colors.error + "12",
+    borderWidth: 1,
+    borderColor: Colors.error + "30",
+    alignSelf: "flex-start",
+  },
+  subOffText: { color: Colors.error, fontSize: 12, fontWeight: "700" },
+
+  subEmpty: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 14,
+    backgroundColor: Colors.bgCard,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  subEmptyText: { color: Colors.textMuted, fontSize: 13, flex: 1 },
+
+  subErrorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: -4,
+  },
+  subErrorText: { color: Colors.error, fontSize: 12 },
 
   tipCard: {
     flexDirection: "row",

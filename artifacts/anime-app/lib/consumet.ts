@@ -118,6 +118,37 @@ async function get<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export interface SubtitleResult {
+  id: string;
+  lang: string;
+  release: string;
+  fileId: number | null;
+  fileName: string;
+}
+
+export interface SubtitleDownload {
+  url: string;
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const url = `${BASE_URL}${path}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`API error ${response.status}: ${text.slice(0, 200)}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+/** Returns a proxied URL for a subtitle file so it can be loaded without CORS issues */
+export function proxySubtitleUrl(directUrl: string): string {
+  return `${BASE_URL}/anime/subtitle-proxy?url=${encodeURIComponent(directUrl)}`;
+}
+
 export const consumet = {
   search: (query: string, page = 1): Promise<SearchResult> =>
     get<SearchResult>(
@@ -149,4 +180,20 @@ export const consumet = {
     get<StreamingData>(
       `/anime/watch?episodeId=${encodeURIComponent(episodeId)}`
     ),
+
+  /** Search subtitles on OpenSubtitles (default lang: es) */
+  searchSubtitles: (
+    title: string,
+    episode?: number,
+    lang = "es"
+  ): Promise<{ data: SubtitleResult[] }> =>
+    get<{ data: SubtitleResult[] }>(
+      `/anime/subtitles?title=${encodeURIComponent(title)}` +
+        (episode ? `&episode=${episode}` : "") +
+        `&lang=${lang}`
+    ),
+
+  /** Get a temporary download URL for a subtitle file by its fileId */
+  downloadSubtitle: (fileId: number): Promise<SubtitleDownload> =>
+    post<SubtitleDownload>(`/anime/subtitles/download`, { fileId }),
 };
