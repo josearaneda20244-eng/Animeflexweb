@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import React, { useEffect, useState } from "react";
+import Hls from "hls.js";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -59,40 +60,101 @@ function proxyUrl(src: StreamingSource, referer?: string): string {
   return proxyStreamUrl(src.url, referer);
 }
 
-function buildEmbedUrl(
-  m3u8ProxyUrl: string,
-  apiBase: string,
-  title: string
-): string {
-  return (
-    `${apiBase}/api/anime/player-embed` +
-    `?m3u8=${encodeURIComponent(m3u8ProxyUrl)}` +
-    `&title=${encodeURIComponent(title)}`
-  );
-}
 
-// ─── Web iframe player ────────────────────────────────────────────────────────
+// ─── Web HLS player (no iframe — avoids cross-origin domain issues) ──────────
 function WebPlayer({
-  embedUrl,
+  m3u8Url,
   height,
 }: {
-  embedUrl: string;
+  m3u8Url: string;
   height: number;
 }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const [webError, setWebError] = useState<string | null>(null);
+  const [webLoading, setWebLoading] = useState(true);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !m3u8Url) return;
+
+    setWebError(null);
+    setWebLoading(true);
+
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        maxBufferLength: 60,
+        maxMaxBufferLength: 180,
+        startLevel: -1,
+        fragLoadingTimeOut: 30000,
+        manifestLoadingTimeOut: 30000,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(m3u8Url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setWebLoading(false);
+        video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            hls.startLoad();
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            setWebError("Error al reproducir el episodio.");
+            setWebLoading(false);
+          }
+        }
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = m3u8Url;
+      video.addEventListener("loadedmetadata", () => {
+        setWebLoading(false);
+        video.play().catch(() => {});
+      }, { once: true });
+    } else {
+      setWebError("Tu navegador no soporta reproducción HLS.");
+      setWebLoading(false);
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [m3u8Url]);
+
   return (
-    <iframe
-      key={embedUrl}
-      src={embedUrl}
-      style={{
-        width: "100%",
-        height,
-        border: "none",
-        background: "#000",
-        display: "block",
-      }}
-      allow="autoplay; fullscreen"
-      allowFullScreen
-    />
+    <View style={{ width: "100%", height, backgroundColor: "#000", position: "relative" }}>
+      {/* @ts-ignore — video is a valid DOM element on web */}
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+      />
+      {webLoading && !webError && (
+        <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.8)", gap: 12 }]}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Cargando episodio...</Text>
+        </View>
+      )}
+      {webError && (
+        <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.85)", gap: 12 }]}>
+          <Feather name="alert-circle" size={36} color={Colors.error} />
+          <Text style={{ color: Colors.error, fontWeight: "700", fontSize: 15 }}>{webError}</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -159,17 +221,7 @@ export default function PlayerScreen() {
     setSelectedIdx(0);
   }, [params.episodeId]);
 
-  // API base URL (for the embed endpoint)
-  const apiBase = (() => {
-    const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
-    return domain ? `https://${domain}` : "";
-  })();
-
   const proxyM3u8 = selected ? proxyUrl(selected, referer) : null;
-  const embedUrl =
-    Platform.OS === "web" && proxyM3u8
-      ? buildEmbedUrl(proxyM3u8, apiBase, params.animeTitle ?? "")
-      : null;
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -217,8 +269,8 @@ export default function PlayerScreen() {
         )}
         {!isLoading && !isError && hasSource && (
           <>
-            {Platform.OS === "web" && embedUrl ? (
-              <WebPlayer embedUrl={embedUrl} height={VIDEO_HEIGHT} />
+            {Platform.OS === "web" && proxyM3u8 ? (
+              <WebPlayer m3u8Url={proxyM3u8} height={VIDEO_HEIGHT} />
             ) : (
               <NativePlayer src={selected!} headers={nativeHeaders} referer={referer} />
             )}

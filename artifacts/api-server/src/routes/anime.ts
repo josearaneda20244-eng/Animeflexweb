@@ -663,12 +663,42 @@ router.get("/anime/watch", async (req, res) => {
     res.status(400).json({ error: "Query param 'episodeId' is required" });
     return;
   }
+  const id = episodeId.trim();
   try {
-    const data = await getAnimeKai().fetchEpisodeSources(episodeId.trim());
+    const data = await getAnimeKai().fetchEpisodeSources(id);
     res.json(data);
-  } catch (err) {
-    req.log.error({ err }, "Failed to fetch episode sources");
-    res.status(500).json({ error: "Failed to fetch episode sources" });
+    return;
+  } catch (firstErr: any) {
+    const msg = (firstErr?.message ?? "").toLowerCase();
+    if (!msg.includes("not found") && !msg.includes("server")) {
+      req.log.error({ err: firstErr }, "Failed to fetch episode sources");
+      res.status(500).json({ error: "Failed to fetch episode sources" });
+      return;
+    }
+    // The default server wasn't found — try fetching servers and use first URL directly
+    try {
+      req.log.warn({ episodeId: id }, "Default server not found, trying fallback via fetchEpisodeServers");
+      const servers = await getAnimeKai().fetchEpisodeServers(id);
+      if (!servers || servers.length === 0) {
+        res.status(503).json({ error: "No streaming servers available for this episode" });
+        return;
+      }
+      // Try each server URL directly (passing URL as episodeId triggers direct extraction)
+      for (const server of servers) {
+        try {
+          const data = await getAnimeKai().fetchEpisodeSources(server.url);
+          req.log.info({ server: server.name }, "Fallback server succeeded");
+          res.json(data);
+          return;
+        } catch {
+          // try next server
+        }
+      }
+      res.status(503).json({ error: "All streaming servers failed for this episode" });
+    } catch (fallbackErr) {
+      req.log.error({ err: fallbackErr }, "Fallback server fetch also failed");
+      res.status(500).json({ error: "Failed to fetch episode sources" });
+    }
   }
 });
 
