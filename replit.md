@@ -4,6 +4,28 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## AnimeFlex Web — React+Vite Web App (artifacts/anime-web)
+
+A full-featured anime streaming web app built with React + Vite + Tailwind + Wouter. Deployable to Vercel.
+Preview path: `/anime-web/`
+
+### Features
+- **Home**: Hero banner, trending, popular, recent episodes, continue watching
+- **Search**: Real-time debounce search with quick tags
+- **Anime Detail**: Cover, genres, description, episode list, favorites
+- **Player**: Plyr + HLS.js — modern UI, seek/pause bug fixed (no more pause-on-seek), subtitles in Spanish
+- **Favorites & History**: Persisted in localStorage (no backend needed)
+- **API**: All calls to `/api` (api-server artifact, no CORS issues in Replit)
+- **Vercel**: Set `VITE_API_URL` env var to point to your deployed API server
+
+### Key files (anime-web)
+- `artifacts/anime-web/src/App.tsx` — routing
+- `artifacts/anime-web/src/pages/Player.tsx` — Plyr + HLS.js player
+- `artifacts/anime-web/src/lib/consumet.ts` — API client
+- `artifacts/anime-web/src/context/` — Favorites, History, WatchProgress contexts
+
+---
+
 ## AnimeFLEX — Anime Mobile App (AnimeKai-style)
 
 A professional anime streaming app built with Expo. Inspired by AnimeKai.to design.
