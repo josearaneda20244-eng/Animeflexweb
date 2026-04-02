@@ -200,15 +200,27 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     });
     plyrRef.current = plyr;
 
-    const onReady = () => {
-      if (!seekRestoredRef.current && startAtRef.current && startAtRef.current > 5) {
-        if (video.duration && startAtRef.current < video.duration - 10) {
-          video.currentTime = startAtRef.current;
-        }
+    const trySeekRestore = () => {
+      if (seekRestoredRef.current) return;
+      const target = startAtRef.current;
+      if (!target || target <= 5) { seekRestoredRef.current = true; return; }
+      const dur = video.duration;
+      if (dur && isFinite(dur) && target < dur - 5) {
+        video.currentTime = target;
         seekRestoredRef.current = true;
       }
     };
-    const onTimeUpd = () => { if (video.duration > 0) onTimeUpdateRef.current?.(video.currentTime, video.duration); };
+
+    const onLoadedMetadata = () => {
+      trySeekRestore();
+    };
+
+    const onTimeUpd = () => {
+      if (video.duration > 0) {
+        if (!seekRestoredRef.current) trySeekRestore();
+        onTimeUpdateRef.current?.(video.currentTime, video.duration);
+      }
+    };
     const onEnd = () => { onEndedRef.current?.(); };
 
     // Track cue changes across all subtitle text tracks
@@ -273,7 +285,6 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         networkErrCount = 0;
         mediaErrCount = 0;
         setLoading(false);
-        onReady();
         video.play().catch(() => {});
       });
 
@@ -320,15 +331,21 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = m3u8Url;
-      video.addEventListener("loadedmetadata", () => { setLoading(false); onReady(); video.play().catch(() => {}); }, { once: true });
+      video.addEventListener("loadedmetadata", () => {
+        setLoading(false);
+        trySeekRestore();
+        video.play().catch(() => {});
+      }, { once: true });
     } else {
       setError("Tu navegador no soporta reproducción HLS.");
       setLoading(false);
     }
 
+    video.addEventListener("loadedmetadata", onLoadedMetadata);
     video.addEventListener("timeupdate", onTimeUpd);
     video.addEventListener("ended", onEnd);
     return () => {
+      video.removeEventListener("loadedmetadata", onLoadedMetadata);
       video.removeEventListener("timeupdate", onTimeUpd);
       video.removeEventListener("ended", onEnd);
       video.textTracks.removeEventListener("addtrack", handleAddTrack as EventListener);
