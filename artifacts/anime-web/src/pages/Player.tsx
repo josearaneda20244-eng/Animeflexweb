@@ -426,7 +426,9 @@ export default function Player() {
     enabled: !!episodeId,
     retry: 6,
     retryDelay: (i) => Math.min(1500 * Math.pow(2, i), 12000),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
   });
 
   const epNum = parseInt(episodeNum) || undefined;
