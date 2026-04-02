@@ -94,7 +94,7 @@ function AnimeCard({ anime, compact }: Props) {
     <Pressable
       style={({ pressed }) => [
         styles.card,
-        pressed && { transform: [{ scale: 0.97 }], opacity: 0.92 },
+        pressed && { transform: [{ scale: 0.96 }], opacity: 0.9 },
       ]}
       onPress={handlePress}
     >
@@ -104,8 +104,10 @@ function AnimeCard({ anime, compact }: Props) {
           style={styles.image}
           resizeMode="cover"
         />
+        {/* Deep gradient for text readability */}
         <LinearGradient
-          colors={["transparent", "rgba(13,13,13,0.92)"]}
+          colors={["transparent", "rgba(8,11,20,0.6)", "rgba(8,11,20,0.97)"]}
+          locations={[0.4, 0.72, 1]}
           style={styles.gradient}
         />
 
@@ -115,37 +117,52 @@ function AnimeCard({ anime, compact }: Props) {
           onPress={handleFav}
           hitSlop={8}
         >
-          <Feather
-            name="heart"
-            size={13}
-            color={fav ? Colors.accent : "rgba(255,255,255,0.8)"}
-          />
-        </Pressable>
-
-        {/* Top badges row */}
-        <View style={styles.topBadges}>
-          {anime.rating != null && anime.rating > 0 && (
-            <View style={styles.ratingBadge}>
-              <Feather name="star" size={9} color={Colors.warning} />
-              <Text style={styles.ratingText}>
-                {(anime.rating / 10).toFixed(1)}
-              </Text>
+          {fav ? (
+            <LinearGradient
+              colors={[Colors.accent, "#BE185D"]}
+              style={styles.favGrad}
+            >
+              <Feather name="heart" size={12} color="#fff" />
+            </LinearGradient>
+          ) : (
+            <View style={styles.favGrad}>
+              <Feather name="heart" size={12} color="rgba(255,255,255,0.75)" />
             </View>
           )}
-        </View>
+        </Pressable>
+
+        {/* Rating badge top-left */}
+        {anime.rating != null && anime.rating > 0 && (
+          <View style={styles.ratingBadge}>
+            <Feather name="star" size={9} color={Colors.warning} />
+            <Text style={styles.ratingText}>
+              {(anime.rating / 10).toFixed(1)}
+            </Text>
+          </View>
+        )}
+
+        {/* Status dot */}
+        {anime.status === "Ongoing" && (
+          <View style={styles.statusDot} />
+        )}
 
         {/* Bottom info inside image */}
         <View style={styles.imageBottom}>
-          {anime.type && (
-            <View style={styles.typePill}>
-              <Text style={styles.typePillText}>{anime.type}</Text>
-            </View>
-          )}
-          {anime.totalEpisodes ? (
-            <View style={styles.epsPill}>
-              <Text style={styles.epsPillText}>{anime.totalEpisodes} ep</Text>
-            </View>
-          ) : null}
+          <View style={styles.pillsRow}>
+            {anime.type && (
+              <LinearGradient
+                colors={[Colors.primary + "EE", "#5B21B6EE"]}
+                style={styles.typePill}
+              >
+                <Text style={styles.typePillText}>{anime.type}</Text>
+              </LinearGradient>
+            )}
+            {anime.totalEpisodes ? (
+              <View style={styles.epsPill}>
+                <Text style={styles.epsPillText}>{anime.totalEpisodes} ep</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       </View>
 
@@ -153,9 +170,16 @@ function AnimeCard({ anime, compact }: Props) {
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
-        {anime.status && (
-          <Text style={styles.status}>{anime.status}</Text>
-        )}
+        <View style={styles.metaRow}>
+          {anime.status && (
+            <Text style={[
+              styles.status,
+              anime.status === "Ongoing" && styles.statusOngoing,
+            ]}>
+              {anime.status === "Ongoing" ? "● En emisión" : anime.status}
+            </Text>
+          )}
+        </View>
       </View>
     </Pressable>
   );
@@ -172,10 +196,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   imageContainer: {
     position: "relative",
@@ -193,87 +217,111 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "rgba(0,0,0,0.55)",
     borderRadius: 20,
-    padding: 7,
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.15)",
   },
   favBtnActive: {
-    backgroundColor: "rgba(241,91,181,0.35)",
-    borderColor: Colors.accent,
+    borderColor: Colors.accent + "88",
   },
-  topBadges: {
+  favGrad: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  ratingBadge: {
     position: "absolute",
     top: 8,
     left: 8,
     flexDirection: "row",
-    gap: 4,
-  },
-  ratingBadge: {
-    flexDirection: "row",
     alignItems: "center",
     gap: 3,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    borderRadius: 6,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: "rgba(255,214,10,0.3)",
+    borderColor: "rgba(245,197,24,0.35)",
   },
   ratingText: {
     color: Colors.warning,
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "800",
+  },
+  statusDot: {
+    position: "absolute",
+    top: 11,
+    left: 58,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.success,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.5)",
   },
   imageBottom: {
     position: "absolute",
     bottom: 8,
     left: 8,
     right: 8,
+  },
+  pillsRow: {
     flexDirection: "row",
     gap: 5,
     flexWrap: "wrap",
   },
   typePill: {
-    backgroundColor: Colors.primary + "CC",
-    borderRadius: 5,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   typePillText: {
     color: "#fff",
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: "800",
     letterSpacing: 0.3,
   },
   epsPill: {
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: 5,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 6,
     paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: "rgba(255,255,255,0.18)",
   },
   epsPillText: {
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.85)",
     fontSize: 10,
     fontWeight: "600",
   },
   info: {
     padding: 10,
-    paddingTop: 8,
-    gap: 3,
+    paddingTop: 9,
+    gap: 4,
   },
   title: {
     color: Colors.textPrimary,
     fontSize: 13,
     fontWeight: "700",
     lineHeight: 18,
+    letterSpacing: -0.1,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   status: {
     color: Colors.textMuted,
     fontSize: 11,
+    fontWeight: "500",
+  },
+  statusOngoing: {
+    color: Colors.success,
+    fontWeight: "700",
+    fontSize: 10,
   },
   compact: {
     flexDirection: "row",

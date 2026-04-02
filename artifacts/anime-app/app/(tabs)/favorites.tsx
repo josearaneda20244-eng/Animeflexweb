@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   Dimensions,
@@ -23,15 +24,49 @@ export default function FavoritesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
-      <Text style={styles.heading}>Favorites</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <View style={styles.titleAccent} />
+          <View>
+            <Text style={styles.heading}>Favoritos</Text>
+            <Text style={styles.subheading}>
+              {favorites.length > 0
+                ? `${favorites.length} anime${favorites.length !== 1 ? "s" : ""} guardado${favorites.length !== 1 ? "s" : ""}`
+                : "Tu lista personal"}
+            </Text>
+          </View>
+        </View>
+        {favorites.length > 0 && (
+          <View style={styles.countBadge}>
+            <LinearGradient
+              colors={[Colors.accent, "#BE185D"]}
+              style={styles.countGrad}
+            >
+              <Text style={styles.countText}>{favorites.length}</Text>
+            </LinearGradient>
+          </View>
+        )}
+      </View>
 
       {favorites.length === 0 ? (
         <View style={styles.empty}>
-          <Feather name="heart" size={52} color={Colors.textMuted} />
-          <Text style={styles.emptyTitle}>No favorites yet</Text>
+          <View style={styles.emptyIconWrap}>
+            <LinearGradient
+              colors={[Colors.accent + "22", Colors.primary + "11"]}
+              style={styles.emptyGlow}
+            >
+              <Feather name="heart" size={48} color={Colors.accent} />
+            </LinearGradient>
+          </View>
+          <Text style={styles.emptyTitle}>Aún no tienes favoritos</Text>
           <Text style={styles.emptyText}>
-            Tap the heart on any anime to save it here
+            Toca el corazón en cualquier anime para guardarlo aquí
           </Text>
+          <View style={styles.emptyHint}>
+            <Feather name="arrow-down" size={14} color={Colors.primary} />
+            <Text style={styles.emptyHintText}>Explora la pantalla de inicio</Text>
+          </View>
         </View>
       ) : (
         <FlatList
@@ -44,6 +79,11 @@ export default function FavoritesScreen() {
           ]}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <View style={styles.listHeaderLine} />
+            </View>
+          }
           renderItem={({ item }) => <AnimeCard anime={item} />}
         />
       )}
@@ -56,16 +96,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.bg,
   },
+  header: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    paddingTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  titleAccent: {
+    width: 4,
+    height: 28,
+    borderRadius: 2,
+    backgroundColor: Colors.accent,
+  },
   heading: {
     color: Colors.textPrimary,
-    fontSize: 28,
-    fontWeight: "800",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    fontSize: 24,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
+  subheading: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    marginTop: 1,
+  },
+  countBadge: {
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  countGrad: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  countText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  listHeader: {
+    marginBottom: 14,
+  },
+  listHeaderLine: {
+    height: 1,
+    backgroundColor: Colors.border,
+    borderRadius: 1,
   },
   list: {
     padding: 16,
-    gap: 16,
+    paddingTop: 8,
+    gap: 14,
   },
   row: {
     justifyContent: "space-between",
@@ -74,18 +160,47 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: 14,
     paddingHorizontal: 32,
   },
+  emptyIconWrap: {
+    marginBottom: 4,
+  },
+  emptyGlow: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.accent + "33",
+  },
   emptyTitle: {
-    color: Colors.textSecondary,
+    color: Colors.textPrimary,
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   emptyText: {
     color: Colors.textMuted,
-    fontSize: 15,
+    fontSize: 14,
     textAlign: "center",
     lineHeight: 22,
+  },
+  emptyHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.primary + "15",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.primary + "30",
+    marginTop: 4,
+  },
+  emptyHintText: {
+    color: Colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

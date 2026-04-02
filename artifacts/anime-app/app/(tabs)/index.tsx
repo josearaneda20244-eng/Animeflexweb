@@ -419,8 +419,8 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.logo}>
-            <Text style={styles.logoAccent}>Ani</Text>
-            <Text style={styles.logoMain}>Flow</Text>
+            <Text style={styles.logoAccent}>Anime</Text>
+            <Text style={styles.logoMain}>Flex</Text>
           </Text>
           <Text style={styles.logoTagline}>Tu portal de anime</Text>
         </View>
