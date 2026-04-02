@@ -40,7 +40,7 @@ export default function FavoritesScreen() {
         {favorites.length > 0 && (
           <View style={styles.countBadge}>
             <LinearGradient
-              colors={[Colors.accent, "#BE185D"]}
+              colors={[Colors.primary, "#C2410C"]}
               style={styles.countGrad}
             >
               <Text style={styles.countText}>{favorites.length}</Text>
@@ -53,10 +53,10 @@ export default function FavoritesScreen() {
         <View style={styles.empty}>
           <View style={styles.emptyIconWrap}>
             <LinearGradient
-              colors={[Colors.accent + "22", Colors.primary + "11"]}
+              colors={[Colors.primary + "22", Colors.primary + "0A"]}
               style={styles.emptyGlow}
             >
-              <Feather name="heart" size={48} color={Colors.accent} />
+              <Feather name="heart" size={48} color={Colors.primary} />
             </LinearGradient>
           </View>
           <Text style={styles.emptyTitle}>Aún no tienes favoritos</Text>
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 28,
     borderRadius: 2,
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.primary,
   },
   heading: {
     color: Colors.textPrimary,
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Colors.accent + "33",
+    borderColor: Colors.primary + "33",
   },
   emptyTitle: {
     color: Colors.textPrimary,

@@ -1,38 +1,40 @@
-const primary = "#7C3AED";
-const secondary = "#06B6D4";
-const accent = "#EC4899";
+const primary = "#F97316";
+const secondary = "#FB923C";
+const accent = "#FBBF24";
 
 export default {
   light: {
     text: "#FFFFFF",
-    background: "#080B14",
+    background: "#080A12",
     tint: primary,
-    tabIconDefault: "#4A4A6A",
+    tabIconDefault: "#3A3F5C",
     tabIconSelected: primary,
   },
   dark: {
     text: "#FFFFFF",
-    background: "#080B14",
+    background: "#080A12",
     tint: primary,
-    tabIconDefault: "#4A4A6A",
+    tabIconDefault: "#3A3F5C",
     tabIconSelected: primary,
   },
   primary,
   secondary,
   accent,
-  bg: "#080B14",
-  bgCard: "#0F1623",
-  bgSurface: "#151E30",
-  border: "#1E2D45",
-  textPrimary: "#F0F4FF",
-  textSecondary: "#8899BB",
-  textMuted: "#4A5A7A",
-  success: "#10F5A0",
-  warning: "#F5C518",
+  bg: "#080A12",
+  bgCard: "#0E1120",
+  bgSurface: "#131726",
+  bgElevated: "#1A2035",
+  border: "#1E2540",
+  borderLight: "#252D48",
+  textPrimary: "#E8EAF6",
+  textSecondary: "#7B87A8",
+  textMuted: "#424C6A",
+  success: "#22C55E",
+  warning: "#F97316",
   error: "#EF4444",
   gradient: {
-    purple: ["#7C3AED", "#4C1D95"] as [string, string],
-    blue: ["#06B6D4", "#0284C7"] as [string, string],
-    dark: ["#0F1623", "#080B14"] as [string, string],
+    orange: ["#F97316", "#C2410C"] as [string, string],
+    dark: ["#131726", "#080A12"] as [string, string],
+    card: ["#0E1120", "#080A12"] as [string, string],
   },
 };
