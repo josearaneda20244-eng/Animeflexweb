@@ -3,12 +3,14 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, Heart, HeartOff, Star, Play, ChevronDown, ChevronUp,
-  Tv, Calendar, Film, List
+  Tv, Calendar, Film, List, Share2
 } from "lucide-react";
 import { consumet, resolveTitle, type Episode, type AnimeResult } from "@/lib/consumet";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useHistory } from "@/context/HistoryContext";
 import { useWatchProgress } from "@/context/WatchProgressContext";
+import { useNotifications } from "@/context/NotificationsContext";
+import CommentsSection from "@/components/CommentsSection";
 
 export default function AnimeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -16,9 +18,11 @@ export default function AnimeDetail() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToHistory } = useHistory();
   const { getAnimeProgress } = useWatchProgress();
+  const { addNotification } = useNotifications();
   const [descExpanded, setDescExpanded] = useState(false);
   const [watchedEps, setWatchedEps] = useState<Set<string>>(new Set());
   const [epFilter, setEpFilter] = useState<"all" | "unwatched">("all");
+  const [shareToast, setShareToast] = useState(false);
 
   const infoQuery = useQuery({
     queryKey: ["animeAnilistInfo", id],
@@ -189,7 +193,18 @@ export default function AnimeDetail() {
             </button>
           ) : null}
           <button
-            onClick={() => toggleFavorite(animeForFav)}
+            onClick={() => {
+              const wasNotFav = !fav;
+              toggleFavorite(animeForFav);
+              if (wasNotFav) {
+                addNotification({
+                  title: "Añadido a favoritos",
+                  message: `${title} fue añadido a tu lista de favoritos.`,
+                  animeId: id,
+                  animeImage: image,
+                });
+              }
+            }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
               fav
                 ? "text-pink-400 border-pink-400/40 bg-pink-400/10"
@@ -198,6 +213,17 @@ export default function AnimeDetail() {
           >
             {fav ? <HeartOff size={16} /> : <Heart size={16} />}
             {fav ? "Quitar" : "Favorito"}
+          </button>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href).then(() => {
+                setShareToast(true);
+                setTimeout(() => setShareToast(false), 2500);
+              });
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border text-[#9090B0] border-[#2A2A42] hover:text-[#F0F0FF] hover:border-[#3A3A5A] transition-colors"
+          >
+            <Share2 size={16} /> Compartir
           </button>
         </div>
 
@@ -253,6 +279,12 @@ export default function AnimeDetail() {
             </div>
           )}
 
+          {shareToast && (
+            <div style={{ position: "fixed", top: 70, right: 16, background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 700, borderRadius: 10, padding: "10px 16px", zIndex: 200 }}>
+              ✓ Enlace copiado al portapapeles
+            </div>
+          )}
+
           {episodes.length === 0 ? (
             <div className="py-10 text-center text-[#4A4A6A]">
               <Film size={32} className="mx-auto mb-2 opacity-30" />
@@ -304,6 +336,8 @@ export default function AnimeDetail() {
             </div>
           )}
         </div>
+
+        <CommentsSection animeId={id!} />
       </div>
     </div>
   );

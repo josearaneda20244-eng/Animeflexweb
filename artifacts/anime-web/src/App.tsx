@@ -6,9 +6,13 @@ import AnimeDetail from "@/pages/AnimeDetail";
 import Player from "@/pages/Player";
 import Favorites from "@/pages/Favorites";
 import History from "@/pages/History";
+import Movies from "@/pages/Movies";
+import OVAs from "@/pages/OVAs";
+import Schedule from "@/pages/Schedule";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 import { HistoryProvider } from "@/context/HistoryContext";
 import { WatchProgressProvider } from "@/context/WatchProgressContext";
+import { NotificationsProvider } from "@/context/NotificationsContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,6 +44,9 @@ function Router() {
       <Route path="/watch" component={Player} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/history" component={History} />
+      <Route path="/movies" component={Movies} />
+      <Route path="/ovas" component={OVAs} />
+      <Route path="/schedule" component={Schedule} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -56,15 +63,17 @@ function Layout() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <WatchProgressProvider>
-        <FavoritesProvider>
-          <HistoryProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Layout />
-            </WouterRouter>
-          </HistoryProvider>
-        </FavoritesProvider>
-      </WatchProgressProvider>
+      <NotificationsProvider>
+        <WatchProgressProvider>
+          <FavoritesProvider>
+            <HistoryProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Layout />
+              </WouterRouter>
+            </HistoryProvider>
+          </FavoritesProvider>
+        </WatchProgressProvider>
+      </NotificationsProvider>
     </QueryClientProvider>
   );
 }

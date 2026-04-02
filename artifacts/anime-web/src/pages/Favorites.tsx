@@ -1,24 +1,10 @@
-import { Heart, Compass, ChevronRight } from "lucide-react";
+import { Heart, Compass } from "lucide-react";
 import { useLocation } from "wouter";
 import { useFavorites } from "@/context/FavoritesContext";
 import { resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { Star } from "lucide-react";
-
-function NavHeader() {
-  const [, navigate] = useLocation();
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 14px", background: "#090A12" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => navigate("/")}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #6C63FF, #4F46E5)" }}>
-          <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>▶</span>
-        </div>
-        <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5 }}>
-          <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
-        </span>
-      </div>
-    </div>
-  );
-}
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 function FavCard({ anime }: { anime: AnimeResult }) {
   const [, navigate] = useLocation();
@@ -66,9 +52,9 @@ export default function Favorites() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
-      <NavHeader />
+      <Navbar />
 
-      <div style={{ padding: "0 16px 40px" }}>
+      <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 14, paddingTop: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 4, height: 28, borderRadius: 2, background: "#6C63FF" }} />
@@ -110,6 +96,7 @@ export default function Favorites() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

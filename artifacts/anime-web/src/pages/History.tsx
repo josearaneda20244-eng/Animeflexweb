@@ -2,22 +2,8 @@ import { Clock, Trash2, X, Play, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { useHistory, type HistoryEntry } from "@/context/HistoryContext";
 import { resolveTitle } from "@/lib/consumet";
-
-function NavHeader() {
-  const [, navigate] = useLocation();
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "#090A12" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => navigate("/")}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #6C63FF, #4F46E5)" }}>
-          <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>▶</span>
-        </div>
-        <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5 }}>
-          <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
-        </span>
-      </div>
-    </div>
-  );
-}
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -102,9 +88,9 @@ export default function History() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
-      <NavHeader />
+      <Navbar />
 
-      <div style={{ padding: "0 16px 40px" }}>
+      <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 14, paddingTop: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 4, height: 28, borderRadius: 2, background: "#6C63FF" }} />
@@ -160,6 +146,7 @@ export default function History() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

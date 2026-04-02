@@ -1,78 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Play, Info, Star, ChevronLeft, ChevronRight, Tv, Search, Bookmark, Clock, X, Bell } from "lucide-react";
+import { Play, Info, Star, ChevronLeft, ChevronRight, Tv } from "lucide-react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { fetchAiringSchedule, fetchSeasonalAnime, getCurrentSeason, seasonLabel, type AiringEntry } from "@/lib/anilist";
 import { useWatchProgress } from "@/context/WatchProgressContext";
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 function nav(navigate: (to: string) => void, id: string | number) {
   navigate(`/anime/${id}`);
-}
-
-/* ── NAVBAR ── */
-function NavBar() {
-  const [, navigate] = useLocation();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) { navigate(`/search?q=${encodeURIComponent(query.trim())}`); setSearchOpen(false); setQuery(""); }
-  };
-
-  useEffect(() => { if (searchOpen) inputRef.current?.focus(); }, [searchOpen]);
-
-  return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: "linear-gradient(to bottom, rgba(9,10,18,0.98) 0%, rgba(9,10,18,0) 100%)", paddingBottom: 14, paddingLeft: 16, paddingRight: 16, paddingTop: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", flexShrink: 0 }} onClick={() => navigate("/")}>
-          <div style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #6C63FF, #4F46E5)" }}>
-            <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>▶</span>
-          </div>
-          <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5 }}>
-            <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
-          </span>
-        </div>
-
-        {/* Search bar (desktop) */}
-        {searchOpen ? (
-          <form onSubmit={handleSearch} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
-              <Search size={15} color="rgba(255,255,255,0.35)" style={{ position: "absolute", left: 12 }} />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Buscar anime..."
-                style={{ width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, borderRadius: 12, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit" }}
-              />
-            </div>
-            <button type="button" onClick={() => { setSearchOpen(false); setQuery(""); }} style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", display: "flex" }}>
-              <X size={16} color="rgba(255,255,255,0.65)" />
-            </button>
-          </form>
-        ) : (
-          <>
-            {/* Desktop nav links */}
-            <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-              <button onClick={() => setSearchOpen(true)} style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-                <Search size={18} color="rgba(255,255,255,0.65)" />
-              </button>
-              <button onClick={() => navigate("/favorites")} style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-                <Bookmark size={18} color="rgba(255,255,255,0.65)" />
-              </button>
-              <button onClick={() => navigate("/history")} style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-                <Clock size={18} color="rgba(255,255,255,0.65)" />
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
 }
 
 /* ── HERO BANNER ── */
@@ -413,16 +350,16 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
-      <NavBar />
+      <Navbar />
 
-      <div style={{ paddingBottom: 0 }}>
+      <div style={{ paddingTop: 56 }}>
         {trendList.length > 0
           ? <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} />
           : <div style={{ height: "min(70vw, 520px)", background: "#13131C" }} />}
 
         {watchProgress.length > 0 && (
           <div style={{ marginTop: 28 }}>
-            <SectionHeader title="▶ Continuar viendo" />
+            <SectionHeader title="▶ Continuar viendo" onSeeAll={() => {}} />
             <div className="carousel-scroll">
               {watchProgress.slice(0, 8).map((e) => <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} />)}
             </div>
@@ -473,6 +410,7 @@ export default function Home() {
           <GenresSection />
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

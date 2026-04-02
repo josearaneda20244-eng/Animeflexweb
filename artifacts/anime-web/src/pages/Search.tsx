@@ -3,24 +3,12 @@ import { useSearch, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search as SearchIcon, X, Star, SlidersHorizontal } from "lucide-react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const QUICK_TAGS = ["Shonen", "Isekai", "Romance", "Action", "Fantasy", "Comedia", "Horror", "Mecha"];
 const GENRE_FILTERS = ["Todos", "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Sci-Fi", "Thriller", "Horror"];
 const STATUS_FILTERS = ["Todos", "Ongoing", "Completed", "Not yet aired"];
-
-function NavHeader() {
-  const [, navigate] = useLocation();
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px", cursor: "pointer" }} onClick={() => navigate("/")}>
-      <div style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #6C63FF, #4F46E5)" }}>
-        <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>▶</span>
-      </div>
-      <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5 }}>
-        <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
-      </span>
-    </div>
-  );
-}
 
 function SearchCard({ anime }: { anime: AnimeResult }) {
   const [, navigate] = useLocation();
@@ -100,9 +88,9 @@ export default function Search() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
-      <NavHeader />
+      <Navbar />
 
-      <div style={{ padding: "0 16px 40px" }}>
+      <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 16, paddingTop: 4 }}>
           <div style={{ width: 4, height: 28, borderRadius: 2, background: "#6C63FF" }} />
           <div>
@@ -221,6 +209,7 @@ export default function Search() {
           </>
         )}
       </div>
+      <Footer />
     </div>
   );
 }
