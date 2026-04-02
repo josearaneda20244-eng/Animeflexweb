@@ -1,53 +1,115 @@
-import { Heart } from "lucide-react";
+import { Heart, Compass, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
-import AnimeCard from "@/components/AnimeCard";
 import { useFavorites } from "@/context/FavoritesContext";
+import { resolveTitle, type AnimeResult } from "@/lib/consumet";
+import { Star } from "lucide-react";
+
+function NavHeader() {
+  const [, navigate] = useLocation();
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 14px", background: "#090A12" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => navigate("/")}>
+        <div style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #6C63FF, #4F46E5)" }}>
+          <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>▶</span>
+        </div>
+        <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5 }}>
+          <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function FavCard({ anime }: { anime: AnimeResult }) {
+  const [, navigate] = useLocation();
+  const title = resolveTitle(anime.title);
+  return (
+    <div
+      onClick={() => navigate(`/anime/${anime.id}`)}
+      style={{ position: "relative", cursor: "pointer" }}
+    >
+      <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#13131C", border: "1px solid rgba(255,255,255,0.07)", aspectRatio: "2/3" }}>
+        <img src={anime.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 45%, rgba(9,10,18,0.97) 100%)" }} />
+        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
+          <span style={{ background: "#22C55E", borderRadius: 5, padding: "2px 6px", color: "#fff", fontSize: 8, fontWeight: 900, letterSpacing: 0.5 }}>SUB</span>
+          {anime.totalEpisodes && (
+            <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 5, padding: "2px 6px", color: "rgba(255,255,255,0.9)", fontSize: 8, fontWeight: 800 }}>{anime.totalEpisodes} EP</span>
+          )}
+        </div>
+        {anime.status === "Ongoing" && (
+          <div style={{ position: "absolute", bottom: 42, left: 8, display: "flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 5, padding: "2px 6px" }}>
+            <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E" }} />
+            <span style={{ color: "#22C55E", fontSize: 8, fontWeight: 900, letterSpacing: 0.5 }}>LIVE</span>
+          </div>
+        )}
+        {anime.rating != null && anime.rating > 0 && (
+          <div style={{ position: "absolute", bottom: 42, right: 8, display: "flex", alignItems: "center", gap: 2, background: "rgba(0,0,0,0.8)", borderRadius: 5, padding: "2px 5px" }}>
+            <Star size={8} color="#F59E0B" fill="#F59E0B" />
+            <span style={{ color: "#F59E0B", fontSize: 9, fontWeight: 800 }}>{(anime.rating / 10).toFixed(1)}</span>
+          </div>
+        )}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 10, display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ color: "#fff", fontSize: 11, fontWeight: 700, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as any}>{title}</div>
+          {anime.type && (
+            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, fontWeight: 600 }}>{anime.type}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Favorites() {
   const [, navigate] = useLocation();
   const { favorites } = useFavorites();
 
   return (
-    <div className="min-h-screen pt-20 pb-16 px-4 md:px-8 max-w-screen-2xl mx-auto" style={{ background: "#090A12" }}>
-      <div className="flex items-center gap-3 mb-6">
-        <div className="section-accent" />
-        <div>
-          <h1 className="text-xl font-bold text-[#F0F0FF]">Favoritos</h1>
-          <p className="text-xs text-[#9090B0] mt-0.5">
-            {favorites.length > 0
-              ? `${favorites.length} anime${favorites.length !== 1 ? "s" : ""} guardado${favorites.length !== 1 ? "s" : ""}`
-              : "Tu lista personal"}
-          </p>
-        </div>
-      </div>
+    <div style={{ minHeight: "100vh", background: "#090A12" }}>
+      <NavHeader />
 
-      {favorites.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-[#4A4A6A]">
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center mb-5"
-            style={{ background: "rgba(108,99,255,0.1)" }}
-          >
-            <Heart size={36} className="text-[#6C63FF]" />
+      <div style={{ padding: "0 16px 40px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 14, paddingTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 4, height: 28, borderRadius: 2, background: "#6C63FF" }} />
+            <div>
+              <div style={{ color: "#F1F1F5", fontSize: 24, fontWeight: 900, letterSpacing: -0.5 }}>Favoritos</div>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 1 }}>
+                {favorites.length > 0 ? `${favorites.length} anime${favorites.length !== 1 ? "s" : ""} guardado${favorites.length !== 1 ? "s" : ""}` : "Tu lista personal"}
+              </div>
+            </div>
           </div>
-          <p className="text-[#F0F0FF] font-medium mb-1">Aún no tienes favoritos</p>
-          <p className="text-sm text-center max-w-xs">
-            Toca el corazón en cualquier anime para guardarlo aquí
-          </p>
-          <button
-            onClick={() => navigate("/")}
-            className="mt-6 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-opacity hover:opacity-90"
-            style={{ background: "linear-gradient(135deg,#6C63FF,#EC4899)" }}
-          >
-            Explorar anime
-          </button>
+          {favorites.length > 0 && (
+            <div style={{ background: "linear-gradient(135deg,#6C63FF,#4F46E5)", borderRadius: 14, padding: "6px 12px" }}>
+              <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>{favorites.length}</span>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
-          {favorites.map((anime) => (
-            <AnimeCard key={anime.id} anime={anime} />
-          ))}
-        </div>
-      )}
+
+        <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 16 }} />
+
+        {favorites.length === 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 14 }}>
+            <div style={{ width: 110, height: 110, borderRadius: 55, background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Heart size={48} color="#6C63FF" />
+            </div>
+            <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 800 }}>Aún no tienes favoritos</div>
+            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 14, textAlign: "center", lineHeight: 1.6, maxWidth: 280 }}>
+              Toca el corazón en cualquier anime para guardarlo aquí
+            </div>
+            <button
+              onClick={() => navigate("/")}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(108,99,255,0.15)", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 20, padding: "9px 16px", color: "#6C63FF", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 4 }}
+            >
+              <Compass size={14} /> Explorar anime
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 12 }}>
+            {favorites.map((anime) => <FavCard key={anime.id} anime={anime} />)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

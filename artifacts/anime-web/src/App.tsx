@@ -1,6 +1,5 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import Navbar from "@/components/Navbar";
 import Home from "@/pages/Home";
 import Search from "@/pages/Search";
 import AnimeDetail from "@/pages/AnimeDetail";
@@ -48,12 +47,9 @@ function Router() {
 
 function Layout() {
   return (
-    <>
-      <Navbar />
-      <main>
-        <Router />
-      </main>
-    </>
+    <main>
+      <Router />
+    </main>
   );
 }
 
