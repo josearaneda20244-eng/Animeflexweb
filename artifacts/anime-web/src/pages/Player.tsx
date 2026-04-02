@@ -246,8 +246,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         startLevel: -1,
         fragLoadingTimeOut: 30000,
         manifestLoadingTimeOut: 30000,
-        maxBufferHole: 0.5,
-        highBufferWatchdogPeriod: 2,
+        maxBufferHole: 1,
       });
       hlsRef.current = hls;
       hls.loadSource(m3u8Url);
@@ -263,6 +262,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       });
 
       let networkErrCount = 0;
+      let mediaErrCount = 0;
       loadTimeout = setTimeout(() => {
         setError("Tiempo de carga agotado. Intenta de nuevo.");
         setLoading(false);
@@ -271,23 +271,46 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
         networkErrCount = 0;
+        mediaErrCount = 0;
         setLoading(false);
         onReady();
         video.play().catch(() => {});
       });
+
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        networkErrCount = 0;
+      });
+
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
             networkErrCount++;
-            if (networkErrCount > 5) {
+            if (networkErrCount > 8) {
               if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
               setError("Error de red al cargar el episodio. Intenta de nuevo.");
               setLoading(false);
             } else {
-              hls.startLoad();
+              setTimeout(() => hls.startLoad(), 1000);
             }
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            mediaErrCount++;
+            if (mediaErrCount > 3) {
+              if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
+              setError("Error de medios al reproducir el episodio.");
+              setLoading(false);
+              return;
+            }
+            const savedTime = video.currentTime;
             hls.recoverMediaError();
+            if (savedTime > 5) {
+              const restoreTime = () => {
+                if (video.currentTime < savedTime - 2) {
+                  video.currentTime = savedTime;
+                }
+                video.removeEventListener("canplay", restoreTime);
+              };
+              video.addEventListener("canplay", restoreTime);
+            }
           } else {
             if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
             setError("Error al reproducir el episodio.");
@@ -490,10 +513,10 @@ export default function Player() {
     queryKey: ["streaming", episodeId],
     queryFn: () => consumet.streaming(episodeId),
     enabled: !!episodeId,
-    retry: 6,
-    retryDelay: (i) => Math.min(1500 * Math.pow(2, i), 12000),
-    staleTime: 0,
-    gcTime: 0,
+    retry: 3,
+    retryDelay: (i) => Math.min(600 * Math.pow(2, i), 6000),
+    staleTime: 1000 * 60 * 3,
+    gcTime: 1000 * 60 * 8,
     refetchOnWindowFocus: false,
   });
 

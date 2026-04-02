@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Play, Info, Star, ChevronLeft, ChevronRight, Tv } from "lucide-react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
-import { fetchAiringSchedule, fetchSeasonalAnime, getCurrentSeason, seasonLabel, type AiringEntry } from "@/lib/anilist";
+import { fetchAiringSchedule, fetchSeasonalAnime, getCurrentSeason, seasonLabel, type AiringEntry, type SeasonAnime } from "@/lib/anilist";
 import { useWatchProgress } from "@/context/WatchProgressContext";
 import { useCallback, useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
@@ -152,7 +152,7 @@ function RecentCard({ anime }: { anime: AnimeResult }) {
 }
 
 /* ── SEASONAL CARD ── */
-function SeasonalCard({ anime }: { anime: ReturnType<typeof fetchSeasonalAnime> extends Promise<infer T> ? T[number] : never }) {
+function SeasonalCard({ anime }: { anime: SeasonAnime }) {
   const [, navigate] = useLocation();
   const title = anime.title.english || anime.title.romaji;
   return (
