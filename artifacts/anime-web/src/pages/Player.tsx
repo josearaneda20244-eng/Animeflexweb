@@ -11,6 +11,7 @@ import {
 import {
   consumet,
   proxyStreamUrl,
+  proxySubtitleUrl,
   type StreamingSource,
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
@@ -42,14 +43,17 @@ function parseVtt(vttText: string): VttCue[] {
   const cues: VttCue[] = [];
   const lines = vttText.replace(/\r\n/g, "\n").split("\n");
   let i = 0;
+  // Matches both HH:MM:SS.mmm and MM:SS.mmm formats
+  const TIME_RE = /^((?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{3})\s*-->\s*((?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{3})/;
+  const parseTime = (s: string) => {
+    const parts = s.replace(",", ".").split(":");
+    if (parts.length === 3) return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+    return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+  };
   while (i < lines.length) {
     const line = lines[i].trim();
-    const timeMatch = line.match(/^(\d{1,2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[.,]\d{3})/);
+    const timeMatch = line.match(TIME_RE);
     if (timeMatch) {
-      const parseTime = (s: string) => {
-        const parts = s.replace(",", ".").split(":");
-        return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
-      };
       const start = parseTime(timeMatch[1]);
       const end = parseTime(timeMatch[2]);
       i++;
@@ -65,8 +69,33 @@ function parseVtt(vttText: string): VttCue[] {
 }
 
 /* ── CUSTOM SUBTITLE OVERLAY ── */
-function SubtitleOverlay({ text }: { text: string | null }) {
-  if (!text) return null;
+function SubtitleOverlay({
+  text, subtitleUrl, currentTime,
+}: {
+  text?: string | null;
+  subtitleUrl?: string | null;
+  currentTime?: number;
+}) {
+  const [cues, setCues] = useState<VttCue[]>([]);
+  const loadedUrl = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!subtitleUrl || subtitleUrl === loadedUrl.current) return;
+    loadedUrl.current = subtitleUrl;
+    setCues([]);
+    fetch(subtitleUrl)
+      .then(r => { if (!r.ok) throw new Error("bad"); return r.text(); })
+      .then(t => setCues(parseVtt(t)))
+      .catch(() => setCues([]));
+  }, [subtitleUrl]);
+
+  const display =
+    text != null ? text :
+    (subtitleUrl && currentTime != null
+      ? (cues.find(c => currentTime >= c.start && currentTime <= c.end)?.text ?? null)
+      : null);
+
+  if (!display) return null;
   return (
     <div style={{
       position: "absolute", bottom: 56, left: 0, right: 0, zIndex: 20,
@@ -79,7 +108,7 @@ function SubtitleOverlay({ text }: { text: string | null }) {
         textShadow: "0 1px 4px rgba(0,0,0,0.9)", letterSpacing: 0.2,
         whiteSpace: "pre-line",
       }}>
-        {text}
+        {display}
       </div>
     </div>
   );
@@ -445,10 +474,12 @@ export default function Player() {
   const startAt = savedProgress?.currentTime;
 
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
   const [hlsSubTracks, setHlsSubTracks] = useState<HlsSubTrack[]>([]);
   const [activeHlsSubId, setActiveHlsSubId] = useState<number>(-1);
   const [hlsCueText, setHlsCueText] = useState<string | null>(null);
@@ -469,17 +500,34 @@ export default function Player() {
   const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
 
+  const streamSubtitles = query.data?.subtitles ?? [];
+  const streamSpanishSub =
+    streamSubtitles.find((s) => /español.*españa|spanish.*esp/i.test(s.lang)) ??
+    streamSubtitles.find((s) => /español|spanish|spa/i.test(s.lang)) ??
+    null;
+
   useEffect(() => {
     setSelectedIdx(0);
+    setActiveSubUrl(null);
     setHlsSubTracks([]);
     setActiveHlsSubId(-1);
     setHlsCueText(null);
+    setCurrentTime(0);
     setShowAutoNext(false);
   }, [episodeId]);
 
-  // Auto-select Spanish subtitle track when HLS tracks are found
+  // Auto-load VTT subtitle from stream source (with referer for CDN auth)
+  useEffect(() => {
+    if (!streamSpanishSub) return;
+    const proxied = proxySubtitleUrl(streamSpanishSub.url, referer);
+    setActiveSubUrl(proxied);
+    setSubtitlesEnabled(true);
+  }, [streamSpanishSub?.url, referer]);
+
+  // Auto-select Spanish HLS embedded subtitle track (secondary path)
   const handleSubtitleTracks = useCallback((tracks: HlsSubTrack[]) => {
     setHlsSubTracks(tracks);
+    if (activeSubUrl) return; // VTT already loaded, skip HLS fallback
     const spanish =
       tracks.find(t => /español.*españa|spanish.*esp/i.test(t.lang + " " + t.name)) ??
       tracks.find(t => /español|spanish|spa|es$/i.test(t.lang + " " + t.name)) ??
@@ -488,7 +536,7 @@ export default function Player() {
       setActiveHlsSubId(spanish.id);
       setSubtitlesEnabled(true);
     }
-  }, []);
+  }, [activeSubUrl]);
 
   const handleSubtitleCue = useCallback((text: string | null) => {
     setHlsCueText(text);
@@ -497,6 +545,7 @@ export default function Player() {
   const proxyM3u8 = selected ? proxyStreamUrl(selected.url, referer) : null;
 
   const handleTimeUpdate = useCallback((ct: number, duration: number) => {
+    setCurrentTime(ct);
     if (!animeId) return;
     saveProgress({ episodeId, episodeNum: parseInt(episodeNum) || 0, animeId, animeTitle, animeImage, currentTime: ct, duration });
   }, [episodeId, episodeNum, animeId, animeTitle, animeImage, saveProgress]);
@@ -517,8 +566,10 @@ export default function Player() {
     });
   };
 
-  const hasSpanishSubs = activeHlsSubId !== -1 || hlsSubTracks.some(t => /español|spanish|spa/i.test(t.lang + " " + t.name));
-  const subtitleCueToRender = subtitlesEnabled && activeHlsSubId !== -1 ? hlsCueText : null;
+  const hasSpanishSubs = !!activeSubUrl || activeHlsSubId !== -1;
+  // HLS cue text takes priority; VTT parsed cue is handled inside SubtitleOverlay
+  const vttSubUrl = subtitlesEnabled && !hlsCueText && activeSubUrl ? activeSubUrl : null;
+  const hlsCueToRender = subtitlesEnabled && activeHlsSubId !== -1 ? hlsCueText : null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
@@ -592,8 +643,12 @@ export default function Player() {
                 onSubtitleCue={handleSubtitleCue}
               />
             )}
-            {/* Custom subtitle overlay */}
-            <SubtitleOverlay text={subtitleCueToRender} />
+            {/* Custom subtitle overlay — VTT primary, HLS cue fallback */}
+            <SubtitleOverlay
+              text={hlsCueToRender}
+              subtitleUrl={vttSubUrl}
+              currentTime={currentTime}
+            />
 
             {showAutoNext && nextEpisodeId && (
               <AutoNextOverlay nextNum={nextEpisodeNum} onSkip={handleNextEpisode} onCancel={() => setShowAutoNext(false)} />
@@ -663,25 +718,20 @@ export default function Player() {
                   <Loader2 size={12} className="animate-spin" /> Cargando episodio...
                 </div>
               )}
-              {!query.isLoading && hlsSubTracks.length === 0 && activeHlsSubId === -1 && (
-                <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos en español para este episodio.</p>
-              )}
-              {hlsSubTracks.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  {hlsSubTracks
-                    .filter(t => /español|spanish|spa/i.test(t.lang + " " + t.name))
-                    .map(t => {
-                      const isActive = activeHlsSubId === t.id;
-                      return (
-                        <button key={t.id}
-                          onClick={() => { setActiveHlsSubId(isActive ? -1 : t.id); setSubtitlesEnabled(!isActive); }}
-                          style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, textAlign: "left", background: isActive ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)", border: `1px solid ${isActive ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.07)"}`, color: isActive ? "#22C55E" : "rgba(255,255,255,0.5)", fontSize: 12, cursor: "pointer" }}>
-                          <div style={{ width: 7, height: 7, borderRadius: "50%", background: isActive ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                          <span style={{ fontWeight: 600 }}>{t.name || t.lang}</span>
-                        </button>
-                      );
-                    })}
+              {!query.isLoading && streamSpanishSub && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
+                  {streamSpanishSub.lang} — incluidos en la fuente, activos automáticamente
                 </div>
+              )}
+              {!query.isLoading && !streamSpanishSub && hlsSubTracks.some(t => /español|spanish|spa/i.test(t.lang + " " + t.name)) && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
+                  Español (HLS) — activos automáticamente
+                </div>
+              )}
+              {!query.isLoading && !streamSpanishSub && !hlsSubTracks.some(t => /español|spanish|spa/i.test(t.lang + " " + t.name)) && (
+                <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos en español para este episodio.</p>
               )}
             </div>
           </div>

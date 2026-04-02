@@ -12,8 +12,10 @@ export function proxyStreamUrl(directUrl: string, referer?: string): string {
   return url;
 }
 
-export function proxySubtitleUrl(directUrl: string): string {
-  return `${BASE_URL}/anime/subtitle-proxy?url=${encodeURIComponent(directUrl)}`;
+export function proxySubtitleUrl(directUrl: string, referer?: string): string {
+  let url = `${BASE_URL}/anime/subtitle-proxy?url=${encodeURIComponent(directUrl)}`;
+  if (referer) url += `&referer=${encodeURIComponent(referer)}`;
+  return url;
 }
 
 export function resolveTitle(

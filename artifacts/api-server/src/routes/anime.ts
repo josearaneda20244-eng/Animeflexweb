@@ -849,23 +849,29 @@ router.post("/anime/subtitles/download", async (req, res) => {
  */
 router.get("/anime/subtitle-proxy", async (req, res) => {
   const rawUrl = req.query.url as string | undefined;
+  const rawReferer = req.query.referer as string | undefined;
   if (!rawUrl) {
     res.status(400).send("url param required");
     return;
   }
 
   let targetUrl: string;
+  let referer: string | undefined;
   try {
     targetUrl = decodeURIComponent(rawUrl);
+    referer = rawReferer ? decodeURIComponent(rawReferer) : undefined;
   } catch {
     res.status(400).send("Invalid url param");
     return;
   }
 
   try {
-    const upstream = await fetch(targetUrl, {
-      headers: { "User-Agent": "AnimeFLEX v1.0" },
-    });
+    const fetchHeaders: Record<string, string> = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    };
+    if (referer) fetchHeaders["Referer"] = referer;
+
+    const upstream = await fetch(targetUrl, { headers: fetchHeaders });
 
     if (!upstream.ok) {
       res.status(upstream.status).send("Upstream error");
