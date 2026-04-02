@@ -6,22 +6,16 @@ import { Router, type IRouter } from "express";
 const router: IRouter = Router();
 
 let anilist: InstanceType<typeof META.Anilist>;
-let animePahe: InstanceType<typeof ANIME.AnimePahe>;
-let hianime: InstanceType<typeof ANIME.HiAnime>;
+let animeKai: InstanceType<typeof ANIME.AnimeKai>;
 
 function getAnilist() {
   if (!anilist) anilist = new META.Anilist();
   return anilist;
 }
 
-function getAnimePahe() {
-  if (!animePahe) animePahe = new ANIME.AnimePahe();
-  return animePahe;
-}
-
-function getHianime() {
-  if (!hianime) hianime = new ANIME.HiAnime();
-  return hianime;
+function getAnimeKai() {
+  if (!animeKai) animeKai = new ANIME.AnimeKai();
+  return animeKai;
 }
 
 function titleVariants(title: string): string[] {
@@ -42,19 +36,29 @@ function titleVariants(title: string): string[] {
   return [...new Set(variants)];
 }
 
-const PROXY_HEADERS = {
-  Referer: "https://kwik.cx/",
-  Origin: "https://kwik.cx",
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-};
+const DEFAULT_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36";
+
+function buildProxyHeaders(referer?: string): Record<string, string> {
+  const headers: Record<string, string> = { "User-Agent": DEFAULT_UA };
+  if (referer) {
+    headers["Referer"] = referer;
+    try {
+      headers["Origin"] = new URL(referer).origin;
+    } catch {
+      headers["Origin"] = referer;
+    }
+  }
+  return headers;
+}
 
 // Simple in-memory key cache (keys are small, 16 bytes each)
 const keyCache = new Map<string, Buffer>();
 
-async function fetchKey(keyUrl: string): Promise<Buffer> {
-  if (keyCache.has(keyUrl)) return keyCache.get(keyUrl)!;
-  const resp = await fetch(keyUrl, { headers: PROXY_HEADERS });
+async function fetchKey(keyUrl: string, referer?: string): Promise<Buffer> {
+  const cacheKey = `${keyUrl}|${referer ?? ""}`;
+  if (keyCache.has(cacheKey)) return keyCache.get(cacheKey)!;
+  const resp = await fetch(keyUrl, { headers: buildProxyHeaders(referer) });
   if (!resp.ok) throw new Error(`Key fetch failed: ${resp.status}`);
   const buf = Buffer.from(await resp.arrayBuffer());
   keyCache.set(keyUrl, buf);
@@ -101,8 +105,12 @@ router.get("/anime/hls-proxy", async (req, res) => {
   const rawKey = req.query.key as string | undefined;
   const seq = parseInt((req.query.seq as string) || "0", 10);
 
+  const rawReferer = req.query.referer as string | undefined;
+  const proxyReferer = rawReferer ? decodeURIComponent(rawReferer) : undefined;
+  const proxyHeaders = buildProxyHeaders(proxyReferer);
+
   try {
-    const upstream = await fetch(targetUrl, { headers: PROXY_HEADERS });
+    const upstream = await fetch(targetUrl, { headers: proxyHeaders });
     if (!upstream.ok) {
       res.status(upstream.status).send(`Upstream error: ${upstream.status}`);
       return;
@@ -176,6 +184,9 @@ router.get("/anime/hls-proxy", async (req, res) => {
           segCount++;
 
           let newUrl = `${selfBase}?url=${encodeURIComponent(absSegUrl)}&seq=${segSeq}`;
+          if (proxyReferer) {
+            newUrl += `&referer=${encodeURIComponent(proxyReferer)}`;
+          }
           if (currentKeyUrl) {
             newUrl += `&key=${encodeURIComponent(currentKeyUrl)}`;
             // Also pass base so sub-playlists are handled (multi-bitrate)
@@ -190,7 +201,7 @@ router.get("/anime/hls-proxy", async (req, res) => {
       // --- Encrypted segment: decrypt and serve ---
       const keyUrl = decodeURIComponent(rawKey);
       const [key, encryptedBuf] = await Promise.all([
-        fetchKey(keyUrl),
+        fetchKey(keyUrl, proxyReferer),
         upstream.arrayBuffer().then((b) => Buffer.from(b)),
       ]);
 
@@ -493,7 +504,7 @@ router.get("/anime/info", async (req, res) => {
     return;
   }
   try {
-    const data = await getAnimePahe().fetchAnimeInfo(id);
+    const data = await getAnimeKai().fetchAnimeInfo(id);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch anime info");
@@ -610,11 +621,11 @@ router.get("/anime/search-pahe", async (req, res) => {
     return;
   }
   try {
-    const data = await getAnimePahe().search(query);
+    const data = await getAnimeKai().search(query);
     res.json(data);
   } catch (err) {
-    req.log.error({ err }, "Failed to search on AnimePahe");
-    res.status(500).json({ error: "Failed to search on AnimePahe" });
+    req.log.error({ err }, "Failed to search on AnimeKai");
+    res.status(500).json({ error: "Failed to search on AnimeKai" });
   }
 });
 
@@ -626,15 +637,15 @@ router.get("/anime/info-by-title", async (req, res) => {
   }
 
   const variants = titleVariants(title.trim());
-  req.log.info({ title, variants }, "Looking up anime by title");
+  req.log.info({ title, variants }, "Looking up anime by title on AnimeKai");
 
   for (const variant of variants) {
     try {
-      const searchResults = await getAnimePahe().search(variant);
+      const searchResults = await getAnimeKai().search(variant);
       const first = searchResults.results?.[0];
       if (first?.id) {
-        const data = await getAnimePahe().fetchAnimeInfo(first.id as string);
-        req.log.info({ variant, id: first.id }, "Found anime info");
+        const data = await getAnimeKai().fetchAnimeInfo(first.id as string);
+        req.log.info({ variant, id: first.id }, "Found anime info on AnimeKai");
         res.json(data);
         return;
       }
@@ -653,7 +664,7 @@ router.get("/anime/watch", async (req, res) => {
     return;
   }
   try {
-    const data = await getAnimePahe().fetchEpisodeSources(episodeId.trim());
+    const data = await getAnimeKai().fetchEpisodeSources(episodeId.trim());
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch episode sources");

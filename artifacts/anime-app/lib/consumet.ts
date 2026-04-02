@@ -6,12 +6,15 @@ const PROXY_ENDPOINT = `${BASE_URL}/anime/hls-proxy`;
  * The proxy adds the required Referer/Origin headers and rewrites
  * m3u8 playlists so segment URLs also go through the proxy.
  */
-export function proxyStreamUrl(directUrl: string): string {
-  return (
+export function proxyStreamUrl(directUrl: string, referer?: string): string {
+  let url =
     `${PROXY_ENDPOINT}` +
     `?url=${encodeURIComponent(directUrl)}` +
-    `&base=${encodeURIComponent(PROXY_ENDPOINT)}`
-  );
+    `&base=${encodeURIComponent(PROXY_ENDPOINT)}`;
+  if (referer) {
+    url += `&referer=${encodeURIComponent(referer)}`;
+  }
+  return url;
 }
 
 function resolveTitle(

@@ -55,8 +55,8 @@ function sortSources(sources: StreamingSource[]): StreamingSource[] {
   });
 }
 
-function proxyUrl(src: StreamingSource): string {
-  return proxyStreamUrl(src.url);
+function proxyUrl(src: StreamingSource, referer?: string): string {
+  return proxyStreamUrl(src.url, referer);
 }
 
 function buildEmbedUrl(
@@ -100,11 +100,13 @@ function WebPlayer({
 function NativePlayer({
   src,
   headers,
+  referer,
 }: {
   src: StreamingSource;
   headers: Record<string, string>;
+  referer?: string;
 }) {
-  const uri = src.isM3U8 ? proxyUrl(src) : src.url;
+  const uri = src.isM3U8 ? proxyUrl(src, referer) : src.url;
 
   const player = useVideoPlayer(
     { uri, headers },
@@ -117,7 +119,7 @@ function NativePlayer({
   useEffect(() => {
     player.replace({ uri, headers });
     player.play();
-  }, [uri]);
+  }, [uri, referer]);
 
   return (
     <VideoView
@@ -148,8 +150,9 @@ export default function PlayerScreen() {
   });
 
   const sources = query.data ? sortSources(query.data.sources ?? []) : [];
-  const nativeHeaders =
-    Platform.OS !== "web" ? (query.data?.headers ?? {}) : {};
+  const streamingHeaders = query.data?.headers ?? {};
+  const nativeHeaders = Platform.OS !== "web" ? streamingHeaders : {};
+  const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
 
   useEffect(() => {
@@ -162,7 +165,7 @@ export default function PlayerScreen() {
     return domain ? `https://${domain}` : "";
   })();
 
-  const proxyM3u8 = selected ? proxyUrl(selected) : null;
+  const proxyM3u8 = selected ? proxyUrl(selected, referer) : null;
   const embedUrl =
     Platform.OS === "web" && proxyM3u8
       ? buildEmbedUrl(proxyM3u8, apiBase, params.animeTitle ?? "")
@@ -217,7 +220,7 @@ export default function PlayerScreen() {
             {Platform.OS === "web" && embedUrl ? (
               <WebPlayer embedUrl={embedUrl} height={VIDEO_HEIGHT} />
             ) : (
-              <NativePlayer src={selected!} headers={nativeHeaders} />
+              <NativePlayer src={selected!} headers={nativeHeaders} referer={referer} />
             )}
           </>
         )}
