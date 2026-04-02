@@ -664,6 +664,17 @@ router.get("/anime/info-by-title", async (req, res) => {
  * Fetch streaming sources for an episode via AnimeKai.
  * Episode IDs are in AnimeKai format: slug$ep=N$token=xxx
  */
+async function retryFetch<T>(fn: () => Promise<T>, attempts = 4, baseDelayMs = 600): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn(); } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, i)));
+    }
+  }
+  throw lastErr;
+}
+
 router.get("/anime/watch", async (req, res) => {
   const episodeId = req.query.episodeId as string;
   if (!episodeId || !episodeId.trim()) {
@@ -672,7 +683,7 @@ router.get("/anime/watch", async (req, res) => {
   }
   const id = episodeId.trim();
   try {
-    const data = await getAnimeKai().fetchEpisodeSources(id);
+    const data = await retryFetch(() => getAnimeKai().fetchEpisodeSources(id), 4, 600);
     res.json(data);
     return;
   } catch (firstErr: any) {
@@ -682,22 +693,20 @@ router.get("/anime/watch", async (req, res) => {
       res.status(500).json({ error: "Failed to fetch episode sources" });
       return;
     }
+    req.log.warn({ episodeId: id }, "Direct fetch failed after retries, trying fallback via fetchEpisodeServers");
     try {
-      req.log.warn({ episodeId: id }, "Default server not found, trying fallback via fetchEpisodeServers");
-      const servers = await getAnimeKai().fetchEpisodeServers(id);
+      const servers = await retryFetch(() => getAnimeKai().fetchEpisodeServers(id), 3, 500);
       if (!servers || servers.length === 0) {
         res.status(503).json({ error: "No streaming servers available for this episode" });
         return;
       }
       for (const server of servers) {
         try {
-          const data = await getAnimeKai().fetchEpisodeSources(server.url);
+          const data = await retryFetch(() => getAnimeKai().fetchEpisodeSources(server.url), 3, 500);
           req.log.info({ server: server.name }, "Fallback server succeeded");
           res.json(data);
           return;
-        } catch {
-          // try next server
-        }
+        } catch { /* try next server */ }
       }
       res.status(503).json({ error: "All streaming servers failed for this episode" });
     } catch (fallbackErr) {

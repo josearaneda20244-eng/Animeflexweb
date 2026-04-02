@@ -182,17 +182,54 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded }: P
     const onTimeUpd = () => { if (video.duration > 0) onTimeUpdateRef.current?.(video.currentTime, video.duration); };
     const onEnd = () => { onEndedRef.current?.(); };
 
+    let loadTimeout: ReturnType<typeof setTimeout> | null = null;
+
     if (Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: true, maxBufferLength: 60, maxMaxBufferLength: 240, startLevel: -1, fragLoadingTimeOut: 30000, manifestLoadingTimeOut: 20000 });
+      const hls = new Hls({
+        enableWorker: true,
+        maxBufferLength: 60,
+        maxMaxBufferLength: 240,
+        startLevel: -1,
+        fragLoadingTimeOut: 30000,
+        manifestLoadingTimeOut: 30000,
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+      });
       hlsRef.current = hls;
       hls.loadSource(m3u8Url);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { setLoading(false); onReady(); video.play().catch(() => {}); });
+
+      let networkErrCount = 0;
+      loadTimeout = setTimeout(() => {
+        setError("Tiempo de carga agotado. Intenta de nuevo.");
+        setLoading(false);
+      }, 60000);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
+        networkErrCount = 0;
+        setLoading(false);
+        onReady();
+        video.play().catch(() => {});
+      });
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-          else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
-          else { setError("Error al reproducir el episodio."); setLoading(false); }
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            networkErrCount++;
+            if (networkErrCount > 5) {
+              if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
+              setError("Error de red al cargar el episodio. Intenta de nuevo.");
+              setLoading(false);
+            } else {
+              hls.startLoad();
+            }
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
+            setError("Error al reproducir el episodio.");
+            setLoading(false);
+          }
         }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -208,6 +245,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded }: P
     return () => {
       video.removeEventListener("timeupdate", onTimeUpd);
       video.removeEventListener("ended", onEnd);
+      if (loadTimeout) clearTimeout(loadTimeout);
       if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; }
       if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
     };
@@ -386,7 +424,8 @@ export default function Player() {
     queryKey: ["streaming", episodeId],
     queryFn: () => consumet.streaming(episodeId),
     enabled: !!episodeId,
-    retry: 2,
+    retry: 6,
+    retryDelay: (i) => Math.min(1500 * Math.pow(2, i), 12000),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -514,7 +553,9 @@ export default function Player() {
             {query.isLoading && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <Loader2 size={36} className="animate-spin" style={{ color: "#6C63FF" }} />
-                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Cargando episodio...</p>
+                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
+                  {query.failureCount > 0 ? `Reconectando... (intento ${query.failureCount + 1})` : "Cargando episodio..."}
+                </p>
               </div>
             )}
             {query.isError && (
