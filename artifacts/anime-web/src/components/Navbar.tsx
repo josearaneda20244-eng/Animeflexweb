@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
-import { consumet } from "@/lib/consumet";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -10,12 +10,37 @@ export default function Navbar() {
   const [location, navigate] = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<AnimeResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const notifsRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { notifications, unreadCount, markAllRead, clearAll } = useNotifications();
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (q.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
+    setSearchLoading(true);
+    try {
+      const res = await consumet.search(q.trim(), 1);
+      setSuggestions(res.results?.slice(0, 6) ?? []);
+      setShowSuggestions(true);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  const handleQueryChange = (val: string) => {
+    setQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(val), 380);
+  };
 
   const isActive = (path: string) =>
     path === "/" ? location === "/" : location.startsWith(path);
@@ -26,7 +51,17 @@ export default function Navbar() {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
       setSearchOpen(false);
       setQuery("");
+      setSuggestions([]);
+      setShowSuggestions(false);
     }
+  };
+
+  const handleSuggestionClick = (anime: AnimeResult) => {
+    navigate(`/anime/${anime.id}`);
+    setSearchOpen(false);
+    setQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const handleRandom = async () => {
@@ -40,12 +75,21 @@ export default function Navbar() {
     } catch {}
   };
 
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  };
+
   useEffect(() => { if (searchOpen) inputRef.current?.focus(); }, [searchOpen]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (notifsRef.current && !notifsRef.current.contains(e.target as Node)) setShowNotifs(false);
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowSuggestions(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -68,22 +112,73 @@ export default function Navbar() {
 
         {searchOpen ? (
           <form onSubmit={handleSearch} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
-              <Search size={15} color="rgba(255,255,255,0.35)" style={{ position: "absolute", left: 12 }} />
+            <div ref={searchBoxRef} style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
+              <Search size={15} color="rgba(255,255,255,0.35)" style={{ position: "absolute", left: 12, zIndex: 1 }} />
               <input
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => handleQueryChange(e.target.value)}
+                onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
                 placeholder="Buscar anime..."
                 style={{
                   width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
-                  borderRadius: 12, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(108,99,255,0.4)",
+                  borderRadius: showSuggestions && suggestions.length > 0 ? "12px 12px 0 0" : 12,
+                  background: "rgba(255,255,255,0.08)", border: "1px solid rgba(108,99,255,0.4)",
                   color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit",
                 }}
               />
+              {showSuggestions && suggestions.length > 0 && (
+                <div style={{
+                  position: "absolute", top: "100%", left: 0, right: 0, zIndex: 300,
+                  background: "#13131C", border: "1px solid rgba(108,99,255,0.3)", borderTop: "none",
+                  borderRadius: "0 0 14px 14px", overflow: "hidden",
+                  boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
+                }}>
+                  {searchLoading && (
+                    <div style={{ padding: "10px 14px", color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Buscando...</div>
+                  )}
+                  {!searchLoading && suggestions.map((anime) => {
+                    const title = resolveTitle(anime.title);
+                    return (
+                      <div key={anime.id} onClick={() => handleSuggestionClick(anime)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 10, padding: "9px 14px",
+                          cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.04)",
+                          transition: "background 0.12s",
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(108,99,255,0.12)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                        <img src={anime.image} alt={title} style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }} className="line-clamp-1">{title}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                            {anime.type && <span style={{ color: "#6C63FF", fontSize: 10, fontWeight: 700 }}>{anime.type}</span>}
+                            {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{anime.releaseDate}</span>}
+                            {anime.rating != null && anime.rating > 0 && (
+                              <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                <Star size={9} color="#F59E0B" fill="#F59E0B" />
+                                <span style={{ color: "#F59E0B", fontSize: 10, fontWeight: 700 }}>{(anime.rating / 10).toFixed(1)}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div onClick={handleSearch as any}
+                    style={{
+                      padding: "9px 14px", color: "#6C63FF", fontSize: 12, fontWeight: 700,
+                      cursor: "pointer", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)",
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(108,99,255,0.08)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                    Ver todos los resultados para "{query}" →
+                  </div>
+                </div>
+              )}
             </div>
-            <button type="button" onClick={() => { setSearchOpen(false); setQuery(""); }}
+            <button type="button" onClick={closeSearch}
               style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", display: "flex" }}>
               <X size={16} color="rgba(255,255,255,0.65)" />
             </button>

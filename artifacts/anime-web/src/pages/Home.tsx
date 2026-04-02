@@ -53,6 +53,11 @@ function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; id
             ))}
           </div>
         )}
+        {anime.description && (
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, lineHeight: 1.6, maxWidth: 440, textShadow: "0 1px 4px rgba(0,0,0,0.9)" }} className="line-clamp-2 hidden md:block">
+            {anime.description.replace(/<[^>]*>/g, "")}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
           <button onClick={() => nav(navigate, anime.id)} style={{ background: "linear-gradient(135deg, #6C63FF, #4F46E5)", border: "none", borderRadius: 12, padding: "12px 20px", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}>
             <Play size={16} fill="#fff" /> Ver Ahora
@@ -359,7 +364,7 @@ export default function Home() {
 
         {watchProgress.length > 0 && (
           <div style={{ marginTop: 28 }}>
-            <SectionHeader title="▶ Continuar viendo" onSeeAll={() => {}} />
+            <SectionHeader title="▶ Continuar viendo" onSeeAll={() => navigate("/history")} />
             <div className="carousel-scroll">
               {watchProgress.slice(0, 8).map((e) => <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} />)}
             </div>

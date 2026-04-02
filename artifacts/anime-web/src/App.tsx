@@ -13,6 +13,7 @@ import { FavoritesProvider } from "@/context/FavoritesContext";
 import { HistoryProvider } from "@/context/HistoryContext";
 import { WatchProgressProvider } from "@/context/WatchProgressContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,12 +26,27 @@ const queryClient = new QueryClient({
 
 function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#090A12" }}>
-      <div className="text-center text-[#4A4A6A]">
-        <p className="text-6xl font-bold text-[#1A1A27] mb-4">404</p>
-        <p className="text-[#F0F0FF] font-medium mb-2">Página no encontrada</p>
-        <a href="/" className="text-sm text-[#6C63FF] hover:underline">Volver al inicio</a>
+    <div style={{ minHeight: "100vh", background: "#090A12", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+      <div style={{
+        width: 90, height: 90, borderRadius: "50%",
+        background: "linear-gradient(135deg, rgba(108,99,255,0.2), rgba(79,70,229,0.1))",
+        border: "2px solid rgba(108,99,255,0.25)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 36, marginBottom: 8,
+      }}>🎌</div>
+      <div style={{ color: "rgba(108,99,255,0.5)", fontSize: 80, fontWeight: 900, lineHeight: 1, letterSpacing: -4 }}>404</div>
+      <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 800 }}>Página no encontrada</div>
+      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, textAlign: "center", maxWidth: 280 }}>
+        Parece que este episodio no existe o fue eliminado.
       </div>
+      <a href="/" style={{
+        marginTop: 8, display: "inline-flex", alignItems: "center", gap: 8,
+        background: "linear-gradient(135deg,#6C63FF,#4F46E5)", borderRadius: 14,
+        padding: "12px 24px", color: "#fff", fontSize: 14, fontWeight: 800,
+        textDecoration: "none",
+      }}>
+        ▶ Volver al inicio
+      </a>
     </div>
   );
 }
@@ -56,6 +72,7 @@ function Layout() {
   return (
     <main>
       <Router />
+      <ScrollToTop />
     </main>
   );
 }
