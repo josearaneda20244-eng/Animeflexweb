@@ -4,11 +4,15 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import Hls from "hls.js";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
-import { ArrowLeft, SkipForward, AlertCircle, Loader2, Play, X, Users, Link2 } from "lucide-react";
+import {
+  ArrowLeft, SkipForward, AlertCircle, Loader2, Play, X,
+  Users, Captions, ChevronLeft, ChevronRight, List
+} from "lucide-react";
 import {
   consumet,
   proxyStreamUrl,
   proxySubtitleUrl,
+  resolveTitle,
   type StreamingSource,
   type SubtitleResult,
 } from "@/lib/consumet";
@@ -16,10 +20,7 @@ import { useWatchProgress } from "@/context/WatchProgressContext";
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
-function isDub(src: StreamingSource) {
-  return /eng|dub/i.test(src.quality ?? "");
-}
-
+function isDub(src: StreamingSource) { return /eng|dub/i.test(src.quality ?? ""); }
 function parseResolution(src: StreamingSource) {
   const m = (src.quality ?? "").match(/(\d{3,4})p/i);
   if (m) return m[1] + "p";
@@ -27,55 +28,95 @@ function parseResolution(src: StreamingSource) {
   if (m2) return m2[1] + "p";
   return (src.quality ?? "").trim() || "Auto";
 }
-
 function sortSources(sources: StreamingSource[]) {
   return [...sources].sort((a, b) => {
     const subA = isDub(a) ? 1 : 0;
     const subB = isDub(b) ? 1 : 0;
     if (subA !== subB) return subA - subB;
-    const res = (s: StreamingSource) => {
-      const m = (s.quality ?? "").match(/(\d{3,4})/);
-      return m ? parseInt(m[1]) : 0;
-    };
+    const res = (s: StreamingSource) => { const m = (s.quality ?? "").match(/(\d{3,4})/); return m ? parseInt(m[1]) : 0; };
     return res(b) - res(a);
   });
 }
 
-/* ── AUTO-NEXT COUNTDOWN OVERLAY ── */
-function AutoNextOverlay({
-  nextNum,
-  onSkip,
-  onCancel,
-}: {
-  nextNum: string;
-  onSkip: () => void;
-  onCancel: () => void;
-}) {
-  const [secs, setSecs] = useState(10);
+/* ── VTT PARSER ── */
+interface VttCue { start: number; end: number; text: string; }
 
+function parseVtt(vttText: string): VttCue[] {
+  const cues: VttCue[] = [];
+  const lines = vttText.replace(/\r\n/g, "\n").split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    const timeMatch = line.match(/^(\d{1,2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[.,]\d{3})/);
+    if (timeMatch) {
+      const parseTime = (s: string) => {
+        const parts = s.replace(",", ".").split(":");
+        return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+      };
+      const start = parseTime(timeMatch[1]);
+      const end = parseTime(timeMatch[2]);
+      i++;
+      const textLines: string[] = [];
+      while (i < lines.length && lines[i].trim() !== "") {
+        textLines.push(lines[i].trim().replace(/<[^>]+>/g, ""));
+        i++;
+      }
+      if (textLines.length > 0) cues.push({ start, end, text: textLines.join("\n") });
+    } else { i++; }
+  }
+  return cues;
+}
+
+/* ── CUSTOM SUBTITLE OVERLAY ── */
+function SubtitleOverlay({ subtitleUrl, currentTime }: { subtitleUrl: string | null; currentTime: number }) {
+  const [cues, setCues] = useState<VttCue[]>([]);
+  const loadedUrl = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!subtitleUrl || subtitleUrl === loadedUrl.current) return;
+    loadedUrl.current = subtitleUrl;
+    setCues([]);
+    fetch(subtitleUrl)
+      .then(r => r.text())
+      .then(text => setCues(parseVtt(text)))
+      .catch(() => setCues([]));
+  }, [subtitleUrl]);
+
+  const activeCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
+  if (!activeCue) return null;
+
+  return (
+    <div style={{
+      position: "absolute", bottom: 56, left: 0, right: 0, zIndex: 20,
+      display: "flex", justifyContent: "center", pointerEvents: "none", padding: "0 24px",
+    }}>
+      <div style={{
+        background: "rgba(0,0,0,0.82)", borderRadius: 6, padding: "5px 12px",
+        color: "#fff", fontSize: "clamp(13px, 2.2vw, 18px)", fontWeight: 500,
+        lineHeight: 1.5, textAlign: "center", maxWidth: 700, wordBreak: "break-word",
+        textShadow: "0 1px 4px rgba(0,0,0,0.9)", letterSpacing: 0.2,
+        whiteSpace: "pre-line",
+      }}>
+        {activeCue.text}
+      </div>
+    </div>
+  );
+}
+
+/* ── AUTO-NEXT ── */
+function AutoNextOverlay({ nextNum, onSkip, onCancel }: { nextNum: string; onSkip: () => void; onCancel: () => void }) {
+  const [secs, setSecs] = useState(10);
   useEffect(() => {
     if (secs <= 0) { onSkip(); return; }
     const t = setTimeout(() => setSecs((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [secs, onSkip]);
-
-  const pct = (secs / 10) * 100;
-
   return (
-    <div style={{
-      position: "absolute", bottom: 80, right: 16, zIndex: 50,
-      background: "rgba(9,10,18,0.92)", border: "1px solid rgba(108,99,255,0.3)",
-      borderRadius: 16, padding: "16px 20px", minWidth: 220,
-      backdropFilter: "blur(8px)",
-    }}>
-      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, marginBottom: 6, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase" }}>
-        Siguiente episodio en {secs}s
-      </div>
-      <div style={{ color: "#F1F1F5", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
-        Episodio {nextNum}
-      </div>
+    <div style={{ position: "absolute", bottom: 80, right: 16, zIndex: 50, background: "rgba(9,10,18,0.92)", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 16, padding: "16px 20px", minWidth: 220, backdropFilter: "blur(8px)" }}>
+      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, marginBottom: 6, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase" }}>Siguiente episodio en {secs}s</div>
+      <div style={{ color: "#F1F1F5", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Episodio {nextNum}</div>
       <div style={{ height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, marginBottom: 12, overflow: "hidden" }}>
-        <div style={{ height: "100%", background: "#6C63FF", borderRadius: 2, width: `${pct}%`, transition: "width 1s linear" }} />
+        <div style={{ height: "100%", background: "#6C63FF", borderRadius: 2, width: `${(secs / 10) * 100}%`, transition: "width 1s linear" }} />
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={onSkip} style={{ flex: 1, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", border: "none", borderRadius: 10, padding: "9px 0", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
@@ -89,16 +130,16 @@ function AutoNextOverlay({
   );
 }
 
+/* ── PLYR PLAYER ── */
 interface PlyrPlayerProps {
   m3u8Url: string;
-  subtitleUrl?: string | null;
   playbackRate: number;
   startAt?: number;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
 }
 
-function PlyrPlayer({ m3u8Url, subtitleUrl, playbackRate, startAt, onTimeUpdate, onEnded }: PlyrPlayerProps) {
+function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const plyrRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -116,67 +157,37 @@ function PlyrPlayer({ m3u8Url, subtitleUrl, playbackRate, startAt, onTimeUpdate,
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
     setLoading(true);
     setError(null);
     seekRestoredRef.current = false;
-
     if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; }
     if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
 
     const plyr = new Plyr(video, {
-      controls: [
-        "play-large", "play", "progress", "current-time", "duration",
-        "mute", "volume", "captions", "settings", "pip", "fullscreen",
-      ],
-      settings: ["captions", "quality", "speed"],
-      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+      controls: ["play-large", "play", "progress", "current-time", "duration", "mute", "volume", "pip", "fullscreen"],
       autoplay: true,
       keyboard: { focused: true, global: true },
       tooltips: { controls: false, seek: true },
-      captions: { active: true, language: "es", update: true },
     });
     plyrRef.current = plyr;
 
     const onReady = () => {
       if (!seekRestoredRef.current && startAtRef.current && startAtRef.current > 5) {
-        const dur = video.duration;
-        if (dur && startAtRef.current < dur - 10) {
+        if (video.duration && startAtRef.current < video.duration - 10) {
           video.currentTime = startAtRef.current;
         }
         seekRestoredRef.current = true;
       }
     };
-
-    const onTimeUpd = () => {
-      if (video.duration > 0) {
-        onTimeUpdateRef.current?.(video.currentTime, video.duration);
-      }
-    };
-
-    const onEnd = () => {
-      onEndedRef.current?.();
-    };
+    const onTimeUpd = () => { if (video.duration > 0) onTimeUpdateRef.current?.(video.currentTime, video.duration); };
+    const onEnd = () => { onEndedRef.current?.(); };
 
     if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        maxBufferLength: 60,
-        maxMaxBufferLength: 240,
-        startLevel: -1,
-        fragLoadingTimeOut: 30000,
-        manifestLoadingTimeOut: 20000,
-        maxBufferHole: 0.5,
-        highBufferWatchdogPeriod: 2,
-      });
+      const hls = new Hls({ enableWorker: true, maxBufferLength: 60, maxMaxBufferLength: 240, startLevel: -1, fragLoadingTimeOut: 30000, manifestLoadingTimeOut: 20000 });
       hlsRef.current = hls;
       hls.loadSource(m3u8Url);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setLoading(false);
-        onReady();
-        video.play().catch(() => {});
-      });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { setLoading(false); onReady(); video.play().catch(() => {}); });
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
@@ -194,7 +205,6 @@ function PlyrPlayer({ m3u8Url, subtitleUrl, playbackRate, startAt, onTimeUpdate,
 
     video.addEventListener("timeupdate", onTimeUpd);
     video.addEventListener("ended", onEnd);
-
     return () => {
       video.removeEventListener("timeupdate", onTimeUpd);
       video.removeEventListener("ended", onEnd);
@@ -211,32 +221,9 @@ function PlyrPlayer({ m3u8Url, subtitleUrl, playbackRate, startAt, onTimeUpdate,
     }
   }, [playbackRate]);
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const existing = video.querySelectorAll('track[kind="subtitles"]');
-    existing.forEach((t) => t.remove());
-    if (subtitleUrl) {
-      const track = document.createElement("track");
-      track.kind = "subtitles";
-      track.label = "Español";
-      track.srclang = "es";
-      track.src = subtitleUrl;
-      track.default = true;
-      video.appendChild(track);
-      const tryEnable = () => {
-        for (let i = 0; i < video.textTracks.length; i++) video.textTracks[i].mode = "showing";
-        if (plyrRef.current) { try { plyrRef.current.currentTrack = 0; } catch {} }
-      };
-      tryEnable();
-      const t = setTimeout(tryEnable, 600);
-      return () => clearTimeout(t);
-    }
-  }, [subtitleUrl]);
-
   return (
     <div className="relative w-full h-full bg-black">
-      <video ref={videoRef} crossOrigin="anonymous" playsInline className="w-full h-full" style={{ display: "block" }} />
+      <video ref={videoRef} playsInline className="w-full h-full" style={{ display: "block" }} />
       {loading && !error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 pointer-events-none">
           <Loader2 size={36} className="animate-spin text-[#6C63FF]" />
@@ -253,6 +240,123 @@ function PlyrPlayer({ m3u8Url, subtitleUrl, playbackRate, startAt, onTimeUpdate,
   );
 }
 
+/* ── EPISODE LIST PANEL ── */
+function EpisodePanel({
+  animeId, currentEpisodeId, animeTitle, animeImage,
+  nextEpisodeId, onNavigate,
+}: {
+  animeId: string; currentEpisodeId: string; animeTitle: string; animeImage: string;
+  nextEpisodeId: string; onNavigate: (episodeId: string, episodeNum: string, nextId: string, nextNum: string) => void;
+}) {
+  const [, navigate] = useLocation();
+  const { getProgress } = useWatchProgress();
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 24;
+
+  const episodesQuery = useQuery({
+    queryKey: ["animeEpisodesById", animeId],
+    queryFn: () => consumet.episodesById(animeId),
+    enabled: !!animeId,
+    staleTime: 1000 * 60 * 10,
+    retry: 1,
+  });
+
+  const episodes = episodesQuery.data?.episodes ?? [];
+  const totalPages = Math.ceil(episodes.length / PAGE_SIZE);
+  const pageEps = episodes.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  return (
+    <div style={{ background: "#0E0E1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <List size={15} color="#6C63FF" />
+          <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Episodios</span>
+          {episodes.length > 0 && <span style={{ background: "rgba(108,99,255,0.15)", color: "#A78BFA", borderRadius: 20, padding: "1px 8px", fontSize: 11, fontWeight: 700 }}>{episodes.length}</span>}
+        </div>
+        {totalPages > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+              style={{ padding: 5, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "none", cursor: page === 0 ? "default" : "pointer", opacity: page === 0 ? 0.3 : 1 }}>
+              <ChevronLeft size={14} color="#fff" />
+            </button>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>{page + 1}/{totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}
+              style={{ padding: 5, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "none", cursor: page === totalPages - 1 ? "default" : "pointer", opacity: page === totalPages - 1 ? 0.3 : 1 }}>
+              <ChevronRight size={14} color="#fff" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div style={{ maxHeight: 380, overflowY: "auto", padding: "8px 10px" }}>
+        {episodesQuery.isLoading && (
+          <div style={{ display: "flex", justifyContent: "center", padding: 24 }}>
+            <Loader2 size={20} className="animate-spin" style={{ color: "#6C63FF" }} />
+          </div>
+        )}
+        {!episodesQuery.isLoading && episodes.length === 0 && (
+          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, textAlign: "center", padding: 24 }}>No se encontraron episodios</div>
+        )}
+        {pageEps.map((ep, idx) => {
+          const isCurrent = ep.id === currentEpisodeId;
+          const globalIdx = page * PAGE_SIZE + idx;
+          const nextEp = episodes[globalIdx + 1];
+          const progress = getProgress(ep.id);
+          const pct = progress ? Math.min(1, progress.currentTime / Math.max(progress.duration, 1)) : 0;
+
+          return (
+            <button key={ep.id}
+              onClick={() => {
+                if (isCurrent) return;
+                const p = new URLSearchParams({
+                  episodeId: ep.id,
+                  episodeNum: String(ep.number),
+                  animeTitle,
+                  animeId,
+                  animeImage,
+                  ...(nextEp ? { nextEpisodeId: nextEp.id, nextEpisodeNum: String(nextEp.number) } : {}),
+                });
+                navigate(`/watch?${p.toString()}`);
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: 10, width: "100%",
+                padding: "9px 10px", borderRadius: 10, marginBottom: 2, textAlign: "left",
+                background: isCurrent ? "rgba(108,99,255,0.18)" : "transparent",
+                border: `1px solid ${isCurrent ? "rgba(108,99,255,0.4)" : "transparent"}`,
+                cursor: isCurrent ? "default" : "pointer",
+                transition: "background 0.12s",
+              }}
+              onMouseEnter={e => { if (!isCurrent) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+              onMouseLeave={e => { if (!isCurrent) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+            >
+              <div style={{
+                width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                background: isCurrent ? "rgba(108,99,255,0.3)" : "rgba(255,255,255,0.06)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {isCurrent
+                  ? <Play size={14} color="#A78BFA" fill="#A78BFA" />
+                  : <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 700 }}>{ep.number}</span>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: isCurrent ? "#A78BFA" : "#F1F1F5", fontSize: 12, fontWeight: isCurrent ? 800 : 600 }} className="line-clamp-1">
+                  {ep.title ? ep.title : `Episodio ${ep.number}`}
+                </div>
+                {pct > 0 && (
+                  <div style={{ height: 2, background: "rgba(255,255,255,0.1)", borderRadius: 1, marginTop: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", background: isCurrent ? "#6C63FF" : "#22C55E", width: `${Math.round(pct * 100)}%`, borderRadius: 1 }} />
+                  </div>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── MAIN PLAYER ── */
 export default function Player() {
   const rawSearch = useSearch();
   const [, navigate] = useLocation();
@@ -272,9 +376,11 @@ export default function Player() {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeSubId, setActiveSubId] = useState<string | null>(null);
   const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const query = useQuery({
     queryKey: ["streaming", episodeId],
@@ -318,16 +424,20 @@ export default function Player() {
     setActiveSubId(null);
     setActiveSubUrl(null);
     setShowAutoNext(false);
+    setCurrentTime(0);
   }, [episodeId]);
 
+  // Auto-load stream Spanish subtitles
   useEffect(() => {
     if (!streamSpanishSub) return;
     if (activeSubId) return;
     const proxied = proxySubtitleUrl(streamSpanishSub.url);
     setActiveSubId("stream-es");
     setActiveSubUrl(proxied);
+    setSubtitlesEnabled(true);
   }, [streamSpanishSub?.url]);
 
+  // Auto-load OpenSubtitles
   useEffect(() => {
     if (streamSpanishSub) return;
     if (!subsQuery.data?.data?.length) return;
@@ -338,13 +448,11 @@ export default function Player() {
 
   const proxyM3u8 = selected ? proxyStreamUrl(selected.url, referer) : null;
 
-  const handleTimeUpdate = useCallback(
-    (currentTime: number, duration: number) => {
-      if (!animeId) return;
-      saveProgress({ episodeId, episodeNum: parseInt(episodeNum) || 0, animeId, animeTitle, animeImage, currentTime, duration });
-    },
-    [episodeId, episodeNum, animeId, animeTitle, animeImage, saveProgress]
-  );
+  const handleTimeUpdate = useCallback((ct: number, duration: number) => {
+    setCurrentTime(ct);
+    if (!animeId) return;
+    saveProgress({ episodeId, episodeNum: parseInt(episodeNum) || 0, animeId, animeTitle, animeImage, currentTime: ct, duration });
+  }, [episodeId, episodeNum, animeId, animeTitle, animeImage, saveProgress]);
 
   const handleNextEpisode = useCallback(() => {
     if (!nextEpisodeId) return;
@@ -353,47 +461,38 @@ export default function Player() {
     navigate(`/watch?${p.toString()}`);
   }, [nextEpisodeId, nextEpisodeNum, animeTitle, animeId, animeImage, navigate]);
 
-  const handleEnded = useCallback(() => {
-    if (nextEpisodeId) setShowAutoNext(true);
-  }, [nextEpisodeId]);
+  const handleEnded = useCallback(() => { if (nextEpisodeId) setShowAutoNext(true); }, [nextEpisodeId]);
 
   const handleCopyLink = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
       setCopyToast(true);
       setTimeout(() => setCopyToast(false), 2500);
     });
   };
 
   const subtitles = subsQuery.data?.data ?? [];
+  const subtitleUrlToRender = subtitlesEnabled ? activeSubUrl : null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
       {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <button
-          onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
-          style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", color: "rgba(255,255,255,0.65)" }}
-        >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(9,10,18,0.98)" }}>
+        <button onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
+          style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", color: "rgba(255,255,255,0.65)", flexShrink: 0 }}>
           <ArrowLeft size={18} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{animeTitle}</div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Episodio {episodeNum}</div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>Episodio {episodeNum}</div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={handleCopyLink}
-            title="Copiar enlace para ver juntos"
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-          >
-            <Users size={14} /> Ver juntos
+        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+          <button onClick={handleCopyLink}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            <Users size={13} /> <span className="hidden md:inline">Ver juntos</span>
           </button>
           {nextEpisodeId && (
-            <button
-              onClick={handleNextEpisode}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-            >
+            <button onClick={handleNextEpisode}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
               Ep. {nextEpisodeNum} <SkipForward size={13} />
             </button>
           )}
@@ -402,123 +501,174 @@ export default function Player() {
 
       {copyToast && (
         <div style={{ position: "fixed", top: 70, right: 16, background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 700, borderRadius: 10, padding: "10px 16px", zIndex: 200 }}>
-          ✓ Enlace copiado — compártelo para ver juntos
+          ✓ Enlace copiado
         </div>
       )}
 
-      {/* Player */}
-      <div style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9", maxHeight: "calc(100vh - 200px)" }}>
-        {query.isLoading && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12 }}>
-            <Loader2 size={36} className="animate-spin" style={{ color: "#6C63FF" }} />
-            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Cargando episodio...</p>
-          </div>
-        )}
-        {query.isError && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12 }}>
-            <AlertCircle size={36} color="#EF4444" />
-            <p style={{ color: "#F1F1F5", fontSize: 14 }}>No se pudo cargar el episodio</p>
-            <button onClick={() => query.refetch()} style={{ padding: "8px 16px", borderRadius: 10, background: "#6C63FF", border: "none", color: "#fff", fontSize: 13, cursor: "pointer" }}>
-              Reintentar
-            </button>
-          </div>
-        )}
-        {!query.isLoading && !query.isError && !selected && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12 }}>
-            <AlertCircle size={36} color="rgba(255,255,255,0.2)" />
-            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
-          </div>
-        )}
-        {!query.isLoading && !query.isError && selected && proxyM3u8 && (
-          <PlyrPlayer
-            key={`${episodeId}-${selectedIdx}`}
-            m3u8Url={proxyM3u8}
-            subtitleUrl={activeSubUrl}
-            playbackRate={playbackRate}
-            startAt={startAt}
-            onTimeUpdate={handleTimeUpdate}
-            onEnded={handleEnded}
-          />
-        )}
+      {/* Main layout: player + sidebar */}
+      <div style={{ display: "flex", gap: 0, alignItems: "flex-start", maxWidth: 1400, margin: "0 auto" }}>
+        {/* Player column */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Video */}
+          <div style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9" }}>
+            {query.isLoading && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
+                <Loader2 size={36} className="animate-spin" style={{ color: "#6C63FF" }} />
+                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Cargando episodio...</p>
+              </div>
+            )}
+            {query.isError && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
+                <AlertCircle size={36} color="#EF4444" />
+                <p style={{ color: "#F1F1F5", fontSize: 14 }}>No se pudo cargar el episodio</p>
+                <button onClick={() => query.refetch()} style={{ padding: "8px 16px", borderRadius: 10, background: "#6C63FF", border: "none", color: "#fff", fontSize: 13, cursor: "pointer" }}>Reintentar</button>
+              </div>
+            )}
+            {!query.isLoading && !query.isError && !selected && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
+                <AlertCircle size={36} color="rgba(255,255,255,0.2)" />
+                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
+              </div>
+            )}
+            {!query.isLoading && !query.isError && selected && proxyM3u8 && (
+              <PlyrPlayer
+                key={`${episodeId}-${selectedIdx}`}
+                m3u8Url={proxyM3u8}
+                playbackRate={playbackRate}
+                startAt={startAt}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={handleEnded}
+              />
+            )}
+            {/* Custom subtitle overlay */}
+            {subtitleUrlToRender && <SubtitleOverlay subtitleUrl={subtitleUrlToRender} currentTime={currentTime} />}
 
-        {showAutoNext && nextEpisodeId && (
-          <AutoNextOverlay
-            nextNum={nextEpisodeNum}
-            onSkip={handleNextEpisode}
-            onCancel={() => setShowAutoNext(false)}
-          />
-        )}
-      </div>
-
-      {/* Controls */}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "16px 16px", display: "flex", flexDirection: "column", gap: 20 }}>
-        {/* Speed */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 3, height: 14, borderRadius: 2, background: "#6C63FF" }} />
-            <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Velocidad</span>
+            {showAutoNext && nextEpisodeId && (
+              <AutoNextOverlay nextNum={nextEpisodeNum} onSkip={handleNextEpisode} onCancel={() => setShowAutoNext(false)} />
+            )}
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {SPEEDS.map((s) => (
-              <button key={s} onClick={() => setPlaybackRate(s)} style={{ padding: "6px 14px", borderRadius: 10, background: playbackRate === s ? "rgba(108,99,255,0.2)" : "transparent", border: `1px solid ${playbackRate === s ? "#6C63FF" : "rgba(255,255,255,0.1)"}`, color: playbackRate === s ? "#fff" : "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                {s}x
-              </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Quality */}
-        {sources.length > 1 && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 3, height: 14, borderRadius: 2, background: "#6C63FF" }} />
-              <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Calidad</span>
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {sources.map((src, i) => (
-                <button key={i} onClick={() => setSelectedIdx(i)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 10, background: i === selectedIdx ? "rgba(108,99,255,0.2)" : "transparent", border: `1px solid ${i === selectedIdx ? "#6C63FF" : "rgba(255,255,255,0.1)"}`, color: i === selectedIdx ? "#fff" : "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  {parseResolution(src)}
-                  {isDub(src) && <span style={{ background: "rgba(59,130,246,0.3)", color: "#3B82F6", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>DUB</span>}
+          {/* Controls below video */}
+          <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+            {/* Episode title row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <div style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>{animeTitle}</div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 2 }}>Episodio {episodeNum}</div>
+              </div>
+              {/* Subtitle toggle */}
+              {activeSubUrl && (
+                <button onClick={() => setSubtitlesEnabled(v => !v)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7, padding: "8px 14px",
+                    borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                    background: subtitlesEnabled ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${subtitlesEnabled ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.1)"}`,
+                    color: subtitlesEnabled ? "#22C55E" : "rgba(255,255,255,0.4)",
+                  }}>
+                  <Captions size={14} />
+                  {subtitlesEnabled ? "SUB ES — Activo" : "Subtítulos — Desactivado"}
                 </button>
-              ))}
+              )}
             </div>
+
+            {/* Speed */}
+            <div>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Velocidad</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {SPEEDS.map((s) => (
+                  <button key={s} onClick={() => setPlaybackRate(s)}
+                    style={{ padding: "6px 14px", borderRadius: 10, background: playbackRate === s ? "rgba(108,99,255,0.2)" : "transparent", border: `1px solid ${playbackRate === s ? "#6C63FF" : "rgba(255,255,255,0.1)"}`, color: playbackRate === s ? "#A78BFA" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    {s}x
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quality */}
+            {sources.length > 1 && (
+              <div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Calidad</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {sources.map((src, i) => (
+                    <button key={i} onClick={() => setSelectedIdx(i)}
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 10, background: i === selectedIdx ? "rgba(108,99,255,0.2)" : "transparent", border: `1px solid ${i === selectedIdx ? "#6C63FF" : "rgba(255,255,255,0.1)"}`, color: i === selectedIdx ? "#A78BFA" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                      {parseResolution(src)}
+                      {isDub(src) && <span style={{ background: "rgba(59,130,246,0.3)", color: "#3B82F6", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>DUB</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Subtitles section */}
+            <div>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
+                Subtítulos en Español
+              </div>
+              {streamSpanishSub && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12, marginBottom: 6 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
+                  Subtítulos incluidos en la fuente — activos automáticamente
+                </div>
+              )}
+              {!streamSpanishSub && subsQuery.isLoading && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
+                  <Loader2 size={12} className="animate-spin" /> Buscando subtítulos en español...
+                </div>
+              )}
+              {!streamSpanishSub && !subsQuery.isLoading && subtitles.length === 0 && !activeSubId && (
+                <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos en español para este episodio.</p>
+              )}
+              {!streamSpanishSub && subtitles.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 180, overflowY: "auto" }}>
+                  {subtitles.slice(0, 8).map((sub) => {
+                    const isActive = activeSubId === sub.id;
+                    return (
+                      <button key={sub.id}
+                        onClick={() => { if (isActive) { setActiveSubId(null); setActiveSubUrl(null); } else downloadMutation.mutate(sub); }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, textAlign: "left", background: isActive ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)", border: `1px solid ${isActive ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.07)"}`, color: isActive ? "#22C55E" : "rgba(255,255,255,0.5)", fontSize: 12, cursor: "pointer" }}>
+                        <div style={{ width: 7, height: 7, borderRadius: "50%", background: isActive ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
+                        <span style={{ fontWeight: 600 }}>Español</span>
+                        {sub.release && <span style={{ color: "rgba(255,255,255,0.22)", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{sub.release}</span>}
+                        {downloadMutation.isPending && isActive && <Loader2 size={12} className="animate-spin" style={{ marginLeft: "auto" }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar: Episode list (desktop) */}
+        {animeId && (
+          <div style={{ width: 300, flexShrink: 0, padding: "12px 12px 12px 0" }} className="hidden lg:block">
+            <EpisodePanel
+              animeId={animeId}
+              currentEpisodeId={episodeId}
+              animeTitle={animeTitle}
+              animeImage={animeImage}
+              nextEpisodeId={nextEpisodeId}
+              onNavigate={() => {}}
+            />
           </div>
         )}
-
-        {/* Subtitles */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 3, height: 14, borderRadius: 2, background: "#6C63FF" }} />
-            <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Subtítulos</span>
-            {activeSubUrl && <span style={{ background: "rgba(34,197,94,0.2)", color: "#22C55E", fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 6px" }}>ACTIVO</span>}
-          </div>
-          {streamSpanishSub && <p style={{ color: "#22C55E", fontSize: 12, marginBottom: 8 }}>✓ Subtítulos en español incluidos en la fuente.</p>}
-          {!streamSpanishSub && subsQuery.isLoading && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-              <Loader2 size={12} className="animate-spin" /> Buscando subtítulos...
-            </div>
-          )}
-          {!streamSpanishSub && !subsQuery.isLoading && subtitles.length === 0 && (
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>No se encontraron subtítulos en español.</p>
-          )}
-          {!streamSpanishSub && subtitles.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto" }}>
-              {subtitles.map((sub) => {
-                const isActive = activeSubId === sub.id;
-                return (
-                  <button key={sub.id} onClick={() => { if (isActive) { setActiveSubId(null); setActiveSubUrl(null); } else downloadMutation.mutate(sub); }}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, textAlign: "left", background: isActive ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)", border: `1px solid ${isActive ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.07)"}`, color: isActive ? "#22C55E" : "rgba(255,255,255,0.5)", fontSize: 12, cursor: "pointer" }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: isActive ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                    <span style={{ fontWeight: 600 }}>Español</span>
-                    {sub.release && <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub.release}</span>}
-                    {downloadMutation.isPending && isActive && <Loader2 size={12} className="animate-spin" style={{ marginLeft: "auto" }} />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
+
+      {/* Episode list for mobile/tablet */}
+      {animeId && (
+        <div style={{ margin: "0 12px 24px", maxWidth: 1376 }} className="lg:hidden">
+          <EpisodePanel
+            animeId={animeId}
+            currentEpisodeId={episodeId}
+            animeTitle={animeTitle}
+            animeImage={animeImage}
+            nextEpisodeId={nextEpisodeId}
+            onNavigate={() => {}}
+          />
+        </div>
+      )}
     </div>
   );
 }
