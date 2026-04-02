@@ -15,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FavoritesProvider } from "@/context/FavoritesContext";
+import { HistoryProvider } from "@/context/HistoryContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,7 +33,8 @@ function RootLayoutNav() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: "#0D0D0D" },
+        contentStyle: { backgroundColor: "#090A12" },
+        animation: "slide_from_right",
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -41,6 +43,14 @@ function RootLayoutNav() {
         options={{
           headerShown: false,
           presentation: "card",
+          animation: "slide_from_bottom",
+        }}
+      />
+      <Stack.Screen
+        name="player"
+        options={{
+          headerShown: false,
+          presentation: "fullScreenModal",
         }}
       />
     </Stack>
@@ -68,11 +78,13 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <FavoritesProvider>
-            <GestureHandlerRootView>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
+            <HistoryProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <KeyboardProvider>
+                  <RootLayoutNav />
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </HistoryProvider>
           </FavoritesProvider>
         </QueryClientProvider>
       </ErrorBoundary>

@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import Hls from "hls.js";
@@ -24,6 +25,8 @@ type Params = {
   episodeId: string;
   episodeNum: string;
   animeTitle: string;
+  animeId?: string;
+  animeImage?: string;
 };
 
 const { width } = Dimensions.get("window");
@@ -60,15 +63,8 @@ function proxyUrl(src: StreamingSource, referer?: string): string {
   return proxyStreamUrl(src.url, referer);
 }
 
-
-// ─── Web HLS player (no iframe — avoids cross-origin domain issues) ──────────
-function WebPlayer({
-  m3u8Url,
-  height,
-}: {
-  m3u8Url: string;
-  height: number;
-}) {
+/* ── Web HLS Player ── */
+function WebPlayer({ m3u8Url, height }: { m3u8Url: string; height: number }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [webError, setWebError] = useState<string | null>(null);
@@ -135,7 +131,7 @@ function WebPlayer({
 
   return (
     <View style={{ width: "100%", height, backgroundColor: "#000", position: "relative" }}>
-      {/* @ts-ignore — video is a valid DOM element on web */}
+      {/* @ts-ignore */}
       <video
         ref={videoRef}
         controls
@@ -143,22 +139,22 @@ function WebPlayer({
         style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
       />
       {webLoading && !webError && (
-        <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.8)", gap: 12 }]}>
+        <View style={[StyleSheet.absoluteFillObject, styles.playerOverlay]}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>Cargando episodio...</Text>
+          <Text style={styles.playerOverlayText}>Cargando episodio...</Text>
         </View>
       )}
       {webError && (
-        <View style={[StyleSheet.absoluteFillObject, { alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.85)", gap: 12 }]}>
+        <View style={[StyleSheet.absoluteFillObject, styles.playerOverlay]}>
           <Feather name="alert-circle" size={36} color={Colors.error} />
-          <Text style={{ color: Colors.error, fontWeight: "700", fontSize: 15 }}>{webError}</Text>
+          <Text style={styles.playerErrorText}>{webError}</Text>
         </View>
       )}
     </View>
   );
 }
 
-// ─── Native video player ──────────────────────────────────────────────────────
+/* ── Native Player ── */
 function NativePlayer({
   src,
   headers,
@@ -169,14 +165,10 @@ function NativePlayer({
   referer?: string;
 }) {
   const uri = src.isM3U8 ? proxyUrl(src, referer) : src.url;
-
-  const player = useVideoPlayer(
-    { uri, headers },
-    (p) => {
-      p.loop = false;
-      p.play();
-    }
-  );
+  const player = useVideoPlayer({ uri, headers }, (p) => {
+    p.loop = false;
+    p.play();
+  });
 
   useEffect(() => {
     player.replace({ uri, headers });
@@ -196,7 +188,7 @@ function NativePlayer({
   );
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+/* ── Main Screen ── */
 export default function PlayerScreen() {
   const params = useLocalSearchParams<Params>();
   const router = useRouter();
@@ -217,14 +209,10 @@ export default function PlayerScreen() {
   const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
 
-  useEffect(() => {
-    setSelectedIdx(0);
-  }, [params.episodeId]);
+  useEffect(() => { setSelectedIdx(0); }, [params.episodeId]);
 
   const proxyM3u8 = selected ? proxyUrl(selected, referer) : null;
-
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-
   const isLoading = query.isLoading;
   const isError = query.isError;
   const hasSource = !!selected;
@@ -237,11 +225,12 @@ export default function PlayerScreen() {
           <Feather name="arrow-left" size={20} color="#fff" />
         </Pressable>
         <View style={styles.headerInfo}>
-          <Text style={styles.headerAnime} numberOfLines={1}>
-            {params.animeTitle}
-          </Text>
+          <Text style={styles.headerAnime} numberOfLines={1}>{params.animeTitle}</Text>
           <Text style={styles.headerEp}>Episodio {params.episodeNum}</Text>
         </View>
+        <Pressable style={styles.shareBtn}>
+          <Feather name="share-2" size={18} color={Colors.textSecondary} />
+        </Pressable>
       </View>
 
       {/* Player area */}
@@ -278,18 +267,27 @@ export default function PlayerScreen() {
         )}
       </View>
 
-      {/* Controls */}
+      {/* Info + Controls */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: 40 + insets.bottom },
-        ]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Episode info */}
+        <View style={styles.epInfo}>
+          <View>
+            <Text style={styles.epInfoAnime} numberOfLines={1}>{params.animeTitle}</Text>
+            <Text style={styles.epInfoEp}>Episodio {params.episodeNum}</Text>
+          </View>
+        </View>
+
+        {/* Quality selector */}
         {sources.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Calidad</Text>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Calidad del Video</Text>
+            </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -306,12 +304,18 @@ export default function PlayerScreen() {
                     onPress={() => setSelectedIdx(i)}
                     activeOpacity={0.7}
                   >
-                    <Text
-                      style={[
-                        styles.qualityLabel,
-                        active && styles.qualityLabelActive,
-                      ]}
-                    >
+                    {active && (
+                      <LinearGradient
+                        colors={[Colors.primary + "30", Colors.secondary + "10"]}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    )}
+                    <Feather
+                      name="film"
+                      size={12}
+                      color={active ? Colors.primary : Colors.textMuted}
+                    />
+                    <Text style={[styles.qualityLabel, active && styles.qualityLabelActive]}>
                       {label}
                     </Text>
                     {dub && (
@@ -326,23 +330,32 @@ export default function PlayerScreen() {
           </View>
         )}
 
+        {/* Subtitles */}
         {(query.data?.subtitles ?? []).length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Subtítulos</Text>
-            {query.data!.subtitles!.map((sub, i) => (
-              <View key={i} style={styles.subRow}>
-                <Feather name="type" size={13} color={Colors.primary} />
-                <Text style={styles.subText}>{sub.lang}</Text>
-              </View>
-            ))}
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Subtítulos disponibles</Text>
+            </View>
+            <View style={styles.subList}>
+              {query.data!.subtitles!.slice(0, 5).map((sub, i) => (
+                <View key={i} style={styles.subRow}>
+                  <View style={styles.subDot} />
+                  <Text style={styles.subText}>{sub.lang}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
-        <View style={styles.infoCard}>
-          <Feather name="info" size={14} color={Colors.textMuted} />
-          <Text style={styles.infoText}>
-            Usa el botón de pantalla completa del reproductor para una mejor
-            experiencia. Puedes adelantar y retroceder libremente.
+        {/* Tip */}
+        <View style={styles.tipCard}>
+          <View style={styles.tipIconWrap}>
+            <Feather name="info" size={14} color={Colors.primary} />
+          </View>
+          <Text style={styles.tipText}>
+            Usa el botón de pantalla completa para una mejor experiencia.
+            Cambia la calidad si hay buffering.
           </Text>
         </View>
       </ScrollView>
@@ -352,24 +365,31 @@ export default function PlayerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#000" },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: "#0D0D15",
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   backBtn: {
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     padding: 8,
     borderRadius: 10,
   },
   headerInfo: { flex: 1 },
   headerAnime: { color: "#fff", fontSize: 15, fontWeight: "700" },
   headerEp: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
+  shareBtn: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    padding: 8,
+    borderRadius: 10,
+  },
+
   playerArea: {
     width: "100%",
     backgroundColor: "#000",
@@ -377,6 +397,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   video: { width: "100%", height: "100%" },
+  playerOverlay: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.85)",
+    gap: 12,
+  },
+  playerOverlayText: { color: "rgba(255,255,255,0.7)", fontSize: 13 },
+  playerErrorText: { color: Colors.error, fontWeight: "700", fontSize: 15 },
+
   centered: {
     flex: 1,
     width: "100%",
@@ -393,56 +422,73 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   retryText: { color: "#fff", fontWeight: "700" },
+
   scroll: { flex: 1, backgroundColor: Colors.bg },
   scrollContent: { padding: 20, gap: 20 },
-  section: { gap: 12 },
-  sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 15,
-    fontWeight: "700",
+
+  epInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 4,
   },
+  epInfoAnime: { color: Colors.textPrimary, fontSize: 16, fontWeight: "800" },
+  epInfoEp: { color: Colors.textSecondary, fontSize: 13, marginTop: 3 },
+
+  section: { gap: 12 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sectionAccent: { width: 3, height: 16, borderRadius: 2, backgroundColor: Colors.primary },
+  sectionTitle: { color: Colors.textPrimary, fontSize: 15, fontWeight: "700" },
+
   qualityRow: { gap: 10, flexDirection: "row" },
   qualityBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
     backgroundColor: Colors.bgCard,
     borderWidth: 1.5,
     borderColor: Colors.border,
+    overflow: "hidden",
+    position: "relative",
   },
-  qualityActive: {
-    backgroundColor: Colors.primary + "20",
-    borderColor: Colors.primary,
-  },
-  qualityLabel: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  qualityActive: { borderColor: Colors.primary },
+  qualityLabel: { color: Colors.textSecondary, fontSize: 14, fontWeight: "600" },
   qualityLabelActive: { color: Colors.primary },
   dubTag: {
-    backgroundColor: Colors.secondary + "30",
+    backgroundColor: Colors.dub + "30",
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  dubText: { color: Colors.secondary, fontSize: 9, fontWeight: "800" },
+  dubText: { color: Colors.dub, fontSize: 9, fontWeight: "800" },
+
+  subList: { gap: 6 },
   subRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  subDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.primary },
   subText: { color: Colors.textSecondary, fontSize: 13 },
-  infoCard: {
+
+  tipCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 8,
-    backgroundColor: Colors.bgCard,
+    gap: 10,
+    backgroundColor: Colors.primary + "10",
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.primary + "25",
   },
-  infoText: {
+  tipIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.primary + "20",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tipText: {
     flex: 1,
     color: Colors.textMuted,
     fontSize: 12,

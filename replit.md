@@ -4,19 +4,40 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
-## AniFlow — Anime Mobile App
+## AnimeFLEX — Anime Mobile App (AnimeKai-style)
 
-A mobile anime app built with Expo. Uses:
-- **@consumet/extensions** in the API server for anime data (Anilist for metadata/search/trending, AnimePahe for episodes/streaming)
-- **Anilist** (via META provider): trending, popular, search
-- **AnimePahe** (via ANIME provider): episode lists, streaming sources
-- Three screens: Home (trending/popular/recent), Search, Favorites
-- Detail screen: shows anime info + episode list, opens streaming URL
+A professional anime streaming app built with Expo. Inspired by AnimeKai.to design.
+
+### Features
+- **Hero banner** with horizontal carousel (trending anime, arrows + dots navigation)
+- **5 home sections**: Trending, Latest Episodes, Popular, Top Anime (ranked list), Genres
+- **Horizontal carousels** for all content sections with skeleton loading states
+- **Portrait cards** (Trending/Popular) with SUB badge, episode count, rating, type chip
+- **Landscape cards** (Recent Episodes) with play overlay, HD/EP badges
+- **Search screen** with real-time debounce, genre filters, status filters
+- **Favorites screen** (bookmark any anime with heart button on cards)
+- **History screen** with grouped sections (Today/Yesterday/Week/Older) and clear option
+- **Detail screen** with cover image, poster, expandable description, episode list, play Ep1 button
+- **Player screen** with HLS streaming, quality selector, subtitle list, info card
+- **History auto-saved** when user plays any episode
+
+### Color palette (AnimeKai-inspired)
+- Background: `#090A12` (very dark blue-black)
+- Cards: `#13131C`
+- Primary: `#6C63FF` (vibrant purple-indigo)
+- Accent: `#A78BFA`, Cyan: `#06B6D4`, Pink: `#EC4899`
 
 ### Key files
 - `artifacts/anime-app/` — Expo React Native app
-- `artifacts/anime-app/lib/consumet.ts` — API client for the anime routes
+- `artifacts/anime-app/app/(tabs)/index.tsx` — Home (hero + 5 sections)
+- `artifacts/anime-app/app/(tabs)/search.tsx` — Search with real-time + filters
+- `artifacts/anime-app/app/(tabs)/favorites.tsx` — Favorites list
+- `artifacts/anime-app/app/(tabs)/history.tsx` — Watch history (new)
+- `artifacts/anime-app/app/detail/[id].tsx` — Detail + episode list
+- `artifacts/anime-app/app/player.tsx` — HLS video player with quality selector
 - `artifacts/anime-app/context/FavoritesContext.tsx` — favorites via AsyncStorage
+- `artifacts/anime-app/context/HistoryContext.tsx` — watch history via AsyncStorage (new)
+- `artifacts/anime-app/lib/consumet.ts` — API client for the anime routes
 - `artifacts/api-server/src/routes/anime.ts` — anime routes using @consumet/extensions
 
 ## Stack

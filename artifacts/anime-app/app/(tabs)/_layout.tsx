@@ -5,7 +5,7 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import Colors from "@/constants/colors";
 
@@ -24,12 +24,15 @@ function NativeTabLayout() {
         <Icon sf={{ default: "heart", selected: "heart.fill" }} />
         <Label>Favorites</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="history">
+        <Icon sf={{ default: "clock", selected: "clock.fill" }} />
+        <Label>History</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
 
 function ClassicTabLayout() {
-  const isDark = true;
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -41,7 +44,7 @@ function ClassicTabLayout() {
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : "rgba(10,10,18,0.97)",
+          backgroundColor: isIOS ? "transparent" : "rgba(9,10,18,0.97)",
           borderTopWidth: 1,
           borderTopColor: Colors.border,
           elevation: 0,
@@ -49,15 +52,9 @@ function ClassicTabLayout() {
         },
         tabBarBackground: () =>
           isIOS ? (
-            <BlurView
-              intensity={100}
-              tint="dark"
-              style={StyleSheet.absoluteFill}
-            />
+            <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
           ) : isWeb ? (
-            <View
-              style={[StyleSheet.absoluteFill, { backgroundColor: Colors.bgCard }]}
-            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(9,10,18,0.97)" }]} />
           ) : null,
         tabBarLabelStyle: {
           fontSize: 11,
@@ -99,6 +96,18 @@ function ClassicTabLayout() {
               <SymbolView name="heart" tintColor={color} size={24} />
             ) : (
               <Feather name="heart" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: "History",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="clock" tintColor={color} size={24} />
+            ) : (
+              <Feather name="clock" size={22} color={color} />
             ),
         }}
       />

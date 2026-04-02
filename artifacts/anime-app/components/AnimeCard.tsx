@@ -2,8 +2,9 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { memo } from "react";
+import React, { memo, useRef } from "react";
 import {
+  Animated,
   Dimensions,
   Image,
   Platform,
@@ -23,6 +24,7 @@ const CARD_WIDTH = (width - 48) / 2;
 interface Props {
   anime: AnimeResult;
   compact?: boolean;
+  cardWidth?: number;
 }
 
 function resolveTitle(anime: AnimeResult): string {
@@ -35,30 +37,58 @@ function resolveTitle(anime: AnimeResult): string {
   );
 }
 
-function AnimeCard({ anime, compact }: Props) {
+function navParams(anime: AnimeResult, title: string) {
+  return {
+    pathname: "/detail/[id]" as const,
+    params: {
+      id: anime.id,
+      title,
+      image: anime.image,
+      cover: anime.cover || "",
+      rating: String(anime.rating ?? ""),
+      type: anime.type ?? "",
+      status: anime.status ?? "",
+      releaseDate: String(anime.releaseDate ?? ""),
+      totalEpisodes: String(anime.totalEpisodes ?? ""),
+      description: anime.description ?? "",
+      genres: JSON.stringify(anime.genres ?? []),
+    },
+  };
+}
+
+function AnimeCard({ anime, compact, cardWidth }: Props) {
   const router = useRouter();
   const { isFavorite, toggleFavorite } = useFavorites();
   const fav = isFavorite(anime.id);
   const title = resolveTitle(anime);
+  const cw = cardWidth ?? CARD_WIDTH;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    if (Platform.OS !== "web") {
+      Animated.spring(scaleAnim, {
+        toValue: 0.96,
+        useNativeDriver: true,
+        speed: 20,
+        bounciness: 2,
+      }).start();
+    }
+  };
+
+  const handlePressOut = () => {
+    if (Platform.OS !== "web") {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 20,
+        bounciness: 2,
+      }).start();
+    }
+  };
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({
-      pathname: "/detail/[id]",
-      params: {
-        id: anime.id,
-        title,
-        image: anime.image,
-        cover: anime.cover || "",
-        rating: String(anime.rating ?? ""),
-        type: anime.type ?? "",
-        status: anime.status ?? "",
-        releaseDate: String(anime.releaseDate ?? ""),
-        totalEpisodes: String(anime.totalEpisodes ?? ""),
-        description: anime.description ?? "",
-        genres: JSON.stringify(anime.genres ?? []),
-      },
-    });
+    router.push(navParams(anime, title));
   };
 
   const handleFav = (e: any) => {
@@ -73,17 +103,20 @@ function AnimeCard({ anime, compact }: Props) {
         style={({ pressed }) => [styles.compact, pressed && { opacity: 0.85 }]}
         onPress={handlePress}
       >
-        <Image
-          source={{ uri: anime.image }}
-          style={styles.compactImage}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: anime.image }} style={styles.compactImage} resizeMode="cover" />
         <View style={styles.compactInfo}>
-          <Text style={styles.compactTitle} numberOfLines={2}>
-            {title}
-          </Text>
-          {anime.type && (
-            <Text style={styles.compactType}>{anime.type}</Text>
+          <Text style={styles.compactTitle} numberOfLines={2}>{title}</Text>
+          <View style={styles.compactMeta}>
+            {anime.type && <Text style={styles.compactType}>{anime.type}</Text>}
+            {anime.releaseDate ? (
+              <Text style={styles.compactYear}>{anime.releaseDate}</Text>
+            ) : null}
+          </View>
+          {anime.rating != null && anime.rating > 0 && (
+            <View style={styles.compactRating}>
+              <Feather name="star" size={10} color={Colors.gold} />
+              <Text style={styles.compactRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
+            </View>
           )}
         </View>
       </Pressable>
@@ -91,85 +124,64 @@ function AnimeCard({ anime, compact }: Props) {
   }
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.card,
-        pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
-      ]}
-      onPress={handlePress}
-    >
-      <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: anime.image }}
-          style={styles.image}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={["transparent", "rgba(10,10,18,0.55)", "rgba(10,10,18,0.98)"]}
-          locations={[0.4, 0.68, 1]}
-          style={styles.gradient}
-        />
-
-        {/* Top left badges */}
-        <View style={styles.topLeftBadges}>
-          <View style={styles.subBadge}>
-            <Text style={styles.subText}>SUB</Text>
-          </View>
-          {anime.totalEpisodes ? (
-            <View style={styles.epBadge}>
-              <Text style={styles.epText}>{anime.totalEpisodes}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Fav button top-right */}
-        <Pressable
-          style={[styles.favBtn, fav && styles.favBtnActive]}
-          onPress={handleFav}
-          hitSlop={8}
-        >
-          <Feather
-            name="heart"
-            size={12}
-            color={fav ? Colors.primary : "rgba(255,255,255,0.6)"}
+    <Animated.View style={{ transform: [{ scale: scaleAnim }], width: cw }}>
+      <Pressable
+        style={[styles.card, { width: cw }]}
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        <View style={[styles.imageContainer, { height: cw * 1.5 }]}>
+          <Image source={{ uri: anime.image }} style={styles.image} resizeMode="cover" />
+          <LinearGradient
+            colors={["transparent", "rgba(9,10,18,0.5)", "rgba(9,10,18,0.98)"]}
+            locations={[0.45, 0.7, 1]}
+            style={StyleSheet.absoluteFill}
           />
-        </Pressable>
 
-        {/* Rating */}
-        {anime.rating != null && anime.rating > 0 && (
-          <View style={styles.ratingBadge}>
-            <Feather name="star" size={8} color="#FBBF24" />
-            <Text style={styles.ratingBadgeText}>{(anime.rating / 10).toFixed(1)}</Text>
+          <View style={styles.topLeftBadges}>
+            <View style={styles.subBadge}>
+              <Text style={styles.subText}>SUB</Text>
+            </View>
+            {anime.totalEpisodes ? (
+              <View style={styles.epBadge}>
+                <Text style={styles.epText}>{anime.totalEpisodes} EP</Text>
+              </View>
+            ) : null}
           </View>
-        )}
 
-        {/* Ongoing dot */}
-        {anime.status === "Ongoing" && (
-          <View style={styles.ongoingBadge}>
-            <View style={styles.ongoingDot} />
-            <Text style={styles.ongoingText}>Nuevo</Text>
-          </View>
-        )}
-      </View>
+          <Pressable
+            style={[styles.favBtn, fav && styles.favBtnActive]}
+            onPress={handleFav}
+            hitSlop={8}
+          >
+            <Feather name="heart" size={11} color={fav ? Colors.pink : "rgba(255,255,255,0.55)"} />
+          </Pressable>
 
-      {/* Info */}
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>{title}</Text>
-        <View style={styles.metaRow}>
-          {anime.type && (
-            <Text style={styles.typeText}>{anime.type}</Text>
+          {anime.rating != null && anime.rating > 0 && (
+            <View style={styles.ratingBadge}>
+              <Feather name="star" size={8} color={Colors.gold} />
+              <Text style={styles.ratingBadgeText}>{(anime.rating / 10).toFixed(1)}</Text>
+            </View>
           )}
-          {anime.releaseDate ? (
-            <Text style={styles.year}>{anime.releaseDate}</Text>
-          ) : null}
+
+          {anime.status === "Ongoing" && (
+            <View style={styles.ongoingBadge}>
+              <View style={styles.ongoingDot} />
+              <Text style={styles.ongoingText}>LIVE</Text>
+            </View>
+          )}
         </View>
-        {anime.genres && anime.genres.length > 0 && (
-          <Text style={styles.genres} numberOfLines={1}>
-            {anime.genres.slice(0, 2).join(" · ")}
-          </Text>
-        )}
-      </View>
-    </Pressable>
+
+        <View style={styles.info}>
+          <Text style={styles.title} numberOfLines={2}>{title}</Text>
+          <View style={styles.metaRow}>
+            {anime.type && <Text style={styles.typeChip}>{anime.type}</Text>}
+            {anime.releaseDate ? <Text style={styles.year}>{anime.releaseDate}</Text> : null}
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -177,106 +189,88 @@ export default memo(AnimeCard);
 
 const styles = StyleSheet.create({
   card: {
-    width: CARD_WIDTH,
     backgroundColor: Colors.bgCard,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 10,
   },
   imageContainer: {
     position: "relative",
     width: "100%",
-    height: CARD_WIDTH * 1.5,
   },
   image: {
     width: "100%",
     height: "100%",
   },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
   topLeftBadges: {
     position: "absolute",
-    top: 7,
-    left: 7,
+    top: 8,
+    left: 8,
     flexDirection: "row",
-    gap: 3,
+    gap: 4,
   },
   subBadge: {
     backgroundColor: Colors.success,
-    borderRadius: 4,
+    borderRadius: 5,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  subText: {
-    color: "#fff",
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 0.3,
-  },
+  subText: { color: "#fff", fontSize: 8, fontWeight: "900", letterSpacing: 0.5 },
   epBadge: {
-    backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-  },
-  epText: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 9,
-    fontWeight: "800",
-  },
-  favBtn: {
-    position: "absolute",
-    top: 7,
-    right: 7,
-    backgroundColor: "rgba(10,10,18,0.75)",
-    borderRadius: 20,
-    padding: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-  },
-  favBtnActive: {
-    backgroundColor: Colors.primary + "30",
-    borderColor: Colors.primary + "80",
-  },
-  ratingBadge: {
-    position: "absolute",
-    bottom: 28,
-    right: 7,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
     backgroundColor: "rgba(0,0,0,0.75)",
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  ratingBadgeText: {
-    color: "#FBBF24",
-    fontSize: 9,
-    fontWeight: "800",
-  },
-  ongoingBadge: {
-    position: "absolute",
-    bottom: 28,
-    left: 7,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.success + "20",
     borderRadius: 5,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: Colors.success + "50",
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  epText: { color: "rgba(255,255,255,0.9)", fontSize: 8, fontWeight: "800" },
+  favBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(9,10,18,0.8)",
+    borderRadius: 20,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  favBtnActive: {
+    backgroundColor: Colors.pink + "25",
+    borderColor: Colors.pink + "60",
+  },
+  ratingBadge: {
+    position: "absolute",
+    bottom: 6,
+    right: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    borderRadius: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  ratingBadgeText: { color: Colors.gold, fontSize: 9, fontWeight: "800" },
+  ongoingBadge: {
+    position: "absolute",
+    bottom: 6,
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.success + "22",
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: Colors.success + "55",
   },
   ongoingDot: {
     width: 5,
@@ -284,15 +278,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: Colors.success,
   },
-  ongoingText: {
-    color: Colors.success,
-    fontSize: 9,
-    fontWeight: "800",
-  },
-  info: {
-    padding: 9,
-    gap: 4,
-  },
+  ongoingText: { color: Colors.success, fontSize: 8, fontWeight: "900", letterSpacing: 0.5 },
+  info: { padding: 10, gap: 5 },
   title: {
     color: Colors.textPrimary,
     fontSize: 12,
@@ -304,33 +291,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  typeText: {
-    color: Colors.textMuted,
-    fontSize: 10,
-    fontWeight: "600",
+  typeChip: {
+    color: Colors.primary,
+    fontSize: 9,
+    fontWeight: "700",
+    backgroundColor: Colors.primary + "18",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: "hidden",
   },
-  year: {
-    color: Colors.textMuted,
-    fontSize: 10,
-  },
-  genres: {
-    color: Colors.textMuted,
-    fontSize: 10,
-    lineHeight: 14,
-  },
+  year: { color: Colors.textMuted, fontSize: 10 },
+
   compact: {
     flexDirection: "row",
     backgroundColor: Colors.bgCard,
-    borderRadius: 10,
+    borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: Colors.border,
     marginBottom: 10,
   },
-  compactImage: {
-    width: 60,
-    height: 80,
-  },
+  compactImage: { width: 65, height: 90 },
   compactInfo: {
     flex: 1,
     padding: 10,
@@ -340,12 +322,21 @@ const styles = StyleSheet.create({
   compactTitle: {
     color: Colors.textPrimary,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     lineHeight: 18,
   },
+  compactMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
   compactType: {
     color: Colors.primary,
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
+    backgroundColor: Colors.primary + "18",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: "hidden",
   },
+  compactYear: { color: Colors.textMuted, fontSize: 10 },
+  compactRating: { flexDirection: "row", alignItems: "center", gap: 3 },
+  compactRatingText: { color: Colors.gold, fontSize: 11, fontWeight: "700" },
 });

@@ -1,13 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -21,18 +23,42 @@ import { consumet } from "@/lib/consumet";
 
 const { width } = Dimensions.get("window");
 
-const QUICK_SEARCHES = ["Shonen", "Romance", "Isekai", "Acción", "Terror", "Comedia"];
+const QUICK_TAGS = ["Shonen", "Isekai", "Romance", "Action", "Fantasy", "Comedia", "Horror", "Mecha"];
+const GENRE_FILTERS = ["Todos", "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Sci-Fi", "Thriller", "Horror"];
+const STATUS_FILTERS = ["Todos", "Ongoing", "Completed", "Not yet aired"];
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
-  const [query, setQuery] = useState("");
-  const [submitted, setSubmitted] = useState("");
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [query, setQuery] = useState(params.q ?? "");
+  const [submitted, setSubmitted] = useState(params.q ?? "");
+  const [genre, setGenre] = useState("Todos");
+  const [status, setStatus] = useState("Todos");
+  const [showFilters, setShowFilters] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (params.q) {
+      setQuery(params.q);
+      setSubmitted(params.q);
+    }
+  }, [params.q]);
 
   const searchQuery = useQuery({
     queryKey: ["search", submitted],
     queryFn: () => consumet.search(submitted),
     enabled: submitted.length > 0,
   });
+
+  const handleChangeText = (t: string) => {
+    setQuery(t);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      if (t.trim().length > 1) setSubmitted(t.trim());
+      else if (t.trim().length === 0) setSubmitted("");
+    }, 500);
+  };
 
   const handleSearch = () => {
     const q = query.trim();
@@ -44,8 +70,23 @@ export default function SearchScreen() {
     setSubmitted(tag);
   };
 
-  const data = searchQuery.data?.results ?? [];
+  const handleClear = () => {
+    setQuery("");
+    setSubmitted("");
+    inputRef.current?.focus();
+  };
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+
+  let data = searchQuery.data?.results ?? [];
+  if (genre !== "Todos") {
+    data = data.filter((a) => a.genres?.some((g) => g.toLowerCase() === genre.toLowerCase()));
+  }
+  if (status !== "Todos") {
+    data = data.filter((a) => a.status === status);
+  }
+
+  const activeFilters = (genre !== "Todos" ? 1 : 0) + (status !== "Todos" ? 1 : 0);
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -66,18 +107,19 @@ export default function SearchScreen() {
           <View style={styles.inputWrap}>
             <Feather name="search" size={17} color={Colors.textMuted} />
             <TextInput
+              ref={inputRef}
               style={styles.input}
               placeholder="Buscar anime..."
               placeholderTextColor={Colors.textMuted}
               value={query}
-              onChangeText={setQuery}
+              onChangeText={handleChangeText}
               onSubmitEditing={handleSearch}
               returnKeyType="search"
               autoCorrect={false}
               autoCapitalize="none"
             />
             {query.length > 0 && (
-              <Pressable onPress={() => { setQuery(""); setSubmitted(""); }} hitSlop={8}>
+              <Pressable onPress={handleClear} hitSlop={8}>
                 <View style={styles.clearBtn}>
                   <Feather name="x" size={12} color={Colors.textSecondary} />
                 </View>
@@ -85,13 +127,25 @@ export default function SearchScreen() {
             )}
           </View>
           <Pressable
+            style={({ pressed }) => [
+              styles.filterToggle,
+              showFilters && styles.filterToggleActive,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => setShowFilters((v) => !v)}
+          >
+            <Feather name="sliders" size={18} color={showFilters ? Colors.primary : Colors.textSecondary} />
+            {activeFilters > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFilters}</Text>
+              </View>
+            )}
+          </Pressable>
+          <Pressable
             style={({ pressed }) => [styles.searchBtn, pressed && { opacity: 0.8 }]}
             onPress={handleSearch}
           >
-            <LinearGradient
-              colors={[Colors.primary, Colors.secondary]}
-              style={styles.searchBtnGrad}
-            >
+            <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.searchBtnGrad}>
               <Feather name="search" size={18} color="#fff" />
             </LinearGradient>
           </Pressable>
@@ -99,8 +153,12 @@ export default function SearchScreen() {
 
         {/* Quick search tags */}
         {!submitted && (
-          <View style={styles.tagsRow}>
-            {QUICK_SEARCHES.map((tag) => (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tagsRow}
+          >
+            {QUICK_TAGS.map((tag) => (
               <Pressable
                 key={tag}
                 style={({ pressed }) => [styles.tag, pressed && { opacity: 0.7 }]}
@@ -109,6 +167,49 @@ export default function SearchScreen() {
                 <Text style={styles.tagText}>{tag}</Text>
               </Pressable>
             ))}
+          </ScrollView>
+        )}
+
+        {/* Filters panel */}
+        {showFilters && (
+          <View style={styles.filtersPanel}>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Género</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                {GENRE_FILTERS.map((g) => (
+                  <Pressable
+                    key={g}
+                    style={[styles.filterChip, genre === g && styles.filterChipActive]}
+                    onPress={() => setGenre(g)}
+                  >
+                    <Text style={[styles.filterChipText, genre === g && styles.filterChipTextActive]}>{g}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Estado</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                {STATUS_FILTERS.map((s) => (
+                  <Pressable
+                    key={s}
+                    style={[styles.filterChip, status === s && styles.filterChipActive]}
+                    onPress={() => setStatus(s)}
+                  >
+                    <Text style={[styles.filterChipText, status === s && styles.filterChipTextActive]}>{s}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+            {activeFilters > 0 && (
+              <Pressable
+                style={styles.clearFiltersBtn}
+                onPress={() => { setGenre("Todos"); setStatus("Todos"); }}
+              >
+                <Feather name="x-circle" size={14} color={Colors.error} />
+                <Text style={styles.clearFiltersText}>Limpiar filtros</Text>
+              </Pressable>
+            )}
           </View>
         )}
       </View>
@@ -132,10 +233,7 @@ export default function SearchScreen() {
           <Text style={styles.errorTitle}>Error de búsqueda</Text>
           <Text style={styles.errorText}>No se pudo conectar. Intenta de nuevo.</Text>
           <Pressable style={styles.retryBtn} onPress={() => searchQuery.refetch()}>
-            <LinearGradient
-              colors={[Colors.primary, Colors.secondary]}
-              style={styles.retryGrad}
-            >
+            <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.retryGrad}>
               <Text style={styles.retryText}>Reintentar</Text>
             </LinearGradient>
           </Pressable>
@@ -149,21 +247,22 @@ export default function SearchScreen() {
             <Feather name="film" size={40} color={Colors.textMuted} />
           </View>
           <Text style={styles.emptyTitle}>Sin resultados</Text>
-          <Text style={styles.emptyText}>No encontramos nada para "{submitted}"</Text>
+          <Text style={styles.emptyText}>
+            No encontramos nada para "{submitted}"
+            {activeFilters > 0 ? " con esos filtros" : ""}
+          </Text>
         </View>
       )}
 
       {/* Empty state */}
       {!submitted && !searchQuery.isLoading && (
         <View style={styles.center}>
-          <View style={styles.emptyIllustration}>
-            <LinearGradient
-              colors={[Colors.primary + "22", Colors.accent + "11"]}
-              style={styles.emptyGlow}
-            >
-              <Feather name="search" size={48} color={Colors.primary} />
-            </LinearGradient>
-          </View>
+          <LinearGradient
+            colors={[Colors.primary + "22", Colors.accent + "11"]}
+            style={styles.emptyGlow}
+          >
+            <Feather name="search" size={48} color={Colors.primary} />
+          </LinearGradient>
           <Text style={styles.emptyTitle}>¿Qué quieres ver?</Text>
           <Text style={styles.emptyText}>Busca por nombre, género o estudio</Text>
         </View>
@@ -199,46 +298,15 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    paddingTop: 4,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  titleAccent: {
-    width: 4,
-    height: 28,
-    borderRadius: 2,
-    backgroundColor: Colors.primary,
-  },
-  heading: {
-    color: Colors.textPrimary,
-    fontSize: 24,
-    fontWeight: "900",
-    letterSpacing: -0.5,
-  },
-  subheading: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    marginTop: 1,
-  },
-  searchSection: {
-    paddingHorizontal: 16,
-    marginBottom: 8,
-    gap: 12,
-  },
-  searchRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  header: { paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  titleAccent: { width: 4, height: 28, borderRadius: 2, backgroundColor: Colors.primary },
+  heading: { color: Colors.textPrimary, fontSize: 24, fontWeight: "900", letterSpacing: -0.5 },
+  subheading: { color: Colors.textMuted, fontSize: 12, marginTop: 1 },
+
+  searchSection: { paddingHorizontal: 16, marginBottom: 8, gap: 12 },
+  searchRow: { flexDirection: "row", gap: 8 },
   inputWrap: {
     flex: 1,
     flexDirection: "row",
@@ -251,12 +319,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  input: {
-    flex: 1,
-    color: Colors.textPrimary,
-    fontSize: 15,
-    fontWeight: "500",
-  },
+  input: { flex: 1, color: Colors.textPrimary, fontSize: 15, fontWeight: "500" },
   clearBtn: {
     width: 20,
     height: 20,
@@ -265,22 +328,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  searchBtn: {
+  filterToggle: {
     width: 50,
     height: 50,
     borderRadius: 14,
-    overflow: "hidden",
+    backgroundColor: Colors.bgCard,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+    position: "relative",
   },
-  searchBtnGrad: {
-    flex: 1,
+  filterToggleActive: {
+    backgroundColor: Colors.primary + "18",
+    borderColor: Colors.primary + "60",
+  },
+  filterBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  tagsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  filterBadgeText: { color: "#fff", fontSize: 8, fontWeight: "900" },
+  searchBtn: { width: 50, height: 50, borderRadius: 14, overflow: "hidden" },
+  searchBtnGrad: { flex: 1, alignItems: "center", justifyContent: "center" },
+
+  tagsRow: { gap: 8, paddingRight: 4 },
   tag: {
     backgroundColor: Colors.bgSurface,
     borderRadius: 20,
@@ -289,11 +367,41 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  tagText: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
+  tagText: { color: Colors.textSecondary, fontSize: 13, fontWeight: "600" },
+
+  filtersPanel: {
+    backgroundColor: Colors.bgCard,
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
+  filterSection: { gap: 8 },
+  filterLabel: { color: Colors.textSecondary, fontSize: 12, fontWeight: "700", letterSpacing: 0.5 },
+  filterRow: { gap: 7, paddingRight: 4 },
+  filterChip: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.bgSurface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.primary + "22",
+    borderColor: Colors.primary,
+  },
+  filterChipText: { color: Colors.textSecondary, fontSize: 12, fontWeight: "600" },
+  filterChipTextActive: { color: Colors.primary, fontWeight: "700" },
+  clearFiltersBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+  },
+  clearFiltersText: { color: Colors.error, fontSize: 12, fontWeight: "700" },
+
   resultsHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -301,11 +409,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
   },
-  resultsCount: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
+  resultsCount: { color: Colors.textSecondary, fontSize: 13, fontWeight: "600" },
   resultsBadge: {
     backgroundColor: Colors.primary + "22",
     borderRadius: 8,
@@ -314,26 +418,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.primary + "44",
   },
-  resultsBadgeText: {
-    color: Colors.primary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  list: {
-    padding: 16,
-    paddingTop: 0,
-    gap: 14,
-  },
-  row: {
-    justifyContent: "space-between",
-  },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 14,
-    paddingHorizontal: 32,
-  },
+  resultsBadgeText: { color: Colors.primary, fontSize: 12, fontWeight: "700" },
+
+  list: { padding: 16, paddingTop: 0, gap: 14 },
+  row: { justifyContent: "space-between" },
+
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, paddingHorizontal: 32 },
   loadingRing: {
     width: 72,
     height: 72,
@@ -344,11 +434,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  loadingText: {
-    color: Colors.textMuted,
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  loadingText: { color: Colors.textMuted, fontSize: 14, fontWeight: "500" },
   errorIcon: {
     width: 72,
     height: 72,
@@ -359,34 +445,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.error + "33",
   },
-  errorTitle: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  errorText: {
-    color: Colors.textMuted,
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  retryBtn: {
-    borderRadius: 22,
-    overflow: "hidden",
-    marginTop: 4,
-  },
-  retryGrad: {
-    paddingHorizontal: 28,
-    paddingVertical: 11,
-  },
-  retryText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 14,
-  },
-  emptyIllustration: {
-    marginBottom: 4,
-  },
+  errorTitle: { color: Colors.textPrimary, fontSize: 18, fontWeight: "800" },
+  errorText: { color: Colors.textMuted, fontSize: 14, textAlign: "center", lineHeight: 20 },
+  retryBtn: { borderRadius: 22, overflow: "hidden", marginTop: 4 },
+  retryGrad: { paddingHorizontal: 28, paddingVertical: 11 },
+  retryText: { color: "#fff", fontWeight: "800", fontSize: 14 },
   emptyGlow: {
     width: 100,
     height: 100,
@@ -406,15 +469,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  emptyTitle: {
-    color: Colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  emptyText: {
-    color: Colors.textMuted,
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 22,
-  },
+  emptyTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: "800" },
+  emptyText: { color: Colors.textMuted, fontSize: 14, textAlign: "center", lineHeight: 22 },
 });

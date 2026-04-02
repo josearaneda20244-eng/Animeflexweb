@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -18,19 +18,23 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { SkeletonRow } from "@/components/SkeletonCard";
 import Colors from "@/constants/colors";
 import { consumet, type AnimeResult } from "@/lib/consumet";
 
 const { width } = Dimensions.get("window");
-const BANNER_HEIGHT = Math.round(width * 0.95);
-const CAROUSEL_CARD_W = width * 0.36;
+const HERO_HEIGHT = Math.round(width * 1.05);
+const CARD_W = width * 0.34;
+const CARD_H = CARD_W * 1.52;
+const RECENT_W = width * 0.55;
+const RECENT_H = RECENT_W * 0.62;
 
-/* ─── helpers ─────────────────────────────────── */
 function resolveTitle(t: AnimeResult["title"]): string {
   if (!t) return "Unknown";
   if (typeof t === "string") return t;
   return (t as any).english || (t as any).romaji || (t as any).userPreferred || "Unknown";
 }
+
 function nav(router: any, anime: AnimeResult) {
   router.push({
     pathname: "/detail/[id]",
@@ -50,32 +54,47 @@ function nav(router: any, anime: AnimeResult) {
   });
 }
 
-/* ─── TOP NAV BAR ────────────────────────────── */
+/* ── NAVBAR ── */
 function NavBar({ topPad }: { topPad: number }) {
+  const router = useRouter();
   return (
     <View style={[styles.navWrap, { paddingTop: topPad + 10 }]}>
+      <LinearGradient
+        colors={["rgba(9,10,18,0.98)", "rgba(9,10,18,0.0)"]}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.navInner}>
-        {/* Logo */}
-        <View style={styles.logoWrap}>
-          <View style={styles.logoIconBox}>
-            <Text style={styles.logoIconText}>A</Text>
-          </View>
+        <View style={styles.logoRow}>
+          <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.logoBox}>
+            <Text style={styles.logoIcon}>▶</Text>
+          </LinearGradient>
           <Text style={styles.logoText}>
-            <Text style={styles.logoTextBold}>Anime</Text>
-            <Text style={styles.logoTextAccent}>FLEX</Text>
+            <Text style={styles.logoA}>Anime</Text>
+            <Text style={styles.logoFlex}>FLEX</Text>
           </Text>
         </View>
 
-        {/* Right icons */}
-        <View style={styles.navRight}>
-          <TouchableOpacity style={styles.navBtn} hitSlop={10}>
-            <Feather name="bell" size={20} color={Colors.textSecondary} />
+        <View style={styles.navActions}>
+          <TouchableOpacity
+            style={styles.navBtn}
+            hitSlop={10}
+            onPress={() => router.push("/(tabs)/search")}
+          >
+            <Feather name="search" size={19} color={Colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navBtn} hitSlop={10}>
-            <Feather name="search" size={20} color={Colors.textSecondary} />
+          <TouchableOpacity
+            style={styles.navBtn}
+            hitSlop={10}
+            onPress={() => router.push("/(tabs)/favorites")}
+          >
+            <Feather name="bookmark" size={19} color={Colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.userCircle} hitSlop={10}>
-            <Feather name="user" size={15} color="#fff" />
+          <TouchableOpacity
+            style={styles.navBtn}
+            hitSlop={10}
+            onPress={() => router.push("/(tabs)/history")}
+          >
+            <Feather name="clock" size={19} color={Colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -83,318 +102,311 @@ function NavBar({ topPad }: { topPad: number }) {
   );
 }
 
-/* ─── HERO BANNER ────────────────────────────── */
+/* ── HERO BANNER ── */
 function HeroBanner({
-  animes, index, onPrev, onNext, topPad,
+  animes, idx, onPrev, onNext, topPad,
 }: {
-  animes: AnimeResult[]; index: number; onPrev: () => void; onNext: () => void; topPad: number;
+  animes: AnimeResult[]; idx: number; onPrev: () => void; onNext: () => void; topPad: number;
 }) {
   const router = useRouter();
-  const anime = animes[index];
-  if (!anime) return <View style={styles.heroBg} />;
-
+  const anime = animes[idx];
+  if (!anime) return <View style={{ height: HERO_HEIGHT, backgroundColor: Colors.bgSurface }} />;
   const title = resolveTitle(anime.title);
 
   return (
-    <Pressable style={styles.heroBg} onPress={() => nav(router, anime)}>
-      {/* Full background image */}
+    <View style={[styles.hero, { height: HERO_HEIGHT }]}>
       <Image
         source={{ uri: anime.cover || anime.image }}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
       />
-      {/* Strong gradient overlay */}
       <LinearGradient
-        colors={["rgba(10,10,18,0.05)", "rgba(10,10,18,0.3)", "rgba(10,10,18,0.85)", Colors.bg]}
-        locations={[0, 0.35, 0.72, 1]}
+        colors={["rgba(9,10,18,0.0)", "rgba(9,10,18,0.35)", "rgba(9,10,18,0.88)", "#090A12"]}
+        locations={[0, 0.3, 0.7, 1]}
         style={StyleSheet.absoluteFill}
       />
-      {/* Left vignette */}
       <LinearGradient
-        colors={["rgba(10,10,18,0.6)", "transparent"]}
+        colors={["rgba(9,10,18,0.55)", "transparent"]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
-        style={[StyleSheet.absoluteFill, { width: "45%" }]}
+        style={[StyleSheet.absoluteFill, { width: "50%" }]}
       />
 
-      {/* Content at the bottom */}
-      <View style={[styles.heroContent, { paddingTop: topPad + 60 }]}>
-        {/* Badges row */}
+      <View style={[styles.heroContent, { paddingTop: topPad + 80 }]}>
         <View style={styles.heroBadgeRow}>
-          {anime.status === "Ongoing" && (
-            <View style={styles.newBadge}>
-              <View style={styles.newDot} />
-              <Text style={styles.newBadgeText}>NUEVO</Text>
-            </View>
-          )}
+          <View style={styles.heroBadgeHD}>
+            <Text style={styles.heroBadgeHDText}>HD</Text>
+          </View>
           {anime.type && (
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>{anime.type}</Text>
+            <View style={styles.heroBadgeType}>
+              <Text style={styles.heroBadgeTypeText}>{anime.type}</Text>
             </View>
           )}
-          {anime.totalEpisodes ? (
-            <View style={styles.epHeroBadge}>
-              <Feather name="play-circle" size={9} color={Colors.accent} />
-              <Text style={styles.epHeroBadgeText}>{anime.totalEpisodes} EP</Text>
+          {anime.status === "Ongoing" && (
+            <View style={styles.heroBadgeLive}>
+              <View style={styles.heroBadgeLiveDot} />
+              <Text style={styles.heroBadgeLiveText}>EN EMISIÓN</Text>
             </View>
-          ) : null}
+          )}
         </View>
 
-        {/* Title */}
-        <Text style={styles.heroTitle} numberOfLines={3}>{title}</Text>
+        <Text style={styles.heroTitle} numberOfLines={2}>{title}</Text>
 
-        {/* Genres */}
-        {anime.genres && anime.genres.length > 0 && (
-          <Text style={styles.heroGenres} numberOfLines={1}>
-            {anime.genres.slice(0, 4).join("  ·  ")}
-          </Text>
-        )}
-
-        {/* Rating + Year */}
-        <View style={styles.heroMeta}>
+        <View style={styles.heroMetaRow}>
           {anime.rating != null && anime.rating > 0 && (
             <View style={styles.heroRating}>
-              <Feather name="star" size={11} color="#FBBF24" />
+              <Feather name="star" size={12} color={Colors.gold} />
               <Text style={styles.heroRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
             </View>
           )}
-          {anime.releaseDate ? (
-            <Text style={styles.heroYear}>{anime.releaseDate}</Text>
-          ) : null}
-        </View>
-
-        {/* Buttons */}
-        <View style={styles.heroBtns}>
-          <TouchableOpacity style={styles.playBtn} onPress={() => nav(router, anime)}>
-            <LinearGradient
-              colors={[Colors.primary, Colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.playBtnGrad}
-            >
-              <Feather name="play" size={18} color="#fff" />
-              <Text style={styles.playBtnText}>Ver ahora</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.infoBtn} onPress={() => nav(router, anime)}>
-            <Feather name="info" size={16} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.infoBtnText}>Detalles</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Dot Pagination */}
-        <View style={styles.heroDots}>
-          {animes.slice(0, 8).map((_, i) => (
-            <View
-              key={i}
-              style={[styles.dot, i === index && styles.dotActive]}
-            />
-          ))}
-        </View>
-      </View>
-
-      {/* Prev/Next invisible tap zones */}
-      <TouchableOpacity style={styles.heroLeft} onPress={onPrev} />
-      <TouchableOpacity style={styles.heroRight} onPress={onNext} />
-    </Pressable>
-  );
-}
-
-/* ─── TRENDING ROW ───────────────────────────── */
-function TrendingRow({ anime, rank }: { anime: AnimeResult; rank: number }) {
-  const router = useRouter();
-  const title = resolveTitle(anime.title);
-  const isTop3 = rank <= 3;
-
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.trendRow,
-        pressed && { backgroundColor: Colors.bgElevated },
-      ]}
-      onPress={() => nav(router, anime)}
-    >
-      {/* Rank number */}
-      <Text style={[styles.rankNum, isTop3 && styles.rankNumTop]}>{rank < 10 ? `0${rank}` : rank}</Text>
-
-      {/* Thumbnail */}
-      <View style={styles.tThumbWrap}>
-        <Image source={{ uri: anime.image }} style={styles.tThumb} resizeMode="cover" />
-        <LinearGradient
-          colors={["transparent", "rgba(10,10,18,0.6)"]}
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
-
-      {/* Info */}
-      <View style={styles.trendInfo}>
-        <Text style={styles.trendTitle} numberOfLines={2}>{title}</Text>
-        <View style={styles.trendMeta}>
+          {anime.releaseDate ? <Text style={styles.heroMetaText}>{anime.releaseDate}</Text> : null}
           {anime.totalEpisodes ? (
-            <View style={styles.subBadge}>
-              <Text style={styles.subBadgeText}>SUB</Text>
-              <Text style={styles.subEpCount}>{anime.totalEpisodes}</Text>
-            </View>
-          ) : null}
-          {anime.type ? (
-            <Text style={styles.tType}>{anime.type}</Text>
+            <Text style={styles.heroMetaText}>{anime.totalEpisodes} EP</Text>
           ) : null}
         </View>
-        {anime.rating != null && anime.rating > 0 && (
-          <View style={styles.tRatingRow}>
-            <Feather name="star" size={9} color="#FBBF24" />
-            <Text style={styles.tRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
+
+        {anime.genres && anime.genres.length > 0 && (
+          <View style={styles.heroGenreRow}>
+            {anime.genres.slice(0, 3).map((g) => (
+              <View key={g} style={styles.heroGenre}>
+                <Text style={styles.heroGenreText}>{g}</Text>
+              </View>
+            ))}
           </View>
         )}
+
+        <View style={styles.heroBtns}>
+          <Pressable
+            style={({ pressed }) => [styles.heroPlayBtn, pressed && { opacity: 0.85 }]}
+            onPress={() => nav(router, anime)}
+          >
+            <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.heroPlayGrad}>
+              <Feather name="play" size={16} color="#fff" />
+              <Text style={styles.heroPlayText}>Ver Ahora</Text>
+            </LinearGradient>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.heroInfoBtn, pressed && { opacity: 0.8 }]}
+            onPress={() => nav(router, anime)}
+          >
+            <Feather name="info" size={16} color={Colors.textSecondary} />
+            <Text style={styles.heroInfoText}>Detalles</Text>
+          </Pressable>
+        </View>
       </View>
 
-      <Feather name="chevron-right" size={16} color={Colors.textMuted} />
-    </Pressable>
+      <View style={styles.dotRow}>
+        {animes.slice(0, 6).map((_, i) => (
+          <View key={i} style={[styles.dot, i === idx && styles.dotActive]} />
+        ))}
+      </View>
+
+      <TouchableOpacity style={[styles.heroArrow, { left: 12 }]} onPress={onPrev}>
+        <Feather name="chevron-left" size={22} color="rgba(255,255,255,0.85)" />
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.heroArrow, { right: 12 }]} onPress={onNext}>
+        <Feather name="chevron-right" size={22} color="rgba(255,255,255,0.85)" />
+      </TouchableOpacity>
+    </View>
   );
 }
 
-/* ─── SECTION HEADER ─────────────────────────── */
-function SectionHeader({
-  title, showButton = false,
-}: {
-  title: string; showButton?: boolean;
-}) {
+/* ── SECTION HEADER ── */
+function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
   return (
-    <View style={styles.sectionHead}>
-      <View style={styles.sectionLeft}>
-        <View style={styles.sectionAccentBar} />
-        <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.secHeader}>
+      <View style={styles.secTitleRow}>
+        <View style={styles.secAccent} />
+        <Text style={styles.secTitle}>{title}</Text>
       </View>
-      {showButton && (
-        <TouchableOpacity style={styles.verMasBtn}>
-          <Text style={styles.verMasText}>Ver más</Text>
-          <Feather name="chevron-right" size={13} color={Colors.accent} />
-        </TouchableOpacity>
+      {onSeeAll && (
+        <Pressable onPress={onSeeAll} style={styles.seeAllBtn}>
+          <Text style={styles.seeAllText}>Ver todo</Text>
+          <Feather name="chevron-right" size={14} color={Colors.primary} />
+        </Pressable>
       )}
     </View>
   );
 }
 
-/* ─── RECENT CARD ────────────────────────────── */
-function RecentCard({ anime }: { anime: AnimeResult }) {
+/* ── PORTRAIT CARD (trending/popular) ── */
+function PortraitCard({ anime }: { anime: AnimeResult }) {
   const router = useRouter();
   const title = resolveTitle(anime.title);
   return (
     <Pressable
-      style={({ pressed }) => [styles.rCard, pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 }]}
+      style={({ pressed }) => [
+        styles.pCard,
+        { width: CARD_W, height: CARD_H },
+        pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+      ]}
       onPress={() => nav(router, anime)}
     >
-      <Image source={{ uri: anime.image }} style={styles.rImg} resizeMode="cover" />
+      <Image source={{ uri: anime.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       <LinearGradient
-        colors={["transparent", "rgba(10,10,18,0.98)"]}
-        locations={[0.5, 1]}
+        colors={["transparent", "rgba(9,10,18,0.96)"]}
+        locations={[0.48, 1]}
         style={StyleSheet.absoluteFill}
       />
-
-      {/* Badges */}
-      <View style={styles.rBadgeRow}>
-        <View style={styles.subSmBadge}>
-          <Text style={styles.subSmText}>SUB</Text>
-        </View>
-        {anime.totalEpisodes ? (
-          <View style={styles.epSmBadge}>
-            <Text style={styles.epSmText}>{anime.totalEpisodes}</Text>
-          </View>
-        ) : null}
-      </View>
-
-      {/* Rating top right */}
-      {anime.rating != null && anime.rating > 0 && (
-        <View style={styles.rRating}>
-          <Feather name="star" size={8} color="#FBBF24" />
-          <Text style={styles.rRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
-        </View>
-      )}
-
-      <View style={styles.rFooter}>
-        <Text style={styles.rTitle} numberOfLines={2}>{title}</Text>
-        <Text style={styles.rType}>{anime.type ?? "TV"}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-/* ─── POPULAR CARD ───────────────────────────── */
-function PopularCard({ anime }: { anime: AnimeResult }) {
-  const router = useRouter();
-  const title = resolveTitle(anime.title);
-  return (
-    <Pressable
-      style={({ pressed }) => [styles.pCard, pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 }]}
-      onPress={() => nav(router, anime)}
-    >
-      <Image source={{ uri: anime.image }} style={styles.pImg} resizeMode="cover" />
-      <LinearGradient
-        colors={["transparent", "rgba(10,10,18,0.98)"]}
-        locations={[0.45, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Badges */}
       <View style={styles.pBadgeRow}>
-        <View style={styles.subSmBadge}>
-          <Text style={styles.subSmText}>SUB</Text>
+        <View style={styles.pSubBadge}>
+          <Text style={styles.pSubText}>SUB</Text>
         </View>
         {anime.totalEpisodes ? (
-          <View style={styles.epSmBadge}>
-            <Text style={styles.epSmText}>{anime.totalEpisodes}</Text>
+          <View style={styles.pEpBadge}>
+            <Text style={styles.pEpText}>{anime.totalEpisodes}</Text>
           </View>
         ) : null}
       </View>
-
       {anime.rating != null && anime.rating > 0 && (
         <View style={styles.pRating}>
-          <Feather name="star" size={8} color="#FBBF24" />
+          <Feather name="star" size={8} color={Colors.gold} />
           <Text style={styles.pRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
         </View>
       )}
       <View style={styles.pFooter}>
         <Text style={styles.pTitle} numberOfLines={2}>{title}</Text>
-        <Text style={styles.pType}>{anime.type ?? "TV"}</Text>
+        {anime.type && <Text style={styles.pType}>{anime.type}</Text>}
       </View>
     </Pressable>
   );
 }
 
-/* ─── MAIN ───────────────────────────────────── */
+/* ── RECENT EPISODE CARD ── */
+function RecentCard({ anime }: { anime: AnimeResult }) {
+  const router = useRouter();
+  const title = resolveTitle(anime.title);
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.rCard,
+        { width: RECENT_W, height: RECENT_H },
+        pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 },
+      ]}
+      onPress={() => nav(router, anime)}
+    >
+      <Image
+        source={{ uri: anime.cover || anime.image }}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
+      <LinearGradient
+        colors={["rgba(9,10,18,0.1)", "rgba(9,10,18,0.92)"]}
+        locations={[0.3, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.rPlayCircle}>
+        <Feather name="play" size={18} color="#fff" />
+      </View>
+      <View style={styles.rBadgeRow}>
+        <View style={styles.rEpBadge}>
+          <Feather name="tv" size={9} color={Colors.cyan} />
+          <Text style={styles.rEpText}>EP {anime.currentEpisode ?? "?"}</Text>
+        </View>
+        <View style={styles.rHDBadge}>
+          <Text style={styles.rHDText}>HD</Text>
+        </View>
+      </View>
+      <View style={styles.rFooter}>
+        <Text style={styles.rTitle} numberOfLines={1}>{title}</Text>
+        {anime.type && <Text style={styles.rType}>{anime.type}</Text>}
+      </View>
+    </Pressable>
+  );
+}
+
+/* ── TOP ANIME ROW ── */
+function TopAnimeRow({ anime, rank }: { anime: AnimeResult; rank: number }) {
+  const router = useRouter();
+  const title = resolveTitle(anime.title);
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.topRow, pressed && { backgroundColor: Colors.bgSurface }]}
+      onPress={() => nav(router, anime)}
+    >
+      <Text style={[styles.topRank, rank <= 3 && styles.topRankHighlight]}>
+        {String(rank).padStart(2, "0")}
+      </Text>
+      <Image source={{ uri: anime.image }} style={styles.topImg} resizeMode="cover" />
+      <View style={styles.topInfo}>
+        <Text style={styles.topTitle} numberOfLines={2}>{title}</Text>
+        <View style={styles.topMeta}>
+          {anime.type && <Text style={styles.topType}>{anime.type}</Text>}
+          {anime.releaseDate ? <Text style={styles.topYear}>{anime.releaseDate}</Text> : null}
+        </View>
+        {anime.genres && anime.genres.length > 0 && (
+          <Text style={styles.topGenres} numberOfLines={1}>
+            {anime.genres.slice(0, 2).join(" · ")}
+          </Text>
+        )}
+      </View>
+      {anime.rating != null && anime.rating > 0 && (
+        <View style={styles.topRatingWrap}>
+          <Feather name="star" size={11} color={Colors.gold} />
+          <Text style={styles.topRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/* ── GENRE PILLS ── */
+const GENRES = [
+  "Action", "Adventure", "Comedy", "Drama", "Fantasy",
+  "Horror", "Romance", "Sci-Fi", "Shounen", "Isekai", "Thriller", "Mystery",
+];
+
+function GenresSection() {
+  const router = useRouter();
+  return (
+    <View style={styles.genresWrap}>
+      {GENRES.map((g) => (
+        <Pressable
+          key={g}
+          style={({ pressed }) => [styles.genrePill, pressed && { opacity: 0.75 }]}
+          onPress={() => router.push({ pathname: "/(tabs)/search", params: { q: g } })}
+        >
+          <Text style={styles.genrePillText}>{g}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/* ── MAIN SCREEN ── */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [bannerIdx, setBannerIdx] = useState(0);
+  const [heroIdx, setHeroIdx] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-
-  const trendingQ = useQuery({ queryKey: ["trending"], queryFn: () => consumet.trending() });
-  const popularQ  = useQuery({ queryKey: ["popular"],  queryFn: () => consumet.popular()  });
-  const recentQ   = useQuery({ queryKey: ["recent"],   queryFn: () => consumet.recentEpisodes() });
-
-  const trending = trendingQ.data?.results ?? [];
-  const popular  = popularQ.data?.results  ?? [];
-  const recent   = recentQ.data?.results   ?? [];
-
-  const banners      = trending.slice(0, 8);
-  const trendingList = trending.slice(0, 10);
-  const recentList   = recent.slice(0, 12);
-  const popularList  = popular.slice(0, 10);
-
-  const prev = () => setBannerIdx(i => (i - 1 + banners.length) % banners.length);
-  const next = () => setBannerIdx(i => (i + 1) % banners.length);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([trendingQ.refetch(), popularQ.refetch(), recentQ.refetch()]);
-    setRefreshing(false);
-  };
-
   const topPad = Platform.OS === "web" ? 0 : insets.top;
 
+  const trending = useQuery({ queryKey: ["trending"], queryFn: consumet.trending, staleTime: 1000 * 60 * 10 });
+  const popular = useQuery({ queryKey: ["popular"], queryFn: consumet.popular, staleTime: 1000 * 60 * 10 });
+  const recent = useQuery({ queryKey: ["recent"], queryFn: consumet.recentEpisodes, staleTime: 1000 * 60 * 5 });
+
+  const trendList = trending.data?.results ?? [];
+  const popularList = popular.data?.results ?? [];
+  const recentList = recent.data?.results ?? [];
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([trending.refetch(), popular.refetch(), recent.refetch()]);
+    setRefreshing(false);
+  }, [trending, popular, recent]);
+
+  const prevHero = useCallback(() => {
+    setHeroIdx((i) => (i > 0 ? i - 1 : Math.max(0, trendList.length - 1)));
+  }, [trendList.length]);
+
+  const nextHero = useCallback(() => {
+    setHeroIdx((i) => (i < trendList.length - 1 ? i + 1 : 0));
+  }, [trendList.length]);
+
   return (
-    <View style={styles.root}>
+    <View style={styles.container}>
+      <NavBar topPad={topPad} />
       <ScrollView
-        style={styles.scroll}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -404,223 +416,162 @@ export default function HomeScreen() {
             colors={[Colors.primary]}
           />
         }
-        contentContainerStyle={{
-          paddingBottom: 100 + (Platform.OS === "web" ? 34 : insets.bottom),
-        }}
+        contentContainerStyle={{ paddingBottom: 110 + (Platform.OS === "web" ? 0 : insets.bottom) }}
       >
-        {/* ── Hero (full top, navbar floats on top) ── */}
-        {!trendingQ.isLoading && banners.length > 0 ? (
-          <HeroBanner animes={banners} index={bannerIdx} onPrev={prev} onNext={next} topPad={topPad} />
+        {/* HERO BANNER */}
+        {trendList.length > 0 ? (
+          <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} topPad={topPad} />
         ) : (
-          <View style={[styles.heroBg, { backgroundColor: Colors.bgSurface }]}>
-            <LinearGradient
-              colors={[Colors.bgSurface, Colors.bg]}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
+          <View style={{ height: HERO_HEIGHT, backgroundColor: Colors.bgSurface }} />
         )}
 
-        {/* ── Tendencias ── */}
+        {/* TRENDING */}
         <View style={styles.section}>
-          <SectionHeader title="Tendencias principales" showButton />
-          {trendingQ.isLoading
-            ? Array(6).fill(null).map((_, i) => <View key={i} style={styles.skeletonRow} />)
-            : trendingList.map((a, i) => <TrendingRow key={a.id} anime={a} rank={i + 1} />)}
+          <SectionHeader title="🔥 Tendencias" />
+          {trending.isLoading ? (
+            <SkeletonRow count={5} cardWidth={CARD_W} />
+          ) : (
+            <FlatList
+              data={trendList.slice(0, 12)}
+              keyExtractor={(a) => `t-${a.id}`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carousel}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              renderItem={({ item }) => <PortraitCard anime={item} />}
+            />
+          )}
         </View>
 
-        <View style={styles.divider} />
-
-        {/* ── Últimas actualizaciones ── */}
+        {/* RECENT EPISODES */}
         <View style={styles.section}>
-          <SectionHeader title="Últimas actualizaciones" showButton />
-          {recentQ.isLoading
-            ? <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16 }}>
-                {[0,1,2].map(i => <View key={i} style={[styles.rCard, { backgroundColor: Colors.bgSurface, opacity: 0.4 }]} />)}
-              </View>
-            : <FlatList
-                data={recentList}
-                keyExtractor={(item, i) => item.id + i}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.carouselPad}
-                renderItem={({ item }) => <RecentCard anime={item} />}
-              />}
+          <SectionHeader title="⚡ Últimos Episodios" />
+          {recent.isLoading ? (
+            <SkeletonRow count={3} cardWidth={RECENT_W} />
+          ) : (
+            <FlatList
+              data={recentList.slice(0, 10)}
+              keyExtractor={(a) => `r-${a.id}`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carousel}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              renderItem={({ item }) => <RecentCard anime={item} />}
+            />
+          )}
         </View>
 
-        <View style={styles.divider} />
-
-        {/* ── Más populares ── */}
+        {/* POPULAR */}
         <View style={styles.section}>
-          <SectionHeader title="Más populares" showButton />
-          {popularQ.isLoading
-            ? <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16 }}>
-                {[0,1,2].map(i => <View key={i} style={[styles.pCard, { backgroundColor: Colors.bgSurface, opacity: 0.4 }]} />)}
-              </View>
-            : <FlatList
-                data={popularList}
-                keyExtractor={item => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.carouselPad}
-                renderItem={({ item }) => <PopularCard anime={item} />}
-              />}
+          <SectionHeader title="⭐ Más Populares" />
+          {popular.isLoading ? (
+            <SkeletonRow count={5} cardWidth={CARD_W} />
+          ) : (
+            <FlatList
+              data={popularList.slice(0, 12)}
+              keyExtractor={(a) => `p-${a.id}`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carousel}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              renderItem={({ item }) => <PortraitCard anime={item} />}
+            />
+          )}
+        </View>
+
+        {/* TOP ANIME */}
+        <View style={styles.section}>
+          <SectionHeader title="🏆 Top Anime" />
+          <View style={styles.topList}>
+            {popular.isLoading
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <View key={i} style={styles.topRowSkeleton} />
+                ))
+              : popularList.slice(0, 10).map((a, i) => (
+                  <TopAnimeRow key={`top-${a.id}`} anime={a} rank={i + 1} />
+                ))}
+          </View>
+        </View>
+
+        {/* GENRES */}
+        <View style={styles.section}>
+          <SectionHeader title="🎭 Géneros" />
+          <GenresSection />
         </View>
       </ScrollView>
-
-      {/* ── Floating NavBar (always on top) ── */}
-      <NavBar topPad={topPad} />
     </View>
   );
 }
 
-/* ─── STYLES ─────────────────────────────────── */
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { flex: 1 },
+  container: { flex: 1, backgroundColor: Colors.bg },
 
-  /* ── Top NavBar ── */
   navWrap: {
     position: "absolute",
+    top: 0,
     left: 0,
     right: 0,
-    top: 0,
     zIndex: 100,
-    backgroundColor: "rgba(10,10,18,0.92)",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.05)",
+    paddingBottom: 14,
     paddingHorizontal: 16,
-    paddingBottom: 10,
   },
   navInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  logoWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  logoIconBox: {
+  logoRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  logoBox: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    backgroundColor: Colors.primary,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
-  logoIconText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "900",
-    letterSpacing: -0.5,
-  },
-  logoText: {
-    fontSize: 18,
-  },
-  logoTextBold: {
-    color: Colors.textPrimary,
-    fontWeight: "700",
-  },
-  logoTextAccent: {
-    color: Colors.accent,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-  navRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
+  logoIcon: { color: "#fff", fontSize: 14, fontWeight: "900" },
+  logoText: { fontSize: 18, fontWeight: "900", letterSpacing: -0.5 },
+  logoA: { color: Colors.textPrimary },
+  logoFlex: { color: Colors.primary },
+  navActions: { flexDirection: "row", alignItems: "center", gap: 4 },
   navBtn: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 18,
-  },
-  userCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 2,
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
 
-  /* ── Hero banner ── */
-  heroBg: {
-    width: "100%",
-    height: BANNER_HEIGHT,
-    backgroundColor: Colors.bgSurface,
-    position: "relative",
-    justifyContent: "flex-end",
-    overflow: "hidden",
+  /* HERO */
+  hero: { width, position: "relative", justifyContent: "flex-end", overflow: "hidden" },
+  heroContent: { paddingHorizontal: 20, paddingBottom: 32, gap: 10 },
+  heroBadgeRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  heroBadgeHD: {
+    backgroundColor: Colors.primary,
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
-  heroContent: {
-    padding: 20,
-    gap: 10,
-  },
-  heroBadgeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    flexWrap: "wrap",
-  },
-  newBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    backgroundColor: Colors.success + "25",
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: Colors.success + "60",
-  },
-  newDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: Colors.success,
-  },
-  newBadgeText: {
-    color: Colors.success,
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-  },
-  typeBadge: {
-    backgroundColor: "rgba(255,255,255,0.12)",
+  heroBadgeHDText: { color: "#fff", fontSize: 9, fontWeight: "900", letterSpacing: 1 },
+  heroBadgeType: {
+    backgroundColor: "rgba(255,255,255,0.13)",
     borderRadius: 5,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.2)",
   },
-  typeBadgeText: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-  },
-  epHeroBadge: {
+  heroBadgeTypeText: { color: "#fff", fontSize: 9, fontWeight: "700" },
+  heroBadgeLive: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: Colors.accent + "20",
+    backgroundColor: Colors.success + "22",
     borderRadius: 5,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: Colors.accent + "40",
+    borderColor: Colors.success + "55",
   },
-  epHeroBadgeText: {
-    color: Colors.accent,
-    fontSize: 10,
-    fontWeight: "800",
-  },
+  heroBadgeLiveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.success },
+  heroBadgeLiveText: { color: Colors.success, fontSize: 9, fontWeight: "900", letterSpacing: 0.5 },
   heroTitle: {
     color: "#fff",
     fontSize: 26,
@@ -629,298 +580,264 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     textShadowColor: "rgba(0,0,0,0.9)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    textShadowRadius: 6,
   },
-  heroGenres: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 12,
-    fontWeight: "500",
-    letterSpacing: 0.2,
+  heroMetaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  heroRating: { flexDirection: "row", alignItems: "center", gap: 4 },
+  heroRatingText: { color: Colors.gold, fontSize: 13, fontWeight: "800" },
+  heroMetaText: { color: "rgba(255,255,255,0.6)", fontSize: 13 },
+  heroGenreRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  heroGenre: {
+    backgroundColor: "rgba(108,99,255,0.2)",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Colors.primary + "40",
   },
-  heroMeta: {
+  heroGenreText: { color: Colors.accent, fontSize: 10, fontWeight: "600" },
+  heroBtns: { flexDirection: "row", gap: 10, marginTop: 4 },
+  heroPlayBtn: { borderRadius: 12, overflow: "hidden" },
+  heroPlayGrad: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 7,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
-  heroRating: {
+  heroPlayText: { color: "#fff", fontSize: 14, fontWeight: "800" },
+  heroInfoBtn: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  heroInfoText: { color: Colors.textSecondary, fontSize: 14, fontWeight: "700" },
+  dotRow: {
+    position: "absolute",
+    bottom: 14,
+    right: 20,
+    flexDirection: "row",
     gap: 4,
   },
-  heroRatingText: {
-    color: "#FBBF24",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  heroYear: {
-    color: "rgba(255,255,255,0.5)",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  heroBtns: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 2,
-  },
-  playBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 10,
-    overflow: "hidden",
-    maxWidth: 180,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  playBtnGrad: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  playBtnText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
-  infoBtn: {
-    height: 48,
-    paddingHorizontal: 18,
-    borderRadius: 10,
+  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.25)" },
+  dotActive: { width: 18, backgroundColor: Colors.primary, borderRadius: 3 },
+  heroArrow: {
+    position: "absolute",
+    top: "55%",
+    backgroundColor: "rgba(9,10,18,0.55)",
+    borderRadius: 22,
+    padding: 10,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 6,
-  },
-  infoBtnText: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  heroDots: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 2,
-  },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.25)",
-  },
-  dotActive: {
-    width: 18,
-    backgroundColor: Colors.primary,
-  },
-  heroLeft: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: "20%",
-  },
-  heroRight: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: "20%",
+    borderColor: "rgba(255,255,255,0.1)",
   },
 
-  /* ── Section ── */
-  section: { marginBottom: 4 },
-  sectionHead: {
+  /* SECTION */
+  section: { marginTop: 28 },
+  secHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 22,
-    paddingBottom: 14,
+    marginBottom: 14,
   },
-  sectionLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  sectionAccentBar: {
-    width: 3,
-    height: 18,
-    borderRadius: 2,
-    backgroundColor: Colors.primary,
-  },
-  sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-    letterSpacing: -0.2,
-  },
-  verMasBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  verMasText: {
-    color: Colors.accent,
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  secTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  secAccent: { width: 3, height: 18, borderRadius: 2, backgroundColor: Colors.primary },
+  secTitle: { color: Colors.textPrimary, fontSize: 17, fontWeight: "800" },
+  seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
+  seeAllText: { color: Colors.primary, fontSize: 13, fontWeight: "700" },
+  carousel: { paddingHorizontal: 16 },
 
-  /* ── Trending rows ── */
-  trendRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    minHeight: 80,
-  },
-  rankNum: {
-    color: Colors.textMuted,
-    fontSize: 20,
-    fontWeight: "900",
-    width: 32,
-    textAlign: "center",
-    letterSpacing: -1,
-  },
-  rankNumTop: {
-    color: Colors.primary,
-    fontSize: 22,
-  },
-  tThumbWrap: {
-    width: 52,
-    height: 70,
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: Colors.bgSurface,
-  },
-  tThumb: { width: "100%", height: "100%" },
-  trendInfo: { flex: 1, gap: 5 },
-  trendTitle: { color: Colors.textPrimary, fontSize: 13, fontWeight: "700", lineHeight: 18 },
-  trendMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
-  subBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.success + "20",
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: Colors.success + "50",
-  },
-  subBadgeText: { color: Colors.success, fontSize: 9, fontWeight: "900" },
-  subEpCount: { color: Colors.success, fontSize: 9, fontWeight: "700" },
-  tType: { color: Colors.textMuted, fontSize: 10, fontWeight: "600" },
-  tRatingRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  tRatingText: { color: "#FBBF24", fontSize: 11, fontWeight: "700" },
-
-  /* ── Skeleton ── */
-  skeletonRow: {
-    height: 80,
-    marginHorizontal: 16,
-    marginBottom: 1,
-    borderRadius: 8,
-    backgroundColor: Colors.bgSurface,
-    opacity: 0.5,
-  },
-
-  /* ── Carousels ── */
-  carouselPad: { paddingHorizontal: 16, gap: 10 },
-
-  /* ── Recent Card ── */
-  rCard: {
-    width: CAROUSEL_CARD_W,
-    height: CAROUSEL_CARD_W * 1.55,
-    borderRadius: 12,
+  /* PORTRAIT CARD */
+  pCard: {
+    borderRadius: 14,
     overflow: "hidden",
     backgroundColor: Colors.bgCard,
     borderWidth: 1,
     borderColor: Colors.border,
     position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  rImg: { width: "100%", height: "100%" },
-  rBadgeRow: {
+  pBadgeRow: {
     position: "absolute",
-    top: 7,
-    left: 7,
+    top: 8,
+    left: 8,
     flexDirection: "row",
-    gap: 3,
+    gap: 4,
   },
-  subSmBadge: {
+  pSubBadge: {
     backgroundColor: Colors.success,
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
   },
-  subSmText: { color: "#fff", fontSize: 9, fontWeight: "900" },
-  epSmBadge: {
-    backgroundColor: "rgba(0,0,0,0.7)",
+  pSubText: { color: "#fff", fontSize: 7, fontWeight: "900", letterSpacing: 0.5 },
+  pEpBadge: {
+    backgroundColor: "rgba(0,0,0,0.75)",
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  epSmText: { color: "rgba(255,255,255,0.85)", fontSize: 9, fontWeight: "800" },
-  rRating: {
+  pEpText: { color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: "800" },
+  pRating: {
     position: "absolute",
-    top: 7,
-    right: 7,
+    top: 8,
+    right: 8,
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(0,0,0,0.75)",
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 2,
   },
-  rRatingText: { color: "#FBBF24", fontSize: 9, fontWeight: "800" },
-  rFooter: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 9, gap: 3 },
-  rTitle: { color: "#fff", fontSize: 11, fontWeight: "700", lineHeight: 15 },
-  rType: { color: Colors.textMuted, fontSize: 9, fontWeight: "600", letterSpacing: 0.3 },
+  pRatingText: { color: Colors.gold, fontSize: 8, fontWeight: "800" },
+  pFooter: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    gap: 3,
+  },
+  pTitle: { color: "#fff", fontSize: 11, fontWeight: "700", lineHeight: 15 },
+  pType: { color: Colors.textSecondary, fontSize: 9, fontWeight: "600" },
 
-  /* ── Popular Card ── */
-  pCard: {
-    width: CAROUSEL_CARD_W,
-    height: CAROUSEL_CARD_W * 1.55,
-    borderRadius: 12,
+  /* RECENT CARD */
+  rCard: {
+    borderRadius: 14,
     overflow: "hidden",
     backgroundColor: Colors.bgCard,
     borderWidth: 1,
     borderColor: Colors.border,
     position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  pImg: { width: "100%", height: "100%" },
-  pBadgeRow: {
+  rPlayCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(108,99,255,0.85)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  rBadgeRow: {
     position: "absolute",
-    top: 7,
-    left: 7,
+    top: 8,
+    left: 8,
     flexDirection: "row",
-    gap: 3,
+    gap: 5,
   },
-  pRating: {
-    position: "absolute",
-    top: 7,
-    right: 7,
+  rEpBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 4,
+    gap: 3,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Colors.cyan + "40",
+  },
+  rEpText: { color: Colors.cyan, fontSize: 9, fontWeight: "800" },
+  rHDBadge: {
+    backgroundColor: Colors.primary,
+    borderRadius: 5,
     paddingHorizontal: 5,
     paddingVertical: 2,
   },
-  pRatingText: { color: "#FBBF24", fontSize: 9, fontWeight: "800" },
-  pFooter: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 9, gap: 3 },
-  pTitle: { color: "#fff", fontSize: 11, fontWeight: "700", lineHeight: 15 },
-  pType: { color: Colors.textMuted, fontSize: 9, fontWeight: "600", letterSpacing: 0.3 },
+  rHDText: { color: "#fff", fontSize: 8, fontWeight: "900" },
+  rFooter: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  rTitle: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  rType: { color: Colors.textMuted, fontSize: 9 },
 
-  /* ── Divider ── */
-  divider: { height: 6, backgroundColor: Colors.bgSurface, marginVertical: 8 },
+  /* TOP ANIME */
+  topList: { paddingHorizontal: 16, gap: 0 },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    borderRadius: 4,
+    paddingHorizontal: 4,
+  },
+  topRowSkeleton: {
+    height: 70,
+    backgroundColor: Colors.bgSurface,
+    borderRadius: 10,
+    marginBottom: 4,
+    opacity: 0.5,
+  },
+  topRank: {
+    color: Colors.textMuted,
+    fontSize: 18,
+    fontWeight: "900",
+    width: 30,
+    textAlign: "center",
+  },
+  topRankHighlight: { color: Colors.primary },
+  topImg: { width: 46, height: 64, borderRadius: 8 },
+  topInfo: { flex: 1, gap: 4 },
+  topTitle: { color: Colors.textPrimary, fontSize: 13, fontWeight: "700", lineHeight: 18 },
+  topMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
+  topType: {
+    color: Colors.primary,
+    fontSize: 9,
+    fontWeight: "700",
+    backgroundColor: Colors.primary + "18",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  topYear: { color: Colors.textMuted, fontSize: 10 },
+  topGenres: { color: Colors.textMuted, fontSize: 10 },
+  topRatingWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
+  topRatingText: { color: Colors.gold, fontSize: 12, fontWeight: "800" },
+
+  /* GENRES */
+  genresWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  genrePill: {
+    backgroundColor: Colors.bgSurface,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  genrePillText: { color: Colors.textSecondary, fontSize: 12, fontWeight: "600" },
 });
