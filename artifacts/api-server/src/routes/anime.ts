@@ -7,6 +7,7 @@ const router: IRouter = Router();
 
 let anilist: InstanceType<typeof META.Anilist>;
 let animeKai: InstanceType<typeof ANIME.AnimeKai>;
+let anilistWithKai: InstanceType<typeof META.Anilist>;
 
 function getAnilist() {
   if (!anilist) anilist = new META.Anilist();
@@ -16,6 +17,16 @@ function getAnilist() {
 function getAnimeKai() {
   if (!animeKai) animeKai = new ANIME.AnimeKai();
   return animeKai;
+}
+
+/**
+ * AniList wrapper that uses AnimeKai as the streaming provider.
+ * This leverages AniList's ID-to-AnimeKai mapping, giving us access to
+ * AnimeKai's full library without unreliable title-based search.
+ */
+function getAnilistWithKai() {
+  if (!anilistWithKai) anilistWithKai = new META.Anilist(new ANIME.AnimeKai());
+  return anilistWithKai;
 }
 
 function titleVariants(title: string): string[] {
@@ -62,7 +73,6 @@ async function fetchKey(keyUrl: string, referer?: string): Promise<Buffer> {
   if (!resp.ok) throw new Error(`Key fetch failed: ${resp.status}`);
   const buf = Buffer.from(await resp.arrayBuffer());
   keyCache.set(keyUrl, buf);
-  // Evict oldest if cache grows too large
   if (keyCache.size > 200) {
     const firstKey = keyCache.keys().next().value;
     if (firstKey) keyCache.delete(firstKey);
@@ -78,13 +88,6 @@ function makeIV(seq: number): Buffer {
 
 /**
  * HLS Proxy — serves m3u8 playlists and decrypts AES-128 segments on the fly.
- *
- * For m3u8 files:
- *   - Removes the #EXT-X-KEY encryption header (client won't see encrypted content)
- *   - Rewrites segment URLs to point at this proxy with the key and sequence number
- *
- * For segment files:
- *   - Fetches from CDN, decrypts with AES-128-CBC, returns raw MPEG-TS
  */
 router.get("/anime/hls-proxy", async (req, res) => {
   const rawUrl = req.query.url as string;
@@ -101,7 +104,6 @@ router.get("/anime/hls-proxy", async (req, res) => {
     return;
   }
 
-  // The key and sequence are set when this proxy URL was generated for a segment
   const rawKey = req.query.key as string | undefined;
   const seq = parseInt((req.query.seq as string) || "0", 10);
 
@@ -126,12 +128,10 @@ router.get("/anime/hls-proxy", async (req, res) => {
     res.set("Cache-Control", "public, max-age=300");
 
     if (isM3U8) {
-      // --- Playlist rewriting ---
       res.set("Content-Type", "application/vnd.apple.mpegurl");
       const text = await upstream.text();
       const baseUrl = targetUrl.slice(0, targetUrl.lastIndexOf("/") + 1);
 
-      // Determine the self-base for rewriting links
       const clientBase = req.query.base as string | undefined;
       const selfBase = clientBase
         ? decodeURIComponent(clientBase)
@@ -151,7 +151,6 @@ router.get("/anime/hls-proxy", async (req, res) => {
       let mediaSeq = 0;
       let segCount = 0;
 
-      // Parse #EXT-X-MEDIA-SEQUENCE
       const seqMatch = text.match(/#EXT-X-MEDIA-SEQUENCE:(\d+)/);
       if (seqMatch) mediaSeq = parseInt(seqMatch[1], 10);
 
@@ -161,7 +160,6 @@ router.get("/anime/hls-proxy", async (req, res) => {
           const trimmed = line.trim();
           if (trimmed === "") return line;
 
-          // Capture current key URL — but remove from output (server decrypts)
           if (trimmed.startsWith("#EXT-X-KEY")) {
             const uriMatch = trimmed.match(/URI="([^"]+)"/);
             if (uriMatch) {
@@ -169,14 +167,11 @@ router.get("/anime/hls-proxy", async (req, res) => {
                 ? uriMatch[1]
                 : baseUrl + uriMatch[1];
             }
-            // Strip the key tag — client receives plain MPEG-TS
             return "";
           }
 
-          // Leave other # tags alone
           if (trimmed.startsWith("#")) return line;
 
-          // Segment URL
           const absSegUrl = trimmed.startsWith("http")
             ? trimmed
             : baseUrl + trimmed;
@@ -189,7 +184,6 @@ router.get("/anime/hls-proxy", async (req, res) => {
           }
           if (currentKeyUrl) {
             newUrl += `&key=${encodeURIComponent(currentKeyUrl)}`;
-            // Also pass base so sub-playlists are handled (multi-bitrate)
             newUrl += `&base=${encodeURIComponent(selfBase)}`;
           }
           return newUrl;
@@ -198,7 +192,6 @@ router.get("/anime/hls-proxy", async (req, res) => {
 
       res.send(rewritten);
     } else if (rawKey) {
-      // --- Encrypted segment: decrypt and serve ---
       const keyUrl = decodeURIComponent(rawKey);
       const [key, encryptedBuf] = await Promise.all([
         fetchKey(keyUrl, proxyReferer),
@@ -216,12 +209,10 @@ router.get("/anime/hls-proxy", async (req, res) => {
         res.set("Content-Length", String(decrypted.length));
         res.send(decrypted);
       } catch {
-        // Decryption failed — serve raw and let the player figure it out
         res.set("Content-Type", "video/MP2T");
         res.send(encryptedBuf);
       }
     } else {
-      // --- Unencrypted binary (key file, unencrypted segments) ---
       const cl = upstream.headers.get("content-length");
       if (cl) res.set("Content-Length", cl);
       res.set("Content-Type", contentType || "application/octet-stream");
@@ -236,12 +227,7 @@ router.get("/anime/hls-proxy", async (req, res) => {
 });
 
 /**
- * Serves a self-contained HTML page that plays an HLS stream using HLS.js.
- * HLS.js supports full seeking in any browser, unlike native <video>.
- *
- * Query params:
- *   m3u8  — the (encoded) proxy URL of the m3u8 playlist
- *   title — optional string shown in the page title
+ * Embedded HLS player page.
  */
 router.get("/anime/player-embed", (req, res) => {
   const rawM3u8 = req.query.m3u8 as string;
@@ -258,14 +244,13 @@ router.get("/anime/player-embed", (req, res) => {
     return;
   }
 
-  const title = (req.query.title as string | undefined) ?? "AniFlow";
+  const title = (req.query.title as string | undefined) ?? "AnimeFLEX";
 
   res.set("Content-Type", "text/html; charset=utf-8");
   res.set("Access-Control-Allow-Origin", "*");
   res.set("X-Frame-Options", "ALLOWALL");
   res.set("Cache-Control", "no-cache");
 
-  // language=html
   res.send(`<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -291,7 +276,7 @@ router.get("/anime/player-embed", (req, res) => {
     .spinner {
       width: 48px; height: 48px;
       border: 3px solid rgba(255,255,255,.15);
-      border-top-color: #a855f7;
+      border-top-color: #7c3aed;
       border-radius: 50%;
       animation: spin .7s linear infinite;
     }
@@ -301,13 +286,12 @@ router.get("/anime/player-embed", (req, res) => {
     #errMsg { color: #f87171; font-weight: 600; font-size: 15px; }
     #retryBtn {
       display: none; pointer-events: all;
-      background: #a855f7; color: #fff; border: none;
+      background: #7c3aed; color: #fff; border: none;
       padding: 10px 28px; border-radius: 10px;
       cursor: pointer; font-size: 14px; font-weight: 700;
       transition: background .15s;
     }
-    #retryBtn:hover { background: #9333ea; }
-    /* Skip feedback */
+    #retryBtn:hover { background: #6d28d9; }
     #skipFb {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
       background: rgba(0,0,0,.55); color: #fff;
@@ -345,12 +329,10 @@ router.get("/anime/player-embed", (req, res) => {
   let hls;
   let skipTimer;
 
-  // Prevent arrow keys from bubbling up to parent (which would trigger browser back/forward)
   window.addEventListener('keydown', function(e) {
     const nav = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Backspace'];
     if (nav.includes(e.key)) {
       e.stopPropagation();
-      // Manual seek with left/right
       if (!video.paused || video.currentTime > 0) {
         if (e.key === 'ArrowRight') { video.currentTime = Math.min(video.duration || 0, video.currentTime + 10); showSkip('+10s'); }
         if (e.key === 'ArrowLeft')  { video.currentTime = Math.max(0, video.currentTime - 10); showSkip('-10s'); }
@@ -438,7 +420,6 @@ router.get("/anime/player-embed", (req, res) => {
     }
   }
 
-  // Ensure the page captures focus so keyboard events work
   document.addEventListener('click', () => window.focus(), { once: true });
   window.focus();
   load();
@@ -469,7 +450,6 @@ router.get("/anime/popular", async (req, res) => {
 
 router.get("/anime/recent", async (req, res) => {
   try {
-    // Use airing schedule for the current week as "recently airing" content
     const now = new Date();
     const weekStart = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
     const weekEnd = Math.floor(now.getTime() / 1000) + 24 * 60 * 60;
@@ -507,8 +487,28 @@ router.get("/anime/info", async (req, res) => {
     const data = await getAnimeKai().fetchAnimeInfo(id);
     res.json(data);
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch anime info");
+    req.log.error({ err }, "Failed to fetch anime info from AnimeKai");
     res.status(500).json({ error: "Failed to fetch anime info" });
+  }
+});
+
+/**
+ * Fetch episodes for an anime using its AniList ID.
+ * Uses META.Anilist(AnimeKai) which maps AniList IDs to AnimeKai slugs,
+ * giving access to the full AnimeKai library without title-based search.
+ */
+router.get("/anime/episodes", async (req, res) => {
+  const anilistId = req.query.anilistId as string;
+  if (!anilistId) {
+    res.status(400).json({ error: "Query param 'anilistId' is required" });
+    return;
+  }
+  try {
+    const data = await getAnilistWithKai().fetchAnimeInfo(anilistId);
+    res.json(data);
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch episodes via AniList+AnimeKai");
+    res.status(500).json({ error: "Failed to fetch episode list" });
   }
 });
 
@@ -519,7 +519,6 @@ router.get("/anime/anilist-info", async (req, res) => {
     return;
   }
   try {
-    // Direct AniList GraphQL query — fast, no external provider dependency
     const query = `
       query ($id: Int) {
         Media(id: $id, type: ANIME) {
@@ -567,12 +566,9 @@ router.get("/anime/anilist-info", async (req, res) => {
     if (json.errors?.length) throw new Error(json.errors[0].message);
     const media = json.data.Media as any;
 
-    // Build episodes list from streamingEpisodes metadata (no external provider)
     const streamingEps: { title?: string; thumbnail?: string; url?: string; site?: string }[] =
       media.streamingEpisodes ?? [];
 
-    // For ongoing anime, AniList may not have a total episode count;
-    // use the number of known streaming episodes as a lower bound.
     const episodeCount: number = media.episodes ?? streamingEps.length ?? 0;
 
     const episodes = Array.from({ length: episodeCount }, (_, i) => {
@@ -614,6 +610,9 @@ router.get("/anime/anilist-info", async (req, res) => {
   }
 });
 
+/**
+ * Search on AnimeKai directly.
+ */
 router.get("/anime/search-pahe", async (req, res) => {
   const query = req.query.q as string;
   if (!query) {
@@ -629,6 +628,10 @@ router.get("/anime/search-pahe", async (req, res) => {
   }
 });
 
+/**
+ * Find anime episodes on AnimeKai by title.
+ * Fallback for when the AniList ID is not available.
+ */
 router.get("/anime/info-by-title", async (req, res) => {
   const title = req.query.title as string;
   if (!title || !title.trim()) {
@@ -657,6 +660,10 @@ router.get("/anime/info-by-title", async (req, res) => {
   res.status(404).json({ error: `Anime not found: "${title}"` });
 });
 
+/**
+ * Fetch streaming sources for an episode via AnimeKai.
+ * Episode IDs are in AnimeKai format: slug$ep=N$token=xxx
+ */
 router.get("/anime/watch", async (req, res) => {
   const episodeId = req.query.episodeId as string;
   if (!episodeId || !episodeId.trim()) {
@@ -675,7 +682,6 @@ router.get("/anime/watch", async (req, res) => {
       res.status(500).json({ error: "Failed to fetch episode sources" });
       return;
     }
-    // The default server wasn't found — try fetching servers and use first URL directly
     try {
       req.log.warn({ episodeId: id }, "Default server not found, trying fallback via fetchEpisodeServers");
       const servers = await getAnimeKai().fetchEpisodeServers(id);
@@ -683,7 +689,6 @@ router.get("/anime/watch", async (req, res) => {
         res.status(503).json({ error: "No streaming servers available for this episode" });
         return;
       }
-      // Try each server URL directly (passing URL as episodeId triggers direct extraction)
       for (const server of servers) {
         try {
           const data = await getAnimeKai().fetchEpisodeSources(server.url);

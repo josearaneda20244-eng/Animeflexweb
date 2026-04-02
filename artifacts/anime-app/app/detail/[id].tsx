@@ -58,10 +58,10 @@ export default function DetailScreen() {
   });
 
   const paheQuery = useQuery({
-    queryKey: ["animePaheInfo", navTitle],
-    queryFn: () => consumet.infoByTitle(navTitle),
-    enabled: !!navTitle,
-    retry: 1,
+    queryKey: ["animeEpisodesById", params.id],
+    queryFn: () => consumet.episodesById(params.id),
+    enabled: !!params.id,
+    retry: 2,
     staleTime: 1000 * 60 * 10,
   });
 

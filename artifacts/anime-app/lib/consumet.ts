@@ -139,6 +139,9 @@ export const consumet = {
       `/anime/info-by-title?title=${encodeURIComponent(title)}`
     ),
 
+  episodesById: (anilistId: string): Promise<AnimeInfo> =>
+    get<AnimeInfo>(`/anime/episodes?anilistId=${encodeURIComponent(anilistId)}`),
+
   anilistInfo: (id: string): Promise<AnimeInfo> =>
     get<AnimeInfo>(`/anime/anilist-info?id=${encodeURIComponent(id)}`),
 
