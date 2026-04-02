@@ -50,9 +50,9 @@ export default function DetailScreen() {
   const navGenres = params.genres ? (JSON.parse(params.genres) as string[]) : [];
 
   const infoQuery = useQuery({
-    queryKey: ["animeInfoByTitle", navTitle],
-    queryFn: () => consumet.infoByTitle(navTitle),
-    enabled: !!navTitle,
+    queryKey: ["animeAnilistInfo", params.id],
+    queryFn: () => consumet.anilistInfo(params.id),
+    enabled: !!params.id,
     retry: 2,
     staleTime: 1000 * 60 * 10,
   });

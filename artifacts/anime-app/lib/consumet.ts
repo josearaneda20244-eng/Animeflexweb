@@ -136,6 +136,9 @@ export const consumet = {
       `/anime/info-by-title?title=${encodeURIComponent(title)}`
     ),
 
+  anilistInfo: (id: string): Promise<AnimeInfo> =>
+    get<AnimeInfo>(`/anime/anilist-info?id=${encodeURIComponent(id)}`),
+
   streaming: (episodeId: string): Promise<StreamingData> =>
     get<StreamingData>(
       `/anime/watch?episodeId=${encodeURIComponent(episodeId)}`

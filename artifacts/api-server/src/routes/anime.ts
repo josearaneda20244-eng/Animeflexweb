@@ -7,6 +7,7 @@ const router: IRouter = Router();
 
 let anilist: InstanceType<typeof META.Anilist>;
 let animePahe: InstanceType<typeof ANIME.AnimePahe>;
+let hianime: InstanceType<typeof ANIME.HiAnime>;
 
 function getAnilist() {
   if (!anilist) anilist = new META.Anilist();
@@ -16,6 +17,11 @@ function getAnilist() {
 function getAnimePahe() {
   if (!animePahe) animePahe = new ANIME.AnimePahe();
   return animePahe;
+}
+
+function getHianime() {
+  if (!hianime) hianime = new ANIME.HiAnime();
+  return hianime;
 }
 
 function titleVariants(title: string): string[] {
@@ -257,43 +263,59 @@ router.get("/anime/player-embed", (req, res) => {
   <title>${title.replace(/</g, "&lt;")}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; user-select: none; }
     #wrap { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
     video { width: 100%; height: 100%; object-fit: contain; outline: none; }
     #overlay {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 12px; color: #fff; font-family: system-ui, sans-serif;
-      font-size: 14px; text-align: center; padding: 20px;
+      gap: 14px; color: #fff; font-family: system-ui, sans-serif;
+      font-size: 14px; text-align: center; padding: 24px;
       pointer-events: none;
       transition: opacity .3s;
+      background: rgba(0,0,0,0.7);
     }
-    #overlay.hidden { opacity: 0; }
+    #overlay.hidden { opacity: 0; pointer-events: none; }
     .spinner {
-      width: 40px; height: 40px;
-      border: 3px solid rgba(255,255,255,.2);
+      width: 48px; height: 48px;
+      border: 3px solid rgba(255,255,255,.15);
       border-top-color: #a855f7;
       border-radius: 50%;
-      animation: spin .8s linear infinite;
+      animation: spin .7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #errMsg { color: #f87171; font-weight: 600; }
+    #loadMsg { color: rgba(255,255,255,0.7); font-size: 13px; }
+    #errIcon { font-size: 36px; }
+    #errMsg { color: #f87171; font-weight: 600; font-size: 15px; }
     #retryBtn {
       display: none; pointer-events: all;
       background: #a855f7; color: #fff; border: none;
-      padding: 8px 22px; border-radius: 8px;
-      cursor: pointer; font-size: 14px; font-weight: 600;
+      padding: 10px 28px; border-radius: 10px;
+      cursor: pointer; font-size: 14px; font-weight: 700;
+      transition: background .15s;
     }
     #retryBtn:hover { background: #9333ea; }
+    /* Skip feedback */
+    #skipFb {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: rgba(0,0,0,.55); color: #fff;
+      font-family: system-ui, sans-serif; font-size: 15px; font-weight: 700;
+      padding: 10px 22px; border-radius: 24px;
+      opacity: 0; transition: opacity .2s; pointer-events: none;
+      white-space: nowrap;
+    }
+    #skipFb.show { opacity: 1; }
   </style>
 </head>
 <body>
 <div id="wrap">
   <video id="v" controls playsinline></video>
+  <div id="skipFb" aria-hidden="true"></div>
   <div id="overlay">
     <div class="spinner" id="spinner"></div>
-    <span id="msg">Cargando...</span>
+    <span id="loadMsg">Cargando episodio...</span>
+    <span id="errIcon" style="display:none">⚠️</span>
     <span id="errMsg"></span>
     <button id="retryBtn" onclick="load()">Reintentar</button>
   </div>
@@ -304,14 +326,45 @@ router.get("/anime/player-embed", (req, res) => {
   const video = document.getElementById('v');
   const overlay = document.getElementById('overlay');
   const spinner = document.getElementById('spinner');
-  const msg = document.getElementById('msg');
+  const loadMsg = document.getElementById('loadMsg');
+  const errIcon = document.getElementById('errIcon');
   const errMsg = document.getElementById('errMsg');
   const retryBtn = document.getElementById('retryBtn');
+  const skipFb = document.getElementById('skipFb');
   let hls;
+  let skipTimer;
+
+  // Prevent arrow keys from bubbling up to parent (which would trigger browser back/forward)
+  window.addEventListener('keydown', function(e) {
+    const nav = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Backspace'];
+    if (nav.includes(e.key)) {
+      e.stopPropagation();
+      // Manual seek with left/right
+      if (!video.paused || video.currentTime > 0) {
+        if (e.key === 'ArrowRight') { video.currentTime = Math.min(video.duration || 0, video.currentTime + 10); showSkip('+10s'); }
+        if (e.key === 'ArrowLeft')  { video.currentTime = Math.max(0, video.currentTime - 10); showSkip('-10s'); }
+        if (e.key === 'ArrowUp')    { video.volume = Math.min(1, video.volume + 0.1); }
+        if (e.key === 'ArrowDown')  { video.volume = Math.max(0, video.volume - 0.1); }
+        if (e.key !== 'Backspace') e.preventDefault();
+      }
+    }
+    if (e.key === ' ') {
+      e.preventDefault();
+      video.paused ? video.play() : video.pause();
+    }
+  }, true);
+
+  function showSkip(text) {
+    skipFb.textContent = text;
+    skipFb.classList.add('show');
+    clearTimeout(skipTimer);
+    skipTimer = setTimeout(() => skipFb.classList.remove('show'), 800);
+  }
 
   function showError(text) {
     spinner.style.display = 'none';
-    msg.textContent = '';
+    loadMsg.style.display = 'none';
+    errIcon.style.display = '';
     errMsg.textContent = text;
     retryBtn.style.display = 'inline-block';
   }
@@ -322,9 +375,11 @@ router.get("/anime/player-embed", (req, res) => {
 
   function load() {
     errMsg.textContent = '';
+    errIcon.style.display = 'none';
     retryBtn.style.display = 'none';
     spinner.style.display = '';
-    msg.textContent = 'Cargando...';
+    loadMsg.style.display = '';
+    loadMsg.textContent = 'Cargando episodio...';
     overlay.classList.remove('hidden');
 
     if (hls) { hls.destroy(); hls = null; }
@@ -356,23 +411,25 @@ router.get("/anime/player-embed", (req, res) => {
               hls.recoverMediaError();
               break;
             default:
-              showError('Error al reproducir el video. Intenta de nuevo.');
+              showError('Error al reproducir. Intenta de nuevo.');
               break;
           }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari native HLS
       video.src = SRC;
       video.addEventListener('loadedmetadata', () => {
         hideOverlay();
         video.play().catch(() => {});
       }, { once: true });
     } else {
-      showError('Tu navegador no soporta reproducción de video HLS.');
+      showError('Tu navegador no soporta reproducción HLS.');
     }
   }
 
+  // Ensure the page captures focus so keyboard events work
+  document.addEventListener('click', () => window.focus(), { once: true });
+  window.focus();
   load();
 </script>
 </body>
@@ -401,7 +458,11 @@ router.get("/anime/popular", async (req, res) => {
 
 router.get("/anime/recent", async (req, res) => {
   try {
-    const data = await getAnimePahe().fetchRecentEpisodes(1);
+    // Use airing schedule for the current week as "recently airing" content
+    const now = new Date();
+    const weekStart = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
+    const weekEnd = Math.floor(now.getTime() / 1000) + 24 * 60 * 60;
+    const data = await getAnilist().fetchAiringSchedule(1, 24, weekStart, weekEnd, false);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch recent episodes");
@@ -436,6 +497,108 @@ router.get("/anime/info", async (req, res) => {
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch anime info");
+    res.status(500).json({ error: "Failed to fetch anime info" });
+  }
+});
+
+router.get("/anime/anilist-info", async (req, res) => {
+  const id = req.query.id as string;
+  if (!id) {
+    res.status(400).json({ error: "Query param 'id' is required" });
+    return;
+  }
+  try {
+    // Direct AniList GraphQL query — fast, no external provider dependency
+    const query = `
+      query ($id: Int) {
+        Media(id: $id, type: ANIME) {
+          id
+          title { romaji english native userPreferred }
+          description(asHtml: false)
+          coverImage { extraLarge large medium color }
+          bannerImage
+          genres
+          status
+          format
+          episodes
+          duration
+          season
+          seasonYear
+          averageScore
+          popularity
+          studios(isMain: true) { nodes { name } }
+          streamingEpisodes { title thumbnail url site }
+          relations {
+            edges {
+              relationType
+              node {
+                id
+                title { userPreferred }
+                coverImage { medium }
+                format
+                episodes
+              }
+            }
+          }
+        }
+      }
+    `;
+    const resp = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query, variables: { id: parseInt(id) } }),
+    });
+    if (!resp.ok) throw new Error(`AniList GraphQL error: ${resp.status}`);
+    const json = (await resp.json()) as {
+      data: { Media: Record<string, unknown> };
+      errors?: { message: string }[];
+    };
+    if (json.errors?.length) throw new Error(json.errors[0].message);
+    const media = json.data.Media as any;
+
+    // Build episodes list from streamingEpisodes metadata (no external provider)
+    const streamingEps: { title?: string; thumbnail?: string; url?: string; site?: string }[] =
+      media.streamingEpisodes ?? [];
+
+    // For ongoing anime, AniList may not have a total episode count;
+    // use the number of known streaming episodes as a lower bound.
+    const episodeCount: number = media.episodes ?? streamingEps.length ?? 0;
+
+    const episodes = Array.from({ length: episodeCount }, (_, i) => {
+      const num = i + 1;
+      const meta = streamingEps.find((e) => {
+        const m = e.title?.match(/Episode\s+(\d+)/i);
+        return m ? parseInt(m[1]) === num : false;
+      });
+      return {
+        id: `${id}-episode-${num}`,
+        number: num,
+        title: meta?.title ?? `Episodio ${num}`,
+        image: meta?.thumbnail ?? null,
+        url: meta?.url ?? null,
+      };
+    });
+
+    const result = {
+      id: String(media.id),
+      title: media.title,
+      image: media.coverImage?.extraLarge ?? media.coverImage?.large ?? "",
+      cover: media.bannerImage ?? "",
+      description: media.description ?? "",
+      genres: media.genres ?? [],
+      status: media.status,
+      type: media.format,
+      totalEpisodes: episodeCount,
+      duration: media.duration,
+      rating: media.averageScore,
+      color: media.coverImage?.color,
+      studios: (media.studios?.nodes ?? []).map((s: any) => s.name),
+      episodes,
+    };
+
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch anilist anime info");
     res.status(500).json({ error: "Failed to fetch anime info" });
   }
 });
