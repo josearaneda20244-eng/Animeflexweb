@@ -125,19 +125,19 @@ function FeaturedBanner({
           {title}
         </Text>
 
-        {/* Two buttons */}
+        {/* Two wide buttons */}
         <View style={styles.bannerButtons}>
           <TouchableOpacity
             style={styles.playBtn}
             onPress={() => navigateToAnime(router, anime)}
           >
-            <Feather name="play" size={18} color="#fff" />
+            <Feather name="play" size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.bookmarkBtn}
             onPress={() => navigateToAnime(router, anime)}
           >
-            <Feather name="bookmark" size={18} color="#fff" />
+            <Feather name="bookmark" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -403,17 +403,20 @@ export default function HomeScreen() {
     >
       {/* ── Header ── */}
       <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <Text style={styles.logo}>
-            <Text style={styles.logoAnime}>Anime</Text>
-            <Text style={styles.logoFlex}>Flex</Text>
-          </Text>
-        </View>
+        <TouchableOpacity style={styles.menuBtn} hitSlop={8}>
+          <Feather name="menu" size={22} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.logo}>
+          <Text style={styles.logoAnime}>Anime</Text>
+          <Text style={styles.logoFlex}>Flex</Text>
+        </Text>
         <View style={styles.headerActions}>
-          <View style={styles.liveTag}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>EN VIVO</Text>
-          </View>
+          <TouchableOpacity style={styles.headerIcon} hitSlop={8}>
+            <Feather name="search" size={20} color={Colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerIcon} hitSlop={8}>
+            <Feather name="user" size={20} color={Colors.textPrimary} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -508,28 +511,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 8,
     paddingTop: 4,
+    gap: 8,
   },
-  logoRow: { flexDirection: "row", alignItems: "center" },
-  logo: { fontSize: 26, fontWeight: "900", letterSpacing: -0.5 },
+  menuBtn: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logo: { fontSize: 22, fontWeight: "900", letterSpacing: -0.5, flex: 1 },
   logoAnime: { color: Colors.primary },
   logoFlex: { color: Colors.textPrimary },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
-  liveTag: {
-    flexDirection: "row",
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  headerIcon: {
+    width: 36,
+    height: 36,
     alignItems: "center",
-    gap: 5,
-    backgroundColor: Colors.bgSurface,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    justifyContent: "center",
   },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#22C55E" },
-  liveText: { color: Colors.primary, fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
 
   /* Banner */
   banner: {
@@ -605,30 +607,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   playBtn: {
-    width: 56,
-    height: 44,
+    width: (width - 56) * 0.44,
+    height: 48,
     borderRadius: 8,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.55,
+    shadowRadius: 10,
+    elevation: 8,
   },
   bookmarkBtn: {
-    width: 56,
-    height: 44,
+    width: (width - 56) * 0.44,
+    height: 48,
     borderRadius: 8,
     backgroundColor: "#22C55E",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#22C55E",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 8,
   },
   pagination: {
     flexDirection: "row",
@@ -702,94 +704,95 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    minHeight: 72,
   },
   rankWrap: {
-    width: 36,
-    height: 36,
+    width: 42,
+    height: 52,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   clawMark: {
     position: "absolute",
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 52,
     alignItems: "center",
     justifyContent: "center",
   },
   clawLine: {
     position: "absolute",
-    width: 2,
-    height: 28,
+    width: 3,
+    height: 36,
     backgroundColor: "#22C55E",
-    borderRadius: 1,
-    opacity: 0.6,
+    borderRadius: 2,
+    opacity: 0.75,
   },
   rankCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: Colors.bgSurface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.borderLight,
     alignItems: "center",
     justifyContent: "center",
   },
   rankCircleTop: {
     backgroundColor: Colors.bgElevated,
-    borderColor: Colors.borderLight,
+    borderColor: "#22C55E44",
   },
   rankNumber: {
     color: Colors.textSecondary,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
   },
   rankNumberTop: {
     color: Colors.textPrimary,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "900",
   },
-  trendInfo: { flex: 1, gap: 5 },
+  trendInfo: { flex: 1, gap: 6 },
   trendTitle: {
     color: Colors.textPrimary,
     fontSize: 14,
     fontWeight: "700",
-    letterSpacing: -0.1,
+    lineHeight: 19,
   },
   trendMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
   trendCCBadge: {
     backgroundColor: "#EF4444",
     borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
-  trendCCText: { color: "#fff", fontSize: 9, fontWeight: "900", letterSpacing: 0.3 },
+  trendCCText: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.3 },
   trendGreenBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
     backgroundColor: "#22C55E",
     borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
-  trendGreenText: { color: "#fff", fontSize: 9, fontWeight: "800" },
-  trendType: { color: Colors.textMuted, fontSize: 10, fontWeight: "600", letterSpacing: 0.3 },
+  trendGreenText: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  trendType: { color: Colors.textMuted, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
   trendThumb: {
-    width: 64,
-    height: 48,
-    borderRadius: 6,
+    width: 80,
+    height: 56,
+    borderRadius: 8,
     backgroundColor: Colors.bgSurface,
   },
   trendSkeleton: { paddingHorizontal: 16, gap: 2 },
   trendSkeletonRow: {
-    height: 56,
+    height: 70,
     backgroundColor: Colors.bgSurface,
-    borderRadius: 6,
+    borderRadius: 8,
     opacity: 0.4,
     marginBottom: 2,
   },
