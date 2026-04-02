@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearch, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import Hls from "hls.js";
 import Plyr from "plyr";
 import "plyr/dist/plyr.css";
@@ -11,10 +11,7 @@ import {
 import {
   consumet,
   proxyStreamUrl,
-  proxySubtitleUrl,
-  resolveTitle,
   type StreamingSource,
-  type SubtitleResult,
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
 
@@ -68,23 +65,8 @@ function parseVtt(vttText: string): VttCue[] {
 }
 
 /* ── CUSTOM SUBTITLE OVERLAY ── */
-function SubtitleOverlay({ subtitleUrl, currentTime }: { subtitleUrl: string | null; currentTime: number }) {
-  const [cues, setCues] = useState<VttCue[]>([]);
-  const loadedUrl = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!subtitleUrl || subtitleUrl === loadedUrl.current) return;
-    loadedUrl.current = subtitleUrl;
-    setCues([]);
-    fetch(subtitleUrl)
-      .then(r => r.text())
-      .then(text => setCues(parseVtt(text)))
-      .catch(() => setCues([]));
-  }, [subtitleUrl]);
-
-  const activeCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
-  if (!activeCue) return null;
-
+function SubtitleOverlay({ text }: { text: string | null }) {
+  if (!text) return null;
   return (
     <div style={{
       position: "absolute", bottom: 56, left: 0, right: 0, zIndex: 20,
@@ -97,7 +79,7 @@ function SubtitleOverlay({ subtitleUrl, currentTime }: { subtitleUrl: string | n
         textShadow: "0 1px 4px rgba(0,0,0,0.9)", letterSpacing: 0.2,
         whiteSpace: "pre-line",
       }}>
-        {activeCue.text}
+        {text}
       </div>
     </div>
   );
@@ -131,15 +113,20 @@ function AutoNextOverlay({ nextNum, onSkip, onCancel }: { nextNum: string; onSki
 }
 
 /* ── PLYR PLAYER ── */
+export interface HlsSubTrack { id: number; lang: string; name: string; }
+
 interface PlyrPlayerProps {
   m3u8Url: string;
   playbackRate: number;
   startAt?: number;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
+  onSubtitleTracks?: (tracks: HlsSubTrack[]) => void;
+  activeHlsSubId?: number;
+  onSubtitleCue?: (text: string | null) => void;
 }
 
-function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded }: PlyrPlayerProps) {
+function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const plyrRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -149,10 +136,21 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded }: P
   const seekRestoredRef = useRef(false);
   const onTimeUpdateRef = useRef(onTimeUpdate);
   const onEndedRef = useRef(onEnded);
+  const onSubtitleTracksRef = useRef(onSubtitleTracks);
+  const onSubtitleCueRef = useRef(onSubtitleCue);
 
   useEffect(() => { onTimeUpdateRef.current = onTimeUpdate; }, [onTimeUpdate]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
   useEffect(() => { startAtRef.current = startAt; }, [startAt]);
+  useEffect(() => { onSubtitleTracksRef.current = onSubtitleTracks; }, [onSubtitleTracks]);
+  useEffect(() => { onSubtitleCueRef.current = onSubtitleCue; }, [onSubtitleCue]);
+
+  // Switch active HLS subtitle track when prop changes
+  useEffect(() => {
+    if (hlsRef.current && activeHlsSubId !== undefined) {
+      hlsRef.current.subtitleTrack = activeHlsSubId;
+    }
+  }, [activeHlsSubId]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -182,6 +180,31 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded }: P
     const onTimeUpd = () => { if (video.duration > 0) onTimeUpdateRef.current?.(video.currentTime, video.duration); };
     const onEnd = () => { onEndedRef.current?.(); };
 
+    // Track cue changes across all subtitle text tracks
+    const handleCueChange = () => {
+      let text: string | null = null;
+      for (let i = 0; i < video.textTracks.length; i++) {
+        const track = video.textTracks[i];
+        if ((track.kind === "subtitles" || track.kind === "captions") && track.mode !== "disabled" && track.activeCues && track.activeCues.length > 0) {
+          text = Array.from(track.activeCues)
+            .map(c => (c as VTTCue).text.replace(/<[^>]+>/g, ""))
+            .join("\n");
+          break;
+        }
+      }
+      onSubtitleCueRef.current?.(text);
+    };
+
+    const handleAddTrack = (e: TrackEvent) => {
+      const track = e.track;
+      if (track && (track.kind === "subtitles" || track.kind === "captions")) {
+        track.mode = "hidden";
+        track.addEventListener("cuechange", handleCueChange);
+      }
+    };
+
+    video.textTracks.addEventListener("addtrack", handleAddTrack as EventListener);
+
     let loadTimeout: ReturnType<typeof setTimeout> | null = null;
 
     if (Hls.isSupported()) {
@@ -198,6 +221,15 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded }: P
       hlsRef.current = hls;
       hls.loadSource(m3u8Url);
       hls.attachMedia(video);
+
+      hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
+        const tracks: HlsSubTrack[] = (data.subtitleTracks ?? []).map(t => ({
+          id: t.id,
+          lang: t.lang ?? t.name ?? "",
+          name: t.name ?? t.lang ?? "",
+        }));
+        if (tracks.length > 0) onSubtitleTracksRef.current?.(tracks);
+      });
 
       let networkErrCount = 0;
       loadTimeout = setTimeout(() => {
@@ -245,6 +277,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded }: P
     return () => {
       video.removeEventListener("timeupdate", onTimeUpd);
       video.removeEventListener("ended", onEnd);
+      video.textTracks.removeEventListener("addtrack", handleAddTrack as EventListener);
       if (loadTimeout) clearTimeout(loadTimeout);
       if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; }
       if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
@@ -412,13 +445,13 @@ export default function Player() {
   const startAt = savedProgress?.currentTime;
 
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [activeSubId, setActiveSubId] = useState<string | null>(null);
-  const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [hlsSubTracks, setHlsSubTracks] = useState<HlsSubTrack[]>([]);
+  const [activeHlsSubId, setActiveHlsSubId] = useState<number>(-1);
+  const [hlsCueText, setHlsCueText] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["streaming", episodeId],
@@ -431,30 +464,6 @@ export default function Player() {
     refetchOnWindowFocus: false,
   });
 
-  const epNum = parseInt(episodeNum) || undefined;
-  const streamSubtitles = query.data?.subtitles ?? [];
-  const streamSpanishSub =
-    streamSubtitles.find((s) => /español.*españa/i.test(s.lang)) ??
-    streamSubtitles.find((s) => /español|spanish|spa/i.test(s.lang)) ??
-    null;
-
-  const subsQuery = useQuery({
-    queryKey: ["subtitles", animeTitle, epNum],
-    queryFn: () => consumet.searchSubtitles(animeTitle, epNum, "es"),
-    enabled: !!animeTitle && query.isSuccess && !streamSpanishSub,
-    staleTime: 1000 * 60 * 30,
-    retry: 1,
-  });
-
-  const downloadMutation = useMutation({
-    mutationFn: async (sub: SubtitleResult) => {
-      if (!sub.fileId) throw new Error("No fileId");
-      const { url } = await consumet.downloadSubtitle(sub.fileId);
-      return proxySubtitleUrl(url);
-    },
-    onSuccess: (proxiedUrl, sub) => { setActiveSubId(sub.id); setActiveSubUrl(proxiedUrl); },
-  });
-
   const sources = query.data ? sortSources(query.data.sources ?? []) : [];
   const streamingHeaders = query.data?.headers ?? {};
   const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
@@ -462,35 +471,32 @@ export default function Player() {
 
   useEffect(() => {
     setSelectedIdx(0);
-    setActiveSubId(null);
-    setActiveSubUrl(null);
+    setHlsSubTracks([]);
+    setActiveHlsSubId(-1);
+    setHlsCueText(null);
     setShowAutoNext(false);
-    setCurrentTime(0);
   }, [episodeId]);
 
-  // Auto-load stream Spanish subtitles
-  useEffect(() => {
-    if (!streamSpanishSub) return;
-    if (activeSubId) return;
-    const proxied = proxySubtitleUrl(streamSpanishSub.url);
-    setActiveSubId("stream-es");
-    setActiveSubUrl(proxied);
-    setSubtitlesEnabled(true);
-  }, [streamSpanishSub?.url]);
+  // Auto-select Spanish subtitle track when HLS tracks are found
+  const handleSubtitleTracks = useCallback((tracks: HlsSubTrack[]) => {
+    setHlsSubTracks(tracks);
+    const spanish =
+      tracks.find(t => /español.*españa|spanish.*esp/i.test(t.lang + " " + t.name)) ??
+      tracks.find(t => /español|spanish|spa|es$/i.test(t.lang + " " + t.name)) ??
+      null;
+    if (spanish) {
+      setActiveHlsSubId(spanish.id);
+      setSubtitlesEnabled(true);
+    }
+  }, []);
 
-  // Auto-load OpenSubtitles
-  useEffect(() => {
-    if (streamSpanishSub) return;
-    if (!subsQuery.data?.data?.length) return;
-    if (activeSubId) return;
-    const best = subsQuery.data.data[0];
-    if (best?.fileId) downloadMutation.mutate(best);
-  }, [subsQuery.data]);
+  const handleSubtitleCue = useCallback((text: string | null) => {
+    setHlsCueText(text);
+  }, []);
 
   const proxyM3u8 = selected ? proxyStreamUrl(selected.url, referer) : null;
 
   const handleTimeUpdate = useCallback((ct: number, duration: number) => {
-    setCurrentTime(ct);
     if (!animeId) return;
     saveProgress({ episodeId, episodeNum: parseInt(episodeNum) || 0, animeId, animeTitle, animeImage, currentTime: ct, duration });
   }, [episodeId, episodeNum, animeId, animeTitle, animeImage, saveProgress]);
@@ -511,8 +517,8 @@ export default function Player() {
     });
   };
 
-  const subtitles = subsQuery.data?.data ?? [];
-  const subtitleUrlToRender = subtitlesEnabled ? activeSubUrl : null;
+  const hasSpanishSubs = activeHlsSubId !== -1 || hlsSubTracks.some(t => /español|spanish|spa/i.test(t.lang + " " + t.name));
+  const subtitleCueToRender = subtitlesEnabled && activeHlsSubId !== -1 ? hlsCueText : null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
@@ -581,10 +587,13 @@ export default function Player() {
                 startAt={startAt}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}
+                onSubtitleTracks={handleSubtitleTracks}
+                activeHlsSubId={subtitlesEnabled ? activeHlsSubId : -1}
+                onSubtitleCue={handleSubtitleCue}
               />
             )}
             {/* Custom subtitle overlay */}
-            {subtitleUrlToRender && <SubtitleOverlay subtitleUrl={subtitleUrlToRender} currentTime={currentTime} />}
+            <SubtitleOverlay text={subtitleCueToRender} />
 
             {showAutoNext && nextEpisodeId && (
               <AutoNextOverlay nextNum={nextEpisodeNum} onSkip={handleNextEpisode} onCancel={() => setShowAutoNext(false)} />
@@ -600,7 +609,7 @@ export default function Player() {
                 <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 2 }}>Episodio {episodeNum}</div>
               </div>
               {/* Subtitle toggle */}
-              {activeSubUrl && (
+              {hasSpanishSubs && (
                 <button onClick={() => setSubtitlesEnabled(v => !v)}
                   style={{
                     display: "flex", alignItems: "center", gap: 7, padding: "8px 14px",
@@ -649,35 +658,29 @@ export default function Player() {
               <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
                 Subtítulos en Español
               </div>
-              {streamSpanishSub && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12, marginBottom: 6 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
-                  Subtítulos incluidos en la fuente — activos automáticamente
-                </div>
-              )}
-              {!streamSpanishSub && subsQuery.isLoading && (
+              {query.isLoading && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-                  <Loader2 size={12} className="animate-spin" /> Buscando subtítulos en español...
+                  <Loader2 size={12} className="animate-spin" /> Cargando episodio...
                 </div>
               )}
-              {!streamSpanishSub && !subsQuery.isLoading && subtitles.length === 0 && !activeSubId && (
+              {!query.isLoading && hlsSubTracks.length === 0 && activeHlsSubId === -1 && (
                 <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos en español para este episodio.</p>
               )}
-              {!streamSpanishSub && subtitles.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 180, overflowY: "auto" }}>
-                  {subtitles.slice(0, 8).map((sub) => {
-                    const isActive = activeSubId === sub.id;
-                    return (
-                      <button key={sub.id}
-                        onClick={() => { if (isActive) { setActiveSubId(null); setActiveSubUrl(null); } else downloadMutation.mutate(sub); }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, textAlign: "left", background: isActive ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)", border: `1px solid ${isActive ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.07)"}`, color: isActive ? "#22C55E" : "rgba(255,255,255,0.5)", fontSize: 12, cursor: "pointer" }}>
-                        <div style={{ width: 7, height: 7, borderRadius: "50%", background: isActive ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                        <span style={{ fontWeight: 600 }}>Español</span>
-                        {sub.release && <span style={{ color: "rgba(255,255,255,0.22)", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{sub.release}</span>}
-                        {downloadMutation.isPending && isActive && <Loader2 size={12} className="animate-spin" style={{ marginLeft: "auto" }} />}
-                      </button>
-                    );
-                  })}
+              {hlsSubTracks.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {hlsSubTracks
+                    .filter(t => /español|spanish|spa/i.test(t.lang + " " + t.name))
+                    .map(t => {
+                      const isActive = activeHlsSubId === t.id;
+                      return (
+                        <button key={t.id}
+                          onClick={() => { setActiveHlsSubId(isActive ? -1 : t.id); setSubtitlesEnabled(!isActive); }}
+                          style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, textAlign: "left", background: isActive ? "rgba(34,197,94,0.1)" : "rgba(255,255,255,0.03)", border: `1px solid ${isActive ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.07)"}`, color: isActive ? "#22C55E" : "rgba(255,255,255,0.5)", fontSize: 12, cursor: "pointer" }}>
+                          <div style={{ width: 7, height: 7, borderRadius: "50%", background: isActive ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600 }}>{t.name || t.lang}</span>
+                        </button>
+                      );
+                    })}
                 </div>
               )}
             </div>
