@@ -37,11 +37,11 @@ function ClassicTabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.light.tabIconDefault,
+        tabBarInactiveTintColor: "#444466",
         headerShown: false,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : Colors.bgCard,
+          backgroundColor: isIOS ? "transparent" : "rgba(10,10,18,0.97)",
           borderTopWidth: 1,
           borderTopColor: Colors.border,
           elevation: 0,

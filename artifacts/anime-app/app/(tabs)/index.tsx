@@ -22,8 +22,8 @@ import Colors from "@/constants/colors";
 import { consumet, type AnimeResult } from "@/lib/consumet";
 
 const { width } = Dimensions.get("window");
-const BANNER_HEIGHT = Math.round(width * 0.88);
-const CAROUSEL_CARD_W = width * 0.38;
+const BANNER_HEIGHT = Math.round(width * 0.95);
+const CAROUSEL_CARD_W = width * 0.36;
 
 /* ─── helpers ─────────────────────────────────── */
 function resolveTitle(t: AnimeResult["title"]): string {
@@ -50,38 +50,32 @@ function nav(router: any, anime: AnimeResult) {
   });
 }
 
-/* ─── FLOATING NAVBAR PILL ───────────────────── */
+/* ─── TOP NAV BAR ────────────────────────────── */
 function NavBar({ topPad }: { topPad: number }) {
   return (
-    <View style={[styles.navWrap, { top: topPad + 8 }]}>
-      <View style={styles.navPill}>
-        {/* Hamburger */}
-        <TouchableOpacity style={styles.navBtn} hitSlop={10}>
-          <Feather name="menu" size={20} color="#fff" />
-        </TouchableOpacity>
-
+    <View style={[styles.navWrap, { paddingTop: topPad + 10 }]}>
+      <View style={styles.navInner}>
         {/* Logo */}
         <View style={styles.logoWrap}>
-          <Text style={styles.logoAnime}>Anime</Text>
-          {/* FLEX box with claw marks */}
-          <View style={styles.flexBox}>
-            {/* Claw diagonal lines */}
-            <View style={[styles.clawStroke, { left: 6,  top: -2, transform: [{ rotate: "20deg" }] }]} />
-            <View style={[styles.clawStroke, { left: 13, top: -2, transform: [{ rotate: "20deg" }] }]} />
-            <View style={[styles.clawStroke, { left: 20, top: -2, transform: [{ rotate: "20deg" }] }]} />
-            <Text style={styles.logoFlex}>FLEX</Text>
+          <View style={styles.logoIconBox}>
+            <Text style={styles.logoIconText}>A</Text>
           </View>
+          <Text style={styles.logoText}>
+            <Text style={styles.logoTextBold}>Anime</Text>
+            <Text style={styles.logoTextAccent}>FLEX</Text>
+          </Text>
         </View>
 
         {/* Right icons */}
         <View style={styles.navRight}>
           <TouchableOpacity style={styles.navBtn} hitSlop={10}>
-            <Feather name="search" size={20} color="#fff" />
+            <Feather name="bell" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.navBtn} hitSlop={10}>
-            <View style={styles.userCircle}>
-              <Feather name="user" size={16} color="#fff" />
-            </View>
+            <Feather name="search" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.userCircle} hitSlop={10}>
+            <Feather name="user" size={15} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -102,78 +96,107 @@ function HeroBanner({
   const title = resolveTitle(anime.title);
 
   return (
-    <View style={styles.heroBg}>
+    <Pressable style={styles.heroBg} onPress={() => nav(router, anime)}>
       {/* Full background image */}
       <Image
         source={{ uri: anime.cover || anime.image }}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
       />
-      {/* Gradient overlay */}
+      {/* Strong gradient overlay */}
       <LinearGradient
-        colors={["rgba(8,10,18,0.25)", "rgba(8,10,18,0.55)", Colors.bg]}
-        locations={[0, 0.58, 1]}
+        colors={["rgba(10,10,18,0.05)", "rgba(10,10,18,0.3)", "rgba(10,10,18,0.85)", Colors.bg]}
+        locations={[0, 0.35, 0.72, 1]}
         style={StyleSheet.absoluteFill}
+      />
+      {/* Left vignette */}
+      <LinearGradient
+        colors={["rgba(10,10,18,0.6)", "transparent"]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={[StyleSheet.absoluteFill, { width: "45%" }]}
       />
 
       {/* Content at the bottom */}
-      <View style={[styles.heroContent, { paddingTop: topPad + 70 }]}>
+      <View style={[styles.heroContent, { paddingTop: topPad + 60 }]}>
         {/* Badges row */}
         <View style={styles.heroBadgeRow}>
-          {anime.totalEpisodes ? (
-            <View style={styles.ccBadge}>
-              <Text style={styles.ccText}>CC {anime.totalEpisodes}</Text>
-            </View>
-          ) : null}
           {anime.status === "Ongoing" && (
-            <View style={styles.greenBadge}>
-              <Feather name="bookmark" size={9} color="#fff" />
-              <Text style={styles.greenBadgeText}>{anime.totalEpisodes ?? "?"}</Text>
+            <View style={styles.newBadge}>
+              <View style={styles.newDot} />
+              <Text style={styles.newBadgeText}>NUEVO</Text>
             </View>
           )}
           {anime.type && (
-            <View style={styles.tvBadge}>
-              <Text style={styles.tvText}>
-                {anime.type === "TV" ? "TELEVISOR" : anime.type.toUpperCase()}
-              </Text>
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeBadgeText}>{anime.type}</Text>
             </View>
           )}
-          {anime.genres && anime.genres.length > 0 && (
-            <Text style={styles.heroGenres} numberOfLines={1}>
-              {anime.genres.slice(0, 3).join(", ")}
-            </Text>
-          )}
+          {anime.totalEpisodes ? (
+            <View style={styles.epHeroBadge}>
+              <Feather name="play-circle" size={9} color={Colors.accent} />
+              <Text style={styles.epHeroBadgeText}>{anime.totalEpisodes} EP</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Title */}
         <Text style={styles.heroTitle} numberOfLines={3}>{title}</Text>
 
+        {/* Genres */}
+        {anime.genres && anime.genres.length > 0 && (
+          <Text style={styles.heroGenres} numberOfLines={1}>
+            {anime.genres.slice(0, 4).join("  ·  ")}
+          </Text>
+        )}
+
+        {/* Rating + Year */}
+        <View style={styles.heroMeta}>
+          {anime.rating != null && anime.rating > 0 && (
+            <View style={styles.heroRating}>
+              <Feather name="star" size={11} color="#FBBF24" />
+              <Text style={styles.heroRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
+            </View>
+          )}
+          {anime.releaseDate ? (
+            <Text style={styles.heroYear}>{anime.releaseDate}</Text>
+          ) : null}
+        </View>
+
         {/* Buttons */}
         <View style={styles.heroBtns}>
           <TouchableOpacity style={styles.playBtn} onPress={() => nav(router, anime)}>
-            <Feather name="play" size={24} color="#fff" />
+            <LinearGradient
+              colors={[Colors.primary, Colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.playBtnGrad}
+            >
+              <Feather name="play" size={18} color="#fff" />
+              <Text style={styles.playBtnText}>Ver ahora</Text>
+            </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.saveBtn} onPress={() => nav(router, anime)}>
-            <Feather name="bookmark" size={24} color="#fff" />
+          <TouchableOpacity style={styles.infoBtn} onPress={() => nav(router, anime)}>
+            <Feather name="info" size={16} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.infoBtnText}>Detalles</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Pagination */}
-        <View style={styles.heroPaging}>
-          <TouchableOpacity onPress={onPrev} hitSlop={8}>
-            <Feather name="chevron-left" size={18} color={Colors.textSecondary} />
-          </TouchableOpacity>
-          <Text style={styles.pagingText}>
-            <Text style={styles.pagingCurrent}>{index + 1}</Text>
-            <Text style={styles.pagingSep}> / </Text>
-            <Text style={styles.pagingTotal}>{animes.length}</Text>
-          </Text>
-          <TouchableOpacity onPress={onNext} hitSlop={8}>
-            <Feather name="chevron-right" size={18} color={Colors.textSecondary} />
-          </TouchableOpacity>
+        {/* Dot Pagination */}
+        <View style={styles.heroDots}>
+          {animes.slice(0, 8).map((_, i) => (
+            <View
+              key={i}
+              style={[styles.dot, i === index && styles.dotActive]}
+            />
+          ))}
         </View>
       </View>
-    </View>
+
+      {/* Prev/Next invisible tap zones */}
+      <TouchableOpacity style={styles.heroLeft} onPress={onPrev} />
+      <TouchableOpacity style={styles.heroRight} onPress={onNext} />
+    </Pressable>
   );
 }
 
@@ -191,65 +214,61 @@ function TrendingRow({ anime, rank }: { anime: AnimeResult; rank: number }) {
       ]}
       onPress={() => nav(router, anime)}
     >
-      {/* Rank number with claw for top 3 */}
-      <View style={styles.rankWrap}>
-        {isTop3 && (
-          <>
-            <View style={[styles.claw, { left: 2,  transform: [{ rotate: "-15deg" }] }]} />
-            <View style={[styles.claw, { left: 8,  transform: [{ rotate: "0deg"  }] }]} />
-            <View style={[styles.claw, { left: 14, transform: [{ rotate: "15deg" }] }]} />
-          </>
-        )}
-        <View style={[styles.rankCircle, isTop3 && styles.rankCircleTop]}>
-          <Text style={[styles.rankNum, isTop3 && styles.rankNumTop]}>{rank}</Text>
-        </View>
+      {/* Rank number */}
+      <Text style={[styles.rankNum, isTop3 && styles.rankNumTop]}>{rank < 10 ? `0${rank}` : rank}</Text>
+
+      {/* Thumbnail */}
+      <View style={styles.tThumbWrap}>
+        <Image source={{ uri: anime.image }} style={styles.tThumb} resizeMode="cover" />
+        <LinearGradient
+          colors={["transparent", "rgba(10,10,18,0.6)"]}
+          style={StyleSheet.absoluteFill}
+        />
       </View>
 
       {/* Info */}
       <View style={styles.trendInfo}>
-        <Text style={styles.trendTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.trendTitle} numberOfLines={2}>{title}</Text>
         <View style={styles.trendMeta}>
           {anime.totalEpisodes ? (
-            <View style={styles.tCCBadge}>
-              <Text style={styles.tCCText}>CC {anime.totalEpisodes}</Text>
+            <View style={styles.subBadge}>
+              <Text style={styles.subBadgeText}>SUB</Text>
+              <Text style={styles.subEpCount}>{anime.totalEpisodes}</Text>
             </View>
           ) : null}
-          {anime.status === "Ongoing" && (
-            <View style={styles.tGreenBadge}>
-              <Feather name="bookmark" size={8} color="#fff" />
-              <Text style={styles.tGreenText}>{anime.totalEpisodes ?? "?"}</Text>
-            </View>
-          )}
-          <Text style={styles.tType}>
-            {anime.type === "TV" ? "TELEVISOR" : (anime.type ?? "TELEVISOR")}
-          </Text>
+          {anime.type ? (
+            <Text style={styles.tType}>{anime.type}</Text>
+          ) : null}
         </View>
+        {anime.rating != null && anime.rating > 0 && (
+          <View style={styles.tRatingRow}>
+            <Feather name="star" size={9} color="#FBBF24" />
+            <Text style={styles.tRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
+          </View>
+        )}
       </View>
 
-      {/* Thumbnail */}
-      <Image source={{ uri: anime.image }} style={styles.tThumb} resizeMode="cover" />
+      <Feather name="chevron-right" size={16} color={Colors.textMuted} />
     </Pressable>
   );
 }
 
 /* ─── SECTION HEADER ─────────────────────────── */
 function SectionHeader({
-  icon, title, iconColor = Colors.primary, showButton = false,
+  title, showButton = false,
 }: {
-  icon: string; title: string; iconColor?: string; showButton?: boolean;
+  title: string; showButton?: boolean;
 }) {
   return (
     <View style={styles.sectionHead}>
       <View style={styles.sectionLeft}>
-        <View style={[styles.sectionIcon, { backgroundColor: iconColor + "22" }]}>
-          <Feather name={icon as any} size={15} color={iconColor} />
-        </View>
+        <View style={styles.sectionAccentBar} />
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       {showButton && (
-        <TouchableOpacity style={styles.ahoraBtn}>
-          <Text style={styles.ahoraText}>AHORA</Text>
-          <Feather name="chevron-down" size={11} color="#fff" />
+        <TouchableOpacity style={styles.verMasBtn}>
+          <Text style={styles.verMasText}>Ver más</Text>
+          <Feather name="chevron-right" size={13} color={Colors.accent} />
         </TouchableOpacity>
       )}
     </View>
@@ -262,20 +281,39 @@ function RecentCard({ anime }: { anime: AnimeResult }) {
   const title = resolveTitle(anime.title);
   return (
     <Pressable
-      style={({ pressed }) => [styles.rCard, pressed && { transform: [{ scale: 0.96 }] }]}
+      style={({ pressed }) => [styles.rCard, pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 }]}
       onPress={() => nav(router, anime)}
     >
       <Image source={{ uri: anime.image }} style={styles.rImg} resizeMode="cover" />
-      <LinearGradient colors={["transparent", "rgba(8,10,18,0.97)"]} style={StyleSheet.absoluteFill} />
-      <View style={styles.rPlayCircle}>
-        <Feather name="play" size={11} color="#fff" />
+      <LinearGradient
+        colors={["transparent", "rgba(10,10,18,0.98)"]}
+        locations={[0.5, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Badges */}
+      <View style={styles.rBadgeRow}>
+        <View style={styles.subSmBadge}>
+          <Text style={styles.subSmText}>SUB</Text>
+        </View>
+        {anime.totalEpisodes ? (
+          <View style={styles.epSmBadge}>
+            <Text style={styles.epSmText}>{anime.totalEpisodes}</Text>
+          </View>
+        ) : null}
       </View>
-      {anime.totalEpisodes ? (
-        <View style={styles.rCCBadge}><Text style={styles.rCCText}>CC {anime.totalEpisodes}</Text></View>
-      ) : null}
+
+      {/* Rating top right */}
+      {anime.rating != null && anime.rating > 0 && (
+        <View style={styles.rRating}>
+          <Feather name="star" size={8} color="#FBBF24" />
+          <Text style={styles.rRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
+        </View>
+      )}
+
       <View style={styles.rFooter}>
         <Text style={styles.rTitle} numberOfLines={2}>{title}</Text>
-        <Text style={styles.rType}>{anime.type === "TV" ? "TELEVISOR" : (anime.type ?? "TV")}</Text>
+        <Text style={styles.rType}>{anime.type ?? "TV"}</Text>
       </View>
     </Pressable>
   );
@@ -287,23 +325,37 @@ function PopularCard({ anime }: { anime: AnimeResult }) {
   const title = resolveTitle(anime.title);
   return (
     <Pressable
-      style={({ pressed }) => [styles.pCard, pressed && { transform: [{ scale: 0.96 }] }]}
+      style={({ pressed }) => [styles.pCard, pressed && { transform: [{ scale: 0.97 }], opacity: 0.9 }]}
       onPress={() => nav(router, anime)}
     >
       <Image source={{ uri: anime.image }} style={styles.pImg} resizeMode="cover" />
-      <LinearGradient colors={["transparent", "rgba(8,10,18,0.97)"]} style={StyleSheet.absoluteFill} />
-      {anime.totalEpisodes ? (
-        <View style={styles.pCCBadge}><Text style={styles.pCCText}>CC {anime.totalEpisodes}</Text></View>
-      ) : null}
+      <LinearGradient
+        colors={["transparent", "rgba(10,10,18,0.98)"]}
+        locations={[0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Badges */}
+      <View style={styles.pBadgeRow}>
+        <View style={styles.subSmBadge}>
+          <Text style={styles.subSmText}>SUB</Text>
+        </View>
+        {anime.totalEpisodes ? (
+          <View style={styles.epSmBadge}>
+            <Text style={styles.epSmText}>{anime.totalEpisodes}</Text>
+          </View>
+        ) : null}
+      </View>
+
       {anime.rating != null && anime.rating > 0 && (
         <View style={styles.pRating}>
-          <Feather name="star" size={9} color={Colors.accent} />
+          <Feather name="star" size={8} color="#FBBF24" />
           <Text style={styles.pRatingText}>{(anime.rating / 10).toFixed(1)}</Text>
         </View>
       )}
       <View style={styles.pFooter}>
         <Text style={styles.pTitle} numberOfLines={2}>{title}</Text>
-        <Text style={styles.pType}>{anime.type === "TV" ? "TELEVISOR" : (anime.type ?? "TV")}</Text>
+        <Text style={styles.pType}>{anime.type ?? "TV"}</Text>
       </View>
     </Pressable>
   );
@@ -323,7 +375,7 @@ export default function HomeScreen() {
   const popular  = popularQ.data?.results  ?? [];
   const recent   = recentQ.data?.results   ?? [];
 
-  const banners      = trending.slice(0, 10);
+  const banners      = trending.slice(0, 8);
   const trendingList = trending.slice(0, 10);
   const recentList   = recent.slice(0, 12);
   const popularList  = popular.slice(0, 10);
@@ -360,12 +412,17 @@ export default function HomeScreen() {
         {!trendingQ.isLoading && banners.length > 0 ? (
           <HeroBanner animes={banners} index={bannerIdx} onPrev={prev} onNext={next} topPad={topPad} />
         ) : (
-          <View style={[styles.heroBg, { backgroundColor: Colors.bgSurface }]} />
+          <View style={[styles.heroBg, { backgroundColor: Colors.bgSurface }]}>
+            <LinearGradient
+              colors={[Colors.bgSurface, Colors.bg]}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
         )}
 
         {/* ── Tendencias ── */}
         <View style={styles.section}>
-          <SectionHeader icon="award" title="Tendencias principales" showButton />
+          <SectionHeader title="Tendencias principales" showButton />
           {trendingQ.isLoading
             ? Array(6).fill(null).map((_, i) => <View key={i} style={styles.skeletonRow} />)
             : trendingList.map((a, i) => <TrendingRow key={a.id} anime={a} rank={i + 1} />)}
@@ -375,7 +432,7 @@ export default function HomeScreen() {
 
         {/* ── Últimas actualizaciones ── */}
         <View style={styles.section}>
-          <SectionHeader icon="clock" title="Últimas actualizaciones" iconColor="#22C55E" />
+          <SectionHeader title="Últimas actualizaciones" showButton />
           {recentQ.isLoading
             ? <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16 }}>
                 {[0,1,2].map(i => <View key={i} style={[styles.rCard, { backgroundColor: Colors.bgSurface, opacity: 0.4 }]} />)}
@@ -394,7 +451,7 @@ export default function HomeScreen() {
 
         {/* ── Más populares ── */}
         <View style={styles.section}>
-          <SectionHeader icon="trending-up" title="Más populares" iconColor={Colors.primary} />
+          <SectionHeader title="Más populares" showButton />
           {popularQ.isLoading
             ? <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 16 }}>
                 {[0,1,2].map(i => <View key={i} style={[styles.pCard, { backgroundColor: Colors.bgSurface, opacity: 0.4 }]} />)}
@@ -421,76 +478,75 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
   scroll: { flex: 1 },
 
-  /* ── Floating NavBar pill ── */
+  /* ── Top NavBar ── */
   navWrap: {
     position: "absolute",
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
+    top: 0,
     zIndex: 100,
+    backgroundColor: "rgba(10,10,18,0.92)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 16,
+    paddingBottom: 10,
   },
-  navPill: {
+  navInner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(10,12,22,0.85)",
-    borderRadius: 50,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  navBtn: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
   },
   logoWrap: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
+  },
+  logoIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
     justifyContent: "center",
-    gap: 4,
   },
-  logoAnime: {
-    color: Colors.primary,
-    fontSize: 20,
-    fontWeight: "900",
-    letterSpacing: -0.5,
-  },
-  flexBox: {
-    backgroundColor: "#22C55E",
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    position: "relative",
-    overflow: "hidden",
-  },
-  clawStroke: {
-    position: "absolute",
-    width: 1.5,
-    height: "160%",
-    backgroundColor: "rgba(255,255,255,0.35)",
-    borderRadius: 1,
-  },
-  logoFlex: {
+  logoIconText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "900",
-    letterSpacing: 1.5,
+    letterSpacing: -0.5,
+  },
+  logoText: {
+    fontSize: 18,
+  },
+  logoTextBold: {
+    color: Colors.textPrimary,
+    fontWeight: "700",
+  },
+  logoTextAccent: {
+    color: Colors.accent,
+    fontWeight: "900",
+    letterSpacing: 1,
   },
   navRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 6,
   },
-  userCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.15)",
+  navBtn: {
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 18,
+  },
+  userCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 2,
   },
 
   /* ── Hero banner ── */
@@ -500,10 +556,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bgSurface,
     position: "relative",
     justifyContent: "flex-end",
+    overflow: "hidden",
   },
   heroContent: {
-    padding: 16,
-    gap: 12,
+    padding: 20,
+    gap: 10,
   },
   heroBadgeRow: {
     flexDirection: "row",
@@ -511,80 +568,172 @@ const styles = StyleSheet.create({
     gap: 6,
     flexWrap: "wrap",
   },
-  ccBadge: {
-    backgroundColor: "#EF4444",
-    borderRadius: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  ccText: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.3 },
-  greenBadge: {
+  newBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    backgroundColor: "#22C55E",
-    borderRadius: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    gap: 5,
+    backgroundColor: Colors.success + "25",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: Colors.success + "60",
   },
-  greenBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800" },
-  tvBadge: {
-    backgroundColor: "rgba(0,0,0,0.55)",
+  newDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: Colors.success,
+  },
+  newBadgeText: {
+    color: Colors.success,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  typeBadge: {
+    backgroundColor: "rgba(255,255,255,0.12)",
     borderRadius: 5,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderColor: "rgba(255,255,255,0.08)",
   },
-  tvText: { color: Colors.textSecondary, fontSize: 9, fontWeight: "700", letterSpacing: 0.5 },
-  heroGenres: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: "500", flex: 1 },
-  heroTitle: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "900",
-    lineHeight: 28,
-    letterSpacing: -0.3,
-    textShadowColor: "rgba(0,0,0,0.8)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+  typeBadgeText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
-  heroBtns: { flexDirection: "row", gap: 14 },
-  playBtn: {
-    width: (width - 56) * 0.44,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  saveBtn: {
-    width: (width - 56) * 0.44,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: "#22C55E",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#22C55E",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  heroPaging: {
+  epHeroBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    alignSelf: "flex-start",
+    gap: 4,
+    backgroundColor: Colors.accent + "20",
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: Colors.accent + "40",
   },
-  pagingText: { fontSize: 14 },
-  pagingCurrent: { color: Colors.textPrimary, fontSize: 17, fontWeight: "900" },
-  pagingSep: { color: Colors.textMuted },
-  pagingTotal: { color: Colors.textMuted, fontSize: 14 },
+  epHeroBadgeText: {
+    color: Colors.accent,
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  heroTitle: {
+    color: "#fff",
+    fontSize: 26,
+    fontWeight: "900",
+    lineHeight: 32,
+    letterSpacing: -0.5,
+    textShadowColor: "rgba(0,0,0,0.9)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  heroGenres: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 12,
+    fontWeight: "500",
+    letterSpacing: 0.2,
+  },
+  heroMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  heroRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  heroRatingText: {
+    color: "#FBBF24",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  heroYear: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  heroBtns: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 2,
+  },
+  playBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 10,
+    overflow: "hidden",
+    maxWidth: 180,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  playBtnGrad: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  playBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+  infoBtn: {
+    height: 48,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
+  infoBtnText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  heroDots: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 2,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: Colors.primary,
+  },
+  heroLeft: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: "20%",
+  },
+  heroRight: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: "20%",
+  },
 
   /* ── Section ── */
   section: { marginBottom: 4 },
@@ -593,141 +742,184 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 12,
+    paddingTop: 22,
+    paddingBottom: 14,
   },
-  sectionLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
-  sectionIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
+  sectionLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  sectionAccentBar: {
+    width: 3,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: Colors.primary,
   },
   sectionTitle: {
     color: Colors.textPrimary,
     fontSize: 16,
     fontWeight: "800",
-    letterSpacing: -0.3,
-    flexShrink: 1,
+    letterSpacing: -0.2,
   },
-  ahoraBtn: {
+  verMasBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 6,
+    gap: 2,
   },
-  ahoraText: { color: "#fff", fontSize: 11, fontWeight: "900", letterSpacing: 0.5 },
+  verMasText: {
+    color: Colors.accent,
+    fontSize: 12,
+    fontWeight: "700",
+  },
 
   /* ── Trending rows ── */
   trendRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    minHeight: 74,
+    minHeight: 80,
   },
-  rankWrap: {
-    width: 44,
-    height: 54,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
+  rankNum: {
+    color: Colors.textMuted,
+    fontSize: 20,
+    fontWeight: "900",
+    width: 32,
+    textAlign: "center",
+    letterSpacing: -1,
   },
-  claw: {
-    position: "absolute",
-    width: 2.5,
-    height: 40,
-    backgroundColor: "#22C55E",
-    borderRadius: 2,
-    opacity: 0.8,
+  rankNumTop: {
+    color: Colors.primary,
+    fontSize: 22,
   },
-  rankCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+  tThumbWrap: {
+    width: 52,
+    height: 70,
+    borderRadius: 8,
+    overflow: "hidden",
     backgroundColor: Colors.bgSurface,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    alignItems: "center",
-    justifyContent: "center",
   },
-  rankCircleTop: {
-    backgroundColor: Colors.bgElevated,
-    borderColor: "#22C55E55",
-  },
-  rankNum: { color: Colors.textSecondary, fontSize: 14, fontWeight: "800" },
-  rankNumTop: { color: "#fff", fontSize: 15, fontWeight: "900" },
+  tThumb: { width: "100%", height: "100%" },
   trendInfo: { flex: 1, gap: 5 },
-  trendTitle: { color: Colors.textPrimary, fontSize: 14, fontWeight: "700", lineHeight: 19 },
+  trendTitle: { color: Colors.textPrimary, fontSize: 13, fontWeight: "700", lineHeight: 18 },
   trendMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
-  tCCBadge: { backgroundColor: "#EF4444", borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3 },
-  tCCText: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.3 },
-  tGreenBadge: {
-    flexDirection: "row", alignItems: "center", gap: 3,
-    backgroundColor: "#22C55E", borderRadius: 4, paddingHorizontal: 7, paddingVertical: 3,
+  subBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.success + "20",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: Colors.success + "50",
   },
-  tGreenText: { color: "#fff", fontSize: 10, fontWeight: "800" },
-  tType: { color: Colors.textMuted, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 },
-  tThumb: { width: 82, height: 58, borderRadius: 8, backgroundColor: Colors.bgSurface },
+  subBadgeText: { color: Colors.success, fontSize: 9, fontWeight: "900" },
+  subEpCount: { color: Colors.success, fontSize: 9, fontWeight: "700" },
+  tType: { color: Colors.textMuted, fontSize: 10, fontWeight: "600" },
+  tRatingRow: { flexDirection: "row", alignItems: "center", gap: 3 },
+  tRatingText: { color: "#FBBF24", fontSize: 11, fontWeight: "700" },
+
+  /* ── Skeleton ── */
   skeletonRow: {
-    height: 72, marginHorizontal: 16, marginBottom: 2,
-    backgroundColor: Colors.bgSurface, borderRadius: 8, opacity: 0.4,
+    height: 80,
+    marginHorizontal: 16,
+    marginBottom: 1,
+    borderRadius: 8,
+    backgroundColor: Colors.bgSurface,
+    opacity: 0.5,
   },
 
   /* ── Carousels ── */
   carouselPad: { paddingHorizontal: 16, gap: 10 },
+
+  /* ── Recent Card ── */
   rCard: {
-    width: CAROUSEL_CARD_W, height: CAROUSEL_CARD_W * 1.5,
-    borderRadius: 10, overflow: "hidden",
-    backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
+    width: CAROUSEL_CARD_W,
+    height: CAROUSEL_CARD_W * 1.55,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: Colors.bgCard,
+    borderWidth: 1,
+    borderColor: Colors.border,
     position: "relative",
   },
   rImg: { width: "100%", height: "100%" },
-  rPlayCircle: {
-    position: "absolute", top: "40%", alignSelf: "center",
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.35)",
-    alignItems: "center", justifyContent: "center",
+  rBadgeRow: {
+    position: "absolute",
+    top: 7,
+    left: 7,
+    flexDirection: "row",
+    gap: 3,
   },
-  rCCBadge: {
-    position: "absolute", top: 8, left: 8,
-    backgroundColor: "#EF4444", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
+  subSmBadge: {
+    backgroundColor: Colors.success,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
   },
-  rCCText: { color: "#fff", fontSize: 9, fontWeight: "900" },
-  rFooter: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 8, gap: 3 },
+  subSmText: { color: "#fff", fontSize: 9, fontWeight: "900" },
+  epSmBadge: {
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  epSmText: { color: "rgba(255,255,255,0.85)", fontSize: 9, fontWeight: "800" },
+  rRating: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  rRatingText: { color: "#FBBF24", fontSize: 9, fontWeight: "800" },
+  rFooter: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 9, gap: 3 },
   rTitle: { color: "#fff", fontSize: 11, fontWeight: "700", lineHeight: 15 },
-  rType: { color: Colors.textMuted, fontSize: 9, fontWeight: "700", letterSpacing: 0.3 },
+  rType: { color: Colors.textMuted, fontSize: 9, fontWeight: "600", letterSpacing: 0.3 },
 
+  /* ── Popular Card ── */
   pCard: {
-    width: CAROUSEL_CARD_W, height: CAROUSEL_CARD_W * 1.5,
-    borderRadius: 10, overflow: "hidden",
-    backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border,
+    width: CAROUSEL_CARD_W,
+    height: CAROUSEL_CARD_W * 1.55,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: Colors.bgCard,
+    borderWidth: 1,
+    borderColor: Colors.border,
     position: "relative",
   },
   pImg: { width: "100%", height: "100%" },
-  pCCBadge: {
-    position: "absolute", top: 8, left: 8,
-    backgroundColor: "#EF4444", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
+  pBadgeRow: {
+    position: "absolute",
+    top: 7,
+    left: 7,
+    flexDirection: "row",
+    gap: 3,
   },
-  pCCText: { color: "#fff", fontSize: 9, fontWeight: "900" },
   pRating: {
-    position: "absolute", top: 8, right: 8,
-    flexDirection: "row", alignItems: "center", gap: 3,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    paddingHorizontal: 6, paddingVertical: 3, borderRadius: 5,
+    position: "absolute",
+    top: 7,
+    right: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
   },
-  pRatingText: { color: Colors.accent, fontSize: 10, fontWeight: "800" },
-  pFooter: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 8, gap: 3 },
+  pRatingText: { color: "#FBBF24", fontSize: 9, fontWeight: "800" },
+  pFooter: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 9, gap: 3 },
   pTitle: { color: "#fff", fontSize: 11, fontWeight: "700", lineHeight: 15 },
-  pType: { color: Colors.textMuted, fontSize: 9, fontWeight: "700", letterSpacing: 0.3 },
+  pType: { color: Colors.textMuted, fontSize: 9, fontWeight: "600", letterSpacing: 0.3 },
 
   /* ── Divider ── */
   divider: { height: 6, backgroundColor: Colors.bgSurface, marginVertical: 8 },

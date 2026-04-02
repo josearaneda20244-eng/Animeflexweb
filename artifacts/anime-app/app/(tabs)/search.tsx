@@ -89,7 +89,7 @@ export default function SearchScreen() {
             onPress={handleSearch}
           >
             <LinearGradient
-              colors={[Colors.primary, "#C2410C"]}
+              colors={[Colors.primary, Colors.secondary]}
               style={styles.searchBtnGrad}
             >
               <Feather name="search" size={18} color="#fff" />
@@ -133,7 +133,7 @@ export default function SearchScreen() {
           <Text style={styles.errorText}>No se pudo conectar. Intenta de nuevo.</Text>
           <Pressable style={styles.retryBtn} onPress={() => searchQuery.refetch()}>
             <LinearGradient
-              colors={[Colors.primary, "#C2410C"]}
+              colors={[Colors.primary, Colors.secondary]}
               style={styles.retryGrad}
             >
               <Text style={styles.retryText}>Reintentar</Text>

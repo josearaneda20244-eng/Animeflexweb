@@ -40,7 +40,7 @@ export default function FavoritesScreen() {
         {favorites.length > 0 && (
           <View style={styles.countBadge}>
             <LinearGradient
-              colors={[Colors.primary, "#C2410C"]}
+              colors={[Colors.primary, Colors.secondary]}
               style={styles.countGrad}
             >
               <Text style={styles.countText}>{favorites.length}</Text>
