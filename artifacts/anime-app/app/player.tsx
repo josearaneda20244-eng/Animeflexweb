@@ -310,10 +310,22 @@ export default function PlayerScreen() {
 
   const epNum = parseInt(params.episodeNum) || undefined;
 
+  // Spanish subtitle embedded in the stream (priority source — Crunchyroll/Zoro quality)
+  const streamSubtitles = query.data?.subtitles ?? [];
+  const streamSpanishSub =
+    streamSubtitles.find((s) =>
+      /español.*españa/i.test(s.lang)
+    ) ??
+    streamSubtitles.find((s) =>
+      /español|spanish|spa/i.test(s.lang)
+    ) ??
+    null;
+
   const subsQuery = useQuery({
     queryKey: ["subtitles", params.animeTitle, epNum],
     queryFn: () => consumet.searchSubtitles(params.animeTitle, epNum, "es"),
-    enabled: !!params.animeTitle,
+    // Only fetch from OpenSubtitles when the stream has no Spanish subtitle
+    enabled: !!params.animeTitle && query.isSuccess && !streamSpanishSub,
     staleTime: 1000 * 60 * 30,
     retry: 1,
   });
@@ -343,11 +355,21 @@ export default function PlayerScreen() {
     setActiveSubUrl(null);
   }, [params.episodeId]);
 
-  // Auto-select the best subtitle when results load
+  // Auto-select stream's Spanish subtitle (highest quality — Crunchyroll/Zoro source)
   useEffect(() => {
+    if (!streamSpanishSub) return;
+    if (activeSubId) return; // already active
+    const proxied = proxySubtitleUrl(streamSpanishSub.url);
+    setActiveSubId("stream-es");
+    setActiveSubUrl(proxied);
+  }, [streamSpanishSub?.url]);
+
+  // Fallback: auto-select best OpenSubtitles result when stream has no Spanish sub
+  useEffect(() => {
+    if (streamSpanishSub) return; // stream sub takes priority
     if (!subsQuery.data?.data?.length) return;
     if (activeSubId) return; // already have one active
-    const best = subsQuery.data.data[0]; // already sorted by download_count from backend
+    const best = subsQuery.data.data[0]; // sorted by download_count from backend
     if (best?.fileId) {
       downloadMutation.mutate(best);
     }
