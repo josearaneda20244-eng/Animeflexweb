@@ -57,7 +57,7 @@ function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; id
 
   return (
     <div style={{ position: "relative", height: "min(70vw, 520px)", overflow: "hidden" }}>
-      <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(9,10,18,0) 0%, rgba(9,10,18,0.35) 30%, rgba(9,10,18,0.88) 70%, #090A12 100%)" }} />
       <div style={{ position: "absolute", inset: 0, width: "55%", background: "linear-gradient(to right, rgba(9,10,18,0.6), transparent)" }} />
 
