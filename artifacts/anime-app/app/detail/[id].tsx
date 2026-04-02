@@ -22,6 +22,7 @@ import { GenreBadge } from "@/components/GenreBadge";
 import Colors from "@/constants/colors";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useHistory } from "@/context/HistoryContext";
+import { useWatchProgress } from "@/context/WatchProgressContext";
 import { consumet, type Episode, type AnimeResult } from "@/lib/consumet";
 
 type Params = {
@@ -44,6 +45,7 @@ export default function DetailScreen() {
   const insets = useSafeAreaInsets();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToHistory } = useHistory();
+  const { getAnimeProgress } = useWatchProgress();
   const [watchedEps, setWatchedEps] = useState<Set<string>>(new Set());
   const [descExpanded, setDescExpanded] = useState(false);
 
@@ -99,6 +101,13 @@ export default function DetailScreen() {
     const paheEp = paheEpisodes.find((e) => e.number === episode.number);
     const resolvedId = paheEp?.id ?? episode.id;
 
+    const allEpisodes = anime?.episodes ?? [];
+    const nextEpisode = allEpisodes.find((e) => e.number === episode.number + 1);
+    const nextPaheEp = nextEpisode
+      ? paheEpisodes.find((e) => e.number === nextEpisode.number)
+      : undefined;
+    const nextResolvedId = nextPaheEp?.id ?? nextEpisode?.id;
+
     router.push({
       pathname: "/player",
       params: {
@@ -107,9 +116,14 @@ export default function DetailScreen() {
         animeTitle: navTitle,
         animeId: params.id,
         animeImage: navImage,
+        ...(nextResolvedId
+          ? { nextEpisodeId: nextResolvedId, nextEpisodeNum: String(nextEpisode!.number) }
+          : {}),
       },
     });
   };
+
+  const animeProgress = getAnimeProgress(params.id);
 
   const topPad = Platform.OS === "web" ? 67 : 0;
   const episodes = anime?.episodes ?? [];
@@ -195,18 +209,34 @@ export default function DetailScreen() {
                   )}
                 </View>
 
-                {/* Play first episode button */}
-                {episodes.length > 0 && (
-                  <Pressable
-                    style={styles.playFirstBtn}
-                    onPress={() => handleEpisode(episodes[0])}
-                  >
-                    <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.playFirstGrad}>
-                      <Feather name="play" size={13} color="#fff" />
-                      <Text style={styles.playFirstText}>Ep. 1</Text>
-                    </LinearGradient>
-                  </Pressable>
-                )}
+                {/* Play / Resume buttons */}
+                <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+                  {episodes.length > 0 && (
+                    <Pressable
+                      style={styles.playFirstBtn}
+                      onPress={() => handleEpisode(episodes[0])}
+                    >
+                      <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.playFirstGrad}>
+                        <Feather name="play" size={13} color="#fff" />
+                        <Text style={styles.playFirstText}>Ep. 1</Text>
+                      </LinearGradient>
+                    </Pressable>
+                  )}
+                  {animeProgress && (
+                    <Pressable
+                      style={styles.resumeBtn}
+                      onPress={() => {
+                        const ep = episodes.find((e) => e.number === animeProgress.episodeNum);
+                        if (ep) handleEpisode(ep);
+                      }}
+                    >
+                      <Feather name="clock" size={13} color={Colors.primary} />
+                      <Text style={styles.resumeText}>
+                        Ep {animeProgress.episodeNum} · {Math.floor(animeProgress.currentTime / 60)}m{Math.floor(animeProgress.currentTime % 60).toString().padStart(2, "0")}s
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             </View>
 
@@ -393,6 +423,20 @@ const styles = StyleSheet.create({
   playFirstBtn: { borderRadius: 10, overflow: "hidden", alignSelf: "flex-start", marginTop: 2 },
   playFirstGrad: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 14, paddingVertical: 8 },
   playFirstText: { color: "#fff", fontSize: 12, fontWeight: "800" },
+  resumeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.primary + "60",
+    backgroundColor: Colors.primary + "15",
+    alignSelf: "flex-start",
+    marginTop: 2,
+  },
+  resumeText: { color: Colors.primary, fontSize: 11, fontWeight: "700" },
 
   genresContent: { paddingHorizontal: 16, gap: 8, paddingBottom: 12, paddingTop: 4 },
 

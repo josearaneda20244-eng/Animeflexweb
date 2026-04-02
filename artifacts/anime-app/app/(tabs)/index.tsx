@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SkeletonRow } from "@/components/SkeletonCard";
 import Colors from "@/constants/colors";
 import { consumet, type AnimeResult } from "@/lib/consumet";
+import { useWatchProgress } from "@/context/WatchProgressContext";
 
 const { width } = Dimensions.get("window");
 const HERO_HEIGHT = Math.round(width * 1.05);
@@ -373,11 +374,50 @@ function GenresSection() {
   );
 }
 
+/* ── CONTINUE WATCHING CARD ── */
+const CW_W = width * 0.58;
+const CW_H = CW_W * 0.58;
+
+function ContinueWatchingCard({ entry }: { entry: ReturnType<typeof useWatchProgress>["progress"][number] }) {
+  const router = useRouter();
+  const pct = Math.min(1, entry.currentTime / entry.duration);
+  return (
+    <TouchableOpacity
+      style={styles.cwCard}
+      activeOpacity={0.82}
+      onPress={() =>
+        router.push({
+          pathname: "/detail/[id]",
+          params: {
+            id: entry.animeId,
+            title: entry.animeTitle,
+            image: entry.animeImage,
+          },
+        })
+      }
+    >
+      <Image source={{ uri: entry.animeImage }} style={styles.cwImage} resizeMode="cover" />
+      <LinearGradient
+        colors={["transparent", "rgba(9,10,18,0.95)"]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.cwInfo}>
+        <Text style={styles.cwTitle} numberOfLines={1}>{entry.animeTitle}</Text>
+        <Text style={styles.cwEp}>Episodio {entry.episodeNum}</Text>
+        <View style={styles.cwBar}>
+          <View style={[styles.cwFill, { width: `${Math.round(pct * 100)}%` as any }]} />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 /* ── MAIN SCREEN ── */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [heroIdx, setHeroIdx] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const { progress: watchProgress } = useWatchProgress();
   const topPad = Platform.OS === "web" ? 0 : insets.top;
 
   const trending = useQuery({ queryKey: ["trending"], queryFn: consumet.trending, staleTime: 1000 * 60 * 10 });
@@ -423,6 +463,22 @@ export default function HomeScreen() {
           <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} topPad={topPad} />
         ) : (
           <View style={{ height: HERO_HEIGHT, backgroundColor: Colors.bgSurface }} />
+        )}
+
+        {/* CONTINUE WATCHING */}
+        {watchProgress.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader title="▶ Continuar viendo" />
+            <FlatList
+              data={watchProgress.slice(0, 8)}
+              keyExtractor={(e) => `cw-${e.episodeId}`}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carousel}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              renderItem={({ item }) => <ContinueWatchingCard entry={item} />}
+            />
+          </View>
         )}
 
         {/* TRENDING */}
@@ -840,4 +896,35 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   genrePillText: { color: Colors.textSecondary, fontSize: 12, fontWeight: "600" },
+
+  /* CONTINUE WATCHING */
+  cwCard: {
+    width: CW_W,
+    height: CW_H,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: Colors.bgCard,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    position: "relative",
+  },
+  cwImage: { width: "100%", height: "100%" },
+  cwInfo: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    gap: 3,
+  },
+  cwTitle: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  cwEp: { color: Colors.textMuted, fontSize: 10 },
+  cwBar: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    marginTop: 4,
+    overflow: "hidden",
+  },
+  cwFill: { height: "100%", borderRadius: 2, backgroundColor: Colors.primary },
 });

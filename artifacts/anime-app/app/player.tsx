@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import Hls from "hls.js";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -26,6 +26,9 @@ import {
   type StreamingSource,
   type SubtitleResult,
 } from "@/lib/consumet";
+import { useWatchProgress } from "@/context/WatchProgressContext";
+
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
 type Params = {
   episodeId: string;
@@ -33,6 +36,8 @@ type Params = {
   animeTitle: string;
   animeId?: string;
   animeImage?: string;
+  nextEpisodeId?: string;
+  nextEpisodeNum?: string;
 };
 
 const { width } = Dimensions.get("window");
@@ -74,10 +79,16 @@ function WebPlayer({
   m3u8Url,
   height,
   subtitleUrl,
+  playbackRate,
+  startAt,
+  onTimeUpdate,
 }: {
   m3u8Url: string;
   height: number;
   subtitleUrl?: string | null;
+  playbackRate?: number;
+  startAt?: number;
+  onTimeUpdate?: (currentTime: number, duration: number) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -184,6 +195,35 @@ function WebPlayer({
       return () => clearTimeout(timer);
     }
   }, [subtitleUrl]);
+
+  // Apply playback rate
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || playbackRate == null) return;
+    video.playbackRate = playbackRate;
+  }, [playbackRate]);
+
+  // Seek to saved position when video is ready
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !startAt || startAt < 5) return;
+    const onLoaded = () => {
+      if (startAt < video.duration - 10) video.currentTime = startAt;
+    };
+    if (video.readyState >= 1) onLoaded();
+    else video.addEventListener("loadedmetadata", onLoaded, { once: true });
+  }, [startAt]);
+
+  // Report playback time
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !onTimeUpdate) return;
+    const handler = () => {
+      if (video.duration > 0) onTimeUpdate(video.currentTime, video.duration);
+    };
+    video.addEventListener("timeupdate", handler);
+    return () => video.removeEventListener("timeupdate", handler);
+  }, [onTimeUpdate]);
 
   return (
     <View style={{ width: "100%", height, backgroundColor: "#000", position: "relative" }}>
@@ -299,6 +339,26 @@ export default function PlayerScreen() {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeSubId, setActiveSubId] = useState<string | null>(null);
   const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const { saveProgress, getProgress } = useWatchProgress();
+  const savedProgress = getProgress(params.episodeId);
+  const startAt = savedProgress?.currentTime;
+
+  const handleTimeUpdate = useCallback(
+    (currentTime: number, duration: number) => {
+      if (!params.animeId) return;
+      saveProgress({
+        episodeId: params.episodeId,
+        episodeNum: parseInt(params.episodeNum) || 0,
+        animeId: params.animeId,
+        animeTitle: params.animeTitle,
+        animeImage: params.animeImage ?? "",
+        currentTime,
+        duration,
+      });
+    },
+    [params.episodeId, params.episodeNum, params.animeId, params.animeTitle, params.animeImage, saveProgress]
+  );
 
   const query = useQuery({
     queryKey: ["streaming", params.episodeId],
@@ -446,6 +506,9 @@ export default function PlayerScreen() {
                 m3u8Url={proxyM3u8}
                 height={VIDEO_HEIGHT}
                 subtitleUrl={activeSubUrl}
+                playbackRate={playbackRate}
+                startAt={startAt}
+                onTimeUpdate={handleTimeUpdate}
               />
             ) : (
               <NativePlayer
@@ -467,14 +530,70 @@ export default function PlayerScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Episode info */}
+        {/* Episode info + Next episode */}
         <View style={styles.epInfo}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.epInfoAnime} numberOfLines={1}>
               {params.animeTitle}
             </Text>
             <Text style={styles.epInfoEp}>Episodio {params.episodeNum}</Text>
           </View>
+          {params.nextEpisodeId ? (
+            <TouchableOpacity
+              style={styles.nextEpBtn}
+              activeOpacity={0.8}
+              onPress={() =>
+                router.replace({
+                  pathname: "/player",
+                  params: {
+                    episodeId: params.nextEpisodeId!,
+                    episodeNum: params.nextEpisodeNum ?? "",
+                    animeTitle: params.animeTitle,
+                    animeId: params.animeId ?? "",
+                    animeImage: params.animeImage ?? "",
+                  },
+                })
+              }
+            >
+              <Text style={styles.nextEpText}>Ep {params.nextEpisodeNum}</Text>
+              <Feather name="skip-forward" size={14} color="#fff" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Playback Speed */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionAccent} />
+            <Text style={styles.sectionTitle}>Velocidad</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.qualityRow}
+          >
+            {SPEEDS.map((s) => {
+              const active = s === playbackRate;
+              return (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.qualityBtn, active && styles.qualityActive]}
+                  onPress={() => setPlaybackRate(s)}
+                  activeOpacity={0.7}
+                >
+                  {active && (
+                    <LinearGradient
+                      colors={[Colors.primary + "30", Colors.secondary + "10"]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  )}
+                  <Text style={[styles.qualityLabel, active && styles.qualityLabelActive]}>
+                    {s}x
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
 
         {/* Quality selector */}
@@ -613,8 +732,7 @@ export default function PlayerScreen() {
             <Feather name="info" size={14} color={Colors.primary} />
           </View>
           <Text style={styles.tipText}>
-            Selecciona un subtítulo y aparecerá en el video automáticamente.
-            Si el primero no sincroniza bien, prueba con otro de la lista.
+            Los subtítulos en español se activan solos. Si quieres cambiarlos o desactivarlos, usa la lista de arriba.
           </Text>
         </View>
       </ScrollView>
@@ -824,4 +942,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
+
+  nextEpBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  nextEpText: { color: "#fff", fontSize: 13, fontWeight: "700" },
 });

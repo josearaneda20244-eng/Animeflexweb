@@ -16,6 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 import { HistoryProvider } from "@/context/HistoryContext";
+import { WatchProgressProvider } from "@/context/WatchProgressContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -79,11 +80,13 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <FavoritesProvider>
             <HistoryProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <KeyboardProvider>
-                  <RootLayoutNav />
-                </KeyboardProvider>
-              </GestureHandlerRootView>
+              <WatchProgressProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </WatchProgressProvider>
             </HistoryProvider>
           </FavoritesProvider>
         </QueryClientProvider>
