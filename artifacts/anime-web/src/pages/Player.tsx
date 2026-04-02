@@ -98,7 +98,7 @@ function SubtitleOverlay({
   if (!display) return null;
   return (
     <div style={{
-      position: "absolute", bottom: 56, left: 0, right: 0, zIndex: 20,
+      position: "absolute", bottom: "8%", left: 0, right: 0, zIndex: 20,
       display: "flex", justifyContent: "center", pointerEvents: "none", padding: "0 24px",
     }}>
       <div style={{
@@ -148,6 +148,7 @@ interface PlyrPlayerProps {
   m3u8Url: string;
   playbackRate: number;
   startAt?: number;
+  fullscreenContainer?: string;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
   onSubtitleTracks?: (tracks: HlsSubTrack[]) => void;
@@ -155,7 +156,7 @@ interface PlyrPlayerProps {
   onSubtitleCue?: (text: string | null) => void;
 }
 
-function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue }: PlyrPlayerProps) {
+function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const plyrRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -195,6 +196,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, onTimeUpdate, onEnded, onS
       autoplay: true,
       keyboard: { focused: true, global: true },
       tooltips: { controls: false, seek: true },
+      fullscreen: { enabled: true, fallback: true, iosNative: false, container: fullscreenContainer ?? undefined },
     });
     plyrRef.current = plyr;
 
@@ -608,7 +610,7 @@ export default function Player() {
         {/* Player column */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
-          <div style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9" }}>
+          <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9" }}>
             {query.isLoading && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <Loader2 size={36} className="animate-spin" style={{ color: "#6C63FF" }} />
@@ -636,6 +638,7 @@ export default function Player() {
                 m3u8Url={proxyM3u8}
                 playbackRate={playbackRate}
                 startAt={startAt}
+                fullscreenContainer="#plyr-fullscreen-container"
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}
                 onSubtitleTracks={handleSubtitleTracks}
