@@ -732,6 +732,7 @@ router.get("/anime/subtitles", async (req, res) => {
       query: title,
       languages: lang,
       type: "episode",
+      order_by: "download_count",
     });
     if (episode) params.set("episode_number", episode);
 
@@ -759,18 +760,23 @@ router.get("/anime/subtitles", async (req, res) => {
         attributes: {
           language: string;
           release: string;
+          download_count: number;
           files: Array<{ file_id: number; file_name: string }>;
         };
       }>;
     };
 
-    const results = (json.data ?? []).slice(0, 5).map((item) => ({
-      id: item.id,
-      lang: item.attributes.language,
-      release: item.attributes.release ?? "",
-      fileId: item.attributes.files?.[0]?.file_id ?? null,
-      fileName: item.attributes.files?.[0]?.file_name ?? "",
-    }));
+    const results = (json.data ?? [])
+      .filter((item) => item.attributes.files?.[0]?.file_id)
+      .slice(0, 5)
+      .map((item) => ({
+        id: item.id,
+        lang: item.attributes.language,
+        release: item.attributes.release ?? "",
+        downloadCount: item.attributes.download_count ?? 0,
+        fileId: item.attributes.files?.[0]?.file_id ?? null,
+        fileName: item.attributes.files?.[0]?.file_name ?? "",
+      }));
 
     res.json({ data: results });
   } catch (err) {

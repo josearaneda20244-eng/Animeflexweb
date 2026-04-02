@@ -122,6 +122,7 @@ export interface SubtitleResult {
   id: string;
   lang: string;
   release: string;
+  downloadCount: number;
   fileId: number | null;
   fileName: string;
 }

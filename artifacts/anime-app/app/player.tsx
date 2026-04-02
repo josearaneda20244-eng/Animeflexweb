@@ -343,6 +343,16 @@ export default function PlayerScreen() {
     setActiveSubUrl(null);
   }, [params.episodeId]);
 
+  // Auto-select the best subtitle when results load
+  useEffect(() => {
+    if (!subsQuery.data?.data?.length) return;
+    if (activeSubId) return; // already have one active
+    const best = subsQuery.data.data[0]; // already sorted by download_count from backend
+    if (best?.fileId) {
+      downloadMutation.mutate(best);
+    }
+  }, [subsQuery.data]);
+
   const proxyM3u8 = selected ? proxyUrl(selected, referer) : null;
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const isLoading = query.isLoading;
