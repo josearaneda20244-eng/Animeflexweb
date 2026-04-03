@@ -49,7 +49,7 @@ export default function Membership() {
     setCheckoutLoading(true);
     setError(null);
     try {
-      const { clientSecret: cs } = await apiClient.post<{ clientSecret: string }>("/membership/checkout", {});
+      const { clientSecret: cs } = await apiClient.post<{ clientSecret: string }>("/membership", { action: "checkout" });
       setClientSecret(cs);
       setShowCheckout(true);
     } catch (err: any) {
@@ -63,7 +63,7 @@ export default function Membership() {
     setPortalLoading(true);
     setError(null);
     try {
-      const { url } = await apiClient.post<{ url: string }>("/membership/portal", {});
+      const { url } = await apiClient.post<{ url: string }>("/membership", { action: "portal" });
       if (url) window.location.href = url;
     } catch (err: any) {
       setError(err?.message ?? "Error al abrir el portal. Intenta de nuevo.");

@@ -8,7 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const payload = verifyToken(req, res);
+  const payload = await verifyToken(req, res);
   if (!payload) return;
 
   const sql = getSql();

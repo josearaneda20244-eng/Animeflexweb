@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-06-30.basil" });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     const sql = getSql();
 
     const rawBody = await getRawBody(req);
@@ -27,18 +27,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET!);
     } catch (err: any) {
-      console.error("Webhook signature error:", err.message);
       return res.status(400).json({ error: `Webhook error: ${err.message}` });
     }
 
-    const sub = event.data.object as import("stripe").Stripe.Subscription;
+    const sub = event.data.object as any;
 
-    if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
-      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+    if (
+      event.type === "customer.subscription.created" ||
+      event.type === "customer.subscription.updated"
+    ) {
+      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
       const isActive = sub.status === "active" || sub.status === "trialing";
       const tier = isActive ? "megafan" : "free";
-      const expiresAt = isActive && sub.current_period_end
-        ? new Date(sub.current_period_end * 1000).toISOString()
+      const periodEnd = sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
+      const expiresAt = isActive && periodEnd
+        ? new Date(periodEnd * 1000).toISOString()
         : null;
 
       if (expiresAt) {
@@ -61,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (event.type === "customer.subscription.deleted") {
-      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
       await sql`
         UPDATE users
         SET membership_tier = 'free',

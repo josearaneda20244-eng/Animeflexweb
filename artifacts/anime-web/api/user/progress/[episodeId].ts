@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "PUT") return res.status(405).json({ error: "Method not allowed" });
 
-  const payload = verifyToken(req, res);
+  const payload = await verifyToken(req, res);
   if (!payload) return;
 
   const sql = getSql();
