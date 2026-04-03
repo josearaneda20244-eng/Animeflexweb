@@ -65,6 +65,18 @@ export interface Episode {
   isFiller?: boolean;
 }
 
+export interface AnimeCharacter {
+  id: string;
+  name: string;
+  image: string;
+  role: string;
+}
+
+export interface AnimeTrailer {
+  id: string;
+  site: string;
+}
+
 export interface AnimeInfo extends AnimeResult {
   description?: string;
   genres?: string[];
@@ -72,6 +84,9 @@ export interface AnimeInfo extends AnimeResult {
   episodes: Episode[];
   episodePages?: number;
   externalLinks?: Array<{ url: string; site: string }>;
+  trailer?: AnimeTrailer | null;
+  characters?: AnimeCharacter[];
+  recommendations?: AnimeResult[];
 }
 
 export interface StreamingSource {

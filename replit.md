@@ -11,18 +11,24 @@ Preview path: `/anime-web/`
 
 ### Features
 - **Home**: Hero banner, trending, popular, recent episodes, continue watching
-- **Search**: Real-time debounce search with quick tags
-- **Anime Detail**: Cover, genres, description, episode list, favorites
-- **Player**: Plyr + HLS.js — modern UI, seek/pause bug fixed (no more pause-on-seek), subtitles in Spanish
+- **Search**: Real-time debounce search with genre/status filters and quick tags
+- **Anime Detail**: Cover, genres, description, episode list, characters carousel, YouTube trailer modal, recommendations section, studio name
+- **Player**: Plyr + HLS.js — theater mode, speed control, quality selector, subtitles in Spanish
 - **Favorites & History**: Persisted in localStorage (no backend needed)
+- **Mi Lista (Watch List)**: Mark anime as Viendo/Completado/Pendiente — persisted in localStorage, dedicated /watchlist page
+- **PWA**: manifest.json added, installable on mobile
+- **Page transitions**: CSS fade-in animation on route changes
+- **Lazy loading**: All images use loading="lazy"
 - **API**: All calls to `/api` (api-server artifact, no CORS issues in Replit)
-- **Vercel**: Set `VITE_API_URL` env var to point to your deployed API server
 
 ### Key files (anime-web)
-- `artifacts/anime-web/src/App.tsx` — routing
-- `artifacts/anime-web/src/pages/Player.tsx` — Plyr + HLS.js player
-- `artifacts/anime-web/src/lib/consumet.ts` — API client
-- `artifacts/anime-web/src/context/` — Favorites, History, WatchProgress contexts
+- `artifacts/anime-web/src/App.tsx` — routing + context providers
+- `artifacts/anime-web/src/pages/Player.tsx` — Plyr + HLS.js player with theater mode
+- `artifacts/anime-web/src/pages/AnimeDetail.tsx` — rich detail page with characters, trailer, recommendations
+- `artifacts/anime-web/src/pages/WatchList.tsx` — Mi Lista page
+- `artifacts/anime-web/src/lib/consumet.ts` — API client with AnimeCharacter, AnimeTrailer types
+- `artifacts/anime-web/src/context/` — Favorites, History, WatchProgress, WatchList contexts
+- `artifacts/anime-web/public/manifest.json` — PWA manifest
 
 ---
 

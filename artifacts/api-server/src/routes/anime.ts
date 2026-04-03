@@ -538,6 +538,29 @@ router.get("/anime/anilist-info", async (req, res) => {
           popularity
           studios(isMain: true) { nodes { name } }
           streamingEpisodes { title thumbnail url site }
+          trailer { id site }
+          characters(sort: [ROLE, RELEVANCE], perPage: 16) {
+            edges {
+              role
+              node {
+                id
+                name { full }
+                image { medium }
+              }
+            }
+          }
+          recommendations(sort: RATING_DESC, perPage: 10) {
+            nodes {
+              mediaRecommendation {
+                id
+                title { userPreferred english romaji }
+                coverImage { large medium }
+                averageScore
+                format
+                episodes
+              }
+            }
+          }
           relations {
             edges {
               relationType
@@ -586,6 +609,31 @@ router.get("/anime/anilist-info", async (req, res) => {
       };
     });
 
+    const characters = (media.characters?.edges ?? []).map((e: any) => ({
+      id: String(e.node?.id),
+      name: e.node?.name?.full ?? "",
+      image: e.node?.image?.medium ?? "",
+      role: e.role ?? "SUPPORTING",
+    }));
+
+    const recommendations = (media.recommendations?.nodes ?? [])
+      .filter((n: any) => n.mediaRecommendation)
+      .map((n: any) => {
+        const m = n.mediaRecommendation;
+        return {
+          id: String(m.id),
+          title: m.title?.english || m.title?.userPreferred || m.title?.romaji || "",
+          image: m.coverImage?.large ?? m.coverImage?.medium ?? "",
+          rating: m.averageScore,
+          type: m.format,
+          totalEpisodes: m.episodes,
+        };
+      });
+
+    const trailer = media.trailer?.id
+      ? { id: media.trailer.id as string, site: (media.trailer.site ?? "") as string }
+      : null;
+
     const result = {
       id: String(media.id),
       title: media.title,
@@ -600,6 +648,9 @@ router.get("/anime/anilist-info", async (req, res) => {
       rating: media.averageScore,
       color: media.coverImage?.color,
       studios: (media.studios?.nodes ?? []).map((s: any) => s.name),
+      trailer,
+      characters,
+      recommendations,
       episodes,
     };
 

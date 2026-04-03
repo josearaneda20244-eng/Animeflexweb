@@ -6,7 +6,7 @@ import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 import {
   ArrowLeft, SkipForward, AlertCircle, Loader2, Play, X,
-  Users, Captions, ChevronLeft, ChevronRight, List
+  Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2
 } from "lucide-react";
 import {
   consumet,
@@ -525,6 +525,7 @@ export default function Player() {
   const [hlsSubTracks, setHlsSubTracks] = useState<HlsSubTrack[]>([]);
   const [activeHlsSubId, setActiveHlsSubId] = useState<number>(-1);
   const [hlsCueText, setHlsCueText] = useState<string | null>(null);
+  const [theaterMode, setTheaterMode] = useState(false);
 
   const query = useQuery({
     queryKey: ["streaming", episodeId],
@@ -646,7 +647,7 @@ export default function Player() {
       )}
 
       {/* Main layout: player + sidebar */}
-      <div style={{ display: "flex", gap: 0, alignItems: "flex-start", maxWidth: 1400, margin: "0 auto" }}>
+      <div style={{ display: "flex", gap: 0, alignItems: "flex-start", maxWidth: theaterMode ? "100%" : 1400, margin: "0 auto", transition: "max-width 0.3s ease" }}>
         {/* Player column */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
@@ -706,20 +707,37 @@ export default function Player() {
                 <div style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>{animeTitle}</div>
                 <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 2 }}>Episodio {episodeNum}</div>
               </div>
-              {/* Subtitle toggle */}
-              {hasSpanishSubs && (
-                <button onClick={() => setSubtitlesEnabled(v => !v)}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {/* Theater mode */}
+                <button
+                  onClick={() => setTheaterMode(v => !v)}
+                  title={theaterMode ? "Salir del modo teatro" : "Modo teatro"}
                   style={{
-                    display: "flex", alignItems: "center", gap: 7, padding: "8px 14px",
+                    display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
                     borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
-                    background: subtitlesEnabled ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${subtitlesEnabled ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.1)"}`,
-                    color: subtitlesEnabled ? "#22C55E" : "rgba(255,255,255,0.4)",
-                  }}>
-                  <Captions size={14} />
-                  {subtitlesEnabled ? "SUB ES — Activo" : "Subtítulos — Desactivado"}
+                    background: theaterMode ? "rgba(108,99,255,0.2)" : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${theaterMode ? "rgba(108,99,255,0.4)" : "rgba(255,255,255,0.1)"}`,
+                    color: theaterMode ? "#A78BFA" : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  {theaterMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                  <span className="hidden md:inline">{theaterMode ? "Normal" : "Modo Teatro"}</span>
                 </button>
-              )}
+                {/* Subtitle toggle */}
+                {hasSpanishSubs && (
+                  <button onClick={() => setSubtitlesEnabled(v => !v)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 7, padding: "8px 14px",
+                      borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                      background: subtitlesEnabled ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
+                      border: `1px solid ${subtitlesEnabled ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.1)"}`,
+                      color: subtitlesEnabled ? "#22C55E" : "rgba(255,255,255,0.4)",
+                    }}>
+                    <Captions size={14} />
+                    {subtitlesEnabled ? "SUB ES — Activo" : "Subtítulos — Desactivado"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Speed */}
@@ -781,7 +799,7 @@ export default function Player() {
         </div>
 
         {/* Sidebar: Episode list (desktop) */}
-        {animeId && (
+        {animeId && !theaterMode && (
           <div style={{ width: 300, flexShrink: 0, padding: "12px 12px 12px 0" }} className="hidden lg:block">
             <EpisodePanel
               animeId={animeId}

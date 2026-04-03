@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -210,6 +210,7 @@ export default function Navbar() {
                     padding: 8, minWidth: 160, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
                   }}>
                     {[
+                      { label: "Mi Lista", icon: <ListVideo size={14} />, href: "/watchlist" },
                       { label: "Favoritos", icon: <Bookmark size={14} />, href: "/favorites" },
                       { label: "Historial", icon: <Clock size={14} />, href: "/history" },
                     ].map(({ label, icon, href }) => (
@@ -321,6 +322,7 @@ export default function Navbar() {
                 )}
               </div>
 
+              <NavBtn href="/watchlist" icon={<ListVideo size={15} />} label="Mi Lista" active={isActive("/watchlist")} iconOnly />
               <NavBtn href="/favorites" icon={<Bookmark size={15} />} label="Favoritos" active={isActive("/favorites")} iconOnly />
               <NavBtn href="/history" icon={<Clock size={15} />} label="Historial" active={isActive("/history")} iconOnly />
             </div>
