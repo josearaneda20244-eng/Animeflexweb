@@ -1,14 +1,13 @@
-import pkg from "pg";
-const { Pool } = pkg;
+import { Pool } from "@neondatabase/serverless";
 
-let pool: InstanceType<typeof Pool>;
+let pool: Pool;
 
-export function getPool() {
+export function getPool(): Pool {
   if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    });
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
   }
   return pool;
 }

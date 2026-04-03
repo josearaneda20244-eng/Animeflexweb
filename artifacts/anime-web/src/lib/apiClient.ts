@@ -13,6 +13,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const res = await fetch(`${API}${path}`, { ...options, headers });
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(res.ok ? "Respuesta inesperada del servidor" : `Error del servidor (${res.status})`);
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? "Error del servidor");
   return data as T;
