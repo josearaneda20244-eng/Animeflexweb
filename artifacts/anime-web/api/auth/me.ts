@@ -9,10 +9,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
-  const payload = verifyToken(req, res);
-  if (!payload) return;
-
   try {
+    const payload = await verifyToken(req, res);
+    if (!payload) return;
     const sql = getSql();
     const rows = await sql`
       SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ${payload.userId}

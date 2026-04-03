@@ -1,16 +1,16 @@
-import jwt from "jsonwebtoken";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "animeflex_secret_change_in_prod";
 
-export function signToken(userId: number, email: string): string {
+export async function signToken(userId: number, email: string): Promise<string> {
+  const jwt = (await import("jsonwebtoken")).default;
   return jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "30d" });
 }
 
-export function verifyToken(
+export async function verifyToken(
   req: VercelRequest,
   res: VercelResponse
-): { userId: number; email: string } | null {
+): Promise<{ userId: number; email: string } | null> {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
     res.status(401).json({ error: "No autenticado" });
@@ -18,6 +18,7 @@ export function verifyToken(
   }
   const token = header.slice(7);
   try {
+    const jwt = (await import("jsonwebtoken")).default;
     return jwt.verify(token, JWT_SECRET) as { userId: number; email: string };
   } catch {
     res.status(401).json({ error: "Token inválido o expirado" });
