@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -15,6 +15,7 @@ export default function Navbar() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const notifsRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
@@ -95,262 +96,368 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50"
-      style={{ background: "rgba(9,10,18,0.96)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 56 }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#6C63FF,#4F46E5)" }}>
-            <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>▶</span>
-          </div>
-          <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1 }}>
-            <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
-          </span>
-        </Link>
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
 
-        {searchOpen ? (
-          <form onSubmit={handleSearch} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-            <div ref={searchBoxRef} style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
-              <Search size={15} color="rgba(255,255,255,0.35)" style={{ position: "absolute", left: 12, zIndex: 1 }} />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => handleQueryChange(e.target.value)}
-                onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                placeholder="Buscar anime..."
-                style={{
-                  width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
-                  borderRadius: showSuggestions && suggestions.length > 0 ? "12px 12px 0 0" : 12,
-                  background: "rgba(255,255,255,0.08)", border: "1px solid rgba(108,99,255,0.4)",
-                  color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit",
-                }}
-              />
-              {showSuggestions && suggestions.length > 0 && (
-                <div style={{
-                  position: "absolute", top: "100%", left: 0, right: 0, zIndex: 300,
-                  background: "#13131C", border: "1px solid rgba(108,99,255,0.3)", borderTop: "none",
-                  borderRadius: "0 0 14px 14px", overflow: "hidden",
-                  boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
-                }}>
-                  {searchLoading && (
-                    <div style={{ padding: "10px 14px", color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Buscando...</div>
-                  )}
-                  {!searchLoading && suggestions.map((anime) => {
-                    const title = resolveTitle(anime.title);
-                    return (
-                      <div key={anime.id} onClick={() => handleSuggestionClick(anime)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 10, padding: "9px 14px",
-                          cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.04)",
-                          transition: "background 0.12s",
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(108,99,255,0.12)")}
-                        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                        <img src={anime.image} alt={title} style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }} className="line-clamp-1">{title}</div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                            {anime.type && <span style={{ color: "#6C63FF", fontSize: 10, fontWeight: 700 }}>{anime.type}</span>}
-                            {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{anime.releaseDate}</span>}
-                            {anime.rating != null && anime.rating > 0 && (
-                              <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                                <Star size={9} color="#F59E0B" fill="#F59E0B" />
-                                <span style={{ color: "#F59E0B", fontSize: 10, fontWeight: 700 }}>{(anime.rating / 10).toFixed(1)}</span>
-                              </span>
-                            )}
+  const mobileNavItems = [
+    { label: "Inicio", icon: <Home size={18} />, href: "/" },
+    { label: "Películas", icon: <Film size={18} />, href: "/movies" },
+    { label: "OVAs", icon: <Tv2 size={18} />, href: "/ovas" },
+    { label: "Horario", icon: <Calendar size={18} />, href: "/schedule" },
+    { label: "Mi Lista", icon: <ListVideo size={18} />, href: "/watchlist" },
+    { label: "Favoritos", icon: <Bookmark size={18} />, href: "/favorites" },
+    { label: "Historial", icon: <Clock size={18} />, href: "/history" },
+  ];
+
+  return (
+    <>
+      <nav
+        className="fixed top-0 left-0 right-0 z-50"
+        style={{ background: "rgba(9,10,18,0.96)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 56 }}>
+          {/* Logo */}
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#6C63FF,#4F46E5)" }}>
+              <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>▶</span>
+            </div>
+            <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1 }}>
+              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
+            </span>
+          </Link>
+
+          {searchOpen ? (
+            <form onSubmit={handleSearch} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+              <div ref={searchBoxRef} style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
+                <Search size={15} color="rgba(255,255,255,0.35)" style={{ position: "absolute", left: 12, zIndex: 1 }} />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => handleQueryChange(e.target.value)}
+                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                  placeholder="Buscar anime..."
+                  style={{
+                    width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
+                    borderRadius: showSuggestions && suggestions.length > 0 ? "12px 12px 0 0" : 12,
+                    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(108,99,255,0.4)",
+                    color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit",
+                  }}
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div style={{
+                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 300,
+                    background: "#13131C", border: "1px solid rgba(108,99,255,0.3)", borderTop: "none",
+                    borderRadius: "0 0 14px 14px", overflow: "hidden",
+                    boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
+                  }}>
+                    {searchLoading && (
+                      <div style={{ padding: "10px 14px", color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Buscando...</div>
+                    )}
+                    {!searchLoading && suggestions.map((anime) => {
+                      const title = resolveTitle(anime.title);
+                      return (
+                        <div key={anime.id} onClick={() => handleSuggestionClick(anime)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10, padding: "9px 14px",
+                            cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.04)",
+                            transition: "background 0.12s",
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(108,99,255,0.12)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                          <img src={anime.image} alt={title} style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }} className="line-clamp-1">{title}</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                              {anime.type && <span style={{ color: "#6C63FF", fontSize: 10, fontWeight: 700 }}>{anime.type}</span>}
+                              {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{anime.releaseDate}</span>}
+                              {anime.rating != null && anime.rating > 0 && (
+                                <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                                  <Star size={9} color="#F59E0B" fill="#F59E0B" />
+                                  <span style={{ color: "#F59E0B", fontSize: 10, fontWeight: 700 }}>{(anime.rating / 10).toFixed(1)}</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                  <div onClick={handleSearch as any}
-                    style={{
-                      padding: "9px 14px", color: "#6C63FF", fontSize: 12, fontWeight: 700,
-                      cursor: "pointer", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)",
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(108,99,255,0.08)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                    Ver todos los resultados para "{query}" →
+                      );
+                    })}
+                    <div onClick={handleSearch as any}
+                      style={{
+                        padding: "9px 14px", color: "#6C63FF", fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)",
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(108,99,255,0.08)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                      Ver todos los resultados para "{query}" →
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-            <button type="button" onClick={closeSearch}
-              style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", display: "flex" }}>
-              <X size={16} color="rgba(255,255,255,0.65)" />
-            </button>
-          </form>
-        ) : (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
-              <NavBtn href="/" icon={<Home size={15} />} label="Inicio" active={isActive("/")} />
-              <NavBtn href="/movies" icon={<Film size={15} />} label="Películas" active={isActive("/movies")} />
-              <NavBtn href="/ovas" icon={<Tv2 size={15} />} label="OVAs" active={isActive("/ovas")} />
-              <NavBtn href="/schedule" icon={<Calendar size={15} />} label="Horario" active={isActive("/schedule")} />
+                )}
+              </div>
+              <button type="button" onClick={closeSearch}
+                style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", display: "flex" }}>
+                <X size={16} color="rgba(255,255,255,0.65)" />
+              </button>
+            </form>
+          ) : (
+            <>
+              {/* Desktop nav links */}
+              <div style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }} className="hidden md:flex">
+                <NavBtn href="/" icon={<Home size={15} />} label="Inicio" active={isActive("/")} />
+                <NavBtn href="/movies" icon={<Film size={15} />} label="Películas" active={isActive("/movies")} />
+                <NavBtn href="/ovas" icon={<Tv2 size={15} />} label="OVAs" active={isActive("/ovas")} />
+                <NavBtn href="/schedule" icon={<Calendar size={15} />} label="Horario" active={isActive("/schedule")} />
 
-              <div ref={moreRef} style={{ position: "relative" }}>
+                <div ref={moreRef} style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setMoreOpen((v) => !v)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 10,
+                      background: "none", border: "none", cursor: "pointer",
+                      color: moreOpen ? "#F1F1F5" : "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600,
+                    }}
+                  >
+                    Más <ChevronDown size={13} style={{ transform: moreOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }} />
+                  </button>
+                  {moreOpen && (
+                    <div style={{
+                      position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 200,
+                      background: "#13131C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
+                      padding: 8, minWidth: 160, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
+                    }}>
+                      {[
+                        { label: "Mi Lista", icon: <ListVideo size={14} />, href: "/watchlist" },
+                        { label: "Favoritos", icon: <Bookmark size={14} />, href: "/favorites" },
+                        { label: "Historial", icon: <Clock size={14} />, href: "/history" },
+                      ].map(({ label, icon, href }) => (
+                        <button key={href} onClick={() => { navigate(href); setMoreOpen(false); }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px",
+                            background: isActive(href) ? "rgba(108,99,255,0.15)" : "none", border: "none",
+                            borderRadius: 10, cursor: "pointer",
+                            color: isActive(href) ? "#A78BFA" : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: 600,
+                          }}
+                          onMouseEnter={(e) => { if (!isActive(href)) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                          onMouseLeave={(e) => { if (!isActive(href)) (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                        >
+                          {icon}{label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile: spacer */}
+              <div className="flex md:hidden" style={{ flex: 1 }} />
+
+              {/* Right actions */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {/* Aleatorio - desktop only */}
                 <button
-                  onClick={() => setMoreOpen((v) => !v)}
+                  onClick={handleRandom}
+                  title="Anime aleatorio"
                   style={{
-                    display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 10,
-                    background: "none", border: "none", cursor: "pointer",
-                    color: moreOpen ? "#F1F1F5" : "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600,
+                    display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
+                    background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.25)",
+                    color: "#A78BFA", fontSize: 12, fontWeight: 700, cursor: "pointer",
                   }}
                   className="hidden md:flex"
                 >
-                  Más <ChevronDown size={13} style={{ transform: moreOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }} />
-                </button>
-                {moreOpen && (
-                  <div style={{
-                    position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 200,
-                    background: "#13131C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
-                    padding: 8, minWidth: 160, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
-                  }}>
-                    {[
-                      { label: "Mi Lista", icon: <ListVideo size={14} />, href: "/watchlist" },
-                      { label: "Favoritos", icon: <Bookmark size={14} />, href: "/favorites" },
-                      { label: "Historial", icon: <Clock size={14} />, href: "/history" },
-                    ].map(({ label, icon, href }) => (
-                      <button key={href} onClick={() => { navigate(href); setMoreOpen(false); }}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px",
-                          background: isActive(href) ? "rgba(108,99,255,0.15)" : "none", border: "none",
-                          borderRadius: 10, cursor: "pointer",
-                          color: isActive(href) ? "#A78BFA" : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: 600,
-                        }}
-                        onMouseEnter={(e) => { if (!isActive(href)) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
-                        onMouseLeave={(e) => { if (!isActive(href)) (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
-                      >
-                        {icon}{label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <button
-                onClick={handleRandom}
-                title="Anime aleatorio"
-                style={{
-                  display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
-                  background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.25)",
-                  color: "#A78BFA", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                }}
-                className="hidden md:flex"
-              >
-                <Shuffle size={14} /> Aleatorio
-              </button>
-
-              <button onClick={() => setSearchOpen(true)}
-                style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex" }}>
-                <Search size={17} color="rgba(255,255,255,0.65)" />
-              </button>
-
-              <div ref={notifsRef} style={{ position: "relative" }}>
-                <button
-                  onClick={() => { setShowNotifs((v) => !v); if (!showNotifs) markAllRead(); }}
-                  style={{ position: "relative", padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex" }}
-                >
-                  <Bell size={17} color="rgba(255,255,255,0.65)" />
-                  {unreadCount > 0 && (
-                    <span style={{
-                      position: "absolute", top: 4, right: 4, width: 14, height: 14,
-                      background: "#EF4444", borderRadius: "50%", border: "2px solid #090A12",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: 8, fontWeight: 900,
-                    }}>{unreadCount > 9 ? "9+" : unreadCount}</span>
-                  )}
+                  <Shuffle size={14} /> Aleatorio
                 </button>
 
-                {showNotifs && (
-                  <div style={{
-                    position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
-                    background: "#13131C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
-                    padding: 0, width: 320, boxShadow: "0 16px 40px rgba(0,0,0,0.6)",
-                    maxHeight: 400, overflow: "hidden", display: "flex", flexDirection: "column",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                      <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Notificaciones</span>
-                      {notifications.length > 0 && (
-                        <button onClick={clearAll} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", fontSize: 12, cursor: "pointer" }}>Limpiar todo</button>
-                      )}
-                    </div>
-                    <div style={{ overflowY: "auto", flex: 1 }}>
-                      {notifications.length === 0 ? (
-                        <div style={{ padding: "32px 16px", textAlign: "center" }}>
-                          <Bell size={28} color="rgba(255,255,255,0.15)" style={{ margin: "0 auto 8px" }} />
-                          <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>Sin notificaciones</div>
-                        </div>
-                      ) : (
-                        notifications.slice(0, 20).map((n) => (
-                          <div
-                            key={n.id}
-                            onClick={() => { if (n.animeId) navigate(`/anime/${n.animeId}`); setShowNotifs(false); }}
-                            style={{
-                              display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px",
-                              borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: n.animeId ? "pointer" : "default",
-                              background: n.read ? "transparent" : "rgba(108,99,255,0.06)",
-                            }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = n.read ? "transparent" : "rgba(108,99,255,0.06)"; }}
-                          >
-                            {n.animeImage ? (
-                              <img src={n.animeImage} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                            ) : (
-                              <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(108,99,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                <Bell size={16} color="#6C63FF" />
-                              </div>
-                            )}
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700, marginBottom: 2 }} className="line-clamp-1">{n.title}</div>
-                              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }} className="line-clamp-2">{n.message}</div>
-                              <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, marginTop: 4 }}>
-                                {new Date(n.timestamp).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
-                              </div>
-                            </div>
-                            {!n.read && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#6C63FF", flexShrink: 0, marginTop: 4 }} />}
+                {/* Search */}
+                <button onClick={() => setSearchOpen(true)}
+                  style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex" }}>
+                  <Search size={17} color="rgba(255,255,255,0.65)" />
+                </button>
+
+                {/* Notifications */}
+                <div ref={notifsRef} style={{ position: "relative" }}>
+                  <button
+                    onClick={() => { setShowNotifs((v) => !v); if (!showNotifs) markAllRead(); }}
+                    style={{ position: "relative", padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex" }}
+                  >
+                    <Bell size={17} color="rgba(255,255,255,0.65)" />
+                    {unreadCount > 0 && (
+                      <span style={{
+                        position: "absolute", top: 4, right: 4, width: 14, height: 14,
+                        background: "#EF4444", borderRadius: "50%", border: "2px solid #090A12",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#fff", fontSize: 8, fontWeight: 900,
+                      }}>{unreadCount > 9 ? "9+" : unreadCount}</span>
+                    )}
+                  </button>
+
+                  {showNotifs && (
+                    <div style={{
+                      position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
+                      background: "#13131C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
+                      padding: 0, width: 320, boxShadow: "0 16px 40px rgba(0,0,0,0.6)",
+                      maxHeight: 400, overflow: "hidden", display: "flex", flexDirection: "column",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                        <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Notificaciones</span>
+                        {notifications.length > 0 && (
+                          <button onClick={clearAll} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", fontSize: 12, cursor: "pointer" }}>Limpiar todo</button>
+                        )}
+                      </div>
+                      <div style={{ overflowY: "auto", flex: 1 }}>
+                        {notifications.length === 0 ? (
+                          <div style={{ padding: "32px 16px", textAlign: "center" }}>
+                            <Bell size={28} color="rgba(255,255,255,0.15)" style={{ margin: "0 auto 8px" }} />
+                            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>Sin notificaciones</div>
                           </div>
-                        ))
-                      )}
+                        ) : (
+                          notifications.slice(0, 20).map((n) => (
+                            <div
+                              key={n.id}
+                              onClick={() => { if (n.animeId) navigate(`/anime/${n.animeId}`); setShowNotifs(false); }}
+                              style={{
+                                display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px",
+                                borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: n.animeId ? "pointer" : "default",
+                                background: n.read ? "transparent" : "rgba(108,99,255,0.06)",
+                              }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = n.read ? "transparent" : "rgba(108,99,255,0.06)"; }}
+                            >
+                              {n.animeImage ? (
+                                <img src={n.animeImage} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                              ) : (
+                                <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(108,99,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                  <Bell size={16} color="#6C63FF" />
+                                </div>
+                              )}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700, marginBottom: 2 }} className="line-clamp-1">{n.title}</div>
+                                <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }} className="line-clamp-2">{n.message}</div>
+                                <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, marginTop: 4 }}>
+                                  {new Date(n.timestamp).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
+                                </div>
+                              </div>
+                              {!n.read && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#6C63FF", flexShrink: 0, marginTop: 4 }} />}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <NavBtn href="/watchlist" icon={<ListVideo size={15} />} label="Mi Lista" active={isActive("/watchlist")} iconOnly />
-              <NavBtn href="/favorites" icon={<Bookmark size={15} />} label="Favoritos" active={isActive("/favorites")} iconOnly />
-              <NavBtn href="/history" icon={<Clock size={15} />} label="Historial" active={isActive("/history")} iconOnly />
+                {/* Hamburger - mobile only */}
+                <button
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="flex md:hidden"
+                  style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", alignItems: "center", justifyContent: "center" }}
+                >
+                  <Menu size={18} color="rgba(255,255,255,0.8)" />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </nav>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden"
+          style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }}
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          {/* Backdrop */}
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
+
+          {/* Drawer */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative", width: 280, height: "100%",
+              background: "#0D0D1A", borderRight: "1px solid rgba(255,255,255,0.08)",
+              display: "flex", flexDirection: "column", overflowY: "auto",
+            }}
+          >
+            {/* Drawer header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#6C63FF,#4F46E5)" }}>
+                  <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>▶</span>
+                </div>
+                <span style={{ fontSize: 16, fontWeight: 900 }}>
+                  <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
+                </span>
+              </Link>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer", display: "flex" }}
+              >
+                <X size={16} color="rgba(255,255,255,0.65)" />
+              </button>
             </div>
-          </>
-        )}
-      </div>
-    </nav>
+
+            {/* Nav items */}
+            <div style={{ padding: "12px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+              {mobileNavItems.map(({ label, icon, href }) => (
+                <button
+                  key={href}
+                  onClick={() => { navigate(href); setMobileMenuOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14, padding: "13px 16px",
+                    borderRadius: 12, border: "none", cursor: "pointer", textAlign: "left",
+                    background: isActive(href) ? "rgba(108,99,255,0.15)" : "transparent",
+                    color: isActive(href) ? "#A78BFA" : "rgba(255,255,255,0.75)",
+                    fontSize: 15, fontWeight: 600,
+                    borderLeft: isActive(href) ? "3px solid #6C63FF" : "3px solid transparent",
+                  }}
+                >
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "4px 20px" }} />
+
+            {/* Aleatorio */}
+            <div style={{ padding: "12px 12px" }}>
+              <button
+                onClick={() => { handleRandom(); setMobileMenuOpen(false); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", width: "100%",
+                  borderRadius: 12, border: "1px solid rgba(108,99,255,0.3)", cursor: "pointer",
+                  background: "rgba(108,99,255,0.1)", color: "#A78BFA", fontSize: 15, fontWeight: 600,
+                }}
+              >
+                <Shuffle size={18} /> Anime Aleatorio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
 function NavBtn({
-  href, icon, label, active, iconOnly = false,
+  href, icon, label, active,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
   active: boolean;
-  iconOnly?: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      style={{ textDecoration: "none" }}
-      className={iconOnly ? "md:hidden" : ""}
-    >
+    <Link href={href} style={{ textDecoration: "none" }}>
       <div
         style={{
-          display: "flex", alignItems: "center", gap: 5, padding: iconOnly ? "8px" : "6px 10px",
+          display: "flex", alignItems: "center", gap: 5, padding: "6px 10px",
           borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
           color: active ? "#A78BFA" : "rgba(255,255,255,0.55)",
           background: active ? "rgba(108,99,255,0.12)" : "none",
@@ -360,7 +467,7 @@ function NavBtn({
         onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLDivElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLDivElement).style.background = "none"; } }}
       >
         {icon}
-        {!iconOnly && <span className="hidden md:inline">{label}</span>}
+        <span>{label}</span>
       </div>
     </Link>
   );
