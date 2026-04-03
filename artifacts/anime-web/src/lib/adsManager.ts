@@ -25,7 +25,9 @@ function saveState(state: AdsState): void {
 
 function fireMonetag(): void {
   try {
-    const fn = (window as Record<string, unknown>)["show_225958"];
+    const win = window as Record<string, unknown>;
+    win["__adsAllowed"] = true;
+    const fn = win["show_225958"];
     if (typeof fn === "function") (fn as () => void)();
   } catch {}
 }
