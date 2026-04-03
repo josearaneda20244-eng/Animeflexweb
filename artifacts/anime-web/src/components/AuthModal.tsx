@@ -42,9 +42,10 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, zIndex: 1000,
+        position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
         background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 16, overflowY: "auto",
       }}
     >
       <div
@@ -53,6 +54,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           width: "100%", maxWidth: 400, background: "#0D0D1A",
           border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20,
           overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.7)",
+          margin: "auto",
+          position: "relative",
         }}
       >
         {/* Header */}
