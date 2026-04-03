@@ -14,9 +14,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { action } = req.body ?? {};
 
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) {
+    return res.status(503).json({
+      error: "Stripe no configurado. Añade STRIPE_SECRET_KEY y STRIPE_PRICE_ID en las variables de entorno de Vercel."
+    });
+  }
+
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const sql = getSql();
 
     // ── CHECKOUT ──
