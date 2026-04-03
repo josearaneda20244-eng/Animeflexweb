@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-06-30.basil" });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
     const sql = getSql();
 
     const rows = await sql`SELECT id, email, stripe_customer_id FROM users WHERE id = ${payload.userId}`;
@@ -31,25 +31,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await sql`UPDATE users SET stripe_customer_id = ${customerId} WHERE id = ${payload.userId}`;
     }
 
-    const origin = req.headers.origin || req.headers.referer?.split("/anime-web")[0] + "/anime-web" || "https://replit.dev";
-    const base = origin.includes("anime-web") ? origin : `${origin}/anime-web`;
-
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID!,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
       mode: "subscription",
-      success_url: `${base}/membership?success=true`,
-      cancel_url: `${base}/membership?canceled=true`,
+      ui_mode: "embedded",
+      redirect_on_completion: "never",
       metadata: { userId: String(payload.userId) },
     });
 
-    return res.json({ url: session.url });
+    return res.json({ clientSecret: session.client_secret });
   } catch (err: any) {
     console.error("Stripe checkout error:", err);
     return res.status(500).json({ error: err.message ?? "Error al crear sesión de pago" });
