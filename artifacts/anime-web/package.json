@@ -1,5 +1,5 @@
 {
-  "name": "animeflex-web",
+  "name": "@workspace/anime-web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,8 @@
     "bcryptjs": "^3.0.3",
     "hls.js": "^1.6.15",
     "jsonwebtoken": "^9.0.3",
-    "plyr": "^3.8.4"
+    "plyr": "^3.8.4",
+    "stripe": "^21.0.1"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

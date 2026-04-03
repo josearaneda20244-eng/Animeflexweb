@@ -7,15 +7,19 @@ export interface AuthUser {
   email: string;
   avatar_url: string | null;
   created_at: string;
+  membership_tier: "free" | "megafan";
+  subscription_expires_at: string | null;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   loading: boolean;
+  isMegaFan: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -27,10 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [loading, setLoading] = useState(!!token);
 
+  const fetchUser = async () => {
+    return apiClient.get<{ user: AuthUser }>("/auth/me").then(({ user }) => setUser(user));
+  };
+
   useEffect(() => {
     if (!token) { setLoading(false); return; }
-    apiClient.get<{ user: AuthUser }>("/auth/me")
-      .then(({ user }) => setUser(user))
+    fetchUser()
       .catch(() => { localStorage.removeItem("af_token"); setToken(null); })
       .finally(() => setLoading(false));
   }, [token]);
@@ -59,8 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    if (!token) return;
+    await fetchUser().catch(() => {});
+  };
+
+  const isMegaFan = user?.membership_tier === "megafan";
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, isMegaFan, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

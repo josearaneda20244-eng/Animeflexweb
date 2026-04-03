@@ -22,7 +22,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const sql = neon(process.env.DATABASE_URL!);
     const rows = await sql`
-      SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ${payload.userId}
+      SELECT id, username, email, avatar_url, created_at,
+             COALESCE(membership_tier, 'free') AS membership_tier,
+             subscription_expires_at
+      FROM users WHERE id = ${payload.userId}
     `;
     const user = rows[0];
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });

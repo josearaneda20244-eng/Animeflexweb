@@ -6,8 +6,18 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   avatar_url TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  membership_tier VARCHAR(20) DEFAULT 'free',
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  subscription_expires_at TIMESTAMP
 );
+
+-- Migration: add membership columns to existing users table (run if table already exists)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(20) DEFAULT 'free';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP;
 
 CREATE TABLE IF NOT EXISTS user_favorites (
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,

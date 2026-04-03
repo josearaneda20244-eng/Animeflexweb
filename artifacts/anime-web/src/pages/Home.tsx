@@ -7,6 +7,7 @@ import { useWatchProgress } from "@/context/WatchProgressContext";
 import { useCallback, useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import AdBanner from "@/components/AdBanner";
 
 function nav(navigate: (to: string) => void, id: string | number) {
   navigate(`/anime/${id}`);
@@ -385,7 +386,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div style={{ marginTop: 28 }}>
+        <div style={{ padding: "0 16px", marginTop: 16 }}>
+          <AdBanner variant="horizontal" />
+        </div>
+
+        <div style={{ marginTop: 12 }}>
           <SectionHeader title="⚡ Últimos Episodios" />
           <div className="carousel-scroll">
             {recent.isLoading ? Array.from({ length: 4 }).map((_, i) => <SkeletonR key={i} />) : recentList.slice(0, 10).map((a) => <RecentCard key={`r-${a.id}`} anime={a} />)}

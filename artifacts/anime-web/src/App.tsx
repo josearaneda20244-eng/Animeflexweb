@@ -10,6 +10,7 @@ import Movies from "@/pages/Movies";
 import OVAs from "@/pages/OVAs";
 import Schedule from "@/pages/Schedule";
 import WatchList from "@/pages/WatchList";
+import Membership from "@/pages/Membership";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 import { HistoryProvider } from "@/context/HistoryContext";
 import { WatchProgressProvider } from "@/context/WatchProgressContext";
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/ovas" component={OVAs} />
       <Route path="/schedule" component={Schedule} />
       <Route path="/watchlist" component={WatchList} />
+      <Route path="/membership" component={Membership} />
       <Route component={NotFound} />
     </Switch>
   );

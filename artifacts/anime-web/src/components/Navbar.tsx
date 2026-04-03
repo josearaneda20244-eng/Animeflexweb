@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -27,7 +27,7 @@ export default function Navbar() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { notifications, unreadCount, markAllRead, clearAll } = useNotifications();
-  const { user, logout } = useAuth();
+  const { user, logout, isMegaFan } = useAuth();
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
@@ -378,8 +378,9 @@ export default function Navbar() {
                           : <User size={14} color="#fff" />
                         }
                       </div>
-                      <span className="hidden md:block" style={{ color: "#A78BFA", fontSize: 12, fontWeight: 700, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span className="hidden md:block" style={{ color: "#A78BFA", fontSize: 12, fontWeight: 700, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
                         {user.username}
+                        {isMegaFan && <Crown size={11} color="#F59E0B" />}
                       </span>
                     </button>
 
@@ -390,9 +391,34 @@ export default function Navbar() {
                         padding: 8, minWidth: 180, boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
                       }}>
                         <div style={{ padding: "10px 12px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 6 }}>
-                          <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 800 }}>{user.username}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 800 }}>{user.username}</span>
+                            {isMegaFan && (
+                              <span style={{
+                                display: "inline-flex", alignItems: "center", gap: 3,
+                                background: "linear-gradient(135deg,rgba(108,99,255,0.3),rgba(245,158,11,0.2))",
+                                border: "1px solid rgba(245,158,11,0.4)", borderRadius: 100,
+                                padding: "1px 7px", fontSize: 9, fontWeight: 800, color: "#F59E0B",
+                              }}>
+                                <Crown size={9} /> MEGAFAN
+                              </span>
+                            )}
+                          </div>
                           <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>{user.email}</div>
                         </div>
+                        <button
+                          onClick={() => { navigate("/membership"); setShowUserMenu(false); }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px",
+                            background: "none", border: "none", borderRadius: 10, cursor: "pointer",
+                            color: isMegaFan ? "#A78BFA" : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: 600,
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(108,99,255,0.1)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                        >
+                          <Crown size={14} />
+                          {isMegaFan ? "Membresía MegaFan ⚡" : "Hazte MegaFan"}
+                        </button>
                         <button
                           onClick={() => { logout(); setShowUserMenu(false); }}
                           style={{

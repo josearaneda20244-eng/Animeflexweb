@@ -10,6 +10,7 @@ A full-featured anime streaming web app built with React + Vite + Tailwind + Wou
 Preview path: `/anime-web/`
 
 ### Features
+- **Membership system**: MegaFan tier ($4/month via Stripe) — no ads, VIP badge, manage via Stripe portal
 - **Home**: Hero banner, trending, popular, recent episodes, continue watching
 - **Search**: Real-time debounce search with genre/status filters and quick tags
 - **Anime Detail**: Cover, genres, description, episode list, characters carousel, YouTube trailer modal, recommendations section, studio name
