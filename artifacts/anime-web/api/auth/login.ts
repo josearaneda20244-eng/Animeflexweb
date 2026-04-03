@@ -1,6 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getSql } from "../_lib/db";
-import { signToken } from "../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -14,8 +12,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!email || !password)
       return res.status(400).json({ error: "Faltan campos obligatorios" });
 
+    const { neon } = await import("@neondatabase/serverless");
     const bcrypt = (await import("bcryptjs")).default;
-    const sql = getSql();
+    const jwt = (await import("jsonwebtoken")).default;
+
+    const sql = neon(process.env.DATABASE_URL!);
     const rows = await sql`
       SELECT id, username, email, password_hash, avatar_url, created_at
       FROM users WHERE email = ${email.trim().toLowerCase()}
@@ -27,7 +28,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!valid) return res.status(401).json({ error: "Email o contraseña incorrectos" });
 
     const { password_hash, ...safeUser } = user;
-    const token = await signToken(user.id as number, user.email as string);
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET ?? "animeflex_secret",
+      { expiresIn: "30d" }
+    );
     return res.json({ token, user: safeUser });
   } catch (err: any) {
     return res.status(500).json({ error: err.message ?? "Error interno del servidor" });

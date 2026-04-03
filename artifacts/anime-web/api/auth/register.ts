@@ -1,6 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getSql } from "../_lib/db";
-import { signToken } from "../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -16,8 +14,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (password.length < 6)
       return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
 
+    const { neon } = await import("@neondatabase/serverless");
     const bcrypt = (await import("bcryptjs")).default;
-    const sql = getSql();
+    const jwt = (await import("jsonwebtoken")).default;
+
+    const sql = neon(process.env.DATABASE_URL!);
     const hash = await bcrypt.hash(password, 10);
     const rows = await sql`
       INSERT INTO users (username, email, password_hash)
@@ -25,7 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       RETURNING id, username, email, avatar_url, created_at
     `;
     const user = rows[0];
-    const token = await signToken(user.id as number, user.email as string);
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET ?? "animeflex_secret",
+      { expiresIn: "30d" }
+    );
     return res.status(201).json({ token, user });
   } catch (err: any) {
     if (err.code === "23505") {

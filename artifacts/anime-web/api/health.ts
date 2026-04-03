@@ -9,22 +9,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     JWT_SECRET: process.env.JWT_SECRET ? "set" : "MISSING",
   };
 
-  if (process.env.DATABASE_URL) {
-    try {
-      const { neon } = await import("@neondatabase/serverless");
-      const sql = neon(process.env.DATABASE_URL);
-      await sql`SELECT 1`;
-      checks.database = "connected";
+  try {
+    const { neon } = await import("@neondatabase/serverless");
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`SELECT 1`;
+    checks.database = "connected";
+  } catch (e: any) {
+    checks.database = `error: ${e.message}`;
+  }
 
-      const tables = await sql`
-        SELECT table_name FROM information_schema.tables
-        WHERE table_schema = 'public'
-        ORDER BY table_name
-      `;
-      checks.tables = tables.map((t: any) => t.table_name).join(", ") || "none";
-    } catch (err: any) {
-      checks.database = `error: ${err.message}`;
-    }
+  try {
+    const bcrypt = (await import("bcryptjs")).default;
+    await bcrypt.hash("test", 4);
+    checks.bcryptjs = "ok";
+  } catch (e: any) {
+    checks.bcryptjs = `error: ${e.message}`;
+  }
+
+  try {
+    const jwt = (await import("jsonwebtoken")).default;
+    jwt.sign({ test: 1 }, "secret");
+    checks.jsonwebtoken = "ok";
+  } catch (e: any) {
+    checks.jsonwebtoken = `error: ${e.message}`;
+  }
+
+  try {
+    const { getSql } = await import("./_lib/db");
+    const sql = getSql();
+    await sql`SELECT 1`;
+    checks.getSql = "ok";
+  } catch (e: any) {
+    checks.getSql = `error: ${e.message}`;
   }
 
   return res.json(checks);
