@@ -13,13 +13,11 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "@stripe/react-stripe-js": "^6.1.0",
-    "@stripe/stripe-js": "^9.0.1",
+    "@paypal/react-paypal-js": "^9.1.0",
     "bcryptjs": "^3.0.3",
     "hls.js": "^1.6.15",
     "jsonwebtoken": "^9.0.3",
-    "plyr": "^3.8.4",
-    "stripe": "^21.0.1"
+    "plyr": "^3.8.4"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

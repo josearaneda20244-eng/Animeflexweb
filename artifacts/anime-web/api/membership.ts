@@ -2,6 +2,25 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { verifyToken } from "./_lib/auth";
 import { getSql } from "./_lib/db";
 
+const PAYPAL_BASE = process.env.PAYPAL_MODE === "sandbox"
+  ? "https://api-m.sandbox.paypal.com"
+  : "https://api-m.paypal.com";
+
+async function getPayPalToken(): Promise<string> {
+  const clientId = process.env.PAYPAL_CLIENT_ID!;
+  const secret = process.env.PAYPAL_CLIENT_SECRET!;
+  const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${clientId}:${secret}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+  const data = await res.json();
+  return data.access_token;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -9,65 +28,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const payload = await verifyToken(req, res);
-  if (!payload) return;
-
-  const { action } = req.body ?? {};
-
-  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRICE_ID) {
+  if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
     return res.status(503).json({
-      error: "Stripe no configurado. Añade STRIPE_SECRET_KEY y STRIPE_PRICE_ID en las variables de entorno de Vercel."
+      error: "PayPal no configurado. Añade PAYPAL_CLIENT_ID y PAYPAL_CLIENT_SECRET en las variables de entorno de Vercel.",
     });
   }
 
+  const payload = await verifyToken(req, res);
+  if (!payload) return;
+
+  const { action, subscriptionId } = req.body ?? {};
+
   try {
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const sql = getSql();
 
-    // ── CHECKOUT ──
-    if (action === "checkout") {
-      const rows = await sql`SELECT id, email, stripe_customer_id FROM users WHERE id = ${payload.userId}`;
-      const user = rows[0];
-      if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+    // ── ACTIVAR membresía tras aprobación de PayPal ──
+    if (action === "activate") {
+      if (!subscriptionId) return res.status(400).json({ error: "Falta subscriptionId" });
 
-      let customerId = user.stripe_customer_id as string | null;
-      if (!customerId) {
-        const customer = await stripe.customers.create({
-          email: user.email as string,
-          metadata: { userId: String(user.id) },
-        });
-        customerId = customer.id;
-        await sql`UPDATE users SET stripe_customer_id = ${customerId} WHERE id = ${payload.userId}`;
+      const token = await getPayPalToken();
+      const subRes = await fetch(`${PAYPAL_BASE}/v1/billing/subscriptions/${subscriptionId}`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const sub = await subRes.json();
+
+      if (sub.status !== "ACTIVE") {
+        return res.status(400).json({ error: "La suscripción no está activa en PayPal" });
       }
 
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        payment_method_types: ["card"],
-        line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
-        mode: "subscription",
-        ui_mode: "embedded",
-        redirect_on_completion: "never",
-        metadata: { userId: String(payload.userId) },
-      } as Parameters<typeof stripe.checkout.sessions.create>[0]);
+      const expiresAt = sub.billing_info?.next_billing_time ?? null;
 
-      return res.json({ clientSecret: session.client_secret });
+      await sql`
+        UPDATE users
+        SET membership_tier = 'megafan',
+            stripe_subscription_id = ${subscriptionId},
+            subscription_expires_at = ${expiresAt}
+        WHERE id = ${payload.userId}
+      `;
+
+      return res.json({ ok: true, tier: "megafan" });
     }
 
-    // ── PORTAL ──
+    // ── CANCELAR / GESTIONAR (redirige a PayPal) ──
     if (action === "portal") {
-      const rows = await sql`SELECT stripe_customer_id FROM users WHERE id = ${payload.userId}`;
-      const user = rows[0];
-      if (!user?.stripe_customer_id) {
-        return res.status(400).json({ error: "No tienes una suscripción activa" });
-      }
-
-      const origin = req.headers.origin ?? "https://animeflex.vercel.app";
-      const session = await stripe.billingPortal.sessions.create({
-        customer: user.stripe_customer_id as string,
-        return_url: `${origin}/membership`,
-      });
-      return res.json({ url: session.url });
+      const portalUrl = process.env.PAYPAL_MODE === "sandbox"
+        ? "https://www.sandbox.paypal.com/myaccount/autopay/"
+        : "https://www.paypal.com/myaccount/autopay/";
+      return res.json({ url: portalUrl });
     }
 
     return res.status(400).json({ error: "Acción no válida" });
