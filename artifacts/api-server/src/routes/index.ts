@@ -1,10 +1,14 @@
 import { Router, type IRouter } from "express";
-import healthRouter from "./health";
-import animeRouter from "./anime";
+import healthRouter from "./health.js";
+import animeRouter from "./anime.js";
+import authRouter from "./auth.js";
+import userRouter from "./user.js";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(animeRouter);
+router.use(authRouter);
+router.use(userRouter);
 
 export default router;

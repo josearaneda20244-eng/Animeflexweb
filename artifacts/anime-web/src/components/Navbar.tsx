@@ -1,8 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
+import { useAuth } from "@/context/AuthContext";
+import AuthModal from "@/components/AuthModal";
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -16,12 +18,16 @@ export default function Navbar() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const notifsRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { notifications, unreadCount, markAllRead, clearAll } = useNotifications();
+  const { user, logout } = useAuth();
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
@@ -91,6 +97,7 @@ export default function Navbar() {
       if (notifsRef.current && !notifsRef.current.contains(e.target as Node)) setShowNotifs(false);
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowSuggestions(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -351,6 +358,70 @@ export default function Navbar() {
                   )}
                 </div>
 
+                {/* Auth button / user avatar */}
+                {user ? (
+                  <div ref={userMenuRef} style={{ position: "relative" }}>
+                    <button
+                      onClick={() => setShowUserMenu((v) => !v)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 7, padding: "5px 10px 5px 5px",
+                        borderRadius: 10, background: "rgba(108,99,255,0.12)", border: "1px solid rgba(108,99,255,0.25)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                      }}>
+                        {user.avatar_url
+                          ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "cover" }} />
+                          : <User size={14} color="#fff" />
+                        }
+                      </div>
+                      <span className="hidden md:block" style={{ color: "#A78BFA", fontSize: 12, fontWeight: 700, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {user.username}
+                      </span>
+                    </button>
+
+                    {showUserMenu && (
+                      <div style={{
+                        position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
+                        background: "#13131C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
+                        padding: 8, minWidth: 180, boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
+                      }}>
+                        <div style={{ padding: "10px 12px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 6 }}>
+                          <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 800 }}>{user.username}</div>
+                          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>{user.email}</div>
+                        </div>
+                        <button
+                          onClick={() => { logout(); setShowUserMenu(false); }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px",
+                            background: "none", border: "none", borderRadius: 10, cursor: "pointer",
+                            color: "#FCA5A5", fontSize: 13, fontWeight: 600,
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                        >
+                          <LogOut size={14} /> Cerrar sesión
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
+                      borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                      border: "none", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700,
+                    }}
+                  >
+                    <LogIn size={14} />
+                    <span className="hidden md:inline">Entrar</span>
+                  </button>
+                )}
+
                 {/* Hamburger - mobile only */}
                 <button
                   onClick={() => setMobileMenuOpen(true)}
@@ -438,9 +509,55 @@ export default function Navbar() {
                 <Shuffle size={18} /> Anime Aleatorio
               </button>
             </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "4px 20px" }} />
+
+            {/* Auth section */}
+            <div style={{ padding: "12px 12px", marginTop: "auto" }}>
+              {user ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "rgba(108,99,255,0.08)", borderRadius: 12, marginBottom: 8 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {user.avatar_url
+                        ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", borderRadius: 10, objectFit: "cover" }} />
+                        : <User size={18} color="#fff" />
+                      }
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.username}</div>
+                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { logout(); setMobileMenuOpen(false); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "13px 16px",
+                      borderRadius: 12, border: "none", cursor: "pointer",
+                      background: "rgba(239,68,68,0.1)", color: "#FCA5A5", fontSize: 14, fontWeight: 700,
+                    }}
+                  >
+                    <LogOut size={18} /> Cerrar sesión
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => { setMobileMenuOpen(false); setShowAuthModal(true); }}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 12, width: "100%", padding: "14px 16px",
+                    borderRadius: 12, border: "none", cursor: "pointer",
+                    background: "linear-gradient(135deg,#6C63FF,#4F46E5)", color: "#fff", fontSize: 15, fontWeight: 800,
+                  }}
+                >
+                  <LogIn size={18} /> Iniciar sesión / Registrarse
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
+
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
     </>
   );
 }

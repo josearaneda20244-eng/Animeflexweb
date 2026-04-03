@@ -15,6 +15,7 @@ import { HistoryProvider } from "@/context/HistoryContext";
 import { WatchProgressProvider } from "@/context/WatchProgressContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { WatchListProvider } from "@/context/WatchListContext";
+import { AuthProvider } from "@/context/AuthContext";
 import ScrollToTop from "@/components/ScrollToTop";
 
 const queryClient = new QueryClient({
@@ -83,19 +84,21 @@ function Layout() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <NotificationsProvider>
-        <WatchProgressProvider>
-          <WatchListProvider>
-            <FavoritesProvider>
-              <HistoryProvider>
-                <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-                  <Layout />
-                </WouterRouter>
-              </HistoryProvider>
-            </FavoritesProvider>
-          </WatchListProvider>
-        </WatchProgressProvider>
-      </NotificationsProvider>
+      <AuthProvider>
+        <NotificationsProvider>
+          <WatchProgressProvider>
+            <WatchListProvider>
+              <FavoritesProvider>
+                <HistoryProvider>
+                  <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                    <Layout />
+                  </WouterRouter>
+                </HistoryProvider>
+              </FavoritesProvider>
+            </WatchListProvider>
+          </WatchProgressProvider>
+        </NotificationsProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
