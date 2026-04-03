@@ -208,7 +208,7 @@ export default function Navbar() {
           ) : (
             <>
               {/* Desktop nav links */}
-              <div style={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }} className="hidden md:flex">
+              <div style={{ alignItems: "center", gap: 2, flex: 1 }} className="hidden md:flex">
                 <NavBtn href="/" icon={<Home size={15} />} label="Inicio" active={isActive("/")} />
                 <NavBtn href="/movies" icon={<Film size={15} />} label="Películas" active={isActive("/movies")} />
                 <NavBtn href="/ovas" icon={<Tv2 size={15} />} label="OVAs" active={isActive("/ovas")} />
@@ -264,7 +264,7 @@ export default function Navbar() {
                   onClick={handleRandom}
                   title="Anime aleatorio"
                   style={{
-                    display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
+                    alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
                     background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.25)",
                     color: "#A78BFA", fontSize: 12, fontWeight: 700, cursor: "pointer",
                   }}
