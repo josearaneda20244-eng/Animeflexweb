@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Mail, Lock, User, Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -38,7 +39,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     }
   };
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -128,7 +129,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           </p>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
