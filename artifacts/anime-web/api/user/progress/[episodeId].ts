@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPool } from "../../_lib/db";
+import { getSql } from "../../_lib/db";
 import { verifyToken } from "../../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -12,15 +12,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const payload = verifyToken(req, res);
   if (!payload) return;
 
-  const pool = getPool();
+  const sql = getSql();
   const { animeId, animeTitle, animeImage, episodeNum, watchTime, duration } = req.body;
-  await pool.query(
-    `INSERT INTO user_watch_progress
-       (user_id, episode_id, anime_id, anime_title, anime_image, episode_num, watch_time, duration)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-     ON CONFLICT (user_id, episode_id)
-     DO UPDATE SET watch_time=$7, duration=$8, anime_title=$4, anime_image=$5, updated_at=NOW()`,
-    [payload.userId, req.query.episodeId, animeId, animeTitle, animeImage, episodeNum, watchTime, duration]
-  );
+  await sql`
+    INSERT INTO user_watch_progress
+      (user_id, episode_id, anime_id, anime_title, anime_image, episode_num, watch_time, duration)
+    VALUES (${payload.userId}, ${req.query.episodeId as string}, ${animeId}, ${animeTitle}, ${animeImage}, ${episodeNum}, ${watchTime}, ${duration})
+    ON CONFLICT (user_id, episode_id)
+    DO UPDATE SET watch_time=${watchTime}, duration=${duration}, anime_title=${animeTitle}, anime_image=${animeImage}, updated_at=NOW()
+  `;
   return res.json({ ok: true });
 }

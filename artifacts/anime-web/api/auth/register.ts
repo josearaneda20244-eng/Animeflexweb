@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import bcrypt from "bcryptjs";
-import { getPool } from "../_lib/db";
+import { getSql } from "../_lib/db";
 import { signToken } from "../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -17,15 +17,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
 
   try {
-    const pool = getPool();
+    const sql = getSql();
     const hash = await bcrypt.hash(password, 10);
-    const result = await pool.query(
-      `INSERT INTO users (username, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, username, email, avatar_url, created_at`,
-      [username.trim(), email.trim().toLowerCase(), hash]
-    );
-    const user = result.rows[0];
+    const rows = await sql`
+      INSERT INTO users (username, email, password_hash)
+      VALUES (${username.trim()}, ${email.trim().toLowerCase()}, ${hash})
+      RETURNING id, username, email, avatar_url, created_at
+    `;
+    const user = rows[0];
     const token = signToken(user.id, user.email);
     return res.status(201).json({ token, user });
   } catch (err: any) {
@@ -33,6 +32,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const field = err.constraint?.includes("email") ? "email" : "username";
       return res.status(409).json({ error: `El ${field} ya está en uso` });
     }
-    return res.status(500).json({ error: "Error interno del servidor" });
+    return res.status(500).json({ error: err.message ?? "Error interno del servidor" });
   }
 }

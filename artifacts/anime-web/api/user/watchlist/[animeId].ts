@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPool } from "../../_lib/db";
+import { getSql } from "../../_lib/db";
 import { verifyToken } from "../../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -11,25 +11,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const payload = verifyToken(req, res);
   if (!payload) return;
 
-  const pool = getPool();
+  const sql = getSql();
 
   if (req.method === "PUT") {
     const { animeTitle, animeImage, animeType, status } = req.body;
-    await pool.query(
-      `INSERT INTO user_watchlist (user_id, anime_id, anime_title, anime_image, anime_type, status)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       ON CONFLICT (user_id, anime_id)
-       DO UPDATE SET status = $6, anime_title = $3, anime_image = $4, updated_at = NOW()`,
-      [payload.userId, req.query.animeId, animeTitle, animeImage, animeType, status]
-    );
+    await sql`
+      INSERT INTO user_watchlist (user_id, anime_id, anime_title, anime_image, anime_type, status)
+      VALUES (${payload.userId}, ${req.query.animeId as string}, ${animeTitle}, ${animeImage}, ${animeType}, ${status})
+      ON CONFLICT (user_id, anime_id)
+      DO UPDATE SET status = ${status}, anime_title = ${animeTitle}, anime_image = ${animeImage}, updated_at = NOW()
+    `;
     return res.json({ ok: true });
   }
 
   if (req.method === "DELETE") {
-    await pool.query(
-      `DELETE FROM user_watchlist WHERE user_id = $1 AND anime_id = $2`,
-      [payload.userId, req.query.animeId]
-    );
+    await sql`DELETE FROM user_watchlist WHERE user_id = ${payload.userId} AND anime_id = ${req.query.animeId as string}`;
     return res.json({ ok: true });
   }
 

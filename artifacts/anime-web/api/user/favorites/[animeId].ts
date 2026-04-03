@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPool } from "../../_lib/db";
+import { getSql } from "../../_lib/db";
 import { verifyToken } from "../../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -12,10 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const payload = verifyToken(req, res);
   if (!payload) return;
 
-  const pool = getPool();
-  await pool.query(
-    `DELETE FROM user_favorites WHERE user_id = $1 AND anime_id = $2`,
-    [payload.userId, req.query.animeId]
-  );
+  const sql = getSql();
+  await sql`DELETE FROM user_favorites WHERE user_id = ${payload.userId} AND anime_id = ${req.query.animeId as string}`;
   return res.json({ ok: true });
 }

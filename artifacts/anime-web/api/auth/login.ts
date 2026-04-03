@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import bcrypt from "bcryptjs";
-import { getPool } from "../_lib/db";
+import { getSql } from "../_lib/db";
 import { signToken } from "../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -15,21 +15,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Faltan campos obligatorios" });
 
   try {
-    const pool = getPool();
-    const result = await pool.query(
-      `SELECT id, username, email, password_hash, avatar_url, created_at FROM users WHERE email = $1`,
-      [email.trim().toLowerCase()]
-    );
-    const user = result.rows[0];
+    const sql = getSql();
+    const rows = await sql`
+      SELECT id, username, email, password_hash, avatar_url, created_at
+      FROM users WHERE email = ${email.trim().toLowerCase()}
+    `;
+    const user = rows[0];
     if (!user) return res.status(401).json({ error: "Email o contraseña incorrectos" });
 
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await bcrypt.compare(password, user.password_hash as string);
     if (!valid) return res.status(401).json({ error: "Email o contraseña incorrectos" });
 
     const { password_hash, ...safeUser } = user;
-    const token = signToken(user.id, user.email);
+    const token = signToken(user.id as number, user.email as string);
     return res.json({ token, user: safeUser });
-  } catch {
-    return res.status(500).json({ error: "Error interno del servidor" });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message ?? "Error interno del servidor" });
   }
 }

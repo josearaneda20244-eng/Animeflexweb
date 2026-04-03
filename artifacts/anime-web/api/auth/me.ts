@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPool } from "../_lib/db";
+import { getSql } from "../_lib/db";
 import { verifyToken } from "../_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -13,15 +13,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!payload) return;
 
   try {
-    const pool = getPool();
-    const result = await pool.query(
-      `SELECT id, username, email, avatar_url, created_at FROM users WHERE id = $1`,
-      [payload.userId]
-    );
-    const user = result.rows[0];
+    const sql = getSql();
+    const rows = await sql`
+      SELECT id, username, email, avatar_url, created_at FROM users WHERE id = ${payload.userId}
+    `;
+    const user = rows[0];
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
     return res.json({ user });
-  } catch {
-    return res.status(500).json({ error: "Error interno del servidor" });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message ?? "Error interno del servidor" });
   }
 }
