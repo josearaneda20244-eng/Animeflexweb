@@ -15,6 +15,7 @@ import {
   type StreamingSource,
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
+import { onEpisodeWatched } from "@/lib/adsManager";
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -600,7 +601,10 @@ export default function Player() {
     navigate(`/watch?${p.toString()}`);
   }, [nextEpisodeId, nextEpisodeNum, animeTitle, animeId, animeImage, navigate]);
 
-  const handleEnded = useCallback(() => { if (nextEpisodeId) setShowAutoNext(true); }, [nextEpisodeId]);
+  const handleEnded = useCallback(() => {
+    onEpisodeWatched();
+    if (nextEpisodeId) setShowAutoNext(true);
+  }, [nextEpisodeId]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {

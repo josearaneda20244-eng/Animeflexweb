@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -13,6 +13,7 @@ import { useWatchProgress } from "@/context/WatchProgressContext";
 import { useNotifications } from "@/context/NotificationsContext";
 import { useWatchList, type WatchStatus } from "@/context/WatchListContext";
 import CommentsSection from "@/components/CommentsSection";
+import { onAnimeClick, onEpisodeClick } from "@/lib/adsManager";
 
 const STATUS_OPTIONS: { value: WatchStatus; label: string; icon: React.ReactNode; color: string }[] = [
   { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#6C63FF" },
@@ -165,6 +166,8 @@ export default function AnimeDetail() {
   const [shareToast, setShareToast] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
 
+  useEffect(() => { onAnimeClick(); }, []);
+
   const infoQuery = useQuery({
     queryKey: ["animeAnilistInfo", id],
     queryFn: () => consumet.anilistInfo(id!),
@@ -211,6 +214,7 @@ export default function AnimeDetail() {
     if (!ep?.id) return;
     setWatchedEps((prev) => new Set([...prev, ep.id]));
     addToHistory(animeForFav, ep.number);
+    onEpisodeClick();
 
     const paheEpisodes = paheQuery.data?.episodes ?? [];
     const paheEp = paheEpisodes.find((e) => e.number === ep.number);
