@@ -2,9 +2,13 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// Kill ALL ad/push-notification service workers immediately on page load
-// This runs before React mounts so it catches Monetag (5gvci.com) SW fast
 if ("serviceWorker" in navigator) {
+  // 1. Registrar el SW de AnimeFlex que bloquea notificaciones push de anuncios
+  navigator.serviceWorker
+    .register("/afsw.js")
+    .catch(() => {});
+
+  // 2. Eliminar todos los SWs de redes publicitarias (Monetag/5gvci.com)
   navigator.serviceWorker.getRegistrations().then((regs) => {
     regs.forEach((reg) => {
       const url =
@@ -18,11 +22,8 @@ if ("serviceWorker" in navigator) {
         url.includes("multitag") ||
         url.includes("al5sm") ||
         url.includes("sw_") ||
-        url.includes("push-sw") ||
         /\/sw_\d+\.js/.test(url);
-      if (isAd) {
-        reg.unregister();
-      }
+      if (isAd) reg.unregister();
     });
   });
 }
