@@ -2,7 +2,7 @@
 // Reemplaza completamente la monetización por anuncios.
 
 const STORAGE_KEY = "af_daily_access";
-const DAILY_LIMIT = 3;
+const DAILY_LIMIT = 5;
 // Anti-exploit: mínimo de segundos vistos antes de contar un episodio
 export const REGISTER_THRESHOLD_SECONDS = 60;
 
