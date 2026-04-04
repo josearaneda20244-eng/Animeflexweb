@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -410,21 +410,32 @@ export default function Navbar() {
 
                         {/* Avatar overlapping banner */}
                         <div style={{ padding: "0 16px", marginTop: -28, position: "relative", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-                          <div style={{
-                            width: 56, height: 56, borderRadius: 16,
-                            background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
-                            border: "3px solid #16172A",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            boxShadow: "0 4px 16px rgba(108,99,255,0.5)",
-                            overflow: "hidden", flexShrink: 0,
-                          }}>
+                          <button onClick={() => { navigate("/settings"); setShowUserMenu(false); }}
+                            title="Cambiar foto de perfil"
+                            style={{
+                              position: "relative", width: 56, height: 56, borderRadius: 16, padding: 0, border: "none",
+                              background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                              boxShadow: "0 4px 16px rgba(108,99,255,0.5)",
+                              overflow: "hidden", flexShrink: 0, cursor: "pointer",
+                              outline: "3px solid #16172A",
+                            }}
+                          >
                             {user.avatar_url
                               ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                               : <span style={{ color: "#fff", fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
                                   {user.username.charAt(0).toUpperCase()}
                                 </span>
                             }
-                          </div>
+                            <div style={{
+                              position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                              background: "rgba(0,0,0,0.5)", opacity: 0, transition: "opacity 0.2s",
+                            }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "1"; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "0"; }}
+                            >
+                              <Camera size={16} color="#fff" />
+                            </div>
+                          </button>
                           {/* Badges row */}
                           <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                             {isOwner && (
