@@ -1,7 +1,7 @@
-// Ads are now handled exclusively through the <AdBanner> React component.
-// Pop-under / script-based ads have been removed.
-// To connect a real ad provider (Google AdSense, Adsterra, etc.)
-// edit the <AdBanner> component in src/components/AdBanner.tsx.
+// adsManager.ts
+// Los anuncios han sido eliminados completamente.
+// La monetización se gestiona a través del sistema de límite diario de episodios.
+// Ver: src/lib/accessControl.ts
 
 export function setAdsBlocked(_blocked: boolean): void {}
 export function onAnimeClick(): void {}
