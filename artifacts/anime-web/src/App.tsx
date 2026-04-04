@@ -18,6 +18,7 @@ import { NotificationsProvider } from "@/context/NotificationsContext";
 import { WatchListProvider } from "@/context/WatchListContext";
 import { AuthProvider } from "@/context/AuthContext";
 import ScrollToTop from "@/components/ScrollToTop";
+import AdScript from "@/components/AdScript";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -87,6 +88,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AdScript />
         <NotificationsProvider>
           <WatchProgressProvider>
             <WatchListProvider>
