@@ -1,21 +1,26 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 
-async function unregisterAdServiceWorkers() {
+// Aggressive SW cleanup — kills Monetag (5gvci.com) and similar ad networks
+async function killAdServiceWorkers() {
   if (!("serviceWorker" in navigator)) return;
   try {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    for (const reg of registrations) {
-      const scriptURL = reg.active?.scriptURL ?? reg.installing?.scriptURL ?? reg.waiting?.scriptURL ?? "";
-      if (
-        scriptURL.includes("al5sm") ||
-        scriptURL.includes("monetag") ||
-        scriptURL.includes("push") ||
-        scriptURL.includes("sw.js") ||
-        scriptURL.includes("serviceworker")
-      ) {
-        await reg.unregister();
-      }
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) {
+      const url =
+        reg.active?.scriptURL ||
+        reg.installing?.scriptURL ||
+        reg.waiting?.scriptURL ||
+        "";
+      const isAd =
+        url.includes("5gvci.com") ||
+        url.includes("monetag") ||
+        url.includes("multitag") ||
+        url.includes("al5sm") ||
+        url.includes("push") ||
+        url.includes("sw_") ||
+        /\/sw_\d+\.js/.test(url);
+      if (isAd) await reg.unregister();
     }
   } catch {}
 }
@@ -28,16 +33,17 @@ export default function AdScript() {
     if (loading) return;
 
     if (isMegaFan) {
+      // Remove ad script if loaded
       if (scriptRef.current) {
         scriptRef.current.remove();
         scriptRef.current = null;
       }
-      unregisterAdServiceWorkers();
+      // Kill any remaining ad service workers
+      killAdServiceWorkers();
       return;
     }
 
-    if (!user) return;
-
+    // Not MegaFan: load ad script for authenticated or anonymous users
     if (scriptRef.current) return;
 
     const s = document.createElement("script");
