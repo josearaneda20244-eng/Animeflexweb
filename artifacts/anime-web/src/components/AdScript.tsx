@@ -1,8 +1,27 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 
+async function unregisterAdServiceWorkers() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const reg of registrations) {
+      const scriptURL = reg.active?.scriptURL ?? reg.installing?.scriptURL ?? reg.waiting?.scriptURL ?? "";
+      if (
+        scriptURL.includes("al5sm") ||
+        scriptURL.includes("monetag") ||
+        scriptURL.includes("push") ||
+        scriptURL.includes("sw.js") ||
+        scriptURL.includes("serviceworker")
+      ) {
+        await reg.unregister();
+      }
+    }
+  } catch {}
+}
+
 export default function AdScript() {
-  const { isMegaFan, loading } = useAuth();
+  const { isMegaFan, loading, user } = useAuth();
   const scriptRef = useRef<HTMLScriptElement | null>(null);
 
   useEffect(() => {
@@ -13,8 +32,11 @@ export default function AdScript() {
         scriptRef.current.remove();
         scriptRef.current = null;
       }
+      unregisterAdServiceWorkers();
       return;
     }
+
+    if (!user) return;
 
     if (scriptRef.current) return;
 
@@ -28,7 +50,7 @@ export default function AdScript() {
       s.remove();
       scriptRef.current = null;
     };
-  }, [isMegaFan, loading]);
+  }, [isMegaFan, loading, user]);
 
   return null;
 }
