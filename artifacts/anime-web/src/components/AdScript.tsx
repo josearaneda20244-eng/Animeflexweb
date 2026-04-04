@@ -1,6 +1,4 @@
-// AdScript is intentionally empty.
-// Ads are handled exclusively through the <AdBanner> component,
-// which gives full control per user (MegaFan users see nothing).
+// AdScript.tsx — Sin anuncios. La monetización es por membresía MegaFan.
 export default function AdScript() {
   return null;
 }
