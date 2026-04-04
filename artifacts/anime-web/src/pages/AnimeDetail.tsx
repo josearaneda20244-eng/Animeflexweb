@@ -14,6 +14,7 @@ import { useNotifications } from "@/context/NotificationsContext";
 import { useWatchList, type WatchStatus } from "@/context/WatchListContext";
 import CommentsSection from "@/components/CommentsSection";
 import { onAnimeClick, onEpisodeClick } from "@/lib/adsManager";
+import { useAuth } from "@/context/AuthContext";
 
 const STATUS_OPTIONS: { value: WatchStatus; label: string; icon: React.ReactNode; color: string }[] = [
   { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#6C63FF" },
@@ -156,6 +157,7 @@ function RecommendationCard({ anime }: { anime: AnimeResult }) {
 export default function AnimeDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const { isMegaFan } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToHistory } = useHistory();
   const { getAnimeProgress } = useWatchProgress();
@@ -166,7 +168,7 @@ export default function AnimeDetail() {
   const [shareToast, setShareToast] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
 
-  useEffect(() => { onAnimeClick(); }, []);
+  useEffect(() => { if (!isMegaFan) onAnimeClick(); }, [isMegaFan]);
 
   const infoQuery = useQuery({
     queryKey: ["animeAnilistInfo", id],
@@ -214,7 +216,7 @@ export default function AnimeDetail() {
     if (!ep?.id) return;
     setWatchedEps((prev) => new Set([...prev, ep.id]));
     addToHistory(animeForFav, ep.number);
-    onEpisodeClick();
+    if (!isMegaFan) onEpisodeClick();
 
     const paheEpisodes = paheQuery.data?.episodes ?? [];
     const paheEp = paheEpisodes.find((e) => e.number === ep.number);

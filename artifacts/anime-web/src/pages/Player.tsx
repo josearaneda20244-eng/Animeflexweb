@@ -16,6 +16,7 @@ import {
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
 import { onEpisodeWatched } from "@/lib/adsManager";
+import { useAuth } from "@/context/AuthContext";
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -503,6 +504,7 @@ function EpisodePanel({
 export default function Player() {
   const rawSearch = useSearch();
   const [, navigate] = useLocation();
+  const { isMegaFan } = useAuth();
   const params = new URLSearchParams(rawSearch);
   const episodeId = params.get("episodeId") ?? "";
   const episodeNum = params.get("episodeNum") ?? "";
@@ -602,9 +604,9 @@ export default function Player() {
   }, [nextEpisodeId, nextEpisodeNum, animeTitle, animeId, animeImage, navigate]);
 
   const handleEnded = useCallback(() => {
-    onEpisodeWatched();
+    if (!isMegaFan) onEpisodeWatched();
     if (nextEpisodeId) setShowAutoNext(true);
-  }, [nextEpisodeId]);
+  }, [nextEpisodeId, isMegaFan]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
