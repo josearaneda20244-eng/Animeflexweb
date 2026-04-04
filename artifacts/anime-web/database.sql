@@ -13,11 +13,12 @@ CREATE TABLE IF NOT EXISTS users (
   subscription_expires_at TIMESTAMP
 );
 
--- Migration: add membership columns to existing users table (run if table already exists)
+-- Migration: add membership + role columns to existing users table (run if table already exists)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(20) DEFAULT 'free';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user';
 
 CREATE TABLE IF NOT EXISTS user_favorites (
   user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,

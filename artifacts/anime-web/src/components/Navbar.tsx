@@ -27,7 +27,7 @@ export default function Navbar() {
   const userMenuRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { notifications, unreadCount, markAllRead, clearAll } = useNotifications();
-  const { user, logout, isMegaFan } = useAuth();
+  const { user, logout, isMegaFan, isOwner } = useAuth();
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
@@ -380,6 +380,7 @@ export default function Navbar() {
                       </div>
                       <span className="hidden md:block" style={{ color: "#A78BFA", fontSize: 12, fontWeight: 700, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
                         {user.username}
+                        {isOwner && <span title="Dueño" style={{ fontSize: 11 }}>🔧</span>}
                         {isMegaFan && <Crown size={11} color="#F59E0B" />}
                       </span>
                     </button>
@@ -391,8 +392,18 @@ export default function Navbar() {
                         padding: 8, minWidth: 180, boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
                       }}>
                         <div style={{ padding: "10px 12px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 6 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                             <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 800 }}>{user.username}</span>
+                            {isOwner && (
+                              <span style={{
+                                display: "inline-flex", alignItems: "center", gap: 3,
+                                background: "linear-gradient(135deg,rgba(239,68,68,0.25),rgba(239,68,68,0.1))",
+                                border: "1px solid rgba(239,68,68,0.5)", borderRadius: 100,
+                                padding: "1px 7px", fontSize: 9, fontWeight: 800, color: "#F87171",
+                              }}>
+                                🔧 DUEÑO
+                              </span>
+                            )}
                             {isMegaFan && (
                               <span style={{
                                 display: "inline-flex", alignItems: "center", gap: 3,

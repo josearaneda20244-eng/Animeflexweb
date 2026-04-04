@@ -9,6 +9,7 @@ export interface AuthUser {
   created_at: string;
   membership_tier: "free" | "megafan";
   subscription_expires_at: string | null;
+  role: "user" | "owner" | "admin";
 }
 
 interface AuthContextValue {
@@ -16,6 +17,7 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   isMegaFan: boolean;
+  isOwner: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -72,9 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isMegaFan = user?.membership_tier === "megafan";
+  const isOwner = user?.role === "owner" || user?.role === "admin";
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isMegaFan, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, isMegaFan, isOwner, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

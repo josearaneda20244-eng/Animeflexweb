@@ -24,7 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rows = await sql`
       SELECT id, username, email, avatar_url, created_at,
              COALESCE(membership_tier, 'free') AS membership_tier,
-             subscription_expires_at
+             subscription_expires_at,
+             COALESCE(role, 'user') AS role
       FROM users WHERE id = ${payload.userId}
     `;
     const user = rows[0];
