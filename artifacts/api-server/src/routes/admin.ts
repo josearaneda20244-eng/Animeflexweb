@@ -4,11 +4,12 @@ import { Router } from "express";
   import { requireAdmin } from "../middleware/requireAdmin.js";
 
   const router = Router();
-  router.use(requireAuth);
-  router.use(requireAdmin);
 
-  /* ── Setup tables on first run ── */
-  async function ensureAdminTables() {
+  /* ── Init flag: wait for tables before serving requests ── */
+  let initDone = false;
+  let initPromise: Promise<void> | null = null;
+
+  async function ensureAdminTables(): Promise<void> {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS admin_config (
         key VARCHAR(100) PRIMARY KEY,
@@ -27,11 +28,9 @@ import { Router } from "express";
         UNIQUE(anime_id, action)
       )
     `);
-    // Add is_active column to users if not exists
     await pool.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE
     `);
-    // Default config values
     const defaults = [
       ["daily_limit", "5"],
       ["daily_limit_enabled", "true"],
@@ -46,8 +45,26 @@ import { Router } from "express";
         [key, value]
       );
     }
+    initDone = true;
   }
-  ensureAdminTables().catch(() => {});
+
+  function getInit(): Promise<void> {
+    if (!initPromise) {
+      initPromise = ensureAdminTables().catch(err => {
+        console.error("Admin init failed:", err);
+        initPromise = null;
+      });
+    }
+    return initPromise!;
+  }
+
+  /* ── Ensure init runs before every admin request ── */
+  router.use(requireAuth);
+  router.use(requireAdmin);
+  router.use(async (_req, _res, next) => {
+    if (!initDone) await getInit();
+    next();
+  });
 
   /* ── GET /admin/stats ── */
   router.get("/admin/stats", async (req: AuthRequest, res) => {
@@ -85,7 +102,8 @@ import { Router } from "express";
       const search = `%${q}%`;
       const { rows } = await pool.query(
         `SELECT id, username, email, avatar_url, role, membership_tier,
-                subscription_expires_at, created_at, is_active
+                subscription_expires_at, created_at,
+                COALESCE(is_active, TRUE) AS is_active
          FROM users
          WHERE (username ILIKE $1 OR email ILIKE $1)
          ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
@@ -117,7 +135,7 @@ import { Router } from "express";
       values.push(userId);
       const { rows } = await pool.query(
         `UPDATE users SET ${updates.join(", ")} WHERE id = $${idx}
-         RETURNING id, username, email, role, membership_tier, is_active`,
+         RETURNING id, username, email, role, membership_tier, COALESCE(is_active, TRUE) AS is_active`,
         values
       );
       if (!rows[0]) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
@@ -173,16 +191,12 @@ import { Router } from "express";
   /* ── POST /admin/content ── */
   router.post("/admin/content", async (req: AuthRequest, res) => {
     const { animeId, animeTitle, animeImage, action } = req.body as Record<string, string>;
-    if (!animeId || !action) {
-      res.status(400).json({ error: "animeId y action son requeridos" });
-      return;
-    }
+    if (!animeId || !action) { res.status(400).json({ error: "animeId y action son requeridos" }); return; }
     try {
       await pool.query(
         `INSERT INTO admin_content (anime_id, anime_title, anime_image, action)
          VALUES ($1, $2, $3, $4)
-         ON CONFLICT (anime_id, action)
-         DO UPDATE SET anime_title = $2, anime_image = $3`,
+         ON CONFLICT (anime_id, action) DO UPDATE SET anime_title = $2, anime_image = $3`,
         [animeId, animeTitle ?? "", animeImage ?? "", action]
       );
       res.json({ ok: true });
