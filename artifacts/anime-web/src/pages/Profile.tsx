@@ -90,6 +90,20 @@ export default function Profile() {
             }}>
               {isMegaFan ? <><Crown size={11} /> MegaFan</> : "✦ Gratuito"}
             </div>
+            {isOwner && (
+              <button
+                onClick={() => navigate("/admin")}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 7,
+                  background: "linear-gradient(135deg,rgba(108,99,255,0.2),rgba(79,70,229,0.1))",
+                  border: "1px solid rgba(108,99,255,0.35)", borderRadius: 10,
+                  padding: "7px 14px", color: "#A78BFA", cursor: "pointer",
+                  fontSize: 12, fontWeight: 800, marginTop: 8,
+                }}
+              >
+                <Shield size={13} /> ⚙️ Panel Admin
+              </button>
+            )}
           </div>
           {!isMegaFan && (
             <button onClick={() => navigate("/membership")} style={{
