@@ -1,9 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
 import { useAuth } from "@/context/AuthContext";
+import { useFavorites } from "@/context/FavoritesContext";
+import { useWatchList } from "@/context/WatchListContext";
+import { useHistory } from "@/context/HistoryContext";
 import AuthModal from "@/components/AuthModal";
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -28,6 +31,9 @@ export default function Navbar() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { notifications, unreadCount, markAllRead, clearAll } = useNotifications();
   const { user, logout, isMegaFan, isOwner } = useAuth();
+  const { favorites } = useFavorites();
+  const { watchList } = useWatchList();
+  const { history } = useHistory();
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
@@ -388,63 +394,179 @@ export default function Navbar() {
                     {showUserMenu && (
                       <div style={{
                         position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
-                        background: "#13131C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
-                        padding: 8, minWidth: 230, boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
+                        background: "linear-gradient(180deg,#16172A 0%,#111220 100%)",
+                        border: "1px solid rgba(108,99,255,0.2)", borderRadius: 18,
+                        overflow: "hidden", minWidth: 280,
+                        boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(108,99,255,0.1) inset",
                       }}>
-                        <div style={{ padding: "10px 12px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 6 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                            <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 800 }}>{user.username}</span>
+                        {/* Banner + Avatar */}
+                        <div style={{ position: "relative", height: 72, background: "linear-gradient(135deg,#2D1B69 0%,#1A1A3E 50%,#0D0D1F 100%)", overflow: "hidden" }}>
+                          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 50%,rgba(108,99,255,0.35) 0%,transparent 70%)" }} />
+                          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 50%,rgba(245,158,11,0.12) 0%,transparent 70%)" }} />
+                          {/* Decorative dots */}
+                          <div style={{ position: "absolute", top: 10, right: 20, width: 40, height: 40, borderRadius: "50%", background: "rgba(108,99,255,0.15)", filter: "blur(8px)" }} />
+                          <div style={{ position: "absolute", top: 30, right: 50, width: 20, height: 20, borderRadius: "50%", background: "rgba(245,158,11,0.1)", filter: "blur(4px)" }} />
+                        </div>
+
+                        {/* Avatar overlapping banner */}
+                        <div style={{ padding: "0 16px", marginTop: -28, position: "relative", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                          <div style={{
+                            width: 56, height: 56, borderRadius: 16,
+                            background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                            border: "3px solid #16172A",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            boxShadow: "0 4px 16px rgba(108,99,255,0.5)",
+                            overflow: "hidden", flexShrink: 0,
+                          }}>
+                            {user.avatar_url
+                              ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              : <span style={{ color: "#fff", fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
+                                  {user.username.charAt(0).toUpperCase()}
+                                </span>
+                            }
+                          </div>
+                          {/* Badges row */}
+                          <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                             {isOwner && (
                               <span style={{
                                 display: "inline-flex", alignItems: "center", gap: 3,
-                                background: "linear-gradient(135deg,rgba(239,68,68,0.25),rgba(239,68,68,0.1))",
-                                border: "1px solid rgba(239,68,68,0.5)", borderRadius: 100,
-                                padding: "1px 7px", fontSize: 9, fontWeight: 800, color: "#F87171",
+                                background: "linear-gradient(135deg,rgba(239,68,68,0.3),rgba(239,68,68,0.15))",
+                                border: "1px solid rgba(239,68,68,0.6)", borderRadius: 100,
+                                padding: "3px 8px", fontSize: 9, fontWeight: 900, color: "#FCA5A5",
+                                letterSpacing: 0.5,
                               }}>
-                                🔧 DUEÑO
+                                <Shield size={8} /> DUEÑO
                               </span>
                             )}
                             {isMegaFan && (
                               <span style={{
                                 display: "inline-flex", alignItems: "center", gap: 3,
-                                background: "linear-gradient(135deg,rgba(108,99,255,0.3),rgba(245,158,11,0.2))",
-                                border: "1px solid rgba(245,158,11,0.4)", borderRadius: 100,
-                                padding: "1px 7px", fontSize: 9, fontWeight: 800, color: "#F59E0B",
+                                background: "linear-gradient(135deg,rgba(245,158,11,0.3),rgba(108,99,255,0.2))",
+                                border: "1px solid rgba(245,158,11,0.6)", borderRadius: 100,
+                                padding: "3px 8px", fontSize: 9, fontWeight: 900, color: "#FCD34D",
+                                letterSpacing: 0.5,
                               }}>
-                                <Crown size={9} /> MEGAFAN
+                                <Crown size={8} /> MEGAFAN
                               </span>
                             )}
                           </div>
-                          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>{user.email}</div>
                         </div>
-                        <button
-                          onClick={() => { navigate("/membership"); setShowUserMenu(false); }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px",
-                            background: isMegaFan ? "rgba(108,99,255,0.1)" : "none",
-                            border: isMegaFan ? "1px solid rgba(108,99,255,0.2)" : "1px solid transparent",
-                            borderRadius: 10, cursor: "pointer",
-                            color: isMegaFan ? "#A78BFA" : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: 600,
-                            whiteSpace: "nowrap",
-                          }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(108,99,255,0.15)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isMegaFan ? "rgba(108,99,255,0.1)" : "none"; }}
-                        >
-                          <Crown size={14} color={isMegaFan ? "#A78BFA" : undefined} />
-                          <span>{isMegaFan ? "Membresía MegaFan ⚡" : "Hazte MegaFan"}</span>
-                        </button>
-                        <button
-                          onClick={() => { logout(); setShowUserMenu(false); }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px",
-                            background: "none", border: "none", borderRadius: 10, cursor: "pointer",
-                            color: "#FCA5A5", fontSize: 13, fontWeight: 600,
-                          }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
-                        >
-                          <LogOut size={14} /> Cerrar sesión
-                        </button>
+
+                        {/* User info */}
+                        <div style={{ padding: "8px 16px 12px" }}>
+                          <div style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 900, letterSpacing: -0.3 }}>{user.username}</div>
+                          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E", display: "inline-block", flexShrink: 0 }} />
+                            {user.email}
+                          </div>
+                          {user.created_at && (
+                            <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, marginTop: 4 }}>
+                              Miembro desde {new Date(user.created_at).toLocaleDateString("es", { month: "long", year: "numeric" })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Stats */}
+                        <div style={{
+                          display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
+                          margin: "0 12px 12px", borderRadius: 12,
+                          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
+                          overflow: "hidden",
+                        }}>
+                          {[
+                            { label: "Favoritos", value: favorites.length, icon: <Bookmark size={13} color="#A78BFA" />, href: "/favorites" },
+                            { label: "Mi Lista", value: watchList.length, icon: <ListVideo size={13} color="#6C63FF" />, href: "/watchlist" },
+                            { label: "Historial", value: history.length, icon: <Clock size={13} color="#34D399" />, href: "/history" },
+                          ].map(({ label, value, icon, href }, i) => (
+                            <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
+                              style={{
+                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                                padding: "10px 4px", gap: 3, background: "none", border: "none",
+                                borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                                cursor: "pointer", transition: "background 0.15s",
+                              }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(108,99,255,0.1)"; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                            >
+                              {icon}
+                              <span style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 900 }}>{value}</span>
+                              <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, fontWeight: 600, letterSpacing: 0.3 }}>{label}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Membership banner */}
+                        <div style={{ margin: "0 12px 10px" }}>
+                          <button
+                            onClick={() => { navigate("/membership"); setShowUserMenu(false); }}
+                            style={{
+                              width: "100%", display: "flex", alignItems: "center", gap: 10,
+                              padding: "11px 14px",
+                              background: isMegaFan
+                                ? "linear-gradient(135deg,rgba(108,99,255,0.2),rgba(245,158,11,0.1))"
+                                : "linear-gradient(135deg,rgba(108,99,255,0.15),rgba(79,70,229,0.08))",
+                              border: isMegaFan ? "1px solid rgba(245,158,11,0.4)" : "1px solid rgba(108,99,255,0.35)",
+                              borderRadius: 12, cursor: "pointer", transition: "all 0.2s",
+                            }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.8"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
+                          >
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+                              background: isMegaFan ? "linear-gradient(135deg,#F59E0B,#D97706)" : "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              boxShadow: isMegaFan ? "0 4px 12px rgba(245,158,11,0.4)" : "0 4px 12px rgba(108,99,255,0.4)",
+                            }}>
+                              {isMegaFan ? <Crown size={16} color="#fff" /> : <Zap size={16} color="#fff" />}
+                            </div>
+                            <div style={{ flex: 1, textAlign: "left" }}>
+                              <div style={{ color: isMegaFan ? "#FCD34D" : "#A78BFA", fontSize: 12, fontWeight: 800 }}>
+                                {isMegaFan ? "Membresía MegaFan activa" : "Hazte MegaFan"}
+                              </div>
+                              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 1 }}>
+                                {isMegaFan ? "Sin anuncios · Acceso premium" : "Desbloquea todo el contenido"}
+                              </div>
+                            </div>
+                            <ChevronRight size={14} color="rgba(255,255,255,0.3)" />
+                          </button>
+                        </div>
+
+                        {/* Quick links */}
+                        <div style={{ margin: "0 12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
+                          {[
+                            { icon: <Settings size={13} />, label: "Configuración", href: "/settings", color: "rgba(255,255,255,0.55)" },
+                          ].map(({ icon, label, href, color }) => (
+                            <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 9, width: "100%",
+                                padding: "9px 10px", background: "none", border: "none",
+                                borderRadius: 10, cursor: "pointer", color,
+                                fontSize: 12, fontWeight: 600, transition: "all 0.15s",
+                              }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLButtonElement).style.color = "#F1F1F5"; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = color; }}
+                            >
+                              {icon} {label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Logout */}
+                        <div style={{ margin: "6px 12px 12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
+                          <button
+                            onClick={() => { logout(); setShowUserMenu(false); }}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 9, width: "100%",
+                              padding: "9px 10px", background: "none", border: "none",
+                              borderRadius: 10, cursor: "pointer",
+                              color: "#FCA5A5", fontSize: 12, fontWeight: 700, transition: "all 0.15s",
+                            }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.12)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                          >
+                            <LogOut size={13} /> Cerrar sesión
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
