@@ -3,7 +3,12 @@
   "outputDirectory": "artifacts/anime-web/dist/public",
   "installCommand": "pnpm install",
   "framework": null,
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@5.0.0"
+    }
+  },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
