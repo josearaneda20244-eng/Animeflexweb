@@ -654,7 +654,7 @@ export default function Player() {
           <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{animeTitle}</div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>
             Episodio {episodeNum}
-            {!isMegaFan && remaining < 3 && remaining > 0 && (
+            {!isMegaFan && remaining <= 2 && remaining > 0 && (
               <span style={{ marginLeft: 8, color: "#F59E0B", fontSize: 10, fontWeight: 700 }}>
                 · {remaining} ep. gratis {remaining === 1 ? "restante" : "restantes"} hoy
               </span>
@@ -717,7 +717,7 @@ export default function Player() {
                     Has alcanzado el límite diario
                   </div>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.5, maxWidth: 320 }}>
-                    Solo puedes ver <strong style={{ color: "#A78BFA" }}>3 episodios por día</strong> con la cuenta gratuita.
+                    Solo puedes ver <strong style={{ color: "#A78BFA" }}>5 episodios por día</strong> con la cuenta gratuita.
                     <br />El límite se reinicia automáticamente cada día.
                   </div>
                 </div>
