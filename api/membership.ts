@@ -17,7 +17,7 @@ async function getPayPalToken(): Promise<string> {
     },
     body: "grant_type=client_credentials",
   });
-  const data = await res.json();
+  const data = await res.json() as { access_token: string };
   return data.access_token;
 }
 
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const subRes = await fetch(`${PAYPAL_BASE}/v1/billing/subscriptions/${subscriptionId}`, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-      const sub = await subRes.json();
+      const sub = await subRes.json() as { status: string; billing_info?: { next_billing_time?: string } };
 
       if (sub.status !== "ACTIVE") {
         return res.status(400).json({ error: "La suscripción no está activa en PayPal" });
