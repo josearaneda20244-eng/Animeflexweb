@@ -15,6 +15,13 @@ import {
   type StreamingSource,
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
+import { useAuth } from "@/context/AuthContext";
+import {
+  canWatchEpisode,
+  registerEpisodeView,
+  getRemainingEpisodes,
+  REGISTER_THRESHOLD_SECONDS,
+} from "@/lib/accessControl";
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -527,6 +534,12 @@ export default function Player() {
   const [hlsCueText, setHlsCueText] = useState<string | null>(null);
   const [theaterMode, setTheaterMode] = useState(false);
 
+  // ── Access control ─────────────────────────────────────────────────────────
+  const { isMegaFan } = useAuth();
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const episodeRegisteredRef = useRef(false);
+  const remaining = getRemainingEpisodes(isMegaFan);
+
   const query = useQuery({
     queryKey: ["streaming", episodeId],
     queryFn: () => consumet.streaming(episodeId),
@@ -557,7 +570,14 @@ export default function Player() {
     setHlsCueText(null);
     setCurrentTime(0);
     setShowAutoNext(false);
-  }, [episodeId]);
+    // Verificar acceso al cambiar episodio
+    episodeRegisteredRef.current = false;
+    if (episodeId && !canWatchEpisode(isMegaFan)) {
+      setShowLimitModal(true);
+    } else {
+      setShowLimitModal(false);
+    }
+  }, [episodeId, isMegaFan]);
 
   // Auto-load VTT subtitle from stream source (with referer for CDN auth)
   useEffect(() => {
@@ -589,9 +609,15 @@ export default function Player() {
 
   const handleTimeUpdate = useCallback((ct: number, duration: number) => {
     setCurrentTime(ct);
+    // Anti-exploit: registrar episodio solo tras REGISTER_THRESHOLD_SECONDS segundos vistos
+    // y solo una vez por sesión de episodio (useRef evita re-registro al refrescar)
+    if (!isMegaFan && !episodeRegisteredRef.current && ct >= REGISTER_THRESHOLD_SECONDS) {
+      episodeRegisteredRef.current = true;
+      registerEpisodeView(episodeId);
+    }
     if (!animeId) return;
     saveProgress({ episodeId, episodeNum: parseInt(episodeNum) || 0, animeId, animeTitle, animeImage, currentTime: ct, duration });
-  }, [episodeId, episodeNum, animeId, animeTitle, animeImage, saveProgress]);
+  }, [episodeId, episodeNum, animeId, animeTitle, animeImage, isMegaFan, saveProgress]);
 
   const handleNextEpisode = useCallback(() => {
     if (!nextEpisodeId) return;
@@ -626,7 +652,14 @@ export default function Player() {
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{animeTitle}</div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>Episodio {episodeNum}</div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>
+            Episodio {episodeNum}
+            {!isMegaFan && remaining < 3 && remaining > 0 && (
+              <span style={{ marginLeft: 8, color: "#F59E0B", fontSize: 10, fontWeight: 700 }}>
+                · {remaining} ep. gratis {remaining === 1 ? "restante" : "restantes"} hoy
+              </span>
+            )}
+          </div>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
           <button onClick={handleCopyLink}
@@ -662,7 +695,49 @@ export default function Player() {
                 </p>
               </div>
             )}
-            {query.isError && (
+            {/* ── Límite de episodios — Modal premium ── */}
+            {showLimitModal && (
+              <div style={{
+                position: "absolute", inset: 0, zIndex: 50,
+                background: "rgba(9,10,18,0.92)",
+                backdropFilter: "blur(12px)",
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                gap: 20, padding: "32px 24px", textAlign: "center",
+              }}>
+                <div style={{
+                  width: 80, height: 80, borderRadius: "50%",
+                  background: "linear-gradient(135deg,rgba(108,99,255,0.25),rgba(79,70,229,0.15))",
+                  border: "2px solid rgba(108,99,255,0.4)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 36,
+                }}>😢</div>
+                <div>
+                  <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900, marginBottom: 8, lineHeight: 1.2 }}>
+                    Has alcanzado el límite diario
+                  </div>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.5, maxWidth: 320 }}>
+                    Solo puedes ver <strong style={{ color: "#A78BFA" }}>3 episodios por día</strong> con la cuenta gratuita.
+                    <br />El límite se reinicia automáticamente cada día.
+                  </div>
+                </div>
+                <a href="/membership" style={{
+                  display: "inline-flex", alignItems: "center", gap: 10,
+                  background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                  borderRadius: 16, padding: "14px 28px",
+                  color: "#fff", fontSize: 16, fontWeight: 900,
+                  textDecoration: "none", boxShadow: "0 8px 32px rgba(108,99,255,0.35)",
+                }}>
+                  👑 Hazte Megafan — Ver sin límites
+                </a>
+                <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, lineHeight: 1.5 }}>
+                  Acceso ilimitado · Sin interrupciones · Mejor calidad
+                  <br />Solo <strong style={{ color: "#A78BFA" }}>$4/mes</strong> · Cancela cuando quieras
+                </div>
+              </div>
+            )}
+
+          {query.isError && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="#EF4444" />
                 <p style={{ color: "#F1F1F5", fontSize: 14 }}>No se pudo cargar el episodio</p>
