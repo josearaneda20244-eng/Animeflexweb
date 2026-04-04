@@ -22,6 +22,7 @@ interface AuthContextValue {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  updateProfile: (data: { username?: string; avatar_url?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -73,11 +74,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchUser().catch(() => {});
   };
 
+  const updateProfile = async (data: { username?: string; avatar_url?: string }) => {
+    const { user: updated } = await apiClient.patch<{ user: AuthUser }>("/user/profile", data);
+    setUser(updated);
+  };
+
   const isMegaFan = user?.membership_tier === "megafan";
   const isOwner = user?.role === "owner" || user?.role === "admin";
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isMegaFan, isOwner, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, isMegaFan, isOwner, login, register, logout, refreshUser, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
