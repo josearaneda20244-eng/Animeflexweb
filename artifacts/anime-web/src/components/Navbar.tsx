@@ -378,7 +378,7 @@ export default function Navbar() {
                           : <User size={14} color="#fff" />
                         }
                       </div>
-                      <span className="hidden md:block" style={{ color: "#A78BFA", fontSize: 12, fontWeight: 700, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
+                      <span className="hidden md:flex" style={{ color: "#A78BFA", fontSize: 12, fontWeight: 700, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", alignItems: "center", gap: 4 }}>
                         {user.username}
                         {isOwner && <span title="Dueño" style={{ fontSize: 11 }}>🔧</span>}
                         {isMegaFan && <Crown size={11} color="#F59E0B" />}
@@ -389,7 +389,7 @@ export default function Navbar() {
                       <div style={{
                         position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
                         background: "#13131C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
-                        padding: 8, minWidth: 180, boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
+                        padding: 8, minWidth: 230, boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
                       }}>
                         <div style={{ padding: "10px 12px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 6 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -420,15 +420,18 @@ export default function Navbar() {
                         <button
                           onClick={() => { navigate("/membership"); setShowUserMenu(false); }}
                           style={{
-                            display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px",
-                            background: "none", border: "none", borderRadius: 10, cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px",
+                            background: isMegaFan ? "rgba(108,99,255,0.1)" : "none",
+                            border: isMegaFan ? "1px solid rgba(108,99,255,0.2)" : "1px solid transparent",
+                            borderRadius: 10, cursor: "pointer",
                             color: isMegaFan ? "#A78BFA" : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: 600,
+                            whiteSpace: "nowrap",
                           }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(108,99,255,0.1)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(108,99,255,0.15)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isMegaFan ? "rgba(108,99,255,0.1)" : "none"; }}
                         >
-                          <Crown size={14} />
-                          {isMegaFan ? "Membresía MegaFan ⚡" : "Hazte MegaFan"}
+                          <Crown size={14} color={isMegaFan ? "#A78BFA" : undefined} />
+                          <span>{isMegaFan ? "Membresía MegaFan ⚡" : "Hazte MegaFan"}</span>
                         </button>
                         <button
                           onClick={() => { logout(); setShowUserMenu(false); }}
@@ -554,17 +557,42 @@ export default function Navbar() {
             <div style={{ padding: "12px 12px", marginTop: "auto" }}>
               {user ? (
                 <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "rgba(108,99,255,0.08)", borderRadius: 12, marginBottom: 8 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {user.avatar_url
-                        ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", borderRadius: 10, objectFit: "cover" }} />
-                        : <User size={18} color="#fff" />
-                      }
+                  <div style={{ background: "rgba(108,99,255,0.08)", borderRadius: 12, marginBottom: 8, overflow: "hidden" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {user.avatar_url
+                          ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", borderRadius: 10, objectFit: "cover" }} />
+                          : <User size={20} color="#fff" />
+                        }
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
+                          <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>{user.username}</span>
+                          {isOwner && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", borderRadius: 100, padding: "1px 6px", fontSize: 9, fontWeight: 800, color: "#F87171" }}>
+                              🔧 DUEÑO
+                            </span>
+                          )}
+                          {isMegaFan && (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 100, padding: "1px 6px", fontSize: 9, fontWeight: 800, color: "#F59E0B" }}>
+                              <Crown size={8} /> MEGAFAN
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+                      </div>
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.username}</div>
-                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
-                    </div>
+                    <button
+                      onClick={() => { navigate("/membership"); setMobileMenuOpen(false); }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 16px",
+                        borderTop: "1px solid rgba(255,255,255,0.06)", border: "none", cursor: "pointer",
+                        background: "none", color: isMegaFan ? "#A78BFA" : "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 600,
+                      }}
+                    >
+                      <Crown size={15} color={isMegaFan ? "#A78BFA" : undefined} />
+                      {isMegaFan ? "Membresía MegaFan ⚡" : "Hazte MegaFan"}
+                    </button>
                   </div>
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); }}
