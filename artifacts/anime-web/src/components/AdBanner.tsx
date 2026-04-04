@@ -1,74 +1,59 @@
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "wouter";
-import { X, Crown } from "lucide-react";
-import { useState } from "react";
+import { Crown } from "lucide-react";
 
 interface AdBannerProps {
   variant?: "horizontal" | "square";
   className?: string;
+  // Slot ID to use when connecting a real ad provider.
+  // Google AdSense example: pass your data-ad-slot value here.
+  slotId?: string;
 }
 
-export default function AdBanner({ variant = "horizontal", className }: AdBannerProps) {
-  const { isMegaFan, user } = useAuth();
-  const [dismissed, setDismissed] = useState(false);
+/**
+ * AdBanner — shows a banner ad for free users only.
+ * MegaFan users see nothing (component returns null immediately).
+ *
+ * HOW TO CONNECT A REAL AD PROVIDER:
+ * 1. Google AdSense: replace the placeholder <div> below with:
+ *      <ins className="adsbygoogle" data-ad-client="ca-pub-XXXXXXXX" data-ad-slot={slotId} ... />
+ *    and add the AdSense <script> to index.html.
+ * 2. Adsterra / other: paste their banner <script> inside the container div.
+ */
+export default function AdBanner({ variant = "horizontal", className, slotId }: AdBannerProps) {
+  const { isMegaFan } = useAuth();
 
-  if (isMegaFan || dismissed) return null;
+  // MegaFan users NEVER see ads — hard stop here.
+  if (isMegaFan) return null;
 
   if (variant === "square") {
     return (
-      <div
-        className={className}
-        style={{
-          position: "relative",
-          borderRadius: 16,
-          overflow: "hidden",
-          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
-          border: "1px solid rgba(108,99,255,0.2)",
-          padding: "24px 20px",
-          textAlign: "center",
-          minHeight: 200,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 12,
-        }}
-      >
-        <button
-          onClick={() => setDismissed(true)}
-          style={{
-            position: "absolute", top: 8, right: 8,
-            background: "rgba(255,255,255,0.08)", border: "none",
-            borderRadius: 6, padding: 4, cursor: "pointer",
-            display: "flex", color: "rgba(255,255,255,0.4)",
-          }}
-        >
-          <X size={12} />
-        </button>
-
-        <div style={{ fontSize: 28 }}>📢</div>
-        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>
-          Publicidad
-        </div>
+      <div className={className} style={{
+        position: "relative", borderRadius: 16, overflow: "hidden",
+        background: "linear-gradient(135deg,#13131C,#1a1a2e)",
+        border: "1px solid rgba(108,99,255,0.15)",
+        minHeight: 250, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 14,
+        padding: "24px 20px", textAlign: "center",
+      }}>
+        {/* ── REPLACE THIS BLOCK WITH YOUR AD CODE ── */}
         <div style={{
-          background: "rgba(108,99,255,0.15)", borderRadius: 12,
-          padding: "16px", width: "100%",
+          width: "100%", minHeight: 200, borderRadius: 12,
+          background: "rgba(108,99,255,0.07)",
+          border: "1px dashed rgba(108,99,255,0.2)",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 8,
         }}>
-          <div style={{ color: "#A78BFA", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
-            ¿Cansado de los anuncios?
+          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>
+            Publicidad
           </div>
-          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginBottom: 10 }}>
-            Únete a MegaFan y disfruta sin interrupciones
-          </div>
-          <Link href="/membership">
-            <button style={{
-              background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
-              border: "none", borderRadius: 8, padding: "8px 16px",
-              color: "#fff", fontSize: 11, fontWeight: 800, cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 5, margin: "0 auto",
-            }}>
-              <Crown size={11} /> Ver planes
-            </button>
+        </div>
+        {/* ── END AD CODE ── */}
+
+        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>
+          Sin anuncios con{" "}
+          <Link href="/membership" style={{ color: "#A78BFA", fontWeight: 700, textDecoration: "none" }}>
+            MegaFan
           </Link>
         </div>
       </div>
@@ -76,47 +61,36 @@ export default function AdBanner({ variant = "horizontal", className }: AdBanner
   }
 
   return (
-    <div
-      className={className}
-      style={{
-        position: "relative",
-        borderRadius: 12,
-        overflow: "hidden",
-        background: "linear-gradient(90deg, rgba(108,99,255,0.08) 0%, rgba(79,70,229,0.05) 100%)",
-        border: "1px solid rgba(108,99,255,0.15)",
-        padding: "12px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        marginBottom: 16,
-      }}
-    >
-      <button
-        onClick={() => setDismissed(true)}
-        style={{
-          position: "absolute", top: 6, right: 6,
-          background: "rgba(255,255,255,0.06)", border: "none",
-          borderRadius: 5, padding: 3, cursor: "pointer",
-          display: "flex", color: "rgba(255,255,255,0.3)",
-        }}
-      >
-        <X size={11} />
-      </button>
-
-      <div style={{ fontSize: 22, flexShrink: 0 }}>📢</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 9, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700, marginBottom: 2 }}>
+    <div className={className} style={{
+      borderRadius: 12, overflow: "hidden",
+      background: "rgba(108,99,255,0.05)",
+      border: "1px solid rgba(108,99,255,0.1)",
+      padding: "10px 14px",
+      display: "flex", alignItems: "center", gap: 12,
+    }}>
+      {/* ── REPLACE THIS BLOCK WITH YOUR AD CODE ── */}
+      <div style={{
+        flex: 1, minHeight: 60, borderRadius: 8,
+        background: "rgba(108,99,255,0.07)",
+        border: "1px dashed rgba(108,99,255,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 9, letterSpacing: 2, textTransform: "uppercase", fontWeight: 700 }}>
           Publicidad
         </div>
-        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-          {user
-            ? "¿Cansado de los anuncios? "
-            : "¡Únete a AnimeFLEX! "}
-          <Link href="/membership" style={{ color: "#A78BFA", fontWeight: 700, textDecoration: "none" }}>
-            Hazte MegaFan por $4/mes →
-          </Link>
-        </div>
       </div>
+      {/* ── END AD CODE ── */}
+
+      <Link href="/membership" style={{ textDecoration: "none", flexShrink: 0 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 5,
+          background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+          borderRadius: 8, padding: "7px 11px",
+          color: "#fff", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap",
+        }}>
+          <Crown size={10} /> Sin anuncios
+        </div>
+      </Link>
     </div>
   );
 }
