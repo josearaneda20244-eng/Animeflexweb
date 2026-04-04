@@ -3,16 +3,23 @@ import { logger } from "./lib/logger";
 import pool from "./db";
 
 async function runMigrations() {
-  try {
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(50) NOT NULL DEFAULT 'free';
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ;
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
-    `);
-    logger.info("Migrations applied successfully");
-  } catch (err) {
-    logger.warn({ err }, "Migration warning (table may not exist yet)");
-  }
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(50) UNIQUE NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      avatar_url TEXT,
+      membership_tier VARCHAR(50) NOT NULL DEFAULT 'free',
+      subscription_expires_at TIMESTAMPTZ,
+      role VARCHAR(20) NOT NULL DEFAULT 'user',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(50) NOT NULL DEFAULT 'free';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
+  `);
+  logger.info("Migrations applied successfully");
 }
 
 const rawPort = process.env["PORT"];

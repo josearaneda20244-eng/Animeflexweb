@@ -1,5 +1,4 @@
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-const API = `${BASE}/api`;
+const API = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 function getToken(): string | null {
   try { return localStorage.getItem("af_token"); } catch { return null; }
