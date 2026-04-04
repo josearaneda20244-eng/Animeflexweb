@@ -545,7 +545,8 @@ export default function Navbar() {
                         {/* Quick links */}
                         <div style={{ margin: "0 12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
                           {[
-                            { icon: <Settings size={13} />, label: "Configuración", href: "/settings", color: "rgba(255,255,255,0.55)" },
+                            { icon: <User size={13} />, label: "Mi Perfil", href: "/perfil", color: "rgba(255,255,255,0.55)" },
+            { icon: <Settings size={13} />, label: "Configuración", href: "/settings", color: "rgba(255,255,255,0.55)" },
                           ].map(({ icon, label, href, color }) => (
                             <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
                               style={{
