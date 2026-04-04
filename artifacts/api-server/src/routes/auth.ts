@@ -44,7 +44,7 @@ router.post("/auth/login", async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT id, username, email, password_hash, avatar_url, created_at FROM users WHERE email = $1`,
+      `SELECT id, username, email, password_hash, avatar_url, created_at, membership_tier, subscription_expires_at, role FROM users WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
     const user = result.rows[0];
@@ -68,7 +68,7 @@ router.post("/auth/login", async (req, res) => {
 router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, username, email, avatar_url, created_at FROM users WHERE id = $1`,
+      `SELECT id, username, email, avatar_url, created_at, membership_tier, subscription_expires_at, role FROM users WHERE id = $1`,
       [req.userId]
     );
     const user = result.rows[0];
