@@ -5,7 +5,7 @@ import { useFavorites } from "@/context/FavoritesContext";
 import { useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Clock, Tv2, Heart, Star, TrendingUp, Crown } from "lucide-react";
+import { Clock, Tv2, Heart, Star, TrendingUp, Crown, Shield } from "lucide-react";
 import { getRemainingEpisodes, getEpisodesWatchedToday } from "@/lib/accessControl";
 
 const DAILY_LIMIT = 5;
@@ -22,7 +22,7 @@ function formatTime(seconds: number): string {
 const LABELS: Record<number, string> = { 1: "Malo", 2: "Regular", 3: "Bueno", 4: "Muy bueno", 5: "Excelente" };
 
 export default function Profile() {
-  const { user, isMegaFan } = useAuth();
+  const { user, isMegaFan, isOwner } = useAuth();
   const { progress } = useWatchProgress();
   const { favorites } = useFavorites();
   const [, navigate] = useLocation();
