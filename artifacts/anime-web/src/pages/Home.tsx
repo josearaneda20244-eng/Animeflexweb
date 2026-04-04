@@ -367,7 +367,10 @@ export default function Home() {
           <div style={{ marginTop: 28 }}>
             <SectionHeader title="▶ Continuar viendo" onSeeAll={() => navigate("/history")} />
             <div className="carousel-scroll">
-              {watchProgress.slice(0, 8).map((e) => <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} />)}
+              {watchProgress
+                .filter((e, idx, arr) => arr.findIndex((x) => x.animeId === e.animeId) === idx)
+                .slice(0, 8)
+                .map((e) => <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} />)}
             </div>
           </div>
         )}
