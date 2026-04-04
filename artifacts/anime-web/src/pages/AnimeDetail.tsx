@@ -22,7 +22,7 @@ const STATUS_OPTIONS: { value: WatchStatus; label: string; icon: React.ReactNode
   { value: "plan_to_watch", label: "Pendiente", icon: <Clock3 size={13} />, color: "#F59E0B" },
 ];
 
-function WatchStatusButton({ animeForList }: { animeForList: AnimeResult }) {
+function WatchStatusButton({ animeForList, onStatusChange }: { animeForList: AnimeResult; onStatusChange?: (status: WatchStatus | null) => void }) {
   const { getStatus, setStatus } = useWatchList();
   const [open, setOpen] = useState(false);
   const current = getStatus(animeForList.id);
@@ -56,7 +56,9 @@ function WatchStatusButton({ animeForList }: { animeForList: AnimeResult }) {
             <button
               key={opt.value}
               onClick={() => {
-                setStatus(animeForList, current === opt.value ? null : opt.value);
+                const newStatus = current === opt.value ? null : opt.value;
+                setStatus(animeForList, newStatus);
+                onStatusChange?.(newStatus);
                 setOpen(false);
               }}
               style={{
@@ -75,6 +77,70 @@ function WatchStatusButton({ animeForList }: { animeForList: AnimeResult }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+
+/* ── USER RATING WIDGET ── */
+const RATING_LABELS: Record<number, string> = { 1: "Malo", 2: "Regular", 3: "Bueno", 4: "Muy bueno", 5: "Excelente" };
+
+function UserRatingWidget({ animeId }: { animeId: string }) {
+  const [rating, setRating] = useState<number>(() => {
+    try { return (JSON.parse(localStorage.getItem("af_user_ratings") || "{}"))[animeId] ?? 0; } catch { return 0; }
+  });
+  const [hover, setHover] = useState(0);
+
+  const handleRate = (n: number) => {
+    const next = rating === n ? 0 : n;
+    setRating(next);
+    try {
+      const all = JSON.parse(localStorage.getItem("af_user_ratings") || "{}");
+      if (next === 0) delete all[animeId];
+      else all[animeId] = next;
+      localStorage.setItem("af_user_ratings", JSON.stringify(all));
+    } catch {}
+  };
+
+  const display = hover || rating;
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="section-accent" />
+        <Star size={14} className="text-[#6C63FF]" />
+        <h2 className="text-sm font-bold text-[#F0F0FF]">Tu valoración</h2>
+        {rating > 0 && (
+          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginLeft: "auto" }}>
+            Toca de nuevo para quitar
+          </span>
+        )}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            onClick={() => handleRate(n)}
+            onMouseEnter={() => setHover(n)}
+            onMouseLeave={() => setHover(0)}
+            style={{
+              background: "none", border: "none", cursor: "pointer", padding: "4px 3px",
+              transition: "transform 0.1s",
+              transform: display >= n ? "scale(1.18)" : "scale(1)",
+            }}
+          >
+            <Star
+              size={30}
+              color="#F59E0B"
+              fill={display >= n ? "#F59E0B" : "transparent"}
+            />
+          </button>
+        ))}
+        {display > 0 && (
+          <span style={{ color: "#F59E0B", fontSize: 14, fontWeight: 800, marginLeft: 10 }}>
+            {RATING_LABELS[display]}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -359,7 +425,20 @@ export default function AnimeDetail() {
             </button>
           )}
 
-          <WatchStatusButton animeForList={animeForFav} />
+          <WatchStatusButton
+            animeForList={animeForFav}
+            onStatusChange={(status) => {
+              if (status) {
+                const labels: Record<string, string> = { watching: "Viendo", completed: "Completado", plan_to_watch: "Pendiente" };
+                addNotification({
+                  title: "Lista actualizada",
+                  message: `${title} marcado como "${labels[status] ?? status}".`,
+                  animeId: id ?? "",
+                  animeImage: image,
+                });
+              }
+            }}
+          />
 
           <button
             onClick={() => {
@@ -419,6 +498,9 @@ export default function AnimeDetail() {
             )}
           </div>
         )}
+
+        {/* User Rating */}
+        {id && <UserRatingWidget animeId={id} />}
 
         {/* Characters */}
         {characters.length > 0 && (
