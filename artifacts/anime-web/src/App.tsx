@@ -12,6 +12,7 @@ import Schedule from "@/pages/Schedule";
 import WatchList from "@/pages/WatchList";
 import Membership from "@/pages/Membership";
 import Settings from "@/pages/Settings";
+import Profile from "@/pages/Profile";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 import { HistoryProvider } from "@/context/HistoryContext";
 import { WatchProgressProvider } from "@/context/WatchProgressContext";
@@ -72,6 +73,7 @@ function Router() {
       <Route path="/watchlist" component={WatchList} />
       <Route path="/membership" component={Membership} />
       <Route path="/settings" component={Settings} />
+      <Route path="/perfil" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );
