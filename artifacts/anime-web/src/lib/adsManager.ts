@@ -9,6 +9,14 @@ interface AdsState {
   lastAdTime: number;
 }
 
+// Global block flag — set to true for MegaFan users. Even if an ad was
+// already scheduled before we knew the user's tier, it will be cancelled here.
+let adsBlocked = false;
+
+export function setAdsBlocked(blocked: boolean): void {
+  adsBlocked = blocked;
+}
+
 function loadState(): AdsState {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -28,6 +36,7 @@ let scriptLoading = false;
 const pendingCallbacks: Array<() => void> = [];
 
 function loadMonetagScript(onReady: () => void): void {
+  if (adsBlocked) return;
   if (scriptReady) {
     onReady();
     return;
@@ -55,8 +64,10 @@ function loadMonetagScript(onReady: () => void): void {
 }
 
 function fireMonetag(): void {
+  if (adsBlocked) return;
   loadMonetagScript(() => {
     setTimeout(() => {
+      if (adsBlocked) return;
       try {
         const fn = (window as Record<string, unknown>)["show_225958"];
         if (typeof fn === "function") (fn as () => void)();
@@ -66,6 +77,7 @@ function fireMonetag(): void {
 }
 
 function showAdControlled(state: AdsState): boolean {
+  if (adsBlocked) return false;
   const now = Date.now();
   if (now - state.lastAdTime < COOLDOWN_MS) return false;
   state.lastAdTime = now;
@@ -78,6 +90,7 @@ function scheduleAds(count: number): void {
   for (let i = 0; i < count; i++) {
     const delay = i === 0 ? 500 : i * INTER_AD_DELAY_MS;
     setTimeout(() => {
+      if (adsBlocked) return;
       const state = loadState();
       showAdControlled(state);
     }, delay);
@@ -85,15 +98,18 @@ function scheduleAds(count: number): void {
 }
 
 export function onAnimeClick(): void {
+  if (adsBlocked) return;
   scheduleAds(1);
 }
 
 export function onEpisodeClick(): void {
+  if (adsBlocked) return;
   const state = loadState();
   showAdControlled(state);
 }
 
 export function onEpisodeWatched(): void {
+  if (adsBlocked) return;
   const state = loadState();
   state.episodesWatched += 1;
   saveState(state);

@@ -157,7 +157,7 @@ function RecommendationCard({ anime }: { anime: AnimeResult }) {
 export default function AnimeDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const { isMegaFan } = useAuth();
+  const { isMegaFan, loading: authLoading } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToHistory } = useHistory();
   const { getAnimeProgress } = useWatchProgress();
@@ -168,7 +168,7 @@ export default function AnimeDetail() {
   const [shareToast, setShareToast] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
 
-  useEffect(() => { if (!isMegaFan) onAnimeClick(); }, [isMegaFan]);
+  useEffect(() => { if (!authLoading && !isMegaFan) onAnimeClick(); }, [authLoading, isMegaFan]);
 
   const infoQuery = useQuery({
     queryKey: ["animeAnilistInfo", id],

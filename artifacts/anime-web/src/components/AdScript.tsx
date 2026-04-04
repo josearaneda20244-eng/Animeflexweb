@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { setAdsBlocked } from "@/lib/adsManager";
 
 // Aggressive SW cleanup — kills Monetag (5gvci.com) and similar ad networks
 async function killAdServiceWorkers() {
@@ -28,6 +29,14 @@ async function killAdServiceWorkers() {
 export default function AdScript() {
   const { isMegaFan, loading, user } = useAuth();
   const scriptRef = useRef<HTMLScriptElement | null>(null);
+
+  // As soon as we know the user is MegaFan, block all ads immediately —
+  // even ads that were already scheduled before the user data loaded.
+  useEffect(() => {
+    if (!loading) {
+      setAdsBlocked(isMegaFan);
+    }
+  }, [isMegaFan, loading]);
 
   useEffect(() => {
     if (loading) return;
