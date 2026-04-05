@@ -13,6 +13,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
   import Membership from "@/pages/Membership";
   import Settings from "@/pages/Settings";
   import Profile from "@/pages/Profile";
+  import PublicProfile from "@/pages/PublicProfile";
   import Admin from "@/pages/Admin";
   import { FavoritesProvider } from "@/context/FavoritesContext";
   import { HistoryProvider } from "@/context/HistoryContext";
@@ -99,6 +100,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
         <Route path="/membership" component={Membership} />
         <Route path="/settings" component={Settings} />
         <Route path="/perfil" component={Profile} />
+        <Route path="/perfil/:userId" component={PublicProfile} />
         <Route path="/admin" component={Admin} />
         <Route component={NotFound} />
       </Switch>
