@@ -35,7 +35,18 @@ router.post("/stripe/create-checkout-session", requireAuth, async (req: AuthRequ
     promoCode?: string;
   };
 
-  /* ── Validate promo code (read-only — increment happens in webhook) ── */
+  /* ── Validate promo code (read-only — increment happens in webhook) ──
+   *
+   * NOTE: max_uses enforcement is best-effort at checkout creation time.
+   * Concurrent sessions initiated within the same window may each receive
+   * the discounted price even if max_uses has been reached between reads.
+   * The webhook enforces the hard cap atomically via the conditional UPDATE:
+   *   UPDATE promo_codes SET uses_count = uses_count + 1
+   *   WHERE code = $1 AND (max_uses IS NULL OR uses_count < max_uses)
+   * …so the counter never overflows, but a small number of extra discounted
+   * checkout sessions can be created before the count catches up. If strict
+   * enforcement is required, introduce a reservation/claim step here.
+   */
   let discountPercent = 0;
   if (promoCode) {
     const pcRes = await pool.query(

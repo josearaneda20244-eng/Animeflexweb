@@ -36,7 +36,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "catalog:",
     "@types/pg": "^8.11.10",
-    "@types/stripe": "^8.0.417",
     "esbuild": "^0.27.3",
     "esbuild-plugin-pino": "^2.3.3",
     "pino-pretty": "^13",
