@@ -20,7 +20,9 @@ router.post("/auth/register", async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (username, email, password_hash)
        VALUES ($1, $2, $3)
-       RETURNING id, username, email, avatar_url, created_at, membership_tier, subscription_expires_at, role`,
+       RETURNING id, username, email, avatar_url, created_at, membership_tier,
+                 subscription_expires_at, role,
+                 COALESCE(is_profile_public, TRUE) AS is_profile_public`,
       [username.trim(), email.trim().toLowerCase(), hash]
     );
     const user = result.rows[0];
@@ -45,7 +47,8 @@ router.post("/auth/login", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, username, email, password_hash, avatar_url, created_at,
-              membership_tier, subscription_expires_at, role, is_active
+              membership_tier, subscription_expires_at, role, is_active,
+              COALESCE(is_profile_public, TRUE) AS is_profile_public
        FROM users WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
