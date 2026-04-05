@@ -39,6 +39,17 @@ async function runMigrations() {
   await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_profile_public BOOLEAN DEFAULT TRUE`, "users.is_profile_public");
 
   await safeQuery(`
+    CREATE TABLE IF NOT EXISTS paypal_pending_orders (
+      order_id      VARCHAR(100) PRIMARY KEY,
+      user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plan          VARCHAR(20) NOT NULL CHECK (plan IN ('monthly', 'annual')),
+      promo_code    VARCHAR(50),
+      expected_usd  VARCHAR(20) NOT NULL,
+      created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
+  `, "paypal_pending_orders");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS user_favorites (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -128,6 +128,16 @@ async function ensureAdminTables() {
   `);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(200)`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(200)`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS paypal_pending_orders (
+      order_id      VARCHAR(100) PRIMARY KEY,
+      user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plan          VARCHAR(20) NOT NULL CHECK (plan IN ('monthly', 'annual')),
+      promo_code    VARCHAR(50),
+      expected_usd  VARCHAR(20) NOT NULL,
+      created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
+  `);
   const defaults = [
     ["daily_limit", "5"],
     ["daily_limit_enabled", "true"],

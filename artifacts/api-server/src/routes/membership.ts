@@ -86,11 +86,13 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
   try {
     /* ── CREATE PAYPAL ORDER (with discount) ── */
     if (action === "create-order") {
-      const token     = await getPayPalToken();
-      const baseAmount = plan === "annual" ? ANNUAL_USD : MONTHLY_USD;
+      const validPlan = plan === "annual" ? "annual" : "monthly";
+      const baseAmount = validPlan === "annual" ? ANNUAL_USD : MONTHLY_USD;
       let finalAmount  = baseAmount;
+      let resolvedPromo: string | null = null;
+
       if (promoCode) {
-        /* Validate (read-only here — increment happens on capture) */
+        /* Validate read-only; increment happens on capture */
         const pcRes = await pool.query(
           `SELECT discount_percent, max_uses, uses_count, expires_at, active
              FROM promo_codes WHERE code = $1`,
@@ -101,11 +103,13 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
           const expired = pc.expires_at && new Date(pc.expires_at) < new Date();
           const maxed   = pc.max_uses !== null && pc.uses_count >= pc.max_uses;
           if (pc.active && !expired && !maxed) {
-            finalAmount = applyDiscount(baseAmount, pc.discount_percent);
+            finalAmount   = applyDiscount(baseAmount, pc.discount_percent);
+            resolvedPromo = promoCode.toUpperCase().trim();
           }
         }
       }
 
+      const token = await getPayPalToken();
       const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
         method: "POST",
         headers: {
@@ -120,7 +124,7 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
                 currency_code: "USD",
                 value: finalAmount,
               },
-              description: `AnimeFlex MegaFan ${plan === "annual" ? "Anual" : "Mensual"}`,
+              description: `AnimeFlex MegaFan ${validPlan === "annual" ? "Anual" : "Mensual"}`,
             },
           ],
         }),
@@ -130,6 +134,15 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
         res.status(500).json({ error: "Error creando orden de PayPal" });
         return;
       }
+
+      /* ── Persist server-side state; client cannot alter plan/amount later ── */
+      await pool.query(
+        `INSERT INTO paypal_pending_orders (order_id, user_id, plan, promo_code, expected_usd)
+              VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (order_id) DO NOTHING`,
+        [order.id, req.userId, validPlan, resolvedPromo, finalAmount]
+      );
+
       res.json({ orderId: order.id });
       return;
     }
@@ -142,6 +155,24 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
         return;
       }
 
+      /*
+       * Atomically claim the pending-order record for this user.
+       * DELETE returns the row only once — prevents double-capture and
+       * ensures a different user cannot capture someone else's order.
+       */
+      const claimRes = await pool.query(
+        `DELETE FROM paypal_pending_orders
+          WHERE order_id = $1 AND user_id = $2
+          RETURNING plan, promo_code, expected_usd`,
+        [orderId, req.userId]
+      );
+      if (claimRes.rows.length === 0) {
+        res.status(403).json({ error: "Orden no encontrada o ya procesada" });
+        return;
+      }
+      const { plan: serverPlan, promo_code: serverPromo, expected_usd: expectedUsd }
+        = claimRes.rows[0] as { plan: "monthly" | "annual"; promo_code: string | null; expected_usd: string };
+
       const token = await getPayPalToken();
       const captureRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`, {
         method: "POST",
@@ -152,18 +183,31 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
       });
       const captured = await captureRes.json() as {
         status?: string;
-        purchase_units?: { payments?: { captures?: { status: string }[] } }[];
+        purchase_units?: Array<{
+          payments?: { captures?: Array<{ status: string; amount?: { value: string; currency_code: string } }> };
+        }>;
       };
 
-      const captureStatus = captured.purchase_units?.[0]?.payments?.captures?.[0]?.status;
+      const captureEntry = captured.purchase_units?.[0]?.payments?.captures?.[0];
+      const captureStatus = captureEntry?.status;
       if (captured.status !== "COMPLETED" && captureStatus !== "COMPLETED") {
         res.status(400).json({ error: "El pago PayPal no fue completado" });
         return;
       }
 
-      /* Calculate expiry */
+      /* Verify captured amount matches what we created the order for */
+      const capturedValue = captureEntry?.amount?.value;
+      if (capturedValue && parseFloat(capturedValue) < parseFloat(expectedUsd) - 0.01) {
+        console.error(
+          `PayPal amount mismatch: expected ${expectedUsd}, got ${capturedValue} for order ${orderId}`
+        );
+        res.status(400).json({ error: "El monto capturado no coincide con el esperado" });
+        return;
+      }
+
+      /* Calculate expiry using server-side plan (not client-supplied value) */
       const expiresAt = new Date();
-      if (plan === "annual") {
+      if (serverPlan === "annual") {
         expiresAt.setFullYear(expiresAt.getFullYear() + 1);
       } else {
         expiresAt.setMonth(expiresAt.getMonth() + 1);
@@ -177,10 +221,10 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
         [expiresAt.toISOString(), req.userId]
       );
 
-      /* Apply & track promo code */
+      /* Apply & track promo code using server-side code (not client-supplied) */
       let discountPercent = 0;
-      if (promoCode) {
-        discountPercent = await applyPromoCode(promoCode);
+      if (serverPromo) {
+        discountPercent = await applyPromoCode(serverPromo);
       }
 
       res.json({ ok: true, tier: "megafan", discountPercent });
