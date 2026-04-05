@@ -145,6 +145,32 @@ router.delete("/comments/:animeId/:commentId/like", requireAuth, async (req: Aut
   }
 });
 
+/* ── POST /comments/:animeId/:commentId/report ── Auth: report a comment */
+router.post("/comments/:animeId/:commentId/report", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const commentId = parseInt(req.params.commentId as string, 10);
+    if (isNaN(commentId)) { res.status(400).json({ error: "ID inválido" }); return; }
+    const { reason } = req.body as { reason?: string };
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS comment_reports (
+         id SERIAL PRIMARY KEY,
+         comment_id INT NOT NULL REFERENCES anime_comments(id) ON DELETE CASCADE,
+         reporter_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+         reason TEXT,
+         created_at TIMESTAMPTZ DEFAULT NOW(),
+         UNIQUE(comment_id, reporter_id)
+       )`
+    );
+    await pool.query(
+      `INSERT INTO comment_reports (comment_id, reporter_id, reason) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+      [commentId, req.userId, (reason ?? "").trim().slice(0, 200) || null]
+    );
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Error al reportar comentario" });
+  }
+});
+
 /* ── DELETE /comments/:animeId/:commentId ── Auth: delete own comment */
 router.delete("/comments/:animeId/:commentId", requireAuth, async (req: AuthRequest, res) => {
   try {

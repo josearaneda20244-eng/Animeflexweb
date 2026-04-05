@@ -35,6 +35,7 @@ const router: IRouter = Router();
 let anilist: InstanceType<typeof META.Anilist>;
 let animeKai: InstanceType<typeof ANIME.AnimeKai>;
 let anilistWithKai: InstanceType<typeof META.Anilist>;
+let gogoanime: InstanceType<typeof ANIME.Gogoanime>;
 
 function getAnilist() {
   if (!anilist) anilist = new META.Anilist();
@@ -44,6 +45,11 @@ function getAnilist() {
 function getAnimeKai() {
   if (!animeKai) animeKai = new ANIME.AnimeKai();
   return animeKai;
+}
+
+function getGogoanime() {
+  if (!gogoanime) gogoanime = new ANIME.Gogoanime();
+  return gogoanime;
 }
 
 /**
@@ -754,7 +760,9 @@ async function retryFetch<T>(fn: () => Promise<T>, attempts = 4, baseDelayMs = 6
 }
 
 router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
-  const episodeId = req.query.episodeId as string;
+  const episodeId  = req.query.episodeId  as string;
+  const animeTitle = (req.query.animeTitle as string | undefined)?.trim() ?? "";
+  const episodeNum = (req.query.episodeNum as string | undefined)?.trim() ?? "";
   if (!episodeId || !episodeId.trim()) {
     res.status(400).json({ error: "Query param 'episodeId' is required" });
     return;
@@ -819,6 +827,35 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
       req.log.error({ err: fallbackErr }, "Fallback server fetch also failed");
       res.status(500).json({ error: "Failed to fetch episode sources" });
     }
+  }
+
+  /* ── Gogoanime fallback (only reached if AnimeKai completely failed above) ── */
+  if (!res.headersSent && animeTitle && episodeNum) {
+    req.log.warn({ animeTitle, episodeNum }, "Trying Gogoanime as secondary provider");
+    try {
+      const titleVariantList = titleVariants(animeTitle);
+      for (const variant of titleVariantList) {
+        try {
+          const searchData = await retryFetch(() => getGogoanime().search(variant), 2, 400);
+          const firstResult = (searchData.results ?? [])[0];
+          if (!firstResult) continue;
+          const info = await retryFetch(() => getGogoanime().fetchAnimeInfo(firstResult.id as string), 2, 400);
+          const ep = (info.episodes ?? []).find((e) => String(e.number) === episodeNum);
+          if (!ep) continue;
+          const data = await retryFetch(() => getGogoanime().fetchEpisodeSources(ep.id as string), 3, 500);
+          req.log.info({ provider: "gogoanime", variant }, "Gogoanime fallback succeeded");
+          res.json(data);
+          return;
+        } catch { /* try next variant */ }
+      }
+      req.log.warn({ animeTitle, episodeNum }, "Gogoanime fallback exhausted all title variants");
+    } catch (gogoErr) {
+      req.log.error({ err: gogoErr }, "Gogoanime fallback failed");
+    }
+  }
+
+  if (!res.headersSent) {
+    res.status(503).json({ error: "All streaming providers failed for this episode" });
   }
 });
 

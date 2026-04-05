@@ -555,7 +555,7 @@ export default function Player() {
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
-  const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
+  const [subLang, setSubLang] = useState<"es" | "en" | "off">("es");
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
@@ -630,7 +630,7 @@ export default function Player() {
 
   const query = useQuery({
     queryKey: ["streaming", episodeId],
-    queryFn: () => consumet.streaming(episodeId),
+    queryFn: () => consumet.streaming(episodeId, animeTitle || undefined, episodeNum || undefined),
     enabled: !!episodeId,
     retry: (failCount, error: any) => {
       if (error?.status === 403) return false;
@@ -659,6 +659,10 @@ export default function Player() {
     streamSubtitles.find((s) => /español.*españa|spanish.*esp/i.test(s.lang)) ??
     streamSubtitles.find((s) => /español|spanish|spa/i.test(s.lang)) ??
     null;
+  const streamEnglishSub =
+    streamSubtitles.find((s) => /english.*us|english/i.test(s.lang)) ??
+    streamSubtitles.find((s) => /eng|^en$/i.test(s.lang)) ??
+    null;
 
   useEffect(() => {
     setSelectedIdx(0);
@@ -672,31 +676,33 @@ export default function Player() {
     durationRef.current = 0;
     setShowAutoNext(false);
     setServerRemaining(null);
+    setSubLang("es");
     episodeRegisteredRef.current = false;
     // El modal de límite lo gestiona el useEffect de /user/daily-access arriba
   }, [episodeId]);
 
-  // Auto-load VTT subtitle from stream source (with referer for CDN auth)
+  // Auto-load VTT subtitle based on selected language
   useEffect(() => {
-    if (!streamSpanishSub) return;
-    const proxied = proxySubtitleUrl(streamSpanishSub.url, referer);
-    setActiveSubUrl(proxied);
-    setSubtitlesEnabled(true);
-  }, [streamSpanishSub?.url, referer]);
+    if (subLang === "off") { setActiveSubUrl(null); return; }
+    const target = subLang === "en" ? streamEnglishSub : streamSpanishSub;
+    if (target) {
+      setActiveSubUrl(proxySubtitleUrl(target.url, referer));
+    } else {
+      setActiveSubUrl(null);
+    }
+  }, [subLang, streamSpanishSub?.url, streamEnglishSub?.url, referer]);
 
-  // Auto-select Spanish HLS embedded subtitle track (secondary path)
+  // Auto-select HLS embedded subtitle track based on subLang
   const handleSubtitleTracks = useCallback((tracks: HlsSubTrack[]) => {
     setHlsSubTracks(tracks);
-    if (activeSubUrl) return; // VTT already loaded, skip HLS fallback
-    const spanish =
-      tracks.find(t => /español.*españa|spanish.*esp/i.test(t.lang + " " + t.name)) ??
-      tracks.find(t => /español|spanish|spa|es$/i.test(t.lang + " " + t.name)) ??
-      null;
-    if (spanish) {
-      setActiveHlsSubId(spanish.id);
-      setSubtitlesEnabled(true);
-    }
-  }, [activeSubUrl]);
+    if (activeSubUrl) return; // VTT already loaded, skip HLS
+    if (subLang === "off") { setActiveHlsSubId(-1); return; }
+    const isEn = subLang === "en";
+    const match = isEn
+      ? (tracks.find(t => /english.*us|english/i.test(t.lang + " " + t.name)) ?? tracks.find(t => /eng|^en$/i.test(t.lang + " " + t.name)))
+      : (tracks.find(t => /español.*españa|spanish.*esp/i.test(t.lang + " " + t.name)) ?? tracks.find(t => /español|spanish|spa|es$/i.test(t.lang + " " + t.name)));
+    if (match) setActiveHlsSubId(match.id);
+  }, [activeSubUrl, subLang]);
 
   const handleSubtitleCue = useCallback((text: string | null) => {
     setHlsCueText(text);
@@ -849,10 +855,10 @@ export default function Player() {
     }
   }, [triggerSeekFeedback, triggerVolumeFeedback]);
 
-  const hasSpanishSubs = !!activeSubUrl || activeHlsSubId !== -1;
+  const hasSubtitles = !!activeSubUrl || activeHlsSubId !== -1;
   // HLS cue text takes priority; VTT parsed cue is handled inside SubtitleOverlay
-  const vttSubUrl = subtitlesEnabled && !hlsCueText && activeSubUrl ? activeSubUrl : null;
-  const hlsCueToRender = subtitlesEnabled && activeHlsSubId !== -1 ? hlsCueText : null;
+  const vttSubUrl = subLang !== "off" && !hlsCueText && activeSubUrl ? activeSubUrl : null;
+  const hlsCueToRender = subLang !== "off" && activeHlsSubId !== -1 ? hlsCueText : null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
@@ -972,7 +978,7 @@ export default function Player() {
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}
                 onSubtitleTracks={handleSubtitleTracks}
-                activeHlsSubId={subtitlesEnabled ? activeHlsSubId : -1}
+                activeHlsSubId={subLang !== "off" ? activeHlsSubId : -1}
                 onSubtitleCue={handleSubtitleCue}
                 controlsRef={playerControlsRef}
               />
@@ -1105,19 +1111,31 @@ export default function Player() {
                   {theaterMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                   <span className="hidden md:inline">{theaterMode ? "Normal" : "Modo Teatro"}</span>
                 </button>
-                {/* Subtitle toggle */}
-                {hasSpanishSubs && (
-                  <button onClick={() => setSubtitlesEnabled(v => !v)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 7, padding: "8px 14px",
-                      borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
-                      background: subtitlesEnabled ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
-                      border: `1px solid ${subtitlesEnabled ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.1)"}`,
-                      color: subtitlesEnabled ? "#22C55E" : "rgba(255,255,255,0.4)",
-                    }}>
-                    <Captions size={14} />
-                    {subtitlesEnabled ? "SUB ES — Activo" : "Subtítulos — Desactivado"}
-                  </button>
+                {/* Subtitle language selector */}
+                {(streamSpanishSub || streamEnglishSub || hlsSubTracks.length > 0) && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Captions size={14} style={{ color: subLang !== "off" ? "#22C55E" : "rgba(255,255,255,0.35)", flexShrink: 0 }} />
+                    {(["es", "en", "off"] as const).map((lang) => {
+                      const active = subLang === lang;
+                      const hasLang = lang === "es"
+                        ? (!!streamSpanishSub || hlsSubTracks.some(t => /español|spanish|spa|es$/i.test(t.lang + t.name)))
+                        : lang === "en"
+                        ? (!!streamEnglishSub || hlsSubTracks.some(t => /english|eng|^en$/i.test(t.lang + t.name)))
+                        : true;
+                      if (!hasLang && lang !== "off") return null;
+                      return (
+                        <button key={lang} onClick={() => setSubLang(lang)}
+                          style={{
+                            padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: "pointer",
+                            background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
+                            border: `1px solid ${active ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.1)"}`,
+                            color: active ? "#22C55E" : "rgba(255,255,255,0.35)",
+                          }}>
+                          {lang === "off" ? "OFF" : lang.toUpperCase()}
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
                 {/* Share button */}
                 <div style={{ position: "relative" }}>
@@ -1205,28 +1223,60 @@ export default function Player() {
 
             {/* Subtitles section */}
             <div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
-                Subtítulos en Español
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Subtítulos</div>
+                {(streamSpanishSub || streamEnglishSub || hlsSubTracks.length > 0) && (
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {(["es", "en", "off"] as const).map((lang) => {
+                      const hasLang = lang === "es"
+                        ? (!!streamSpanishSub || hlsSubTracks.some(t => /español|spanish|spa|es$/i.test(t.lang + t.name)))
+                        : lang === "en"
+                        ? (!!streamEnglishSub || hlsSubTracks.some(t => /english|eng|^en$/i.test(t.lang + t.name)))
+                        : true;
+                      if (!hasLang && lang !== "off") return null;
+                      const active = subLang === lang;
+                      return (
+                        <button key={lang} onClick={() => setSubLang(lang)}
+                          style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 800, cursor: "pointer",
+                            background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
+                            border: `1px solid ${active ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.1)"}`,
+                            color: active ? "#22C55E" : "rgba(255,255,255,0.35)" }}>
+                          {lang === "off" ? "OFF" : lang.toUpperCase()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               {query.isLoading && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
                   <Loader2 size={12} className="animate-spin" /> Cargando episodio...
                 </div>
               )}
-              {!query.isLoading && streamSpanishSub && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
-                  {streamSpanishSub.lang} — incluidos en la fuente, activos automáticamente
+              {!query.isLoading && (streamSpanishSub || streamEnglishSub) && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {streamSpanishSub && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: subLang === "es" ? "#22C55E" : "rgba(255,255,255,0.3)", fontSize: 12 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: subLang === "es" ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
+                      {streamSpanishSub.lang} — disponible
+                    </div>
+                  )}
+                  {streamEnglishSub && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: subLang === "en" ? "#22C55E" : "rgba(255,255,255,0.3)", fontSize: 12 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: subLang === "en" ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
+                      {streamEnglishSub.lang} — disponible
+                    </div>
+                  )}
                 </div>
               )}
-              {!query.isLoading && !streamSpanishSub && hlsSubTracks.some(t => /español|spanish|spa/i.test(t.lang + " " + t.name)) && (
+              {!query.isLoading && !streamSpanishSub && !streamEnglishSub && hlsSubTracks.some(t => /español|spanish|spa|es$|english|eng|^en$/i.test(t.lang + t.name)) && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
-                  Español (HLS) — activos automáticamente
+                  Pistas HLS — disponibles
                 </div>
               )}
-              {!query.isLoading && !streamSpanishSub && !hlsSubTracks.some(t => /español|spanish|spa/i.test(t.lang + " " + t.name)) && (
-                <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos en español para este episodio.</p>
+              {!query.isLoading && !streamSpanishSub && !streamEnglishSub && !hlsSubTracks.length && (
+                <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos para este episodio.</p>
               )}
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { MessageCircle, Send, Heart, Trash2, Loader2, Reply, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageCircle, Send, Heart, Trash2, Loader2, Reply, ChevronDown, ChevronUp, Flag } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
 import { resolveAvatarUrl } from "@/lib/utils";
@@ -55,6 +55,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [revealedSpoilers, setRevealedSpoilers] = useState<Set<string>>(new Set());
+  const [reportedReplies, setReportedReplies] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     apiClient.get<Comment[]>(`/comments/${animeId}/replies/${parentId}`)
@@ -107,6 +108,14 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
     } catch { /* noop */ }
   };
 
+  const handleReportReply = async (id: string) => {
+    if (!token || reportedReplies.has(id)) return;
+    try {
+      await apiClient.post(`/comments/${animeId}/${id}/report`, {});
+      setReportedReplies((prev) => new Set([...prev, id]));
+    } catch { /* noop */ }
+  };
+
   return (
     <div style={{ marginTop: 8, marginLeft: 40, borderLeft: "2px solid rgba(108,99,255,0.2)", paddingLeft: 12 }}>
       {loading ? (
@@ -142,11 +151,21 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
                 ) : (
                   <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, lineHeight: 1.5, margin: "0 0 6px" }}>{r.text}</p>
                 )}
-                <button onClick={() => toggleLike(r.id)} disabled={!token}
-                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 6, background: r.likedByMe ? "rgba(236,72,153,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${r.likedByMe ? "rgba(236,72,153,0.3)" : "rgba(255,255,255,0.07)"}`, color: r.likedByMe ? "#EC4899" : "rgba(255,255,255,0.35)", cursor: token ? "pointer" : "default", fontSize: 11, fontWeight: 600 }}>
-                  <Heart size={10} fill={r.likedByMe ? "currentColor" : "none"} />
-                  {r.likes > 0 && r.likes}
-                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <button onClick={() => toggleLike(r.id)} disabled={!token}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 6, background: r.likedByMe ? "rgba(236,72,153,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${r.likedByMe ? "rgba(236,72,153,0.3)" : "rgba(255,255,255,0.07)"}`, color: r.likedByMe ? "#EC4899" : "rgba(255,255,255,0.35)", cursor: token ? "pointer" : "default", fontSize: 11, fontWeight: 600 }}>
+                    <Heart size={10} fill={r.likedByMe ? "currentColor" : "none"} />
+                    {r.likes > 0 && r.likes}
+                  </button>
+                  {token && !isMine && (
+                    <button
+                      onClick={() => handleReportReply(r.id)}
+                      title={reportedReplies.has(r.id) ? "Ya reportado" : "Reportar respuesta"}
+                      style={{ display: "flex", alignItems: "center", gap: 3, padding: "3px 6px", borderRadius: 6, background: reportedReplies.has(r.id) ? "rgba(245,158,11,0.1)" : "rgba(255,255,255,0.04)", border: `1px solid ${reportedReplies.has(r.id) ? "rgba(245,158,11,0.3)" : "rgba(255,255,255,0.07)"}`, color: reportedReplies.has(r.id) ? "#F59E0B" : "rgba(255,255,255,0.2)", cursor: "pointer", fontSize: 10 }}>
+                      <Flag size={9} />
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -202,6 +221,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [reportedComments, setReportedComments] = useState<Set<string>>(new Set());
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
@@ -267,6 +287,14 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
     } catch (err: any) {
       setError(err.message ?? "Error al eliminar el comentario");
     }
+  };
+
+  const handleReportComment = async (id: string) => {
+    if (!token || reportedComments.has(id)) return;
+    try {
+      await apiClient.post(`/comments/${animeId}/${id}/report`, {});
+      setReportedComments((prev) => new Set([...prev, id]));
+    } catch { /* noop */ }
   };
 
   const toggleReplies = (id: string) => {
@@ -410,6 +438,16 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
                       style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: repliesExpanded ? "rgba(108,99,255,0.08)" : "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
                       {repliesExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                       {repliesExpanded ? "Ocultar" : `${c.reply_count} respuesta${c.reply_count > 1 ? "s" : ""}`}
+                    </button>
+                  )}
+
+                  {token && !isMine && (
+                    <button
+                      onClick={() => handleReportComment(c.id)}
+                      title={reportedComments.has(c.id) ? "Ya reportado" : "Reportar comentario"}
+                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 8, background: reportedComments.has(c.id) ? "rgba(245,158,11,0.1)" : "rgba(255,255,255,0.03)", border: `1px solid ${reportedComments.has(c.id) ? "rgba(245,158,11,0.3)" : "rgba(255,255,255,0.07)"}`, color: reportedComments.has(c.id) ? "#F59E0B" : "rgba(255,255,255,0.2)", cursor: "pointer", fontSize: 11, marginLeft: "auto" }}>
+                      <Flag size={10} />
+                      {reportedComments.has(c.id) && <span style={{ fontSize: 10, fontWeight: 600 }}>Reportado</span>}
                     </button>
                   )}
                 </div>
