@@ -24,3 +24,11 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+VITE_PAYPAL_CLIENT_ID = "AQkBIoCf0c4ENKlA67RZfJ2IxBUD5eIoP6EhXPpkL_Q3cKtKKdPqdFCHOdMJqwAQr8M4Y4C5uLah31dA"
+VITE_PAYPAL_PLAN_ID = "P-9KN958225R794443YNHHZ57Q"
+PAYPAL_CLIENT_ID = "AQkBIoCf0c4ENKlA67RZfJ2IxBUD5eIoP6EhXPpkL_Q3cKtKKdPqdFCHOdMJqwAQr8M4Y4C5uLah31dA"
+PAYPAL_MODE = "live"
