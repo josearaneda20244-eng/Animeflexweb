@@ -1,46 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "stream";
-import {
-  RequestUploadUrlBody,
-  RequestUploadUrlResponse,
-} from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
-
-/**
- * POST /storage/uploads/request-url
- *
- * Request a presigned URL for file upload.
- * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
- */
-router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
-  const parsed = RequestUploadUrlBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Missing or invalid required fields" });
-    return;
-  }
-
-  try {
-    const { name, size, contentType } = parsed.data;
-
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-
-    res.json(
-      RequestUploadUrlResponse.parse({
-        uploadURL,
-        objectPath,
-        metadata: { name, size, contentType },
-      }),
-    );
-  } catch (error) {
-    req.log.error({ err: error }, "Error generating upload URL");
-    res.status(500).json({ error: "Failed to generate upload URL" });
-  }
-});
 
 /**
  * GET /storage/public-objects/*
@@ -76,16 +39,27 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
   }
 });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * GET /storage/objects/*
+ * GET /storage/objects/uploads/:uuid
  *
- * Serve user-uploaded objects (avatars). Explicitly public: avatars must be
+ * Serve user-uploaded avatar images. Explicitly public: avatars must be
  * viewable by anyone without authentication (comments, public profiles, etc.).
+ * Access is restricted to the /uploads/<uuid> path shape to prevent enumeration.
  */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
+
+    const parts = wildcardPath.split("/");
+    const lastPart = parts[parts.length - 1];
+    if (!UUID_RE.test(lastPart)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
 

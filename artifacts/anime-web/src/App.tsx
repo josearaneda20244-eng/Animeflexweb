@@ -100,6 +100,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
         <Route path="/membership" component={Membership} />
         <Route path="/settings" component={Settings} />
         <Route path="/perfil" component={Profile} />
+        <Route path="/profile" component={Profile} />
         <Route path="/perfil/:userId" component={PublicProfile} />
         <Route path="/profile/:userId" component={PublicProfile} />
         <Route path="/admin" component={Admin} />
