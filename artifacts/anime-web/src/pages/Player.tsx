@@ -7,7 +7,7 @@ import "plyr/dist/plyr.css";
 import {
   ArrowLeft, SkipForward, AlertCircle, Loader2, Play, X,
   Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2,
-  Share2, Copy, Check as CheckIcon,
+  Share2, Copy, Check as CheckIcon, HelpCircle, FastForward, Rewind,
 } from "lucide-react";
 import {
   consumet,
@@ -153,6 +153,12 @@ function AutoNextOverlay({ nextNum, onSkip, onCancel }: { nextNum: string; onSki
 /* ── PLYR PLAYER ── */
 export interface HlsSubTrack { id: number; lang: string; name: string; }
 
+interface PlyrControls {
+  seekTo: (t: number) => void;
+  getVolume: () => number;
+  setVolume: (v: number) => void;
+}
+
 interface PlyrPlayerProps {
   m3u8Url: string;
   playbackRate: number;
@@ -163,9 +169,10 @@ interface PlyrPlayerProps {
   onSubtitleTracks?: (tracks: HlsSubTrack[]) => void;
   activeHlsSubId?: number;
   onSubtitleCue?: (text: string | null) => void;
+  controlsRef?: React.MutableRefObject<PlyrControls | null>;
 }
 
-function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue }: PlyrPlayerProps) {
+function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const plyrRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -208,6 +215,14 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       fullscreen: { enabled: true, fallback: true, iosNative: false, container: fullscreenContainer ?? undefined },
     });
     plyrRef.current = plyr;
+
+    if (controlsRef) {
+      controlsRef.current = {
+        seekTo: (t: number) => { video.currentTime = t; },
+        getVolume: () => plyr.volume ?? 1,
+        setVolume: (v: number) => { plyr.volume = Math.max(0, Math.min(1, v)); },
+      };
+    }
 
     const trySeekRestore = () => {
       if (seekRestoredRef.current) return;
@@ -359,6 +374,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       video.removeEventListener("ended", onEnd);
       video.textTracks.removeEventListener("addtrack", handleAddTrack as EventListener);
       if (loadTimeout) clearTimeout(loadTimeout);
+      if (controlsRef) controlsRef.current = null;
       if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; }
       if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
     };
@@ -546,10 +562,25 @@ export default function Player() {
   const [showShare, setShowShare] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
   const [hlsSubTracks, setHlsSubTracks] = useState<HlsSubTrack[]>([]);
   const [activeHlsSubId, setActiveHlsSubId] = useState<number>(-1);
   const [hlsCueText, setHlsCueText] = useState<string | null>(null);
   const [theaterMode, setTheaterMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [seekFeedback, setSeekFeedback] = useState<{ dir: "left" | "right"; secs: number; visible: boolean }>({ dir: "right", secs: 10, visible: false });
+  const [volumeFeedback, setVolumeFeedback] = useState<{ pct: number; visible: boolean }>({ pct: 100, visible: false });
+
+  const playerControlsRef = useRef<PlyrControls | null>(null);
+  const currentTimeRef = useRef(0);
+  const durationRef = useRef(0);
+  const lastTapTimeRef = useRef(0);
+  const lastTapXRef = useRef(0);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const touchStartVolumeRef = useRef(1);
+  const seekFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const volumeFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Access control ─────────────────────────────────────────────────────────
   const { isMegaFan, user } = useAuth();
@@ -626,6 +657,9 @@ export default function Player() {
     setActiveHlsSubId(-1);
     setHlsCueText(null);
     setCurrentTime(0);
+    setVideoDuration(0);
+    currentTimeRef.current = 0;
+    durationRef.current = 0;
     setShowAutoNext(false);
     setServerRemaining(null);
     episodeRegisteredRef.current = false;
@@ -661,6 +695,11 @@ export default function Player() {
   const proxyM3u8 = selected ? proxyStreamUrl(selected.url, referer) : null;
 
   const handleTimeUpdate = useCallback((ct: number, duration: number) => {
+    currentTimeRef.current = ct;
+    if (duration > 0) {
+      durationRef.current = duration;
+      setVideoDuration(duration);
+    }
     setCurrentTime(ct);
     // Anti-exploit: registrar episodio solo tras REGISTER_THRESHOLD_SECONDS segundos vistos
     // y solo una vez por sesión de episodio (useRef evita doble conteo al refrescar)
@@ -703,6 +742,78 @@ export default function Player() {
       setTimeout(() => setCopyToast(false), 2500);
     });
   };
+
+  // ── Fullscreen detection ───────────────────────────────────────────────────
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  // ── Seek/volume feedback helpers ──────────────────────────────────────────
+  const triggerSeekFeedback = useCallback((dir: "left" | "right", secs: number) => {
+    setSeekFeedback({ dir, secs, visible: true });
+    if (seekFeedbackTimerRef.current) clearTimeout(seekFeedbackTimerRef.current);
+    seekFeedbackTimerRef.current = setTimeout(() => setSeekFeedback(f => ({ ...f, visible: false })), 700);
+  }, []);
+
+  const triggerVolumeFeedback = useCallback((pct: number) => {
+    setVolumeFeedback({ pct: Math.round(pct * 100), visible: true });
+    if (volumeFeedbackTimerRef.current) clearTimeout(volumeFeedbackTimerRef.current);
+    volumeFeedbackTimerRef.current = setTimeout(() => setVolumeFeedback(f => ({ ...f, visible: false })), 700);
+  }, []);
+
+  // ── Mobile touch gesture handlers ─────────────────────────────────────────
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+    touchStartVolumeRef.current = playerControlsRef.current?.getVolume() ?? 1;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const dt = Date.now() - start.time;
+    const containerWidth = (e.currentTarget as HTMLDivElement).offsetWidth;
+    const containerHeight = (e.currentTarget as HTMLDivElement).offsetHeight;
+    touchStartRef.current = null;
+
+    // Vertical swipe → volume
+    if (Math.abs(dy) > 25 && Math.abs(dy) > Math.abs(dx) * 1.5 && dt < 600) {
+      const deltaVol = -dy / (containerHeight * 0.8);
+      const newVol = Math.max(0, Math.min(1, touchStartVolumeRef.current + deltaVol));
+      playerControlsRef.current?.setVolume(newVol);
+      triggerVolumeFeedback(newVol);
+      return;
+    }
+
+    // Tap (short, no movement)
+    if (Math.abs(dx) < 15 && Math.abs(dy) < 15 && dt < 300) {
+      const now = Date.now();
+      const isDoubleTap = (now - lastTapTimeRef.current) < 350 && Math.abs(t.clientX - lastTapXRef.current) < 70;
+      if (isDoubleTap) {
+        lastTapTimeRef.current = 0;
+        const isLeft = t.clientX < containerWidth / 2;
+        const SEEK = 10;
+        if (isLeft) {
+          const target = Math.max(0, currentTimeRef.current - SEEK);
+          playerControlsRef.current?.seekTo(target);
+          triggerSeekFeedback("left", SEEK);
+        } else {
+          const target = Math.min(durationRef.current || 999999, currentTimeRef.current + SEEK);
+          playerControlsRef.current?.seekTo(target);
+          triggerSeekFeedback("right", SEEK);
+        }
+      } else {
+        lastTapTimeRef.current = now;
+        lastTapXRef.current = t.clientX;
+      }
+    }
+  }, [triggerSeekFeedback, triggerVolumeFeedback]);
 
   const hasSpanishSubs = !!activeSubUrl || activeHlsSubId !== -1;
   // HLS cue text takes priority; VTT parsed cue is handled inside SubtitleOverlay
@@ -829,6 +940,7 @@ export default function Player() {
                 onSubtitleTracks={handleSubtitleTracks}
                 activeHlsSubId={subtitlesEnabled ? activeHlsSubId : -1}
                 onSubtitleCue={handleSubtitleCue}
+                controlsRef={playerControlsRef}
               />
             )}
             {/* Custom subtitle overlay — VTT primary, HLS cue fallback */}
@@ -841,17 +953,109 @@ export default function Player() {
             {showAutoNext && nextEpisodeId && (
               <AutoNextOverlay nextNum={nextEpisodeNum} onSkip={handleNextEpisode} onCancel={() => setShowAutoNext(false)} />
             )}
+
+            {/* ── Skip intro button (first 90s) ── */}
+            {!showLimitModal && videoDuration > 0 && currentTime < 90 && currentTime > 2 && (
+              <button
+                onClick={() => playerControlsRef.current?.seekTo(90)}
+                style={{
+                  position: "absolute", bottom: 80, right: 16, zIndex: 30,
+                  background: "rgba(9,10,18,0.85)", backdropFilter: "blur(6px)",
+                  border: "1px solid rgba(255,255,255,0.25)", borderRadius: 10,
+                  color: "#F1F1F5", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  padding: "9px 16px", display: "flex", alignItems: "center", gap: 7,
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+                }}
+              >
+                <SkipForward size={14} />
+                Saltar intro
+              </button>
+            )}
+
+            {/* ── Skip outro button (last 120s, more than 10s from end) ── */}
+            {!showLimitModal && videoDuration > 0 && currentTime >= videoDuration - 120 && currentTime <= videoDuration - 10 && currentTime >= 90 && (
+              <button
+                onClick={() => nextEpisodeId ? handleNextEpisode() : playerControlsRef.current?.seekTo(videoDuration - 2)}
+                style={{
+                  position: "absolute", bottom: 80, right: 16, zIndex: 30,
+                  background: "rgba(9,10,18,0.85)", backdropFilter: "blur(6px)",
+                  border: "1px solid rgba(255,255,255,0.25)", borderRadius: 10,
+                  color: "#F1F1F5", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  padding: "9px 16px", display: "flex", alignItems: "center", gap: 7,
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+                }}
+              >
+                <SkipForward size={14} />
+                {nextEpisodeId ? "Siguiente episodio" : "Saltar final"}
+              </button>
+            )}
+
+            {/* ── Mobile gesture overlay (upper 80% of video) ── */}
+            <div
+              style={{ position: "absolute", top: 0, left: 0, right: 0, height: "80%", zIndex: 8 }}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            />
+
+            {/* ── Seek feedback overlay ── */}
+            {seekFeedback.visible && (
+              <div style={{
+                position: "absolute", top: "50%", transform: "translateY(-50%)",
+                [seekFeedback.dir === "left" ? "left" : "right"]: "10%",
+                zIndex: 40, background: "rgba(0,0,0,0.65)", borderRadius: "50%",
+                width: 72, height: 72, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 2,
+                pointerEvents: "none", backdropFilter: "blur(4px)",
+              }}>
+                {seekFeedback.dir === "left"
+                  ? <Rewind size={22} color="#fff" fill="#fff" />
+                  : <FastForward size={22} color="#fff" fill="#fff" />}
+                <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>{seekFeedback.secs}s</span>
+              </div>
+            )}
+
+            {/* ── Volume feedback overlay ── */}
+            {volumeFeedback.visible && (
+              <div style={{
+                position: "absolute", top: "50%", left: "50%",
+                transform: "translate(-50%,-50%)",
+                zIndex: 40, background: "rgba(0,0,0,0.65)", borderRadius: 14,
+                padding: "10px 18px", display: "flex", flexDirection: "column",
+                alignItems: "center", gap: 6, pointerEvents: "none",
+              }}>
+                <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>
+                  {volumeFeedback.pct === 0 ? "🔇 Silencio" : `🔊 ${volumeFeedback.pct}%`}
+                </span>
+                <div style={{ width: 90, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2 }}>
+                  <div style={{ height: "100%", background: "#fff", borderRadius: 2, width: `${volumeFeedback.pct}%` }} />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Controls below video */}
-          <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 18 }}>
+          {/* Controls below video — hidden when native fullscreen is active */}
+          <div style={{ padding: "14px 16px", display: isFullscreen ? "none" : "flex", flexDirection: "column", gap: 18 }}>
             {/* Episode title row */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
               <div>
                 <div style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>{animeTitle}</div>
                 <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 2 }}>Episodio {episodeNum}</div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {/* Keyboard shortcuts help */}
+                <button
+                  onClick={() => setShowShortcuts(true)}
+                  title="Atajos de teclado"
+                  style={{
+                    display: "flex", alignItems: "center", padding: "8px 10px",
+                    borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  <HelpCircle size={14} />
+                </button>
                 {/* Theater mode */}
                 <button
                   onClick={() => setTheaterMode(v => !v)}
@@ -943,9 +1147,16 @@ export default function Player() {
             </div>
 
             {/* Quality */}
-            {sources.length > 1 && (
+            {sources.length > 0 && (
               <div>
-                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Calidad</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Calidad</div>
+                  {selected && (
+                    <span style={{ background: "rgba(108,99,255,0.2)", color: "#A78BFA", borderRadius: 6, padding: "1px 7px", fontSize: 10, fontWeight: 800 }}>
+                      {parseResolution(selected)}
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {sources.map((src, i) => (
                     <button key={i} onClick={() => setSelectedIdx(i)}
@@ -1013,6 +1224,62 @@ export default function Player() {
             nextEpisodeId={nextEpisodeId}
             onNavigate={() => {}}
           />
+        </div>
+      )}
+
+      {/* ── Keyboard Shortcuts Modal ── */}
+      {showShortcuts && (
+        <div
+          onClick={() => setShowShortcuts(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 300,
+            background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#0E0E1A", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 20, padding: 28, maxWidth: 440, width: "100%",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.7)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <HelpCircle size={18} color="#A78BFA" />
+                <span style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>Atajos de teclado</span>
+              </div>
+              <button onClick={() => setShowShortcuts(false)}
+                style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", display: "flex" }}>
+                <X size={16} />
+              </button>
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {[
+                ["Espacio", "Pausar / Reanudar"],
+                ["F", "Pantalla completa"],
+                ["M", "Silenciar / Activar sonido"],
+                ["← / →", "Retroceder / Avanzar 5s"],
+                ["↑ / ↓", "Subir / Bajar volumen 10%"],
+                ["0 – 9", "Saltar al % del video (0=inicio, 5=50%)"],
+                ["L", "Avanzar 10s"],
+                ["J", "Retroceder 10s"],
+                ["K", "Pausar / Reanudar"],
+              ].map(([key, desc]) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
+                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{desc}</span>
+                  <kbd style={{ background: "rgba(108,99,255,0.2)", color: "#A78BFA", border: "1px solid rgba(108,99,255,0.35)", borderRadius: 7, padding: "3px 10px", fontSize: 12, fontWeight: 700, fontFamily: "monospace", whiteSpace: "nowrap" }}>
+                    {key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 16, color: "rgba(255,255,255,0.2)", fontSize: 11, textAlign: "center" }}>
+              Toca fuera del panel para cerrar
+            </div>
+          </div>
         </div>
       )}
     </div>
