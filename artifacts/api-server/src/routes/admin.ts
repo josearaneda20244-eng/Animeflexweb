@@ -103,12 +103,23 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
   const zeroRow = { rows: [{ count: "0" }] };
 
   try {
-    const [totalUsers, megafanUsers, episodesTodayRow, topAnime, newUsersWeek, totalComments, inactiveUsers, newUsersToday] = await Promise.all([
+    const [
+      totalUsers, megafanUsers, episodesTodayRow, topAnime,
+      newUsersWeek, totalComments, inactiveUsers, newUsersToday,
+      recentUsers, megafanList, recentActivity, totalRevenueRow,
+    ] = await Promise.all([
       safe(pool.query(`SELECT COUNT(*) as count FROM users`), zeroRow),
       safe(pool.query(`SELECT COUNT(*) as count FROM users WHERE membership_tier = 'megafan'`), zeroRow),
-      // Usar user_daily_views para contar episodios vistos hoy (tabla correcta)
-      safe(pool.query(`SELECT COUNT(*) as count FROM user_daily_views WHERE view_date = CURRENT_DATE`), zeroRow),
-      // Top anime desde user_history (contiene titulo/imagen del anime)
+      // Episodios vistos hoy: user_daily_views (todos los usuarios, incluyendo megafan)
+      safe(pool.query(`
+        SELECT COUNT(*) as count FROM (
+          SELECT user_id, episode_id FROM user_daily_views WHERE view_date = CURRENT_DATE
+          UNION
+          SELECT user_id, episode_id FROM user_watch_progress
+          WHERE DATE(updated_at) = CURRENT_DATE AND watch_time > 30
+        ) combined
+      `), zeroRow),
+      // Top anime desde user_history
       safe(pool.query(`
         SELECT anime_id, anime_title, anime_image, COUNT(*) as views
         FROM user_history
@@ -119,6 +130,27 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
       safe(pool.query(`SELECT COUNT(*) as count FROM anime_comments`), zeroRow),
       safe(pool.query(`SELECT COUNT(*) as count FROM users WHERE is_active = false`), zeroRow),
       safe(pool.query(`SELECT COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL '1 day'`), zeroRow),
+      // Últimos 8 usuarios registrados
+      safe(pool.query(`
+        SELECT id, username, email, membership_tier, role, created_at
+        FROM users ORDER BY created_at DESC LIMIT 8
+      `), { rows: [] }),
+      // Lista de suscriptores MegaFan
+      safe(pool.query(`
+        SELECT id, username, email, created_at, subscription_expires_at
+        FROM users WHERE membership_tier = 'megafan'
+        ORDER BY created_at DESC LIMIT 20
+      `), { rows: [] }),
+      // Actividad reciente (últimos episodios vistos)
+      safe(pool.query(`
+        SELECT u.username, p.anime_title, p.episode_num, p.updated_at
+        FROM user_watch_progress p
+        JOIN users u ON u.id = p.user_id
+        WHERE p.watch_time > 30
+        ORDER BY p.updated_at DESC LIMIT 10
+      `), { rows: [] }),
+      // Ingresos totales acumulados (megafan × $4)
+      safe(pool.query(`SELECT COUNT(*) as count FROM users WHERE membership_tier = 'megafan'`), zeroRow),
     ]);
     res.json({
       totalUsers: parseInt(totalUsers.rows[0].count) || 0,
@@ -129,6 +161,10 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
       totalComments: parseInt(totalComments.rows[0].count) || 0,
       inactiveUsers: parseInt(inactiveUsers.rows[0].count) || 0,
       newUsersToday: parseInt(newUsersToday.rows[0].count) || 0,
+      recentUsers: recentUsers.rows,
+      megafanList: megafanList.rows,
+      recentActivity: recentActivity.rows,
+      totalRevenue: (parseInt(totalRevenueRow.rows[0].count) || 0) * 4,
     });
   } catch (err) {
     console.error("Admin stats error", err);

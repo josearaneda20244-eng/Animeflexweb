@@ -651,17 +651,17 @@ export default function Player() {
     setCurrentTime(ct);
     // Anti-exploit: registrar episodio solo tras REGISTER_THRESHOLD_SECONDS segundos vistos
     // y solo una vez por sesión de episodio (useRef evita doble conteo al refrescar)
-    if (!isMegaFan && !episodeRegisteredRef.current && ct >= REGISTER_THRESHOLD_SECONDS) {
+    if (!episodeRegisteredRef.current && ct >= REGISTER_THRESHOLD_SECONDS) {
       episodeRegisteredRef.current = true;
       if (user) {
-        // Usuario logueado → registrar en servidor (no se puede manipular desde el navegador)
+        // Registrar siempre en servidor (incluso MegaFan, para estadísticas de admin)
         apiClient.post<{ ok: boolean; remaining?: number }>("/user/daily-access/register", { episodeId })
           .then((data) => {
             if (data.remaining !== undefined) setServerRemaining(data.remaining);
           })
           .catch(() => {});
-      } else {
-        // Invitado → localStorage como respaldo
+      } else if (!isMegaFan) {
+        // Invitado no-megafan → localStorage como respaldo
         registerEpisodeView(episodeId);
       }
     }

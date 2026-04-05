@@ -20,8 +20,11 @@ interface AdminUser {
 }
 interface AdminStats {
   totalUsers: number; megafanUsers: number; episodesToday: number; newUsersWeek: number;
-  totalComments: number; inactiveUsers: number; newUsersToday: number;
+  totalComments: number; inactiveUsers: number; newUsersToday: number; totalRevenue: number;
   topAnime: { anime_id: string; anime_title: string; anime_image: string; views: string }[];
+  recentUsers: { id: number; username: string; email: string; membership_tier: string; role: string; created_at: string }[];
+  megafanList: { id: number; username: string; email: string; created_at: string; subscription_expires_at: string | null }[];
+  recentActivity: { username: string; anime_title: string; episode_num: number; updated_at: string }[];
 }
 interface ContentItem {
   id: number; anime_id: string; anime_title: string; anime_image: string;
@@ -314,6 +317,107 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           ))}
         </div>
       </div>
+
+      {/* Recent users + MegaFan list */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+        {/* Recent registrations */}
+        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <UserCheck size={14} color="#6C63FF" />
+              </div>
+              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Últimos registros</span>
+            </div>
+            <button onClick={() => onNavigate("users")} style={{ background: "none", border: "none", color: "rgba(108,99,255,0.7)", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>Ver todos →</button>
+          </div>
+          {(stats?.recentUsers ?? []).length === 0 ? (
+            <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, textAlign: "center", padding: "16px 0" }}>Sin usuarios aún</div>
+          ) : (stats?.recentUsers ?? []).map((u, i) => (
+            <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < (stats!.recentUsers.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: u.membership_tier === "megafan" ? "linear-gradient(135deg,#F59E0B,#D97706)" : "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
+                {u.username.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+                  {u.username}
+                  {u.membership_tier === "megafan" && <span style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>👑</span>}
+                  {u.role === "owner" && <span style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>OWNER</span>}
+                  {u.role === "admin" && <span style={{ background: "rgba(108,99,255,0.15)", color: "#A78BFA", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>ADMIN</span>}
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{u.email}</div>
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, textAlign: "right", flexShrink: 0 }}>
+                {new Date(u.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* MegaFan subscribers */}
+        <div style={{ background: "#13131C", border: "1px solid rgba(245,158,11,0.12)", borderRadius: 18, padding: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Crown size={14} color="#F59E0B" />
+              </div>
+              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Suscriptores MegaFan</span>
+            </div>
+            <span style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 800 }}>
+              ${(stats?.megafanUsers ?? 0) * 4}/mes
+            </span>
+          </div>
+          {(stats?.megafanList ?? []).length === 0 ? (
+            <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, textAlign: "center", padding: "16px 0" }}>Sin suscriptores aún</div>
+          ) : (stats?.megafanList ?? []).map((u, i) => (
+            <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < (stats!.megafanList.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#F59E0B,#D97706)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
+                {u.username.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>{u.username}</div>
+                <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{u.email}</div>
+              </div>
+              <div style={{ color: "#F59E0B", fontSize: 10, fontWeight: 700, textAlign: "right", flexShrink: 0 }}>
+                <div>$4/mes</div>
+                <div style={{ color: "rgba(255,255,255,0.2)", fontWeight: 400 }}>
+                  {new Date(u.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" })}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent activity */}
+      {(stats?.recentActivity ?? []).length > 0 && (
+        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Activity size={14} color="#22C55E" />
+            </div>
+            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Actividad reciente</span>
+            <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 12, marginLeft: "auto" }}>Últimos episodios vistos</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {(stats?.recentActivity ?? []).map((a, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: i < (stats!.recentActivity.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", flexShrink: 0, boxShadow: "0 0 6px #22C55E" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ color: "#A78BFA", fontWeight: 700, fontSize: 13 }}>{a.username}</span>
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}> vio </span>
+                  <span style={{ color: "#F1F1F5", fontWeight: 600, fontSize: 13 }}>{a.anime_title || "un anime"}</span>
+                  <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}> ep. {a.episode_num}</span>
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, flexShrink: 0 }}>
+                  {new Date(a.updated_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
