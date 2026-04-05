@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera, Rss } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera, Rss, LayoutDashboard } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -128,6 +128,7 @@ export default function Navbar() {
     { label: "Favoritos", icon: <Bookmark size={18} />, href: "/favorites" },
     { label: "Historial", icon: <Clock size={18} />, href: "/history" },
     { label: "Feed", icon: <Rss size={18} />, href: "/feed" },
+    ...(isOwner ? [{ label: "Panel Admin", icon: <LayoutDashboard size={18} />, href: "/admin" }] : []),
   ];
 
   return (
@@ -548,8 +549,9 @@ export default function Navbar() {
                         {/* Quick links */}
                         <div style={{ margin: "0 12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
                           {[
+                            ...(isOwner ? [{ icon: <LayoutDashboard size={13} />, label: "Panel de Admin", href: "/admin", color: "#A78BFA" }] : []),
                             { icon: <User size={13} />, label: "Mi Perfil", href: "/perfil", color: "rgba(255,255,255,0.55)" },
-            { icon: <Settings size={13} />, label: "Configuración", href: "/settings", color: "rgba(255,255,255,0.55)" },
+                            { icon: <Settings size={13} />, label: "Configuración", href: "/settings", color: "rgba(255,255,255,0.55)" },
                           ].map(({ icon, label, href, color }) => (
                             <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
                               style={{
