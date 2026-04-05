@@ -10,6 +10,7 @@ export interface AuthUser {
   membership_tier: "free" | "megafan";
   subscription_expires_at: string | null;
   role: "user" | "owner" | "admin";
+  is_profile_public: boolean;
 }
 
 interface AuthContextValue {
@@ -22,7 +23,7 @@ interface AuthContextValue {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  updateProfile: (data: { username?: string; avatar_url?: string }) => Promise<void>;
+  updateProfile: (data: { username?: string; avatar_url?: string; is_profile_public?: boolean }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);

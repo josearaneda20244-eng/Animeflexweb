@@ -18,7 +18,9 @@ interface UserStats {
   totalAnimes: number;
   completed: number;
   streak: number;
+  episodesThisWeek: number;
   estimatedHours: number;
+  favoriteGenre: string | null;
   weeklyActivity: { date: string; day: string; episodes: number }[];
   topAnime: { anime_id: string; anime_title: string; anime_image: string; ep_count: number }[];
 }
@@ -68,8 +70,8 @@ export default function Profile() {
 
   const STAT_CARDS = stats
     ? [
-        { icon: <Tv2 size={20} color="#6C63FF" />, label: "Episodios vistos", value: stats.totalEpisodes, sub: `${stats.totalAnimes} animes distintos` },
-        { icon: <Clock size={20} color="#22C55E" />, label: "Horas de anime", value: `${stats.estimatedHours}h`, sub: "~24 min por episodio" },
+        { icon: <Tv2 size={20} color="#6C63FF" />, label: "Episodios vistos", value: stats.totalEpisodes, sub: `${stats.episodesThisWeek} esta semana` },
+        { icon: <Clock size={20} color="#22C55E" />, label: "Horas de anime", value: `${stats.estimatedHours}h`, sub: `${stats.totalAnimes} animes distintos` },
         { icon: <CheckCircle2 size={20} color="#EC4899" />, label: "Completados", value: stats.completed, sub: "animes terminados" },
         { icon: <Flame size={20} color="#F59E0B" />, label: "Racha activa", value: `${stats.streak}d`, sub: stats.streak === 1 ? "día seguido" : "días seguidos" },
       ]

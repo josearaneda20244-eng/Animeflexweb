@@ -75,7 +75,8 @@ router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
   try {
     const result = await pool.query(
       `SELECT id, username, email, avatar_url, created_at,
-              membership_tier, subscription_expires_at, role
+              membership_tier, subscription_expires_at, role,
+              COALESCE(is_profile_public, TRUE) AS is_profile_public
        FROM users WHERE id = $1`,
       [req.userId]
     );
@@ -88,22 +89,26 @@ router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
 });
 
 router.patch("/auth/me", requireAuth, async (req: AuthRequest, res) => {
-  const { username, avatar_url } = req.body as { username?: string; avatar_url?: string };
-  if (!username && !avatar_url) {
+  const { username, avatar_url, is_profile_public } = req.body as {
+    username?: string; avatar_url?: string; is_profile_public?: boolean;
+  };
+  if (!username && avatar_url === undefined && is_profile_public === undefined) {
     res.status(400).json({ error: "Nada que actualizar" });
     return;
   }
   try {
     const fields: string[] = [];
-    const values: (string | number)[] = [];
+    const values: (string | number | boolean)[] = [];
     let idx = 1;
     if (username) { fields.push(`username = $${idx++}`); values.push(username.trim()); }
     if (avatar_url !== undefined) { fields.push(`avatar_url = $${idx++}`); values.push(avatar_url); }
+    if (is_profile_public !== undefined) { fields.push(`is_profile_public = $${idx++}`); values.push(is_profile_public); }
     values.push(req.userId!);
     const result = await pool.query(
       `UPDATE users SET ${fields.join(", ")}
        WHERE id = $${idx}
-       RETURNING id, username, email, avatar_url, created_at, membership_tier, subscription_expires_at, role`,
+       RETURNING id, username, email, avatar_url, created_at, membership_tier, subscription_expires_at, role,
+                 COALESCE(is_profile_public, TRUE) AS is_profile_public`,
       values
     );
     res.json({ user: result.rows[0] });

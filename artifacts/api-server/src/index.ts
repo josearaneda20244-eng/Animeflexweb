@@ -34,6 +34,7 @@ async function runMigrations() {
   await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user'`, "users.role");
   await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`, "users.is_active");
   await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS paypal_subscription_id TEXT`, "users.paypal_subscription_id");
+  await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_profile_public BOOLEAN DEFAULT TRUE`, "users.is_profile_public");
 
   await safeQuery(`
     CREATE TABLE IF NOT EXISTS user_favorites (

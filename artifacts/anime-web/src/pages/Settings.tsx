@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
-import { Camera, User, Mail, Shield, Crown, ArrowLeft, Check, X, Upload, Link as LinkIcon, Loader2 } from "lucide-react";
+import { Camera, User, Mail, Shield, Crown, ArrowLeft, Check, X, Upload, Link as LinkIcon, Loader2, Eye, EyeOff } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
 export default function Settings() {
@@ -20,6 +20,10 @@ export default function Settings() {
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const [usernameError, setUsernameError] = useState("");
+
+  const [isProfilePublic, setIsProfilePublic] = useState(user?.is_profile_public ?? true);
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
+  const [privacySuccess, setPrivacySuccess] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -92,6 +96,18 @@ export default function Settings() {
     } finally {
       setSavingUsername(false);
     }
+  };
+
+  const handleSavePrivacy = async (newValue: boolean) => {
+    setSavingPrivacy(true);
+    setPrivacySuccess(false);
+    try {
+      await updateProfile({ is_profile_public: newValue });
+      setIsProfilePublic(newValue);
+      setPrivacySuccess(true);
+      setTimeout(() => setPrivacySuccess(false), 2500);
+    } catch {}
+    finally { setSavingPrivacy(false); }
   };
 
   const initials = user.username.charAt(0).toUpperCase();
@@ -317,6 +333,42 @@ export default function Settings() {
             {user.email}
           </div>
           <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 6 }}>El correo no se puede cambiar por seguridad.</div>
+        </div>
+
+        {/* Privacy section */}
+        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(108,99,255,0.15)", borderRadius: 20, padding: 20, marginTop: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {isProfilePublic ? <Eye size={14} color="#A78BFA" /> : <EyeOff size={14} color="#A78BFA" />}
+            </div>
+            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Privacidad del perfil</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: "rgba(255,255,255,0.04)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)" }}>
+            <div>
+              <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>Perfil público</div>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>
+                {isProfilePublic ? "Cualquiera puede ver tus favoritos y watchlist" : "Tu lista y favoritos están ocultos"}
+              </div>
+            </div>
+            <button
+              onClick={() => !savingPrivacy && handleSavePrivacy(!isProfilePublic)}
+              style={{
+                width: 44, height: 24, borderRadius: 99, border: "none", cursor: savingPrivacy ? "not-allowed" : "pointer",
+                background: isProfilePublic ? "linear-gradient(135deg,#6C63FF,#4F46E5)" : "rgba(255,255,255,0.12)",
+                position: "relative", transition: "background 0.2s", flexShrink: 0,
+              }}
+            >
+              <div style={{
+                position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                transition: "left 0.2s", left: isProfilePublic ? 23 : 3,
+              }} />
+            </button>
+          </div>
+          {privacySuccess && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#22C55E", fontSize: 12, marginTop: 8 }}>
+              <Check size={12} /> Privacidad actualizada
+            </div>
+          )}
         </div>
       </div>
 
