@@ -127,6 +127,7 @@ async function ensureAdminTables() {
     )
   `);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(200)`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(200)`);
   const defaults = [
     ["daily_limit", "5"],
     ["daily_limit_enabled", "true"],

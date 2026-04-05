@@ -81,19 +81,45 @@ export default function Membership() {
     }, 600);
   }, [couponInput, plan]);
 
-  async function handlePayPalApprove(subscriptionId: string) {
+  /* ── PayPal SUBSCRIPTION flow (no coupon) ── */
+  async function handlePayPalSubscriptionApprove(subscriptionId: string) {
     setLoading(true);
     setError(null);
     try {
-      await apiClient.post("/membership", {
-        action: "activate",
-        subscriptionId,
-        promoCode: couponStatus === "valid" ? couponInput.trim() : undefined,
-      });
+      await apiClient.post("/membership", { action: "activate", subscriptionId, plan });
       await refreshUser();
       setSuccess(true);
     } catch (e: any) {
       setError(e.message ?? "Error activando la membresía");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ── PayPal ORDER flow (with coupon — applies real discount at billing time) ── */
+  async function createPayPalOrder(): Promise<string> {
+    const data = await apiClient.post<{ orderId: string }>("/membership", {
+      action: "create-order",
+      plan,
+      promoCode: couponInput.trim() || undefined,
+    });
+    return data.orderId;
+  }
+
+  async function handlePayPalOrderApprove(orderId: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      await apiClient.post("/membership", {
+        action: "capture-order",
+        orderId,
+        plan,
+        promoCode: couponInput.trim() || undefined,
+      });
+      await refreshUser();
+      setSuccess(true);
+    } catch (e: any) {
+      setError(e.message ?? "Error capturando el pago de PayPal");
     } finally {
       setLoading(false);
     }
@@ -360,7 +386,7 @@ export default function Membership() {
                 )}
 
                 {/* Divider */}
-                {!loading && PAYPAL_CLIENT_ID && activePayPalPlan && (
+                {!loading && PAYPAL_CLIENT_ID && (
                   <div className="flex items-center gap-3 my-2">
                     <div className="flex-1 h-px bg-white/10" />
                     <span className="text-gray-500 text-xs">o</span>
@@ -368,22 +394,47 @@ export default function Membership() {
                   </div>
                 )}
 
-                {/* PayPal buttons */}
-                {!loading && PAYPAL_CLIENT_ID && activePayPalPlan ? (
-                  <PayPalScriptProvider
-                    options={{ clientId: PAYPAL_CLIENT_ID, vault: true, intent: "subscription" }}
-                  >
-                    <PayPalButtons
-                      style={{ layout: "vertical", color: "blue", shape: "rect", label: "subscribe" }}
-                      createSubscription={(_data, actions) =>
-                        actions.subscription.create({ plan_id: activePayPalPlan })
-                      }
-                      onApprove={async (data) => {
-                        if (data.subscriptionID) await handlePayPalApprove(data.subscriptionID);
-                      }}
-                      onError={() => setError("Error con PayPal. Intenta de nuevo.")}
-                    />
-                  </PayPalScriptProvider>
+                {/* PayPal buttons:
+                    • Coupon applied  → Orders flow (real discounted charge)
+                    • No coupon       → Subscription flow (recurring plan) */}
+                {!loading && PAYPAL_CLIENT_ID ? (
+                  couponStatus === "valid" ? (
+                    /* ── ORDER mode: applies exact discounted amount ── */
+                    <PayPalScriptProvider
+                      key="paypal-order"
+                      options={{ clientId: PAYPAL_CLIENT_ID, intent: "capture" }}
+                    >
+                      <PayPalButtons
+                        style={{ layout: "vertical", color: "gold", shape: "rect", label: "pay" }}
+                        createOrder={async () => createPayPalOrder()}
+                        onApprove={async (data) => {
+                          if (data.orderID) await handlePayPalOrderApprove(data.orderID);
+                        }}
+                        onError={() => setError("Error con PayPal. Intenta de nuevo.")}
+                      />
+                    </PayPalScriptProvider>
+                  ) : activePayPalPlan ? (
+                    /* ── SUBSCRIPTION mode: auto-recurring plan ── */
+                    <PayPalScriptProvider
+                      key="paypal-sub"
+                      options={{ clientId: PAYPAL_CLIENT_ID, vault: true, intent: "subscription" }}
+                    >
+                      <PayPalButtons
+                        style={{ layout: "vertical", color: "blue", shape: "rect", label: "subscribe" }}
+                        createSubscription={(_data, actions) =>
+                          actions.subscription.create({ plan_id: activePayPalPlan })
+                        }
+                        onApprove={async (data) => {
+                          if (data.subscriptionID) await handlePayPalSubscriptionApprove(data.subscriptionID);
+                        }}
+                        onError={() => setError("Error con PayPal. Intenta de nuevo.")}
+                      />
+                    </PayPalScriptProvider>
+                  ) : (
+                    <div className="text-center text-yellow-500 text-xs py-3 bg-yellow-900/20 rounded-xl border border-yellow-700/40 px-4">
+                      Configura VITE_PAYPAL_PLAN_ID para pagos con PayPal.
+                    </div>
+                  )
                 ) : (
                   !loading && !PAYPAL_CLIENT_ID && (
                     <div className="text-center text-yellow-500 text-xs py-3 bg-yellow-900/20 rounded-xl border border-yellow-700/40 px-4">
