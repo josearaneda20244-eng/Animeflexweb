@@ -234,9 +234,10 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
           discountPercent = promoRes.rows[0]?.discount_percent ?? 0;
         }
 
-        /* Use server-trusted plan from the deleted pending order; fall back to
-         * request body plan only when this was an idempotent retry (deleteRes empty). */
-        const trustedPlan: string = deleteRes.rows[0]?.server_plan ?? plan;
+        /* Use server-trusted plan: prefer the one returned by DELETE (same row);
+         * fall back to the pre-read serverPlan (same DB record, read before capture).
+         * Never fall back to req.body.plan to prevent client-supplied plan poisoning. */
+        const trustedPlan: string = deleteRes.rows[0]?.server_plan ?? serverPlan;
 
         /* Log transaction (ignore conflict — idempotent retry) */
         await dbClient.query(
