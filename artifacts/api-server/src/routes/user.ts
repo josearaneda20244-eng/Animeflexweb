@@ -559,6 +559,8 @@ router.post("/users/:id/follow", async (req: AuthRequest, res) => {
     const targetId = parseInt(req.params.id as string, 10);
     if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
     if (targetId === req.userId) { res.status(400).json({ error: "No puedes seguirte a ti mismo" }); return; }
+    const targetUser = await pool.query(`SELECT id FROM users WHERE id = $1`, [targetId]);
+    if (!targetUser.rows.length) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
     await pool.query(
       `INSERT INTO user_follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [req.userId, targetId]

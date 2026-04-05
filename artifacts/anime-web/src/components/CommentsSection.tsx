@@ -41,11 +41,12 @@ function Avatar({ username, avatar_url, size = 32 }: { username: string; avatar_
   );
 }
 
-function ReplyThread({ animeId, parentId, parentAuthor, onClose }: {
+function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountChange }: {
   animeId: string;
   parentId: string;
   parentAuthor: string;
   onClose: () => void;
+  onReplyCountChange?: (delta: number) => void;
 }) {
   const { user, token } = useAuth();
   const [replies, setReplies] = useState<Comment[]>([]);
@@ -73,6 +74,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose }: {
         parentId: parseInt(parentId, 10),
       });
       setReplies((prev) => [...prev, { ...newReply, likedByMe: false }]);
+      onReplyCountChange?.(+1);
       setReplyText("");
     } catch (err: any) {
       setError(err.message ?? "Error al publicar respuesta");
@@ -101,6 +103,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose }: {
     try {
       await apiClient.delete(`/comments/${animeId}/${id}`);
       setReplies((prev) => prev.filter((r) => r.id !== id));
+      onReplyCountChange?.(-1);
     } catch { /* noop */ }
   };
 
@@ -417,6 +420,11 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
                     parentId={c.id}
                     parentAuthor={c.author}
                     onClose={() => { setReplyingTo(null); setExpandedReplies((p) => { const n = new Set(p); n.delete(c.id); return n; }); }}
+                    onReplyCountChange={(delta) =>
+                      setComments((prev) => prev.map((cm) =>
+                        cm.id === c.id ? { ...cm, reply_count: Math.max(0, cm.reply_count + delta) } : cm
+                      ))
+                    }
                   />
                 )}
               </div>
