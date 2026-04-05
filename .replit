@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "postgresql-16"]
 
 [[artifacts]]
 id = "artifacts/api-server"
@@ -32,3 +32,6 @@ VITE_PAYPAL_CLIENT_ID = "AQkBIoCf0c4ENKlA67RZfJ2IxBUD5eIoP6EhXPpkL_Q3cKtKKdPqdFC
 VITE_PAYPAL_PLAN_ID = "P-9KN958225R794443YNHHZ57Q"
 PAYPAL_CLIENT_ID = "AQkBIoCf0c4ENKlA67RZfJ2IxBUD5eIoP6EhXPpkL_Q3cKtKKdPqdFCHOdMJqwAQr8M4Y4C5uLah31dA"
 PAYPAL_MODE = "live"
+
+[nix]
+channel = "stable-25_05"
