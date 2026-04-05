@@ -156,23 +156,24 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
       }
 
       /*
-       * Atomically claim the pending-order record for this user.
-       * DELETE returns the row only once — prevents double-capture and
-       * ensures a different user cannot capture someone else's order.
+       * READ the pending-order record first — do NOT delete yet.
+       * Deleting before capture completion would make retry impossible if
+       * the PayPal call or DB update fails mid-way.
        */
-      const claimRes = await pool.query(
-        `DELETE FROM paypal_pending_orders
-          WHERE order_id = $1 AND user_id = $2
-          RETURNING plan, promo_code, expected_usd`,
+      const readRes = await pool.query(
+        `SELECT plan, promo_code, expected_usd
+           FROM paypal_pending_orders
+          WHERE order_id = $1 AND user_id = $2`,
         [orderId, req.userId]
       );
-      if (claimRes.rows.length === 0) {
+      if (readRes.rows.length === 0) {
         res.status(403).json({ error: "Orden no encontrada o ya procesada" });
         return;
       }
       const { plan: serverPlan, promo_code: serverPromo, expected_usd: expectedUsd }
-        = claimRes.rows[0] as { plan: "monthly" | "annual"; promo_code: string | null; expected_usd: string };
+        = readRes.rows[0] as { plan: "monthly" | "annual"; promo_code: string | null; expected_usd: string };
 
+      /* Capture the PayPal order (network call outside any DB transaction) */
       const token = await getPayPalToken();
       const captureRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`, {
         method: "POST",
@@ -186,23 +187,30 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
         purchase_units?: Array<{
           payments?: { captures?: Array<{ status: string; amount?: { value: string; currency_code: string } }> };
         }>;
+        name?: string; /* PayPal error field */
       };
 
       const captureEntry = captured.purchase_units?.[0]?.payments?.captures?.[0];
       const captureStatus = captureEntry?.status;
-      if (captured.status !== "COMPLETED" && captureStatus !== "COMPLETED") {
+
+      /* Handle already-captured idempotency: ORDER_ALREADY_CAPTURED → treat as success */
+      const alreadyCaptured = captured.name === "ORDER_ALREADY_CAPTURED";
+
+      if (!alreadyCaptured && captured.status !== "COMPLETED" && captureStatus !== "COMPLETED") {
         res.status(400).json({ error: "El pago PayPal no fue completado" });
         return;
       }
 
       /* Verify captured amount matches what we created the order for */
-      const capturedValue = captureEntry?.amount?.value;
-      if (capturedValue && parseFloat(capturedValue) < parseFloat(expectedUsd) - 0.01) {
-        console.error(
-          `PayPal amount mismatch: expected ${expectedUsd}, got ${capturedValue} for order ${orderId}`
-        );
-        res.status(400).json({ error: "El monto capturado no coincide con el esperado" });
-        return;
+      if (!alreadyCaptured) {
+        const capturedValue = captureEntry?.amount?.value;
+        if (capturedValue && parseFloat(capturedValue) < parseFloat(expectedUsd) - 0.01) {
+          console.error(
+            `PayPal amount mismatch: expected ${expectedUsd}, got ${capturedValue} for order ${orderId}`
+          );
+          res.status(400).json({ error: "El monto capturado no coincide con el esperado" });
+          return;
+        }
       }
 
       /* Calculate expiry using server-side plan (not client-supplied value) */
@@ -213,18 +221,43 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
         expiresAt.setMonth(expiresAt.getMonth() + 1);
       }
 
-      await pool.query(
-        `UPDATE users
-            SET membership_tier = 'megafan',
-                subscription_expires_at = $1
-          WHERE id = $2`,
-        [expiresAt.toISOString(), req.userId]
-      );
-
-      /* Apply & track promo code using server-side code (not client-supplied) */
+      /*
+       * Atomically: delete pending order + activate membership.
+       * DELETE returns 0 rows if a concurrent request already processed this
+       * order → idempotent; we still respond with success since payment was taken.
+       */
+      const dbClient = await pool.connect();
       let discountPercent = 0;
-      if (serverPromo) {
-        discountPercent = await applyPromoCode(serverPromo);
+      try {
+        await dbClient.query("BEGIN");
+
+        const deleteRes = await dbClient.query(
+          `DELETE FROM paypal_pending_orders
+            WHERE order_id = $1 AND user_id = $2
+            RETURNING promo_code`,
+          [orderId, req.userId]
+        );
+
+        /* If 0 rows, concurrent request already processed this — still activate */
+        await dbClient.query(
+          `UPDATE users
+              SET membership_tier = 'megafan',
+                  subscription_expires_at = $1
+            WHERE id = $2`,
+          [expiresAt.toISOString(), req.userId]
+        );
+
+        /* Apply promo only if this request won the delete race */
+        if (deleteRes.rows.length > 0 && serverPromo) {
+          discountPercent = await applyPromoCode(serverPromo);
+        }
+
+        await dbClient.query("COMMIT");
+      } catch (err) {
+        await dbClient.query("ROLLBACK");
+        throw err;
+      } finally {
+        dbClient.release();
       }
 
       res.json({ ok: true, tier: "megafan", discountPercent });

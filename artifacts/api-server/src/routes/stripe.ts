@@ -111,7 +111,8 @@ router.post("/stripe/create-checkout-session", requireAuth, async (req: AuthRequ
       metadata: {
         userId:          String(req.userId),
         plan,
-        promoCode:       promoCode ?? "",
+        /* Normalize to uppercase+trimmed so webhook lookup matches DB storage */
+        promoCode:       promoCode ? promoCode.toUpperCase().trim() : "",
         discountPercent: String(discountPercent),
       },
       success_url: `${origin}/membership?stripe=success`,
@@ -149,56 +150,77 @@ router.post("/stripe/webhook", async (req, res) => {
     return;
   }
 
-  /* ── Idempotency: skip if we have already processed this event ── */
+  /*
+   * ── Idempotency + business logic in one atomic transaction ──
+   *
+   * Strategy: INSERT the event ID and apply all side-effects inside the
+   * SAME transaction. If the INSERT hits a PK conflict the event was
+   * already processed → rollback and return 200. If any side-effect fails
+   * the INSERT is also rolled back, so Stripe's retry will process it again
+   * (all side-effects are idempotent: UPDATE membership, guarded promo inc).
+   */
+  const client = await pool.connect();
   try {
-    await pool.query(
-      `INSERT INTO stripe_events (event_id) VALUES ($1)`,
+    await client.query("BEGIN");
+
+    /* Try to claim this event; conflict = already processed */
+    const claim = await client.query(
+      `INSERT INTO stripe_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING RETURNING event_id`,
       [event.id]
     );
-  } catch {
-    /* Primary-key conflict → duplicate delivery, respond 200 so Stripe stops retrying */
-    res.sendStatus(200);
-    return;
-  }
+    if (claim.rows.length === 0) {
+      await client.query("ROLLBACK");
+      res.sendStatus(200);
+      return;
+    }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const { userId, plan, promoCode } = session.metadata ?? {};
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const { userId, plan, promoCode } = session.metadata ?? {};
 
-    if (userId) {
-      const expiresAt = new Date();
-      if (plan === "annual") {
-        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-      } else {
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
-      }
+      if (userId) {
+        const expiresAt = new Date();
+        if (plan === "annual") {
+          expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+        } else {
+          expiresAt.setMonth(expiresAt.getMonth() + 1);
+        }
 
-      /* Persist subscription ID (needed for portal) and customer ID */
-      const stripeCustomer = session.customer as string | null;
-      const stripeSubId    = session.subscription as string | null;
+        const stripeCustomer = session.customer as string | null;
+        const stripeSubId    = session.subscription as string | null;
 
-      await pool.query(
-        `UPDATE users
-            SET membership_tier        = 'megafan',
-                subscription_expires_at = $1,
-                stripe_customer_id     = COALESCE($2, stripe_customer_id),
-                stripe_subscription_id = COALESCE($3, stripe_subscription_id)
-          WHERE id = $4`,
-        [expiresAt.toISOString(), stripeCustomer, stripeSubId, parseInt(userId)]
-      );
-
-      /* Atomically increment promo code uses_count */
-      if (promoCode) {
-        await pool.query(
-          `UPDATE promo_codes SET uses_count = uses_count + 1
-            WHERE code = $1
-              AND (max_uses IS NULL OR uses_count < max_uses)
-              AND (expires_at IS NULL OR expires_at > NOW())
-              AND active = TRUE`,
-          [promoCode]
+        await client.query(
+          `UPDATE users
+              SET membership_tier        = 'megafan',
+                  subscription_expires_at = $1,
+                  stripe_customer_id     = COALESCE($2, stripe_customer_id),
+                  stripe_subscription_id = COALESCE($3, stripe_subscription_id)
+            WHERE id = $4`,
+          [expiresAt.toISOString(), stripeCustomer, stripeSubId, parseInt(userId)]
         );
+
+        /* Guarded increment: uses_count < max_uses prevents overrun */
+        if (promoCode) {
+          await client.query(
+            `UPDATE promo_codes SET uses_count = uses_count + 1
+              WHERE code = $1
+                AND (max_uses IS NULL OR uses_count < max_uses)
+                AND (expires_at IS NULL OR expires_at > NOW())
+                AND active = TRUE`,
+            [promoCode]
+          );
+        }
       }
     }
+
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    /* Re-throw so Express returns 500; Stripe will retry and we'll re-process
+     * (the event ID was rolled back so it won't be treated as a duplicate) */
+    throw err;
+  } finally {
+    client.release();
   }
 
   res.sendStatus(200);
