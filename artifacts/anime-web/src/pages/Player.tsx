@@ -581,6 +581,8 @@ export default function Player() {
   const touchStartVolumeRef = useRef(1);
   const seekFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const volumeFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const controlsHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [fullscreenControlsVisible, setFullscreenControlsVisible] = useState(true);
 
   // ── Access control ─────────────────────────────────────────────────────────
   const { isMegaFan, user } = useAuth();
@@ -743,12 +745,36 @@ export default function Player() {
     });
   };
 
-  // ── Fullscreen detection ───────────────────────────────────────────────────
+  // ── Fullscreen detection + auto-hide controls on mouse inactivity ─────────
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) {
+      setFullscreenControlsVisible(true);
+      if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
+      return;
+    }
+    const startHideTimer = () => {
+      if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
+      controlsHideTimerRef.current = setTimeout(() => setFullscreenControlsVisible(false), 2500);
+    };
+    const onActivity = () => {
+      setFullscreenControlsVisible(true);
+      startHideTimer();
+    };
+    startHideTimer();
+    document.addEventListener("mousemove", onActivity);
+    document.addEventListener("pointermove", onActivity);
+    return () => {
+      document.removeEventListener("mousemove", onActivity);
+      document.removeEventListener("pointermove", onActivity);
+      if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
+    };
+  }, [isFullscreen]);
 
   // ── Seek/volume feedback helpers ──────────────────────────────────────────
   const triggerSeekFeedback = useCallback((dir: "left" | "right", secs: number) => {
@@ -975,7 +1001,7 @@ export default function Player() {
             {/* ── Skip outro button (last 120s, more than 10s from end) ── */}
             {!showLimitModal && videoDuration > 0 && currentTime >= videoDuration - 120 && currentTime <= videoDuration - 10 && currentTime >= 90 && (
               <button
-                onClick={() => nextEpisodeId ? handleNextEpisode() : playerControlsRef.current?.seekTo(videoDuration - 2)}
+                onClick={() => playerControlsRef.current?.seekTo(Math.max(0, videoDuration - 8))}
                 style={{
                   position: "absolute", bottom: 80, right: 16, zIndex: 30,
                   background: "rgba(9,10,18,0.85)", backdropFilter: "blur(6px)",
@@ -986,7 +1012,7 @@ export default function Player() {
                 }}
               >
                 <SkipForward size={14} />
-                {nextEpisodeId ? "Siguiente episodio" : "Saltar final"}
+                Saltar final
               </button>
             )}
 
@@ -1033,8 +1059,8 @@ export default function Player() {
             )}
           </div>
 
-          {/* Controls below video — hidden when native fullscreen is active */}
-          <div style={{ padding: "14px 16px", display: isFullscreen ? "none" : "flex", flexDirection: "column", gap: 18 }}>
+          {/* Controls below video — hidden when fullscreen + mouse inactive */}
+          <div style={{ padding: "14px 16px", display: isFullscreen && !fullscreenControlsVisible ? "none" : "flex", flexDirection: "column", gap: 18, transition: "opacity 0.3s", opacity: isFullscreen && !fullscreenControlsVisible ? 0 : 1 }}>
             {/* Episode title row */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
               <div>
