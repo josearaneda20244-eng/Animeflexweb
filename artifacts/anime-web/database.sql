@@ -1,0 +1,122 @@
+-- Run this SQL in your Neon (or PostgreSQL) database console to create all required tables
+
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  avatar_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  membership_tier VARCHAR(20) DEFAULT 'free',
+  paypal_subscription_id TEXT,
+  subscription_expires_at TIMESTAMP,
+  role VARCHAR(20) DEFAULT 'user',
+  is_active BOOLEAN DEFAULT TRUE
+);
+
+-- Migration: add missing columns to existing users table (safe to run multiple times)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(20) DEFAULT 'free';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS paypal_subscription_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+CREATE TABLE IF NOT EXISTS user_favorites (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  anime_id TEXT NOT NULL,
+  anime_title TEXT,
+  anime_image TEXT,
+  anime_type TEXT,
+  anime_rating TEXT,
+  added_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, anime_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_watchlist (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  anime_id TEXT NOT NULL,
+  anime_title TEXT,
+  anime_image TEXT,
+  anime_type TEXT,
+  status TEXT DEFAULT 'plan_to_watch',
+  updated_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, anime_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_history (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  anime_id TEXT NOT NULL,
+  anime_title TEXT,
+  anime_image TEXT,
+  episode_number INTEGER DEFAULT 0,
+  watched_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, anime_id, episode_number)
+);
+
+CREATE TABLE IF NOT EXISTS user_watch_progress (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  episode_id TEXT NOT NULL,
+  anime_id TEXT,
+  anime_title TEXT,
+  anime_image TEXT,
+  episode_num INTEGER,
+  watch_time REAL DEFAULT 0,
+  duration REAL DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (user_id, episode_id)
+);
+
+-- Server-side daily episode limit tracking (prevents localStorage bypass)
+CREATE TABLE IF NOT EXISTS user_daily_views (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  episode_id TEXT NOT NULL,
+  view_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  PRIMARY KEY (user_id, episode_id, view_date)
+);
+
+-- Shared comments system (visible to all users)
+CREATE TABLE IF NOT EXISTS anime_comments (
+  id SERIAL PRIMARY KEY,
+  anime_id TEXT NOT NULL,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  spoiler BOOLEAN DEFAULT FALSE,
+  likes INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_anime_comments_anime_id ON anime_comments(anime_id);
+
+-- Comment likes (one like per user per comment)
+CREATE TABLE IF NOT EXISTS comment_likes (
+  comment_id INTEGER REFERENCES anime_comments(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (comment_id, user_id)
+);
+
+-- Admin tables
+CREATE TABLE IF NOT EXISTS admin_config (
+  key VARCHAR(100) PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS admin_content (
+  id SERIAL PRIMARY KEY,
+  anime_id VARCHAR(200) NOT NULL,
+  anime_title VARCHAR(500),
+  anime_image TEXT,
+  action VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(anime_id, action)
+);
+
+-- Default admin config values
+INSERT INTO admin_config (key, value) VALUES
+  ('daily_limit', '5'),
+  ('daily_limit_enabled', 'true'),
+  ('limit_message', 'Has alcanzado tu límite diario de episodios gratuitos.'),
+  ('megafan_message', '¡Hazte MegaFan y disfruta sin límites!'),
+  ('registration_enabled', 'true'),
+  ('maintenance_mode', 'false')
+ON CONFLICT (key) DO NOTHING;
