@@ -8,7 +8,9 @@ import { useSearch } from "wouter";
 
 const PAYPAL_CLIENT_ID       = import.meta.env.VITE_PAYPAL_CLIENT_ID ?? "";
 const PAYPAL_PLAN_ID_MONTHLY = import.meta.env.VITE_PAYPAL_PLAN_ID ?? "";
-const PAYPAL_PLAN_ID_ANNUAL  = import.meta.env.VITE_PAYPAL_PLAN_ID_ANNUAL ?? PAYPAL_PLAN_ID_MONTHLY;
+/* Annual PayPal plan requires its own plan ID — no fallback to monthly
+   to avoid silently enrolling users in a monthly plan when annual is selected. */
+const PAYPAL_PLAN_ID_ANNUAL  = import.meta.env.VITE_PAYPAL_PLAN_ID_ANNUAL ?? "";
 
 type Plan = "monthly" | "annual";
 
@@ -414,7 +416,11 @@ export default function Membership() {
                       />
                     </PayPalScriptProvider>
                   ) : activePayPalPlan ? (
-                    /* ── SUBSCRIPTION mode: auto-recurring plan ── */
+                    /* ── SUBSCRIPTION mode: auto-recurring plan ──
+                       NOTE: coupon flow (above) uses a one-time Order capture — PayPal
+                       does not support discounts on subscription plans natively. The
+                       discounted charge is a single payment; the user can re-subscribe
+                       normally after the promo period ends. */
                     <PayPalScriptProvider
                       key="paypal-sub"
                       options={{ clientId: PAYPAL_CLIENT_ID, vault: true, intent: "subscription" }}
@@ -431,8 +437,11 @@ export default function Membership() {
                       />
                     </PayPalScriptProvider>
                   ) : (
+                    /* Annual PayPal plan not configured — direct users to Stripe */
                     <div className="text-center text-yellow-500 text-xs py-3 bg-yellow-900/20 rounded-xl border border-yellow-700/40 px-4">
-                      Configura VITE_PAYPAL_PLAN_ID para pagos con PayPal.
+                      {plan === "annual"
+                        ? "Plan anual no disponible en PayPal. Usa el botón de tarjeta (Stripe) para el plan anual."
+                        : "Configura VITE_PAYPAL_PLAN_ID para pagos mensuales con PayPal."}
                     </div>
                   )
                 ) : (
