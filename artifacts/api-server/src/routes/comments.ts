@@ -84,37 +84,44 @@ router.post("/comments/:animeId", requireAuth, async (req: AuthRequest, res) => 
   }
 });
 
-/* ── POST /comments/:animeId/:commentId/like ── Toggle like */
+/* ── POST /comments/:animeId/:commentId/like ── Add like */
 router.post("/comments/:animeId/:commentId/like", requireAuth, async (req: AuthRequest, res) => {
   try {
     const commentId = parseInt(req.params.commentId as string, 10);
-    const existing = await pool.query(
-      `SELECT 1 FROM comment_likes WHERE comment_id = $1 AND user_id = $2`,
+    const insert = await pool.query(
+      `INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [commentId, req.userId]
     );
-    if (existing.rows.length > 0) {
+    if (insert.rowCount && insert.rowCount > 0) {
       await pool.query(
-        `DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2`,
-        [commentId, req.userId]
+        `UPDATE anime_comments SET likes = likes + 1 WHERE id = $1`, [commentId]
       );
+    }
+    const { rows } = await pool.query(`SELECT likes FROM anime_comments WHERE id = $1`, [commentId]);
+    res.json({ liked: true, likes: rows[0]?.likes ?? 0 });
+  } catch {
+    res.status(500).json({ error: "Error al procesar like" });
+  }
+});
+
+/* ── DELETE /comments/:animeId/:commentId/like ── Remove like */
+router.delete("/comments/:animeId/:commentId/like", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const commentId = parseInt(req.params.commentId as string, 10);
+    const result = await pool.query(
+      `DELETE FROM comment_likes WHERE comment_id = $1 AND user_id = $2`,
+      [commentId, req.userId]
+    );
+    if (result.rowCount && result.rowCount > 0) {
       await pool.query(
         `UPDATE anime_comments SET likes = GREATEST(0, likes - 1) WHERE id = $1`,
         [commentId]
       );
-      res.json({ liked: false });
-    } else {
-      await pool.query(
-        `INSERT INTO comment_likes (comment_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [commentId, req.userId]
-      );
-      await pool.query(
-        `UPDATE anime_comments SET likes = likes + 1 WHERE id = $1`,
-        [commentId]
-      );
-      res.json({ liked: true });
     }
+    const { rows } = await pool.query(`SELECT likes FROM anime_comments WHERE id = $1`, [commentId]);
+    res.json({ liked: false, likes: rows[0]?.likes ?? 0 });
   } catch {
-    res.status(500).json({ error: "Error al procesar like" });
+    res.status(500).json({ error: "Error al quitar like" });
   }
 });
 

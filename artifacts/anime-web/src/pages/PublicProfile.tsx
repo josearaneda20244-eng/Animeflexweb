@@ -18,6 +18,7 @@ interface PublicUser {
   avatar_url: string | null;
   created_at: string;
   membership_tier: string;
+  followerCount?: number;
 }
 
 interface AnimeItem {
@@ -69,7 +70,7 @@ export default function PublicProfile() {
         if (!r.ok) throw new Error("Usuario no encontrado");
         return r.json();
       })
-      .then(setData)
+      .then((d) => { setData(d); setFollowerCount(d.user.followerCount ?? 0); })
       .catch((e) => setError(e.message ?? "Error al cargar perfil"))
       .finally(() => setLoading(false));
   }, [params.userId]);
@@ -85,7 +86,9 @@ export default function PublicProfile() {
     if (!token || followLoading) return;
     setFollowLoading(true);
     try {
-      const d = await apiClient.post<{ isFollowing: boolean; followerCount: number }>(`/users/${params.userId}/follow`, {});
+      const d = isFollowing
+        ? await apiClient.delete<{ isFollowing: boolean; followerCount: number }>(`/users/${params.userId}/follow`)
+        : await apiClient.post<{ isFollowing: boolean; followerCount: number }>(`/users/${params.userId}/follow`, {});
       setIsFollowing(d.isFollowing);
       setFollowerCount(d.followerCount);
     } catch { /* noop */ } finally {

@@ -83,10 +83,18 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose }: {
 
   const toggleLike = async (id: string) => {
     if (!token) return;
+    const reply = replies.find((r) => r.id === id);
+    if (!reply) return;
     setReplies((prev) => prev.map((r) =>
       r.id !== id ? r : { ...r, likes: r.likedByMe ? r.likes - 1 : r.likes + 1, likedByMe: !r.likedByMe }
     ));
-    try { await apiClient.post(`/comments/${animeId}/${id}/like`, {}); } catch { /* noop */ }
+    try {
+      if (reply.likedByMe) {
+        await apiClient.delete(`/comments/${animeId}/${id}/like`);
+      } else {
+        await apiClient.post(`/comments/${animeId}/${id}/like`, {});
+      }
+    } catch { /* noop */ }
   };
 
   const deleteReply = async (id: string) => {
@@ -233,11 +241,17 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
 
   const toggleLike = async (id: string) => {
     if (!token) return;
+    const comment = comments.find((c) => c.id === id);
+    if (!comment) return;
     setComments((prev) =>
       prev.map((c) => c.id !== id ? c : { ...c, likes: c.likedByMe ? c.likes - 1 : c.likes + 1, likedByMe: !c.likedByMe })
     );
     try {
-      await apiClient.post(`/comments/${animeId}/${id}/like`, {});
+      if (comment.likedByMe) {
+        await apiClient.delete(`/comments/${animeId}/${id}/like`);
+      } else {
+        await apiClient.post(`/comments/${animeId}/${id}/like`, {});
+      }
     } catch {
       await fetchComments();
     }

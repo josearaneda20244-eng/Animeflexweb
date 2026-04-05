@@ -23,7 +23,7 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
   if (!userRes.rows.length) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
   const u = userRes.rows[0];
 
-  const [epRes, completedRes, streakRes, weeklyRes, genreRes] = await Promise.all([
+  const [epRes, completedRes, streakRes, weeklyRes, genreRes, followersRes] = await Promise.all([
     pool.query<{ total: string; total_animes: string }>(
       `SELECT COUNT(*) as total, COUNT(DISTINCT anime_id) as total_animes FROM user_history WHERE user_id = $1`, [userId]
     ),
@@ -58,6 +58,10 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
        GROUP BY genre ORDER BY cnt DESC LIMIT 1`,
       [userId]
     ),
+    pool.query<{ count: number }>(
+      `SELECT COUNT(*)::int AS count FROM user_follows WHERE following_id = $1`,
+      [userId]
+    ),
   ]);
 
   const totalEpisodes = parseInt(epRes.rows[0]?.total ?? "0", 10);
@@ -66,6 +70,7 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
   const streak        = streakRes.rows[0]?.streak ?? 0;
   const estimatedHours = Math.round((totalEpisodes * 24) / 60 * 10) / 10;
   const favoriteGenre: string | null = genreRes.rows[0]?.genre ?? null;
+  const followerCount: number = followersRes.rows[0]?.count ?? 0;
 
   const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
   const weekMap: Record<string, number> = {};
@@ -107,6 +112,7 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
       created_at: u.created_at,
       membership_tier: u.membership_tier,
       is_profile_public: u.is_profile_public,
+      followerCount,
     },
     stats: {
       totalEpisodes,
@@ -140,6 +146,21 @@ publicUserRouter.get("/profile/:userId", async (req, res) => {
     await handlePublicProfile(targetId, res);
   } catch {
     res.status(500).json({ error: "Error al obtener perfil público" });
+  }
+});
+
+/* ── GET /users/:id/followers ── Public: follower count */
+publicUserRouter.get("/users/:id/followers", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+    const { rows } = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM user_follows WHERE following_id = $1`,
+      [targetId]
+    );
+    res.json({ followerCount: rows[0]?.count ?? 0 });
+  } catch {
+    res.status(500).json({ error: "Error al obtener seguidores" });
   }
 });
 
@@ -532,38 +553,40 @@ router.get("/users/:id/follow-status", async (req: AuthRequest, res) => {
   }
 });
 
-/* ── POST /users/:id/follow ── Auth: toggle follow/unfollow */
+/* ── POST /users/:id/follow ── Auth: follow a user */
 router.post("/users/:id/follow", async (req: AuthRequest, res) => {
   try {
     const targetId = parseInt(req.params.id as string, 10);
     if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
     if (targetId === req.userId) { res.status(400).json({ error: "No puedes seguirte a ti mismo" }); return; }
-
-    const existing = await pool.query(
-      `SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2`,
+    await pool.query(
+      `INSERT INTO user_follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [req.userId, targetId]
     );
-    if (existing.rows.length > 0) {
-      await pool.query(
-        `DELETE FROM user_follows WHERE follower_id = $1 AND following_id = $2`,
-        [req.userId, targetId]
-      );
-    } else {
-      await pool.query(
-        `INSERT INTO user_follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [req.userId, targetId]
-      );
-    }
     const countRes = await pool.query(
-      `SELECT COUNT(*)::int AS count FROM user_follows WHERE following_id = $1`,
-      [targetId]
+      `SELECT COUNT(*)::int AS count FROM user_follows WHERE following_id = $1`, [targetId]
     );
-    res.json({
-      isFollowing: existing.rows.length === 0,
-      followerCount: countRes.rows[0]?.count ?? 0,
-    });
+    res.json({ isFollowing: true, followerCount: countRes.rows[0]?.count ?? 0 });
   } catch {
-    res.status(500).json({ error: "Error al procesar seguimiento" });
+    res.status(500).json({ error: "Error al seguir al usuario" });
+  }
+});
+
+/* ── DELETE /users/:id/follow ── Auth: unfollow a user */
+router.delete("/users/:id/follow", async (req: AuthRequest, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+    await pool.query(
+      `DELETE FROM user_follows WHERE follower_id = $1 AND following_id = $2`,
+      [req.userId, targetId]
+    );
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM user_follows WHERE following_id = $1`, [targetId]
+    );
+    res.json({ isFollowing: false, followerCount: countRes.rows[0]?.count ?? 0 });
+  } catch {
+    res.status(500).json({ error: "Error al dejar de seguir al usuario" });
   }
 });
 
