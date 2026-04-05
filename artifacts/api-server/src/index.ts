@@ -183,6 +183,11 @@ async function runMigrations() {
     );
   }
 
+  await safeQuery(
+    `UPDATE users SET role='owner', membership_tier='megafan' WHERE email='josearaneda20244@gmail.com' AND (role != 'owner' OR membership_tier != 'megafan')`,
+    "seed-owner-josearaneda20244"
+  );
+
   logger.info("Migrations applied successfully");
 }
 
