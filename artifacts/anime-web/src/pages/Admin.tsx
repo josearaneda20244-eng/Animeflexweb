@@ -1259,25 +1259,32 @@ interface PayPalTx {
   username: string; email: string;
 }
 
+interface PayPalSub {
+  subscription_id: string; status: string; username: string; email: string;
+  last_payment_amount?: string; last_payment_time?: string; next_billing_time?: string;
+  start_time: string;
+}
+interface TxData {
+  transactions: PayPalTx[]; total: number; totalRevenue: number;
+  subscriptions: PayPalSub[]; paypalConfigured: boolean; paypalError: string | null;
+}
+
 function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") => void }) {
-  const [txs, setTxs] = useState<PayPalTx[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [data, setData] = useState<TxData | null>(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [tab, setTab] = useState<"onetime" | "subscriptions">("onetime");
 
   const load = useCallback(async (pg = page, f = from, t = to) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(pg), limit: "20" });
       if (f) params.set("from", f);
-      if (t) params.set("to", t + "T23:59:59");
-      const data = await apiClient.get<{ transactions: PayPalTx[]; total: number; totalRevenue: number }>(
-        `/admin/transactions?${params.toString()}`
-      );
-      setTxs(data.transactions); setTotal(data.total); setTotalRevenue(data.totalRevenue);
+      if (t) params.set("to", t);
+      const res = await apiClient.get<TxData>(`/admin/transactions?${params.toString()}`);
+      setData(res);
     } catch { toast("Error al cargar transacciones", "err"); }
     finally { setLoading(false); }
   }, [page, from, to]);
@@ -1285,101 +1292,173 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
   useEffect(() => { load(1); }, []);
 
   const planColor: Record<string, string> = { monthly: "#6C63FF", annual: "#F59E0B" };
-  const statusColor: Record<string, string> = { completed: "#22C55E", pending: "#F59E0B", failed: "#DC2626" };
+  const statusColor: Record<string, string> = {
+    completed: "#22C55E", ACTIVE: "#22C55E", pending: "#F59E0B", SUSPENDED: "#F59E0B",
+    failed: "#DC2626", CANCELLED: "#DC2626", EXPIRED: "#DC2626",
+  };
 
   return (
     <div>
       <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 16 }}>Transacciones PayPal</h2>
 
-      {/* Summary card */}
+      {/* PayPal config warning */}
+      {data && !data.paypalConfigured && (
+        <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 8, alignItems: "center" }}>
+          <AlertTriangle size={15} color="#F59E0B" />
+          <span style={{ color: "#F59E0B", fontSize: 13 }}>PayPal no configurado — suscripciones no disponibles. Añade PAYPAL_CLIENT_ID y PAYPAL_CLIENT_SECRET.</span>
+        </div>
+      )}
+      {data?.paypalError && (
+        <div style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.25)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 8, alignItems: "center" }}>
+          <AlertTriangle size={15} color="#DC2626" />
+          <span style={{ color: "#DC2626", fontSize: 13 }}>{data.paypalError}</span>
+        </div>
+      )}
+
+      {/* Summary cards */}
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         {[
-          { label: "Total transacciones", value: total, icon: <CreditCard size={18} />, color: "#6C63FF" },
-          { label: "Ingresos totales", value: `$${totalRevenue.toFixed(2)}`, icon: <DollarSign size={18} />, color: "#22C55E" },
+          { label: "Pagos únicos", value: data?.total ?? 0, icon: <CreditCard size={18} />, color: "#6C63FF" },
+          { label: "Ingresos capturados", value: `$${(data?.totalRevenue ?? 0).toFixed(2)}`, icon: <DollarSign size={18} />, color: "#22C55E" },
+          { label: "Suscripciones activas", value: data?.subscriptions.filter(s => s.status === "ACTIVE").length ?? 0, icon: <Crown size={18} />, color: "#F59E0B" },
         ].map(c => (
-          <div key={c.label} style={{ flex: "1 1 180px", background: "#13131C", border: `1px solid ${c.color}30`, borderRadius: 14, padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${c.color}18`, display: "flex", alignItems: "center", justifyContent: "center", color: c.color }}>{c.icon}</div>
+          <div key={c.label} style={{ flex: "1 1 160px", background: "#13131C", border: `1px solid ${c.color}30`, borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${c.color}18`, display: "flex", alignItems: "center", justifyContent: "center", color: c.color }}>{c.icon}</div>
             <div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>{c.label}</div>
-              <div style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900 }}>{c.value}</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>{c.label}</div>
+              <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900 }}>{c.value}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Date filter */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <CalendarRange size={15} color="rgba(255,255,255,0.3)" />
-        <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-          style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
-        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>→</span>
-        <input type="date" value={to} onChange={e => setTo(e.target.value)}
-          style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
-        <button onClick={() => { setPage(1); load(1, from, to); }}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: "#6C63FF", border: "none", borderRadius: 8, padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
-          <RefreshCw size={13} /> Filtrar
-        </button>
-        {(from || to) && (
-          <button onClick={() => { setFrom(""); setTo(""); setPage(1); load(1, "", ""); }}
-            style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "8px 12px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 13 }}>
-            Limpiar
+      {/* Tab switcher */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "#13131C", borderRadius: 12, padding: 6, border: "1px solid rgba(255,255,255,0.06)", width: "fit-content" }}>
+        {([["onetime", "Pagos únicos"], ["subscriptions", "Suscripciones PayPal"]] as const).map(([key, label]) => (
+          <button key={key} onClick={() => setTab(key)}
+            style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
+              background: tab === key ? "rgba(108,99,255,0.2)" : "transparent",
+              color: tab === key ? "#A78BFA" : "rgba(255,255,255,0.45)" }}>
+            {label}
           </button>
-        )}
+        ))}
       </div>
 
-      {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
-      ) : txs.length === 0 ? (
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
-          <CreditCard size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
-          <p>No hay transacciones registradas todavía.</p>
-          <p style={{ fontSize: 12, marginTop: 4 }}>Las transacciones se registran al capturar pagos PayPal.</p>
-        </div>
-      ) : (
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
-          {/* Header */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 80px 80px 100px", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
-            {["Usuario", "Orden", "Monto", "Plan", "Estado", "Fecha"].map(h => (
-              <div key={h} style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
-            ))}
-          </div>
-          {txs.map((tx, i) => (
-            <div key={tx.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 80px 80px 100px", padding: "12px 16px", borderBottom: i < txs.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", alignItems: "center" }}>
-              <div>
-                <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>{tx.username}</div>
-                <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{tx.email}</div>
-              </div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "monospace" }} title={tx.order_id}>
-                {tx.order_id.substring(0, 16)}…
-                {tx.promo_code && <span style={{ marginLeft: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>{tx.promo_code}</span>}
-              </div>
-              <div style={{ color: "#22C55E", fontSize: 14, fontWeight: 800 }}>${parseFloat(tx.amount_usd).toFixed(2)}</div>
-              <div style={{ background: `${planColor[tx.plan] ?? "#6C63FF"}18`, color: planColor[tx.plan] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
-                {tx.plan === "annual" ? "Anual" : "Mensual"}
-              </div>
-              <div style={{ background: `${statusColor[tx.status] ?? "#6C63FF"}18`, color: statusColor[tx.status] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
-                {tx.status}
-              </div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
-                {new Date(tx.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
-              </div>
-            </div>
-          ))}
+      {/* Date filter (only for one-time) */}
+      {tab === "onetime" && (
+        <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          <CalendarRange size={15} color="rgba(255,255,255,0.3)" />
+          <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
+          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>→</span>
+          <input type="date" value={to} onChange={e => setTo(e.target.value)}
+            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
+          <button onClick={() => { setPage(1); load(1, from, to); }}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#6C63FF", border: "none", borderRadius: 8, padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            <RefreshCw size={13} /> Filtrar
+          </button>
+          {(from || to) && (
+            <button onClick={() => { setFrom(""); setTo(""); setPage(1); load(1, "", ""); }}
+              style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "8px 12px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 13 }}>
+              Limpiar
+            </button>
+          )}
         </div>
       )}
 
-      {total > 20 && (
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16, alignItems: "center" }}>
-          <button disabled={page === 1} onClick={() => { const p = page - 1; setPage(p); load(p); }}
-            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
-            ← Anterior
-          </button>
-          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Pág. {page} / {Math.ceil(total / 20)}</span>
-          <button disabled={page * 20 >= total} onClick={() => { const p = page + 1; setPage(p); load(p); }}
-            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 20 >= total ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 20 >= total ? "default" : "pointer", fontSize: 13 }}>
-            Siguiente →
-          </button>
-        </div>
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
+      ) : tab === "onetime" ? (
+        <>
+          {(!data || data.transactions.length === 0) ? (
+            <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+              <CreditCard size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
+              <p>No hay pagos únicos registrados todavía.</p>
+              <p style={{ fontSize: 12, marginTop: 4 }}>Se registran al capturar órdenes PayPal con cupón.</p>
+            </div>
+          ) : (
+            <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 80px 80px 100px", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+                {["Usuario", "Orden", "Monto", "Plan", "Estado", "Fecha"].map(h => (
+                  <div key={h} style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
+                ))}
+              </div>
+              {data.transactions.map((tx, i) => (
+                <div key={tx.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 80px 80px 100px", padding: "12px 16px", borderBottom: i < data.transactions.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", alignItems: "center" }}>
+                  <div>
+                    <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>{tx.username}</div>
+                    <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{tx.email}</div>
+                  </div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "monospace" }} title={tx.order_id}>
+                    {tx.order_id.substring(0, 16)}…
+                    {tx.promo_code && <span style={{ marginLeft: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>{tx.promo_code}</span>}
+                  </div>
+                  <div style={{ color: "#22C55E", fontSize: 14, fontWeight: 800 }}>${parseFloat(tx.amount_usd).toFixed(2)}</div>
+                  <div style={{ background: `${planColor[tx.plan] ?? "#6C63FF"}18`, color: planColor[tx.plan] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                    {tx.plan === "annual" ? "Anual" : "Mensual"}
+                  </div>
+                  <div style={{ background: `${statusColor[tx.status] ?? "#6C63FF"}18`, color: statusColor[tx.status] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                    {tx.status}
+                  </div>
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
+                    {new Date(tx.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {(data?.total ?? 0) > 20 && (
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16, alignItems: "center" }}>
+              <button disabled={page === 1} onClick={() => { const p = page - 1; setPage(p); load(p); }}
+                style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
+                ← Anterior
+              </button>
+              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Pág. {page} / {Math.ceil((data?.total ?? 0) / 20)}</span>
+              <button disabled={page * 20 >= (data?.total ?? 0)} onClick={() => { const p = page + 1; setPage(p); load(p); }}
+                style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 20 >= (data?.total ?? 0) ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 20 >= (data?.total ?? 0) ? "default" : "pointer", fontSize: 13 }}>
+                Siguiente →
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Subscriptions tab — live from PayPal API */
+        (!data || data.subscriptions.length === 0) ? (
+          <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+            <Crown size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
+            <p>{!data?.paypalConfigured ? "PayPal no configurado." : "No hay suscriptores activos con ID de suscripción PayPal."}</p>
+          </div>
+        ) : (
+          <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 110px 120px 120px", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+              {["Usuario", "Estado", "Últ. pago", "Próx. cobro", "Inicio"].map(h => (
+                <div key={h} style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
+              ))}
+            </div>
+            {data.subscriptions.map((s, i) => (
+              <div key={s.subscription_id} style={{ display: "grid", gridTemplateColumns: "1fr 90px 110px 120px 120px", padding: "12px 16px", borderBottom: i < data.subscriptions.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", alignItems: "center" }}>
+                <div>
+                  <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>{s.username}</div>
+                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{s.email}</div>
+                  <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, fontFamily: "monospace", marginTop: 2 }} title={s.subscription_id}>{s.subscription_id.substring(0, 18)}…</div>
+                </div>
+                <div style={{ background: `${statusColor[s.status] ?? "#6C63FF"}18`, color: statusColor[s.status] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                  {s.status}
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
+                  {s.last_payment_amount ? `$${s.last_payment_amount}` : "—"}
+                  {s.last_payment_time && <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>{new Date(s.last_payment_time).toLocaleDateString("es-ES")}</div>}
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
+                  {s.next_billing_time ? new Date(s.next_billing_time).toLocaleDateString("es-ES") : "—"}
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
+                  {new Date(s.start_time).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );

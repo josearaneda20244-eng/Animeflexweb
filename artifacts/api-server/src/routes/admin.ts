@@ -3,6 +3,9 @@ import nodemailer from "nodemailer";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 import { requireAdmin } from "../middleware/requireAdmin.js";
+import {
+  isPayPalConfigured, getPayPalToken, fetchSubscription, fetchReportingTransactions,
+} from "../lib/paypal.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -516,36 +519,94 @@ router.delete("/admin/promo-codes/:id", async (req: AuthRequest, res) => {
 router.get("/admin/transactions", async (req: AuthRequest, res) => {
   const { from, to, page = "1", limit = "20" } = req.query as Record<string, string>;
   const offset = (parseInt(page) - 1) * parseInt(limit);
+  const paypalConfigured = isPayPalConfigured();
+
   try {
+    /* ── 1. Local one-time PayPal captures ── */
     const conditions: string[] = [];
     const values: (string | number)[] = [];
     let idx = 1;
     if (from) { conditions.push(`t.created_at >= $${idx++}`); values.push(from); }
-    if (to)   { conditions.push(`t.created_at <= $${idx++}`); values.push(to); }
+    if (to)   { conditions.push(`t.created_at <= $${idx++}`); values.push(to + "T23:59:59"); }
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    const { rows } = await pool.query(
-      `SELECT t.id, t.order_id, t.amount_usd, t.plan, t.promo_code, t.status, t.created_at,
-              u.username, u.email
-         FROM paypal_transactions t
-         JOIN users u ON u.id = t.user_id
-         ${where}
-         ORDER BY t.created_at DESC
-         LIMIT $${idx++} OFFSET $${idx++}`,
-      [...values, parseInt(limit), offset]
-    );
-    const { rows: countRows } = await pool.query(
-      `SELECT COUNT(*) as count FROM paypal_transactions t ${where}`,
-      values
-    );
-    const { rows: sumRows } = await pool.query(
-      `SELECT COALESCE(SUM(amount_usd), 0) as total FROM paypal_transactions t ${where}`,
-      values
-    );
+    const [txRows, countRows, sumRows] = await Promise.all([
+      pool.query(
+        `SELECT t.id, t.order_id, t.amount_usd, t.plan, t.promo_code, t.status, t.created_at,
+                u.username, u.email
+           FROM paypal_transactions t
+           JOIN users u ON u.id = t.user_id
+           ${where}
+           ORDER BY t.created_at DESC
+           LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...values, parseInt(limit), offset]
+      ),
+      pool.query(`SELECT COUNT(*) as count FROM paypal_transactions t ${where}`, values),
+      pool.query(`SELECT COALESCE(SUM(amount_usd), 0) as total FROM paypal_transactions t ${where}`, values),
+    ]);
+
+    /* ── 2. PayPal subscription details (real PayPal API call) ── */
+    let subscriptions: Array<{
+      subscription_id: string; status: string; username: string; email: string;
+      last_payment_amount?: string; last_payment_time?: string; next_billing_time?: string;
+      start_time: string;
+    }> = [];
+    let paypalError: string | null = null;
+
+    if (paypalConfigured) {
+      try {
+        const { rows: subUsers } = await pool.query(
+          `SELECT id, username, email, paypal_subscription_id
+             FROM users
+            WHERE paypal_subscription_id IS NOT NULL
+              AND membership_tier = 'megafan'
+            ORDER BY id`
+        );
+
+        if (subUsers.length > 0) {
+          const token = await getPayPalToken();
+          const subDetails = await Promise.all(
+            subUsers.map(async (u: { id: number; username: string; email: string; paypal_subscription_id: string }) => {
+              const sub = await fetchSubscription(token, u.paypal_subscription_id);
+              if (!sub) return null;
+              return {
+                subscription_id: u.paypal_subscription_id,
+                status: sub.status,
+                username: u.username,
+                email: u.email,
+                last_payment_amount: sub.billing_info?.last_payment?.amount?.value,
+                last_payment_time:   sub.billing_info?.last_payment?.time,
+                next_billing_time:   sub.billing_info?.next_billing_time,
+                start_time:          sub.start_time,
+              };
+            })
+          );
+          subscriptions = subDetails.filter(Boolean) as typeof subscriptions;
+        }
+
+        /* ── 3. PayPal Reporting API (date-filtered transactions if configured) ── */
+        if (from || to) {
+          const startDate = from ? new Date(from).toISOString() : new Date(Date.now() - 30 * 86400000).toISOString();
+          const endDate   = to ? new Date(to + "T23:59:59").toISOString() : new Date().toISOString();
+          const token2 = await getPayPalToken();
+          const reportTxs = await fetchReportingTransactions(token2, startDate, endDate);
+          /* Attach as additional metadata to response */
+          (res as any).locals.paypalReporting = reportTxs.slice(0, 200);
+        }
+      } catch (ppErr: any) {
+        paypalError = `PayPal API: ${ppErr.message}`;
+        console.warn("PayPal admin fetch error", ppErr);
+      }
+    }
+
     res.json({
-      transactions: rows,
-      total: parseInt(countRows[0].count),
-      totalRevenue: parseFloat(sumRows[0].total),
+      transactions: txRows.rows,
+      total: parseInt(countRows.rows[0].count),
+      totalRevenue: parseFloat(sumRows.rows[0].total),
+      subscriptions,
+      paypalConfigured,
+      paypalError,
+      paypalReporting: (res as any).locals.paypalReporting ?? [],
     });
   } catch (err: any) {
     console.error("Admin transactions error", err);
@@ -578,7 +639,7 @@ router.post("/admin/send-email", async (req: AuthRequest, res) => {
       `SELECT email, username FROM users ${tierFilter} ORDER BY id`
     );
     if (recipients.length === 0) {
-      res.json({ ok: true, sent: 0, message: "No hay destinatarios para el segmento elegido" });
+      res.json({ ok: true, sent: 0, total: 0, errors: [], message: "No hay destinatarios para el segmento elegido" });
       return;
     }
 

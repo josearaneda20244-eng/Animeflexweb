@@ -202,7 +202,7 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
         const deleteRes = await dbClient.query(
           `DELETE FROM paypal_pending_orders
             WHERE order_id = $1 AND user_id = $2
-            RETURNING promo_code`,
+            RETURNING promo_code, plan AS server_plan`,
           [orderId, req.userId]
         );
 
@@ -234,12 +234,16 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
           discountPercent = promoRes.rows[0]?.discount_percent ?? 0;
         }
 
+        /* Use server-trusted plan from the deleted pending order; fall back to
+         * request body plan only when this was an idempotent retry (deleteRes empty). */
+        const trustedPlan: string = deleteRes.rows[0]?.server_plan ?? plan;
+
         /* Log transaction (ignore conflict — idempotent retry) */
         await dbClient.query(
           `INSERT INTO paypal_transactions (order_id, user_id, amount_usd, plan, promo_code, status)
            VALUES ($1, $2, $3, $4, $5, 'completed')
            ON CONFLICT (order_id) DO NOTHING`,
-          [orderId, req.userId, parseFloat(expectedUsd), plan, serverPromo ?? null]
+          [orderId, req.userId, parseFloat(expectedUsd), trustedPlan, serverPromo ?? null]
         );
 
         await dbClient.query("COMMIT");
