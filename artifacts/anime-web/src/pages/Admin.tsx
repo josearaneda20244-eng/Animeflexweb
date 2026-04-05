@@ -925,17 +925,39 @@ function CommentsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err
   );
 }
 
+/* ── PromoCode type ── */
+interface PromoCode {
+  id: number;
+  code: string;
+  discount_percent: number;
+  max_uses: number | null;
+  uses_count: number;
+  expires_at: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 /* ── Monetization Section ── */
 function MonetizationSection({ toast }: { toast: (m: string, t: "ok" | "err") => void }) {
-  const [config, setConfig] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [config, setConfig]       = useState<Record<string, string>>({});
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
+  const [codes, setCodes]         = useState<PromoCode[]>([]);
+  const [codesLoading, setCodesLoading] = useState(true);
+  const [showForm, setShowForm]   = useState(false);
+  const [newCode, setNewCode]     = useState({ code: "", discountPercent: 20, maxUses: "", expiresAt: "" });
+  const [creating, setCreating]   = useState(false);
 
   useEffect(() => {
     apiClient.get<{ config: Record<string, string> }>("/admin/config")
       .then(d => setConfig(d.config))
-      .catch(() => toast("Error al cargar", "err"))
+      .catch(() => toast("Error al cargar config", "err"))
       .finally(() => setLoading(false));
+
+    apiClient.get<{ codes: PromoCode[] }>("/admin/promo-codes")
+      .then(d => setCodes(d.codes))
+      .catch(() => {})
+      .finally(() => setCodesLoading(false));
   }, []);
 
   const save = async (patch: Record<string, string>) => {
@@ -948,53 +970,233 @@ function MonetizationSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
   const toggle = (key: string) => save({ [key]: config[key] === "true" ? "false" : "true" });
   const isEnabled = config["daily_limit_enabled"] === "true";
 
+  const createCode = async () => {
+    if (!newCode.code || !newCode.discountPercent) { toast("Completa el código y descuento", "err"); return; }
+    setCreating(true);
+    try {
+      const data = await apiClient.post<{ code: PromoCode }>("/admin/promo-codes", {
+        code: newCode.code,
+        discountPercent: newCode.discountPercent,
+        maxUses: newCode.maxUses ? parseInt(newCode.maxUses) : null,
+        expiresAt: newCode.expiresAt || null,
+      });
+      setCodes(prev => [data.code, ...prev]);
+      setNewCode({ code: "", discountPercent: 20, maxUses: "", expiresAt: "" });
+      setShowForm(false);
+      toast("Cupón creado", "ok");
+    } catch (e: any) {
+      toast(e.message ?? "Error creando cupón", "err");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const toggleCode = async (id: number, active: boolean) => {
+    try {
+      const data = await apiClient.patch<{ code: PromoCode }>(`/admin/promo-codes/${id}`, { active });
+      setCodes(prev => prev.map(c => c.id === id ? data.code : c));
+      toast(active ? "Cupón activado" : "Cupón desactivado", "ok");
+    } catch { toast("Error", "err"); }
+  };
+
+  const deleteCode = async (id: number) => {
+    try {
+      await apiClient.delete(`/admin/promo-codes/${id}`);
+      setCodes(prev => prev.filter(c => c.id !== id));
+      toast("Cupón eliminado", "ok");
+    } catch { toast("Error eliminando cupón", "err"); }
+  };
+
   if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>;
 
   return (
-    <div>
-      <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Control de Monetización</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <div>
-              <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15 }}>Sistema de límite diario</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Episodios gratuitos por día</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 0 }}>Control de Monetización</h2>
+
+      {/* Daily limit */}
+      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15 }}>Sistema de límite diario</div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Episodios gratuitos por día</div>
+          </div>
+          <button onClick={() => toggle("daily_limit_enabled")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            {isEnabled ? <ToggleRight size={40} color="#22C55E" /> : <ToggleLeft size={40} color="rgba(255,255,255,0.2)" />}
+          </button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Límite diario:</label>
+          <input type="number" min={1} max={100} value={config["daily_limit"] ?? "5"}
+            onChange={e => setConfig(prev => ({ ...prev, daily_limit: e.target.value }))}
+            onBlur={e => save({ daily_limit: e.target.value })}
+            style={{ width: 70, background: "#0D0D1A", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 15, fontWeight: 800, textAlign: "center", outline: "none" }} />
+          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>episodios/día para usuarios gratuitos</span>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+        <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Mensaje de límite alcanzado</div>
+        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 12 }}>Lo que ve el usuario al superar su límite diario</div>
+        <textarea value={config["limit_message"] ?? ""}
+          onChange={e => setConfig(prev => ({ ...prev, limit_message: e.target.value }))}
+          onBlur={e => save({ limit_message: e.target.value })}
+          rows={3}
+          style={{ width: "100%", background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 12px", color: "#F1F1F5", fontSize: 14, resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+      </div>
+
+      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+        <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Mensaje "Hazte MegaFan"</div>
+        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 12 }}>Propuesta de valor para convertir a premium</div>
+        <textarea value={config["megafan_message"] ?? ""}
+          onChange={e => setConfig(prev => ({ ...prev, megafan_message: e.target.value }))}
+          onBlur={e => save({ megafan_message: e.target.value })}
+          rows={3}
+          style={{ width: "100%", background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 12px", color: "#F1F1F5", fontSize: 14, resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+      </div>
+
+      {saving && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, textAlign: "center" }}>Guardando...</div>}
+
+      {/* ── Promo Codes ── */}
+      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15 }}>Cupones de descuento</div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>{codes.length} cupones creados</div>
+          </div>
+          <button
+            onClick={() => setShowForm(v => !v)}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#6C63FF", border: "none", borderRadius: 10, padding: "8px 14px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}
+          >
+            <Plus size={14} /> Nuevo cupón
+          </button>
+        </div>
+
+        {/* Create form */}
+        {showForm && (
+          <div style={{ background: "#0D0D1A", border: "1px solid rgba(108,99,255,0.2)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, display: "block", marginBottom: 4 }}>Código</label>
+                <input
+                  type="text"
+                  placeholder="VERANO2025"
+                  value={newCode.code}
+                  onChange={e => setNewCode(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+                  style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "monospace", boxSizing: "border-box" }}
+                />
+              </div>
+              <div>
+                <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, display: "block", marginBottom: 4 }}>Descuento %</label>
+                <input
+                  type="number" min={1} max={100}
+                  value={newCode.discountPercent}
+                  onChange={e => setNewCode(p => ({ ...p, discountPercent: parseInt(e.target.value) || 1 }))}
+                  style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", textAlign: "center", boxSizing: "border-box" }}
+                />
+              </div>
             </div>
-            <button onClick={() => toggle("daily_limit_enabled")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-              {isEnabled ? <ToggleRight size={40} color="#22C55E" /> : <ToggleLeft size={40} color="rgba(255,255,255,0.2)" />}
-            </button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+              <div>
+                <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, display: "block", marginBottom: 4 }}>Máx. usos (vacío = ilimitado)</label>
+                <input
+                  type="number" min={1} placeholder="∞"
+                  value={newCode.maxUses}
+                  onChange={e => setNewCode(p => ({ ...p, maxUses: e.target.value }))}
+                  style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+              <div>
+                <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, display: "block", marginBottom: 4 }}>Fecha expiración</label>
+                <input
+                  type="date"
+                  value={newCode.expiresAt}
+                  onChange={e => setNewCode(p => ({ ...p, expiresAt: e.target.value }))}
+                  style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={createCode}
+                disabled={creating}
+                style={{ flex: 1, background: "#6C63FF", border: "none", borderRadius: 9, padding: "9px 0", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}
+              >
+                {creating ? "Creando..." : "Crear cupón"}
+              </button>
+              <button
+                onClick={() => setShowForm(false)}
+                style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 9, padding: "9px 16px", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 14 }}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Límite diario:</label>
-            <input type="number" min={1} max={100} value={config["daily_limit"] ?? "5"}
-              onChange={e => setConfig(prev => ({ ...prev, daily_limit: e.target.value }))}
-              onBlur={e => save({ daily_limit: e.target.value })}
-              style={{ width: 70, background: "#0D0D1A", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 15, fontWeight: 800, textAlign: "center", outline: "none" }} />
-            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>episodios/día para usuarios gratuitos</span>
+        )}
+
+        {/* Table */}
+        {codesLoading ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: 24 }}><Loader2 size={22} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
+        ) : codes.length === 0 ? (
+          <div style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", padding: "24px 0", fontSize: 14 }}>
+            No hay cupones. Crea el primero.
           </div>
-        </div>
-
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
-          <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Mensaje de límite alcanzado</div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 12 }}>Lo que ve el usuario al superar su límite diario</div>
-          <textarea value={config["limit_message"] ?? ""}
-            onChange={e => setConfig(prev => ({ ...prev, limit_message: e.target.value }))}
-            onBlur={e => save({ limit_message: e.target.value })}
-            rows={3}
-            style={{ width: "100%", background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 12px", color: "#F1F1F5", fontSize: 14, resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
-        </div>
-
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
-          <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Mensaje "Hazte MegaFan"</div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 12 }}>Propuesta de valor para convertir a premium</div>
-          <textarea value={config["megafan_message"] ?? ""}
-            onChange={e => setConfig(prev => ({ ...prev, megafan_message: e.target.value }))}
-            onBlur={e => save({ megafan_message: e.target.value })}
-            rows={3}
-            style={{ width: "100%", background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 12px", color: "#F1F1F5", fontSize: 14, resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
-        </div>
-
-        {saving && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, textAlign: "center" }}>Guardando...</div>}
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  {["Código", "Descuento", "Usos", "Expira", "Estado", ""].map(h => (
+                    <th key={h} style={{ padding: "8px 10px", color: "rgba(255,255,255,0.4)", fontWeight: 700, textAlign: "left" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {codes.map(c => {
+                  const expired = c.expires_at && new Date(c.expires_at) < new Date();
+                  const maxed   = c.max_uses !== null && c.uses_count >= c.max_uses;
+                  const status  = !c.active ? "inactivo" : expired ? "expirado" : maxed ? "agotado" : "activo";
+                  const statusColor: Record<string, string> = { activo: "#22C55E", inactivo: "rgba(255,255,255,0.3)", expirado: "#F59E0B", agotado: "#EF4444" };
+                  return (
+                    <tr key={c.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                      <td style={{ padding: "10px 10px", color: "#A78BFA", fontFamily: "monospace", fontWeight: 700 }}>{c.code}</td>
+                      <td style={{ padding: "10px 10px", color: "#F1F1F5", fontWeight: 700 }}>−{c.discount_percent}%</td>
+                      <td style={{ padding: "10px 10px", color: "rgba(255,255,255,0.6)" }}>
+                        {c.uses_count}{c.max_uses !== null ? `/${c.max_uses}` : ""}
+                      </td>
+                      <td style={{ padding: "10px 10px", color: "rgba(255,255,255,0.5)" }}>
+                        {c.expires_at ? new Date(c.expires_at).toLocaleDateString("es-ES") : "—"}
+                      </td>
+                      <td style={{ padding: "10px 10px" }}>
+                        <span style={{ color: statusColor[status], fontSize: 12, fontWeight: 700, background: `${statusColor[status]}18`, padding: "3px 8px", borderRadius: 6 }}>
+                          {status}
+                        </span>
+                      </td>
+                      <td style={{ padding: "10px 10px" }}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            onClick={() => toggleCode(c.id, !c.active)}
+                            title={c.active ? "Desactivar" : "Activar"}
+                            style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: c.active ? "#F59E0B" : "#22C55E" }}
+                          >
+                            {c.active ? <EyeOff size={13} /> : <Eye size={13} />}
+                          </button>
+                          <button
+                            onClick={() => deleteCode(c.id)}
+                            title="Eliminar"
+                            style={{ background: "none", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#EF4444" }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

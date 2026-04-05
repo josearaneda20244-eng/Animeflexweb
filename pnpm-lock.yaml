@@ -428,6 +428,9 @@ importers:
       pino-http:
         specifier: ^10
         version: 10.5.0
+      stripe:
+        specifier: ^22.0.0
+        version: 22.0.0(@types/node@25.3.5)
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.6
@@ -450,6 +453,9 @@ importers:
       '@types/pg':
         specifier: ^8.11.10
         version: 8.18.0
+      '@types/stripe':
+        specifier: ^8.0.417
+        version: 8.0.417(@types/node@25.3.5)
       esbuild:
         specifier: 0.27.3
         version: 0.27.3
@@ -1914,6 +1920,10 @@ packages:
 
   '@types/serve-static@2.2.0':
     resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
+
+  '@types/stripe@8.0.417':
+    resolution: {integrity: sha512-PTuqskh9YKNENnOHGVJBm4sM0zE8B1jZw1JIskuGAPkMB+OH236QeN8scclhYGPA4nG6zTtPXgwpXdp+HPDTVw==}
+    deprecated: This is a stub types definition. stripe provides its own type definitions, so you do not need this installed.
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
@@ -3929,6 +3939,15 @@ packages:
     resolution: {integrity: sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw==}
     engines: {node: '>=14.16'}
 
+  stripe@22.0.0:
+    resolution: {integrity: sha512-q1UgXXpSfZCmkyzZEh3vFEWT7+ajuaFGqaP9Tsi2NMtwlkigIWNr+KBIUQqtNeNEsreDKgdn+BP5HRW9JDj22Q==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   strnum@2.2.2:
     resolution: {integrity: sha512-DnR90I+jtXNSTXWdwrEy9FakW7UX+qUZg28gj5fk2vxxl7uS/3bpI4fjFYVmdK9etptYBPNkpahuQnEwhwECqA==}
 
@@ -5665,6 +5684,12 @@ snapshots:
     dependencies:
       '@types/http-errors': 2.0.5
       '@types/node': 25.3.5
+
+  '@types/stripe@8.0.417(@types/node@25.3.5)':
+    dependencies:
+      stripe: 22.0.0(@types/node@25.3.5)
+    transitivePeerDependencies:
+      - '@types/node'
 
   '@types/tough-cookie@4.0.5': {}
 
@@ -7661,6 +7686,10 @@ snapshots:
   strip-final-newline@4.0.0: {}
 
   strip-json-comments@5.0.3: {}
+
+  stripe@22.0.0(@types/node@25.3.5):
+    optionalDependencies:
+      '@types/node': 25.3.5
 
   strnum@2.2.2: {}
 

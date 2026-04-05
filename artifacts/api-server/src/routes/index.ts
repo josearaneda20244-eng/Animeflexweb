@@ -10,6 +10,7 @@ import ratingsRouter from "./ratings.js";
 import announcementsRouter from "./announcements.js";
 import searchLogRouter from "./search.js";
 import storageRouter from "./storage.js";
+import stripeRouter from "./stripe.js";
 
 const router: IRouter = Router();
 
@@ -23,6 +24,8 @@ router.use(commentsRouter);
 router.use(ratingsRouter);
 router.use(announcementsRouter);
 router.use(searchLogRouter);
+// Stripe + promo codes (validate is public, checkout requires auth internally)
+router.use(stripeRouter);
 // Auth-required routes
 router.use(userRouter);
 router.use(adminRouter);

@@ -79,7 +79,8 @@ router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
     const result = await pool.query(
       `SELECT id, username, email, avatar_url, created_at,
               membership_tier, subscription_expires_at, role,
-              COALESCE(is_profile_public, TRUE) AS is_profile_public
+              COALESCE(is_profile_public, TRUE) AS is_profile_public,
+              stripe_customer_id
        FROM users WHERE id = $1`,
       [req.userId]
     );

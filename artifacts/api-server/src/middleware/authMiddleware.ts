@@ -40,6 +40,18 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
   }
 }
 
+export function optionalAuth(req: AuthRequest, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) { next(); return; }
+  const token = header.slice(7);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET!) as { userId: number; email: string };
+    req.userId = payload.userId;
+    req.userEmail = payload.email;
+  } catch { /* ignore */ }
+  next();
+}
+
 export function signToken(userId: number, email: string): string {
   return jwt.sign({ userId, email }, JWT_SECRET!, { expiresIn: "30d" });
 }

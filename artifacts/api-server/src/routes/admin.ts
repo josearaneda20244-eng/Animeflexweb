@@ -114,6 +114,19 @@ async function ensureAdminTables() {
       PRIMARY KEY (follower_id, following_id)
     )
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id SERIAL PRIMARY KEY,
+      code VARCHAR(50) UNIQUE NOT NULL,
+      discount_percent INTEGER NOT NULL CHECK (discount_percent BETWEEN 1 AND 100),
+      max_uses INTEGER,
+      uses_count INTEGER NOT NULL DEFAULT 0,
+      expires_at TIMESTAMP WITH TIME ZONE,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
+  `);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(200)`);
   const defaults = [
     ["daily_limit", "5"],
     ["daily_limit_enabled", "true"],
@@ -408,6 +421,82 @@ router.delete("/admin/comments/:id", async (req: AuthRequest, res) => {
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: "Error al eliminar comentario" });
+  }
+});
+
+/* ── GET /admin/promo-codes ── */
+router.get("/admin/promo-codes", async (_req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, code, discount_percent, max_uses, uses_count, expires_at, active, created_at
+         FROM promo_codes
+        ORDER BY created_at DESC`
+    );
+    res.json({ codes: rows });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ── POST /admin/promo-codes ── */
+router.post("/admin/promo-codes", async (req: AuthRequest, res) => {
+  const { code, discountPercent, maxUses, expiresAt } = req.body as {
+    code: string;
+    discountPercent: number;
+    maxUses?: number | null;
+    expiresAt?: string | null;
+  };
+
+  if (!code || !discountPercent) {
+    res.status(400).json({ error: "code y discountPercent son requeridos" });
+    return;
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO promo_codes (code, discount_percent, max_uses, expires_at)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, code, discount_percent, max_uses, uses_count, expires_at, active, created_at`,
+      [
+        code.toUpperCase().trim(),
+        Math.min(100, Math.max(1, parseInt(String(discountPercent)))),
+        maxUses ?? null,
+        expiresAt ?? null,
+      ]
+    );
+    res.json({ code: rows[0] });
+  } catch (err: any) {
+    if (err.code === "23505") {
+      res.status(409).json({ error: "Ya existe un cupón con ese código" });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
+/* ── PATCH /admin/promo-codes/:id ── toggle active */
+router.patch("/admin/promo-codes/:id", async (req: AuthRequest, res) => {
+  const { active } = req.body as { active: boolean };
+  try {
+    const { rows } = await pool.query(
+      `UPDATE promo_codes SET active = $1 WHERE id = $2
+       RETURNING id, code, discount_percent, max_uses, uses_count, expires_at, active`,
+      [active, parseInt(req.params.id as string)]
+    );
+    if (rows.length === 0) { res.status(404).json({ error: "No encontrado" }); return; }
+    res.json({ code: rows[0] });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ── DELETE /admin/promo-codes/:id ── */
+router.delete("/admin/promo-codes/:id", async (req: AuthRequest, res) => {
+  try {
+    await pool.query(`DELETE FROM promo_codes WHERE id = $1`, [parseInt(req.params.id as string)]);
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
