@@ -76,6 +76,7 @@ export function HistoryProvider({ children }: { children: React.ReactNode }) {
           animeTitle: anime.title,
           animeImage: anime.image,
           episodeNumber: episodeNum ?? 0,
+          animeGenres: anime.genres ?? [],
         }).catch(() => {});
       }
     },

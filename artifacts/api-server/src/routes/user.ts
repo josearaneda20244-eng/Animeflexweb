@@ -23,9 +23,9 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
   if (!userRes.rows.length) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
   const u = userRes.rows[0];
 
-  const [epRes, completedRes, streakRes] = await Promise.all([
-    pool.query<{ total: string }>(
-      `SELECT COUNT(*) as total FROM user_history WHERE user_id = $1`, [userId]
+  const [epRes, completedRes, streakRes, weeklyRes, genreRes] = await Promise.all([
+    pool.query<{ total: string; total_animes: string }>(
+      `SELECT COUNT(*) as total, COUNT(DISTINCT anime_id) as total_animes FROM user_history WHERE user_id = $1`, [userId]
     ),
     pool.query<{ completed: string }>(
       `SELECT COUNT(*) as completed FROM user_watchlist WHERE user_id = $1 AND status='completed'`, [userId]
@@ -40,7 +40,45 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
        SELECT COUNT(*)::int AS streak FROM ordered_dates WHERE days_ago = rn - 1`,
       [userId]
     ),
+    pool.query<DailyViewRow>(
+      `SELECT view_date::text as day, COUNT(DISTINCT episode_id)::int as episodes
+       FROM user_daily_views
+       WHERE user_id = $1 AND view_date >= CURRENT_DATE - 6
+       GROUP BY view_date ORDER BY view_date ASC`,
+      [userId]
+    ),
+    pool.query<{ genre: string }>(
+      `SELECT genre, COUNT(*) AS cnt
+       FROM (
+         SELECT unnest(genres) AS genre FROM user_history WHERE user_id = $1
+         UNION ALL
+         SELECT unnest(genres) AS genre FROM user_favorites WHERE user_id = $1
+       ) g
+       WHERE genre IS NOT NULL AND genre <> ''
+       GROUP BY genre ORDER BY cnt DESC LIMIT 1`,
+      [userId]
+    ),
   ]);
+
+  const totalEpisodes = parseInt(epRes.rows[0]?.total ?? "0", 10);
+  const totalAnimes   = parseInt(epRes.rows[0]?.total_animes ?? "0", 10);
+  const completed     = parseInt(completedRes.rows[0]?.completed ?? "0", 10);
+  const streak        = streakRes.rows[0]?.streak ?? 0;
+  const estimatedHours = Math.round((totalEpisodes * 24) / 60 * 10) / 10;
+  const favoriteGenre: string | null = genreRes.rows[0]?.genre ?? null;
+
+  const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const weekMap: Record<string, number> = {};
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    weekMap[d.toISOString().slice(0, 10)] = 0;
+  }
+  weeklyRes.rows.forEach((r: DailyViewRow) => { weekMap[r.day] = r.episodes; });
+  const weeklyActivity = Object.entries(weekMap).map(([date, episodes]) => {
+    const d = new Date(date + "T12:00:00Z");
+    return { date, day: DAY_NAMES[d.getUTCDay()], episodes };
+  });
 
   let favorites: AnimeListRow[] = [];
   let watchlist: AnimeListRow[] = [];
@@ -71,9 +109,13 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
       is_profile_public: u.is_profile_public,
     },
     stats: {
-      totalEpisodes: parseInt(epRes.rows[0]?.total ?? "0", 10),
-      completed: parseInt(completedRes.rows[0]?.completed ?? "0", 10),
-      streak: streakRes.rows[0]?.streak ?? 0,
+      totalEpisodes,
+      totalAnimes,
+      completed,
+      streak,
+      estimatedHours,
+      favoriteGenre,
+      weeklyActivity,
     },
     favorites,
     watchlist,
@@ -239,12 +281,13 @@ router.get("/user/history", async (req: AuthRequest, res) => {
 
 router.post("/user/history", async (req: AuthRequest, res) => {
   try {
-    const { animeId, animeTitle, animeImage, episodeNumber } = req.body;
+    const { animeId, animeTitle, animeImage, episodeNumber, animeGenres } = req.body;
+    const genres: string[] = Array.isArray(animeGenres) ? animeGenres.filter((g: unknown) => typeof g === "string") : [];
     await pool.query(
-      `INSERT INTO user_history (user_id, anime_id, anime_title, anime_image, episode_number)
-       VALUES ($1,$2,$3,$4,$5)
-       ON CONFLICT (user_id, anime_id, episode_number) DO UPDATE SET watched_at = NOW()`,
-      [req.userId, animeId, animeTitle, animeImage, episodeNumber ?? 0]
+      `INSERT INTO user_history (user_id, anime_id, anime_title, anime_image, episode_number, genres)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (user_id, anime_id, episode_number) DO UPDATE SET watched_at = NOW(), genres = EXCLUDED.genres`,
+      [req.userId, animeId, animeTitle, animeImage, episodeNumber ?? 0, genres]
     );
     res.json({ ok: true });
   } catch {
@@ -415,8 +458,12 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
       ),
       pool.query<{ genre: string }>(
         `SELECT genre, COUNT(*) AS cnt
-         FROM user_favorites, unnest(genres) AS genre
-         WHERE user_id = $1
+         FROM (
+           SELECT unnest(genres) AS genre FROM user_history WHERE user_id = $1
+           UNION ALL
+           SELECT unnest(genres) AS genre FROM user_favorites WHERE user_id = $1
+         ) g
+         WHERE genre IS NOT NULL AND genre <> ''
          GROUP BY genre
          ORDER BY cnt DESC
          LIMIT 1`,

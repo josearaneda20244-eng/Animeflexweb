@@ -306,7 +306,7 @@ export default function Settings() {
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(108,99,255,0.35)"; }}
               >
                 <Upload size={22} color="#6C63FF" />
-                <span>{selectedFile ? `${selectedFile.name} ✓ — Click para cambiar` : "Click para seleccionar imagen (máx. 5 MB)"}</span>
+                <span>{selectedFile ? `${selectedFile.name} ✓ — Click para cambiar` : "Click para seleccionar imagen (máx. 2 MB)"}</span>
               </button>
             </div>
           )}
