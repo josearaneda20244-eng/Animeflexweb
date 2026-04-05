@@ -4,15 +4,22 @@ import { useAuth } from "@/context/AuthContext";
 import { Camera, User, Mail, Shield, Crown, ArrowLeft, Check, X, Upload, Link as LinkIcon, Loader2, Eye, EyeOff } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
+
 export default function Settings() {
   const { user, isMegaFan, isOwner, updateProfile } = useAuth();
   const [, navigate] = useLocation();
 
   const [username, setUsername] = useState(user?.username ?? "");
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url ?? "");
-  const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url ?? "");
+  const [avatarPreview, setAvatarPreview] = useState<string>(() => {
+    const url = user?.avatar_url ?? "";
+    if (!url || url.startsWith("data:")) return url;
+    if (url.startsWith("/objects/")) return `${API_BASE}/storage${url}`;
+    return url;
+  });
   const [avatarMode, setAvatarMode] = useState<"url" | "upload">("url");
-  const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [savingUsername, setSavingUsername] = useState(false);
@@ -39,28 +46,10 @@ export default function Settings() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) { setAvatarError("Solo se permiten imágenes."); return; }
-    if (file.size > 2 * 1024 * 1024) { setAvatarError("La imagen no debe superar 2 MB."); return; }
+    if (file.size > 5 * 1024 * 1024) { setAvatarError("La imagen no debe superar 5 MB."); return; }
     setAvatarError("");
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const base64 = ev.target?.result as string;
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const MAX = 256;
-        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressed = canvas.toDataURL("image/jpeg", 0.82);
-        setAvatarBase64(compressed);
-        setAvatarPreview(compressed);
-        setAvatarUrl("");
-      };
-      img.src = base64;
-    };
-    reader.readAsDataURL(file);
+    setSelectedFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
   const handleSaveAvatar = async () => {
@@ -68,12 +57,50 @@ export default function Settings() {
     setAvatarError("");
     setAvatarSuccess(false);
     try {
-      const newAvatar = avatarMode === "upload" && avatarBase64 ? avatarBase64 : avatarUrl.trim() || null;
-      await updateProfile({ avatar_url: newAvatar ?? "" });
+      let finalAvatarUrl: string | null = null;
+
+      if (avatarMode === "upload" && selectedFile) {
+        const token = localStorage.getItem("af_token");
+
+        const urlRes = await fetch(`${API_BASE}/user/avatar/request-url`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            name: selectedFile.name,
+            size: selectedFile.size,
+            contentType: selectedFile.type,
+          }),
+        });
+
+        if (!urlRes.ok) {
+          const err = await urlRes.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error ?? "Error al obtener URL de subida");
+        }
+
+        const { uploadURL, objectPath } = await urlRes.json() as { uploadURL: string; objectPath: string };
+
+        const putRes = await fetch(uploadURL, {
+          method: "PUT",
+          headers: { "Content-Type": selectedFile.type },
+          body: selectedFile,
+        });
+
+        if (!putRes.ok) throw new Error("Error al subir imagen al almacenamiento");
+
+        finalAvatarUrl = objectPath;
+      } else if (avatarMode === "url") {
+        finalAvatarUrl = avatarUrl.trim() || null;
+      }
+
+      await updateProfile({ avatar_url: finalAvatarUrl ?? "" });
       setAvatarSuccess(true);
       setTimeout(() => setAvatarSuccess(false), 2500);
-    } catch (err: any) {
-      setAvatarError(err.message ?? "Error al guardar avatar");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al guardar avatar";
+      setAvatarError(message);
     } finally {
       setSavingAvatar(false);
     }
@@ -91,8 +118,9 @@ export default function Settings() {
       await updateProfile({ username: username.trim() });
       setUsernameSuccess(true);
       setTimeout(() => setUsernameSuccess(false), 2500);
-    } catch (err: any) {
-      setUsernameError(err.message ?? "Error al guardar nombre");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al guardar nombre";
+      setUsernameError(message);
     } finally {
       setSavingUsername(false);
     }
@@ -106,7 +134,7 @@ export default function Settings() {
       setIsProfilePublic(newValue);
       setPrivacySuccess(true);
       setTimeout(() => setPrivacySuccess(false), 2500);
-    } catch {}
+    } catch { /* ignore */ }
     finally { setSavingPrivacy(false); }
   };
 
@@ -246,7 +274,7 @@ export default function Settings() {
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(108,99,255,0.35)"; }}
               >
                 <Upload size={22} color="#6C63FF" />
-                <span>{avatarBase64 ? "Foto seleccionada ✓ — Click para cambiar" : "Click para seleccionar imagen (máx. 2 MB)"}</span>
+                <span>{selectedFile ? `${selectedFile.name} ✓ — Click para cambiar` : "Click para seleccionar imagen (máx. 5 MB)"}</span>
               </button>
             </div>
           )}

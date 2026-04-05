@@ -8,6 +8,7 @@ import { useFavorites } from "@/context/FavoritesContext";
 import { useWatchList } from "@/context/WatchListContext";
 import { useHistory } from "@/context/HistoryContext";
 import AuthModal from "@/components/AuthModal";
+import { resolveAvatarUrl } from "@/lib/utils";
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -379,8 +380,8 @@ export default function Navbar() {
                         width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
                         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                       }}>
-                        {user.avatar_url
-                          ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "cover" }} />
+                        {resolveAvatarUrl(user.avatar_url)
+                          ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "cover" }} />
                           : <User size={14} color="#fff" />
                         }
                       </div>
@@ -420,8 +421,8 @@ export default function Navbar() {
                               outline: "3px solid #16172A",
                             }}
                           >
-                            {user.avatar_url
-                              ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            {resolveAvatarUrl(user.avatar_url)
+                              ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                               : <span style={{ color: "#fff", fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
                                   {user.username.charAt(0).toUpperCase()}
                                 </span>
@@ -694,8 +695,8 @@ export default function Navbar() {
                   <div style={{ background: "rgba(108,99,255,0.08)", borderRadius: 12, marginBottom: 8, overflow: "hidden" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
                       <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {user.avatar_url
-                          ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", borderRadius: 10, objectFit: "cover" }} />
+                        {resolveAvatarUrl(user.avatar_url)
+                          ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", borderRadius: 10, objectFit: "cover" }} />
                           : <User size={20} color="#fff" />
                         }
                       </div>

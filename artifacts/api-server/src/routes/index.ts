@@ -9,10 +9,12 @@ import membershipRouter from "./membership.js";
 import ratingsRouter from "./ratings.js";
 import announcementsRouter from "./announcements.js";
 import searchLogRouter from "./search.js";
+import storageRouter from "./storage.js";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(storageRouter);
 router.use(animeRouter);
 router.use(authRouter);
 router.use(publicUserRouter);

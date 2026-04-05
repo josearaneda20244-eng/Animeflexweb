@@ -1,6 +1,7 @@
 import { Router } from "express";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
+import { ObjectStorageService } from "../lib/objectStorage.js";
 
 interface DailyViewRow { day: string; episodes: number }
 interface TopAnimeRow { anime_id: string; anime_title: string; anime_image: string; ep_count: string }
@@ -105,6 +106,37 @@ const router = Router();
 router.use(requireAuth);
 
 const DAILY_LIMIT = 5;
+const objectStorageService = new ObjectStorageService();
+
+/* ── AVATAR UPLOAD ── */
+
+/* POST /user/avatar/request-url — returns a presigned GCS URL for direct upload.
+   Client sends JSON { name, size, contentType }, receives { uploadURL, objectPath }.
+   Client PUTs the file to uploadURL, then calls PATCH /auth/me with
+   avatar_url = objectPath to persist the avatar reference. */
+router.post("/user/avatar/request-url", async (req: AuthRequest, res) => {
+  const { name, size, contentType } = req.body as { name?: string; size?: number; contentType?: string };
+  if (!name || !size || !contentType) {
+    res.status(400).json({ error: "name, size y contentType son requeridos" });
+    return;
+  }
+  if (!contentType.startsWith("image/")) {
+    res.status(400).json({ error: "Solo se permiten imágenes" });
+    return;
+  }
+  if (size > 5 * 1024 * 1024) {
+    res.status(400).json({ error: "El archivo no debe superar 5 MB" });
+    return;
+  }
+  try {
+    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+    res.json({ uploadURL, objectPath });
+  } catch (err) {
+    console.error("Avatar upload URL error:", err);
+    res.status(500).json({ error: "Error al generar URL de subida" });
+  }
+});
 
 /* ── FAVORITES ── */
 router.get("/user/favorites", async (req: AuthRequest, res) => {

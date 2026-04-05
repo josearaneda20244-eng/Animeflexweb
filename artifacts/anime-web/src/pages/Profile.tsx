@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { DAILY_LIMIT, getRemainingEpisodes, getEpisodesWatchedToday } from "@/lib/accessControl";
 import { apiClient } from "@/lib/apiClient";
+import { resolveAvatarUrl } from "@/lib/utils";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -108,8 +109,8 @@ export default function Profile() {
             fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
             boxShadow: "0 4px 20px rgba(108,99,255,0.4)",
           }}>
-            {user?.avatar_url
-              ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            {resolveAvatarUrl(user?.avatar_url)
+              ? <img src={resolveAvatarUrl(user?.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : (user?.username?.charAt(0)?.toUpperCase() ?? "?")}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>

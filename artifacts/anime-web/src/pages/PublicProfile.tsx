@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Crown, Tv2, CheckCircle2, Flame, Heart, BookOpen, ArrowLeft } from "lucide-react";
+import { resolveAvatarUrl } from "@/lib/utils";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "/api") as string;
 
@@ -104,8 +105,8 @@ export default function PublicProfile() {
                 fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
                 boxShadow: "0 4px 20px rgba(108,99,255,0.4)",
               }}>
-                {data.user.avatar_url
-                  ? <img src={data.user.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                {resolveAvatarUrl(data.user.avatar_url)
+                  ? <img src={resolveAvatarUrl(data.user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   : data.user.username.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
