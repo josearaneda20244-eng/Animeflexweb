@@ -3,6 +3,7 @@ import { useSearch, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search as SearchIcon, X, Star, SlidersHorizontal } from "lucide-react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
+import { apiClient } from "@/lib/apiClient";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -61,6 +62,14 @@ export default function Search() {
     setQuery(q);
     setSubmitted(q);
   }, [rawSearch]);
+
+  useEffect(() => {
+    if (!submitted.trim() || submitted.trim().length < 2) return;
+    const t = setTimeout(() => {
+      apiClient.post("/search-log", { query: submitted.trim() }).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [submitted]);
 
   const searchQuery = useQuery({
     queryKey: ["search", submitted],

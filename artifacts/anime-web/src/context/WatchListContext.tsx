@@ -3,7 +3,7 @@ import type { AnimeResult } from "@/lib/consumet";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
 
-export type WatchStatus = "watching" | "completed" | "plan_to_watch";
+export type WatchStatus = "watching" | "completed" | "plan_to_watch" | "dropped";
 
 export interface WatchListEntry {
   anime: AnimeResult;

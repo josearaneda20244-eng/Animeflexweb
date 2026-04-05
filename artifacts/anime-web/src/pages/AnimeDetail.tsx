@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, Heart, HeartOff, Star, Play, ChevronDown, ChevronUp,
   Tv, Calendar, Film, List, Share2, BookOpen, CheckCircle2, Clock3,
-  X, Users, Clapperboard, Sparkles, ChevronRight
+  X, Users, Clapperboard, Sparkles, ChevronRight, XCircle,
 } from "lucide-react";
+import { apiClient } from "@/lib/apiClient";
 import { consumet, resolveTitle, type Episode, type AnimeResult } from "@/lib/consumet";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useHistory } from "@/context/HistoryContext";
@@ -20,6 +21,7 @@ const STATUS_OPTIONS: { value: WatchStatus; label: string; icon: React.ReactNode
   { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#6C63FF" },
   { value: "completed", label: "Completado", icon: <CheckCircle2 size={13} />, color: "#22C55E" },
   { value: "plan_to_watch", label: "Pendiente", icon: <Clock3 size={13} />, color: "#F59E0B" },
+  { value: "dropped", label: "Abandonado", icon: <XCircle size={13} />, color: "#EF4444" },
 ];
 
 function WatchStatusButton({ animeForList, onStatusChange }: { animeForList: AnimeResult; onStatusChange?: (status: WatchStatus | null) => void }) {
@@ -86,10 +88,30 @@ function WatchStatusButton({ animeForList, onStatusChange }: { animeForList: Ani
 const RATING_LABELS: Record<number, string> = { 1: "Malo", 2: "Regular", 3: "Bueno", 4: "Muy bueno", 5: "Excelente" };
 
 function UserRatingWidget({ animeId }: { animeId: string }) {
+  const { user } = useAuth();
   const [rating, setRating] = useState<number>(() => {
     try { return (JSON.parse(localStorage.getItem("af_user_ratings") || "{}"))[animeId] ?? 0; } catch { return 0; }
   });
   const [hover, setHover] = useState(0);
+  const [communityAvg, setCommunityAvg] = useState<number>(0);
+  const [communityTotal, setCommunityTotal] = useState<number>(0);
+
+  useEffect(() => {
+    apiClient.get<{ avg: number; total: number; userScore: number | null }>(`/anime/${animeId}/rating`)
+      .then(d => {
+        setCommunityAvg(d.avg);
+        setCommunityTotal(d.total);
+        if (d.userScore != null && user) {
+          setRating(d.userScore);
+          try {
+            const all = JSON.parse(localStorage.getItem("af_user_ratings") || "{}");
+            all[animeId] = d.userScore;
+            localStorage.setItem("af_user_ratings", JSON.stringify(all));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, [animeId, user]);
 
   const handleRate = (n: number) => {
     const next = rating === n ? 0 : n;
@@ -100,6 +122,11 @@ function UserRatingWidget({ animeId }: { animeId: string }) {
       else all[animeId] = next;
       localStorage.setItem("af_user_ratings", JSON.stringify(all));
     } catch {}
+    if (user) {
+      apiClient.post<{ avg: number; total: number }>(`/anime/${animeId}/rating`, { score: next })
+        .then(d => { setCommunityAvg(d.avg); setCommunityTotal(d.total); })
+        .catch(() => {});
+    }
   };
 
   const display = hover || rating;
@@ -109,9 +136,11 @@ function UserRatingWidget({ animeId }: { animeId: string }) {
         <div className="section-accent" />
         <Star size={14} className="text-[#6C63FF]" />
         <h2 className="text-sm font-bold text-[#F0F0FF]">Tu valoración</h2>
-        {rating > 0 && (
-          <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginLeft: "auto" }}>
-            Toca de nuevo para quitar
+        {communityTotal > 0 && (
+          <span style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.3)", fontSize: 11, marginLeft: "auto" }}>
+            <Star size={10} color="#F59E0B" fill="#F59E0B" />
+            <span style={{ color: "#F59E0B", fontWeight: 800 }}>{communityAvg.toFixed(1)}</span>
+            <span>({communityTotal} votos)</span>
           </span>
         )}
       </div>

@@ -9,8 +9,12 @@ import {
   ToggleLeft, ToggleRight, Menu, ArrowLeft,
   Trash2, UserCheck, UserX, Loader2, Activity,
   Zap, BarChart2, ArrowUpRight, MessageSquare,
-  DollarSign, UserMinus,
+  DollarSign, UserMinus, Megaphone, Download,
+  Radio, Hash, Plus, Info,
 } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+} from "recharts";
 
 /* ── Types ── */
 interface AdminUser {
@@ -21,10 +25,16 @@ interface AdminUser {
 interface AdminStats {
   totalUsers: number; megafanUsers: number; episodesToday: number; newUsersWeek: number;
   totalComments: number; inactiveUsers: number; newUsersToday: number; totalRevenue: number;
+  activeUsers: number; totalRatings: number;
   topAnime: { anime_id: string; anime_title: string; anime_image: string; views: string }[];
   recentUsers: { id: number; username: string; email: string; membership_tier: string; role: string; created_at: string }[];
   megafanList: { id: number; username: string; email: string; created_at: string; subscription_expires_at: string | null }[];
   recentActivity: { username: string; anime_title: string; episode_num: number; updated_at: string }[];
+  growthChart: { day: string; count: string }[];
+  searchTrends: { query: string; count: number }[];
+}
+interface Announcement {
+  id: number; message: string; type: string; active: boolean; created_at: string;
 }
 interface ContentItem {
   id: number; anime_id: string; anime_title: string; anime_image: string;
@@ -87,6 +97,104 @@ function Counter({ target }: { target: number }) {
     return () => clearInterval(t);
   }, [target]);
   return <>{val.toLocaleString()}</>;
+}
+
+/* ── Announcements Manager (embedded in dashboard) ── */
+function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") => void }) {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [msg, setMsg] = useState("");
+  const [type, setType] = useState<"info" | "warning" | "success">("info");
+  const [loading, setLoading] = useState(false);
+
+  const load = () => {
+    apiClient.get<{ announcements: Announcement[] }>("/announcements")
+      .then(d => setAnnouncements(d.announcements))
+      .catch(() => {});
+  };
+  useEffect(load, []);
+
+  const send = async () => {
+    if (!msg.trim()) return;
+    setLoading(true);
+    try {
+      await apiClient.post("/admin/announcements", { message: msg.trim(), type });
+      setMsg("");
+      load();
+      toast("Anuncio enviado", "ok");
+    } catch { toast("Error al enviar anuncio", "err"); }
+    finally { setLoading(false); }
+  };
+
+  const remove = async (id: number) => {
+    try {
+      await apiClient.delete(`/admin/announcements/${id}`);
+      load();
+      toast("Anuncio eliminado", "ok");
+    } catch { toast("Error al eliminar", "err"); }
+  };
+
+  const TYPE_COLORS: Record<string, string> = { info: "#06B6D4", warning: "#F59E0B", success: "#22C55E" };
+
+  return (
+    <div style={{ background: "#13131C", border: "1px solid rgba(108,99,255,0.15)", borderRadius: 18, padding: "20px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Megaphone size={14} color="#A78BFA" />
+        </div>
+        <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Anuncios a usuarios</span>
+      </div>
+
+      {/* New announcement form */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        <input
+          value={msg}
+          onChange={e => setMsg(e.target.value)}
+          placeholder="Escribe un anuncio para todos los usuarios..."
+          style={{ flex: 1, minWidth: 200, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit" }}
+          onKeyDown={e => e.key === "Enter" && send()}
+        />
+        <select
+          value={type}
+          onChange={e => setType(e.target.value as any)}
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#F1F1F5", fontSize: 13, cursor: "pointer", outline: "none", fontFamily: "inherit" }}
+        >
+          <option value="info">ℹ️ Info</option>
+          <option value="warning">⚠️ Aviso</option>
+          <option value="success">✅ Éxito</option>
+        </select>
+        <button
+          onClick={send} disabled={loading || !msg.trim()}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading || !msg.trim() ? 0.5 : 1 }}
+        >
+          {loading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Plus size={14} />}
+          Enviar
+        </button>
+      </div>
+
+      {/* Active announcements list */}
+      {announcements.length === 0 ? (
+        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, textAlign: "center", padding: "12px 0" }}>Sin anuncios activos</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {announcements.map(a => (
+            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, background: `${TYPE_COLORS[a.type] ?? "#6C63FF"}10`, border: `1px solid ${TYPE_COLORS[a.type] ?? "#6C63FF"}28`, borderRadius: 10, padding: "10px 14px" }}>
+              <Info size={14} color={TYPE_COLORS[a.type] ?? "#6C63FF"} style={{ flexShrink: 0 }} />
+              <span style={{ flex: 1, color: "#F1F1F5", fontSize: 13 }}>{a.message}</span>
+              <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, flexShrink: 0 }}>
+                {new Date(a.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+              </span>
+              <button
+                onClick={() => remove(a.id)}
+                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 7, padding: "4px 8px", color: "#F87171", cursor: "pointer", display: "flex", alignItems: "center" }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ── Dashboard Section ── */
@@ -389,6 +497,92 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           ))}
         </div>
       </div>
+
+      {/* Growth Chart + Active Users */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 14, alignItems: "stretch" }}>
+        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <TrendingUp size={14} color="#6C63FF" />
+              </div>
+              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Crecimiento de usuarios (30 días)</span>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem("af_token");
+                  const api = import.meta.env.VITE_API_BASE_URL ?? "/api";
+                  const res = await fetch(`${api}/admin/export/users`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                  });
+                  if (!res.ok) return;
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url; a.download = `usuarios_${Date.now()}.csv`;
+                  document.body.appendChild(a); a.click();
+                  document.body.removeChild(a); URL.revokeObjectURL(url);
+                } catch {}
+              }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 9, padding: "7px 12px", color: "#22C55E", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+            >
+              <Download size={13} /> Exportar CSV
+            </button>
+          </div>
+          {(stats?.growthChart ?? []).length > 0 ? (
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={(stats?.growthChart ?? []).map(d => ({ day: d.day, Usuarios: parseInt(d.count) }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 10, color: "#F1F1F5", fontSize: 12 }}
+                  labelStyle={{ color: "rgba(255,255,255,0.5)" }}
+                />
+                <Line type="monotone" dataKey="Usuarios" stroke="#6C63FF" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: "#6C63FF", strokeWidth: 0 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 13 }}>Sin datos de crecimiento aún</span>
+            </div>
+          )}
+        </div>
+        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px", minWidth: 160, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Radio size={22} color="#22C55E" />
+          </div>
+          <div style={{ color: "#22C55E", fontSize: 38, fontWeight: 900, letterSpacing: -2 }}>{stats?.activeUsers ?? 0}</div>
+          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 700, textAlign: "center" }}>Usuarios activos</div>
+          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, textAlign: "center" }}>últimos 30 min</div>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 8px #22C55E", animation: "pulse 2s infinite" }} />
+        </div>
+      </div>
+
+      {/* Search Trends */}
+      {(stats?.searchTrends ?? []).length > 0 && (
+        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(6,182,212,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Hash size={14} color="#06B6D4" />
+            </div>
+            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Búsquedas populares</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {(stats?.searchTrends ?? []).map((t, i) => (
+              <div key={t.query} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(6,182,212,0.07)", border: "1px solid rgba(6,182,212,0.15)", borderRadius: 20, padding: "5px 12px" }}>
+                <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, fontWeight: 900 }}>#{i + 1}</span>
+                <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 600 }}>{t.query}</span>
+                <span style={{ color: "#06B6D4", fontSize: 11, fontWeight: 800 }}>{t.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Announcements Manager */}
+      <AnnouncementsManager toast={toast} />
 
       {/* Recent activity */}
       {(stats?.recentActivity ?? []).length > 0 && (

@@ -22,6 +22,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
   import { AuthProvider } from "@/context/AuthContext";
   import ScrollToTop from "@/components/ScrollToTop";
   import AdScript from "@/components/AdScript";
+  import AnnouncementBanner from "@/components/AnnouncementBanner";
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -34,27 +35,49 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 
   function NotFound() {
     return (
-      <div style={{ minHeight: "100vh", background: "#090A12", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-        <div style={{
-          width: 90, height: 90, borderRadius: "50%",
-          background: "linear-gradient(135deg, rgba(108,99,255,0.2), rgba(79,70,229,0.1))",
-          border: "2px solid rgba(108,99,255,0.25)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 36, marginBottom: 8,
-        }}>🎌</div>
-        <div style={{ color: "rgba(108,99,255,0.5)", fontSize: 80, fontWeight: 900, lineHeight: 1, letterSpacing: -4 }}>404</div>
-        <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 800 }}>Página no encontrada</div>
-        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, textAlign: "center", maxWidth: 280 }}>
-          Parece que este episodio no existe o fue eliminado.
+      <div style={{ minHeight: "100vh", background: "#090A12", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0, padding: 24, position: "relative", overflow: "hidden" }}>
+        {/* Background glow blobs */}
+        <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(108,99,255,0.12) 0%,transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "10%", right: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(236,72,153,0.07) 0%,transparent 70%)", pointerEvents: "none" }} />
+
+        {/* Floating kanji decorations */}
+        <div style={{ position: "absolute", top: 40, left: 24, color: "rgba(108,99,255,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>迷</div>
+        <div style={{ position: "absolute", bottom: 40, right: 24, color: "rgba(108,99,255,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>子</div>
+
+        {/* Main icon */}
+        <div style={{ position: "relative", marginBottom: 20 }}>
+          <div style={{
+            width: 110, height: 110, borderRadius: "50%",
+            background: "linear-gradient(135deg, rgba(108,99,255,0.2), rgba(79,70,229,0.08))",
+            border: "2px solid rgba(108,99,255,0.3)",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52,
+          }}>🎌</div>
+          <div style={{ position: "absolute", top: -8, right: -8, background: "linear-gradient(135deg,#EF4444,#DC2626)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid #090A12" }}>！</div>
         </div>
-        <a href="/" style={{
-          marginTop: 8, display: "inline-flex", alignItems: "center", gap: 8,
-          background: "linear-gradient(135deg,#6C63FF,#4F46E5)", borderRadius: 14,
-          padding: "12px 24px", color: "#fff", fontSize: 14, fontWeight: 800,
-          textDecoration: "none",
-        }}>
-          ▶ Volver al inicio
-        </a>
+
+        {/* 404 number */}
+        <div style={{ color: "transparent", fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: -6, background: "linear-gradient(135deg,#6C63FF,#A78BFA,#EC4899)", WebkitBackgroundClip: "text", backgroundClip: "text", marginBottom: 12 } as any}>404</div>
+
+        <div style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Página no encontrada</div>
+        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, textAlign: "center", maxWidth: 300, lineHeight: 1.7, marginBottom: 24 }}>
+          El capitán no encontró este episodio. Puede que haya sido movido o eliminado del servidor.
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <a href="/" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "linear-gradient(135deg,#6C63FF,#4F46E5)", borderRadius: 14,
+            padding: "12px 24px", color: "#fff", fontSize: 14, fontWeight: 800,
+            textDecoration: "none", boxShadow: "0 8px 24px rgba(108,99,255,0.35)",
+          }}>▶ Volver al inicio</a>
+          <a href="/search" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14,
+            padding: "12px 24px", color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 700,
+            textDecoration: "none",
+          }}>🔍 Buscar anime</a>
+        </div>
       </div>
     );
   }
@@ -84,6 +107,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
   function Layout() {
     return (
       <main className="page-enter">
+        <AnnouncementBanner />
         <Router />
         <ScrollToTop />
       </main>

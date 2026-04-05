@@ -107,10 +107,10 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
       totalUsers, megafanUsers, episodesTodayRow, topAnime,
       newUsersWeek, totalComments, inactiveUsers, newUsersToday,
       recentUsers, megafanList, recentActivity, totalRevenueRow,
+      growthChart, activeUsers, searchTrends, totalRatings,
     ] = await Promise.all([
       safe(pool.query(`SELECT COUNT(*) as count FROM users`), zeroRow),
       safe(pool.query(`SELECT COUNT(*) as count FROM users WHERE membership_tier = 'megafan'`), zeroRow),
-      // Episodios vistos hoy: user_daily_views (todos los usuarios, incluyendo megafan)
       safe(pool.query(`
         SELECT COUNT(*) as count FROM (
           SELECT user_id, episode_id FROM user_daily_views WHERE view_date = CURRENT_DATE
@@ -119,7 +119,6 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
           WHERE DATE(updated_at) = CURRENT_DATE AND watch_time > 30
         ) combined
       `), zeroRow),
-      // Top anime desde user_history
       safe(pool.query(`
         SELECT anime_id, anime_title, anime_image, COUNT(*) as views
         FROM user_history
@@ -130,18 +129,15 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
       safe(pool.query(`SELECT COUNT(*) as count FROM anime_comments`), zeroRow),
       safe(pool.query(`SELECT COUNT(*) as count FROM users WHERE is_active = false`), zeroRow),
       safe(pool.query(`SELECT COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL '1 day'`), zeroRow),
-      // Últimos 8 usuarios registrados
       safe(pool.query(`
         SELECT id, username, email, membership_tier, role, created_at
         FROM users ORDER BY created_at DESC LIMIT 8
       `), { rows: [] }),
-      // Lista de suscriptores MegaFan
       safe(pool.query(`
         SELECT id, username, email, created_at, subscription_expires_at
         FROM users WHERE membership_tier = 'megafan'
         ORDER BY created_at DESC LIMIT 20
       `), { rows: [] }),
-      // Actividad reciente (últimos episodios vistos)
       safe(pool.query(`
         SELECT u.username, p.anime_title, p.episode_num, p.updated_at
         FROM user_watch_progress p
@@ -149,8 +145,28 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
         WHERE p.watch_time > 30
         ORDER BY p.updated_at DESC LIMIT 10
       `), { rows: [] }),
-      // Ingresos totales acumulados (megafan × $4)
       safe(pool.query(`SELECT COUNT(*) as count FROM users WHERE membership_tier = 'megafan'`), zeroRow),
+      // Growth chart: daily new users last 30 days
+      safe(pool.query(`
+        SELECT TO_CHAR(created_at::date, 'DD/MM') as day, COUNT(*) as count
+        FROM users
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY created_at::date
+        ORDER BY created_at::date
+      `), { rows: [] }),
+      // Active users: watched something in last 30 minutes
+      safe(pool.query(`
+        SELECT COUNT(DISTINCT user_id) as count
+        FROM user_watch_progress
+        WHERE updated_at >= NOW() - INTERVAL '30 minutes'
+      `), zeroRow),
+      // Search trends: top 10 queries
+      safe(pool.query(`
+        SELECT query, count FROM search_logs
+        ORDER BY count DESC LIMIT 10
+      `), { rows: [] }),
+      // Total ratings in DB
+      safe(pool.query(`SELECT COUNT(*) as count FROM anime_ratings`), zeroRow),
     ]);
     res.json({
       totalUsers: parseInt(totalUsers.rows[0].count) || 0,
@@ -165,10 +181,37 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
       megafanList: megafanList.rows,
       recentActivity: recentActivity.rows,
       totalRevenue: (parseInt(totalRevenueRow.rows[0].count) || 0) * 4,
+      growthChart: growthChart.rows,
+      activeUsers: parseInt(activeUsers.rows[0]?.count ?? "0") || 0,
+      searchTrends: searchTrends.rows,
+      totalRatings: parseInt(totalRatings.rows[0]?.count ?? "0") || 0,
     });
   } catch (err) {
     console.error("Admin stats error", err);
     res.status(500).json({ error: "Error al obtener estadísticas" });
+  }
+});
+
+/* ── GET /admin/export/users — CSV export ── */
+router.get("/admin/export/users", async (_req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, username, email, role, membership_tier, is_active, created_at, subscription_expires_at
+       FROM users ORDER BY created_at DESC`
+    );
+    const header = "ID,Usuario,Email,Rol,Tier,Activo,Registrado,Suscripción hasta\n";
+    const csv = rows.map((r) =>
+      [r.id, r.username, r.email, r.role, r.membership_tier,
+       r.is_active ? "sí" : "no",
+       new Date(r.created_at).toISOString().split("T")[0],
+       r.subscription_expires_at ? new Date(r.subscription_expires_at).toISOString().split("T")[0] : ""
+      ].join(",")
+    ).join("\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="usuarios_${Date.now()}.csv"`);
+    res.send(header + csv);
+  } catch {
+    res.status(500).json({ error: "Error al exportar" });
   }
 });
 

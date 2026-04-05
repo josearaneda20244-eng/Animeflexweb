@@ -221,3 +221,20 @@
 .hero-overlay {
   background: linear-gradient(to bottom, rgba(9,10,18,0.1) 0%, rgba(9,10,18,0.7) 60%, rgba(9,10,18,1) 100%);
 }
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(108,99,255,0.35);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(108,99,255,0.6);
+}
+* { scrollbar-width: thin; scrollbar-color: rgba(108,99,255,0.35) transparent; }

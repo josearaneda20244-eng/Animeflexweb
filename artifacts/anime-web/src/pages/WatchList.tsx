@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Play, CheckCircle2, Clock3, BookOpen, Trash2 } from "lucide-react";
+import { Play, CheckCircle2, Clock3, XCircle, Trash2 } from "lucide-react";
 import { resolveTitle } from "@/lib/consumet";
 import { useWatchList, type WatchStatus } from "@/context/WatchListContext";
 import Navbar from "@/components/Navbar";
@@ -10,6 +10,7 @@ const TABS: { value: WatchStatus; label: string; icon: React.ReactNode; color: s
   { value: "watching", label: "Viendo", icon: <Play size={14} fill="currentColor" />, color: "#6C63FF" },
   { value: "completed", label: "Completado", icon: <CheckCircle2 size={14} />, color: "#22C55E" },
   { value: "plan_to_watch", label: "Pendiente", icon: <Clock3 size={14} />, color: "#F59E0B" },
+  { value: "dropped", label: "Abandonado", icon: <XCircle size={14} />, color: "#EF4444" },
 ];
 
 export default function WatchList() {
@@ -33,7 +34,7 @@ export default function WatchList() {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
           {TABS.map((tab) => {
             const count = getByStatus(tab.value).length;
             const isActive = activeTab === tab.value;
@@ -75,7 +76,9 @@ export default function WatchList() {
               Sin anime en "{currentTab.label}"
             </div>
             <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, textAlign: "center", maxWidth: 260 }}>
-              Explora anime y márcalos con "Mi Lista" en cada página de detalles.
+              {activeTab === "dropped"
+                ? "Aquí aparecerán los anime que hayas abandonado."
+                : "Explora anime y márcalos con \"Mi Lista\" en cada página de detalles."}
             </div>
             <button
               onClick={() => navigate("/")}

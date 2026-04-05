@@ -129,6 +129,34 @@ async function runMigrations() {
   `, "admin_config");
 
   await safeQuery(`
+    CREATE TABLE IF NOT EXISTS anime_ratings (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      anime_id VARCHAR(200) NOT NULL,
+      score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, anime_id)
+    )
+  `, "anime_ratings");
+
+  await safeQuery(`
+    CREATE TABLE IF NOT EXISTS announcements (
+      id SERIAL PRIMARY KEY,
+      message TEXT NOT NULL,
+      type VARCHAR(20) NOT NULL DEFAULT 'info',
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `, "announcements");
+
+  await safeQuery(`
+    CREATE TABLE IF NOT EXISTS search_logs (
+      query VARCHAR(500) PRIMARY KEY,
+      count INTEGER NOT NULL DEFAULT 1,
+      last_searched TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `, "search_logs");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS admin_content (
       id SERIAL PRIMARY KEY,
       anime_id VARCHAR(200) NOT NULL,

@@ -6,7 +6,8 @@ import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 import {
   ArrowLeft, SkipForward, AlertCircle, Loader2, Play, X,
-  Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2
+  Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2,
+  Share2, Copy, Check as CheckIcon,
 } from "lucide-react";
 import {
   consumet,
@@ -542,6 +543,8 @@ export default function Player() {
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [hlsSubTracks, setHlsSubTracks] = useState<HlsSubTrack[]>([]);
   const [activeHlsSubId, setActiveHlsSubId] = useState<number>(-1);
@@ -868,6 +871,51 @@ export default function Player() {
                     {subtitlesEnabled ? "SUB ES — Activo" : "Subtítulos — Desactivado"}
                   </button>
                 )}
+                {/* Share button */}
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={async () => {
+                      const shareUrl = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`;
+                      const shareData = { title: `${animeTitle} — AnimeFlex`, text: `Mira ${animeTitle} en AnimeFlex`, url: shareUrl };
+                      if (navigator.share) { try { await navigator.share(shareData); return; } catch {} }
+                      setShowShare(v => !v);
+                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, background: showShare ? "rgba(108,99,255,0.2)" : "rgba(255,255,255,0.05)", border: `1px solid ${showShare ? "rgba(108,99,255,0.4)" : "rgba(255,255,255,0.1)"}`, color: showShare ? "#A78BFA" : "rgba(255,255,255,0.4)" }}
+                  >
+                    <Share2 size={14} />
+                    <span className="hidden md:inline">Compartir</span>
+                  </button>
+                  {showShare && (
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 200, background: "#1A1A2E", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, padding: 10, minWidth: 200, boxShadow: "0 16px 48px rgba(0,0,0,0.6)", display: "flex", flexDirection: "column", gap: 6 }}>
+                      {[
+                        {
+                          label: "WhatsApp", color: "#25D366",
+                          emoji: "💬",
+                          onClick: () => { const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`; window.open(`https://wa.me/?text=${encodeURIComponent(`Mira ${animeTitle} en AnimeFlex 🎌\n${url}`)}`); setShowShare(false); }
+                        },
+                        {
+                          label: "Twitter / X", color: "#1DA1F2",
+                          emoji: "🐦",
+                          onClick: () => { const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`; window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Estoy viendo ${animeTitle} en AnimeFlex 🎌`)}&url=${encodeURIComponent(url)}`); setShowShare(false); }
+                        },
+                        {
+                          label: shareCopied ? "¡Copiado!" : "Copiar enlace", color: "#A78BFA",
+                          emoji: shareCopied ? "✅" : "🔗",
+                          onClick: () => {
+                            const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`;
+                            navigator.clipboard.writeText(url).catch(() => {});
+                            setShareCopied(true);
+                            setTimeout(() => { setShareCopied(false); setShowShare(false); }, 1500);
+                          }
+                        },
+                      ].map(item => (
+                        <button key={item.label} onClick={item.onClick} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "none", color: "#F1F1F5", fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
+                          <span>{item.emoji}</span> {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
