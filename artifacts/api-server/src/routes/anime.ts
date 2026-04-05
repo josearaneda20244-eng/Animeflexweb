@@ -8,6 +8,15 @@ import pool from "../db.js";
 const DAILY_LIMIT = 5;
 const JWT_SECRET = process.env.JWT_SECRET!;
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 interface AuthReq extends Request { userId?: number; }
 
 function optAuth(req: AuthReq, _res: Response, next: NextFunction) {
@@ -274,7 +283,7 @@ router.get("/anime/player-embed", (req, res) => {
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>${title.replace(/</g, "&lt;")}</title>
+  <title>${escapeHtml(title)}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; background: #000; overflow: hidden; user-select: none; }

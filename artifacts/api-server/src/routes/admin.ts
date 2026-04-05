@@ -671,7 +671,7 @@ router.post("/admin/send-email", async (req: AuthRequest, res) => {
           to: r.email,
           subject,
           text: body,
-          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto"><p>${body.replace(/\n/g, "<br>")}</p><hr><p style="font-size:11px;color:#888">AnimeFlex — Para darte de baja responde a este correo.</p></div>`,
+          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto"><p>${body.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>")}</p><hr><p style="font-size:11px;color:#888">AnimeFlex — Para darte de baja responde a este correo.</p></div>`,
         });
         sent++;
       } catch (e: any) {
