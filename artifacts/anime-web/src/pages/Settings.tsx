@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
-import { Camera, User, Mail, Shield, Crown, ArrowLeft, Check, X, Upload, Link as LinkIcon, Loader2, Eye, EyeOff } from "lucide-react";
+import { Camera, User, Mail, Shield, Crown, ArrowLeft, Check, X, Upload, Link as LinkIcon, Loader2, Eye, EyeOff, KeyRound, CheckCircle2, SendHorizonal } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { apiClient } from "@/lib/apiClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -31,6 +32,20 @@ export default function Settings() {
   const [isProfilePublic, setIsProfilePublic] = useState(user?.is_profile_public ?? true);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [privacySuccess, setPrivacySuccess] = useState(false);
+
+  /* Change password state */
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [showPassFields, setShowPassFields] = useState(false);
+  const [savingPass, setSavingPass] = useState(false);
+  const [passSuccess, setPassSuccess] = useState(false);
+  const [passError, setPassError] = useState("");
+
+  /* Email verification state */
+  const [sendingVerif, setSendingVerif] = useState(false);
+  const [verifSent, setVerifSent] = useState(false);
+  const [verifError, setVerifError] = useState("");
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -168,6 +183,37 @@ export default function Settings() {
       setTimeout(() => setPrivacySuccess(false), 2500);
     } catch { /* ignore */ }
     finally { setSavingPrivacy(false); }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassError("");
+    if (newPass.length < 6) { setPassError("La nueva contraseña debe tener al menos 6 caracteres"); return; }
+    if (newPass !== confirmPass) { setPassError("Las contraseñas no coinciden"); return; }
+    setSavingPass(true);
+    try {
+      await apiClient.post("/user/change-password", { currentPassword: currentPass, newPassword: newPass });
+      setPassSuccess(true);
+      setCurrentPass(""); setNewPass(""); setConfirmPass("");
+      setTimeout(() => { setPassSuccess(false); setShowPassFields(false); }, 3000);
+    } catch (err: unknown) {
+      setPassError(err instanceof Error ? err.message : "Error al cambiar contraseña");
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
+  const handleSendVerification = async () => {
+    setSendingVerif(true);
+    setVerifError("");
+    try {
+      await apiClient.post("/auth/send-verification", {});
+      setVerifSent(true);
+    } catch (err: unknown) {
+      setVerifError(err instanceof Error ? err.message : "Error al enviar verificación");
+    } finally {
+      setSendingVerif(false);
+    }
   };
 
   const initials = user.username.charAt(0).toUpperCase();
@@ -430,6 +476,100 @@ export default function Settings() {
             </div>
           )}
         </div>
+
+        {/* Email verification */}
+        {!user.email_verified && (
+          <div style={{ background: "linear-gradient(180deg,#1A1410,#120E0A)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 20, padding: 20, marginTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Mail size={14} color="#F59E0B" />
+              </div>
+              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Verificar correo electrónico</span>
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, margin: "0 0 14px", lineHeight: 1.5 }}>
+              Tu correo aún no está verificado. Verifica tu cuenta para mayor seguridad.
+            </p>
+            {verifSent ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#22C55E", fontSize: 13, fontWeight: 700 }}>
+                <CheckCircle2 size={14} /> ¡Email enviado! Revisa tu bandeja de entrada.
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleSendVerification}
+                  disabled={sendingVerif}
+                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 11, border: "none", background: "rgba(245,158,11,0.15)", color: "#F59E0B", fontSize: 13, fontWeight: 700, cursor: sendingVerif ? "not-allowed" : "pointer" }}
+                >
+                  {sendingVerif ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <SendHorizonal size={13} />}
+                  {sendingVerif ? "Enviando..." : "Enviar email de verificación"}
+                </button>
+                {verifError && <div style={{ color: "#FCA5A5", fontSize: 12, marginTop: 8 }}>{verifError}</div>}
+              </>
+            )}
+          </div>
+        )}
+
+        {user.email_verified && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)", borderRadius: 12, marginTop: 14 }}>
+            <CheckCircle2 size={15} color="#22C55E" />
+            <span style={{ color: "#22C55E", fontSize: 13, fontWeight: 700 }}>Correo electrónico verificado</span>
+          </div>
+        )}
+
+        {/* Change password */}
+        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 20, marginTop: 14 }}>
+          <button
+            onClick={() => { setShowPassFields(v => !v); setPassError(""); setPassSuccess(false); }}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(108,99,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <KeyRound size={14} color="#A78BFA" />
+              </div>
+              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Cambiar contraseña</span>
+            </div>
+            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 20, lineHeight: 1 }}>{showPassFields ? "−" : "+"}</span>
+          </button>
+
+          {showPassFields && (
+            <form onSubmit={handleChangePassword} style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+              {(["Contraseña actual", "Nueva contraseña", "Confirmar nueva contraseña"] as const).map((label, i) => {
+                const value = i === 0 ? currentPass : i === 1 ? newPass : confirmPass;
+                const setter = i === 0 ? setCurrentPass : i === 1 ? setNewPass : setConfirmPass;
+                return (
+                  <div key={label} style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                    <Eye size={13} style={{ position: "absolute", left: 12, color: "rgba(255,255,255,0.25)" }} />
+                    <input
+                      type="password"
+                      placeholder={label}
+                      value={value}
+                      onChange={(e) => setter(e.target.value)}
+                      required
+                      style={{ width: "100%", paddingLeft: 34, paddingRight: 12, paddingTop: 10, paddingBottom: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+                      onFocus={(e) => (e.target.style.borderColor = "rgba(108,99,255,0.5)")}
+                      onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+                    />
+                  </div>
+                );
+              })}
+              {passError && (
+                <div style={{ color: "#FCA5A5", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
+                  <X size={11} /> {passError}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={savingPass}
+                style={{ padding: "11px", borderRadius: 11, border: "none", background: passSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#6C63FF,#4F46E5)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: savingPass ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
+              >
+                {savingPass ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> Guardando...</>
+                  : passSuccess ? <><Check size={13} /> ¡Contraseña actualizada!</>
+                  : <><KeyRound size={13} /> Cambiar contraseña</>}
+              </button>
+            </form>
+          )}
+        </div>
+
       </div>
 
       <style>{`

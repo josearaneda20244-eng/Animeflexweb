@@ -203,6 +203,32 @@ async function runMigrations() {
     )
   `, "paypal_transactions");
 
+  /* ── Email verification + password reset ── */
+  await safeQuery(
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`,
+    "users.email_verified"
+  );
+
+  await safeQuery(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id         SERIAL PRIMARY KEY,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token      VARCHAR(100) UNIQUE NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at    TIMESTAMPTZ
+    )
+  `, "password_reset_tokens");
+
+  await safeQuery(`
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      id          SERIAL PRIMARY KEY,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token       VARCHAR(100) UNIQUE NOT NULL,
+      expires_at  TIMESTAMPTZ NOT NULL,
+      verified_at TIMESTAMPTZ
+    )
+  `, "email_verification_tokens");
+
   await safeQuery(
     `ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS genres TEXT[] DEFAULT '{}'`,
     "user_favorites.genres"

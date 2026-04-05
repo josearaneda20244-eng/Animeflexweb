@@ -16,6 +16,8 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
   import PublicProfile from "@/pages/PublicProfile";
   import Admin from "@/pages/Admin";
   import Feed from "@/pages/Feed";
+import ResetPassword from "@/pages/ResetPassword";
+import VerifyEmail from "@/pages/VerifyEmail";
   import { FavoritesProvider } from "@/context/FavoritesContext";
   import { HistoryProvider } from "@/context/HistoryContext";
   import { WatchProgressProvider } from "@/context/WatchProgressContext";
@@ -106,6 +108,8 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
         <Route path="/profile/:userId" component={PublicProfile} />
         <Route path="/admin" component={Admin} />
         <Route path="/feed" component={Feed} />
+        <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/verify-email" component={VerifyEmail} />
         <Route component={NotFound} />
       </Switch>
     );

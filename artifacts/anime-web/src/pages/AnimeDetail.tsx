@@ -281,6 +281,26 @@ export default function AnimeDetail() {
   });
 
   const anime = infoQuery.data;
+
+  /* ── T006: Dynamic SEO — must be before conditional returns ── */
+  useEffect(() => {
+    if (!anime) return;
+    const t = resolveTitle(anime.title);
+    const desc = (anime.description ?? "").replace(/<[^>]+>/g, "").slice(0, 160);
+    const img = anime.cover ?? anime.image ?? "";
+    document.title = `${t} – AnimeFlex`;
+    const setMeta = (prop: string, content: string) => {
+      let el = document.querySelector<HTMLMetaElement>(`meta[property="${prop}"]`);
+      if (!el) { el = document.createElement("meta"); el.setAttribute("property", prop); document.head.appendChild(el); }
+      el.setAttribute("content", content);
+    };
+    setMeta("og:title", t);
+    setMeta("og:description", desc);
+    if (img) setMeta("og:image", img);
+    setMeta("og:type", "video.tv_show");
+    return () => { document.title = "AnimeFlex"; };
+  }, [anime]);
+
   const fav = isFavorite(id!);
   const animeProgress = getAnimeProgress(id!);
 

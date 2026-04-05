@@ -11,6 +11,7 @@ export interface AuthUser {
   subscription_expires_at: string | null;
   role: "user" | "owner" | "admin";
   is_profile_public: boolean;
+  email_verified: boolean;
   stripe_customer_id?: string | null;
 }
 

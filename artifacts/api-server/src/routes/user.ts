@@ -1,4 +1,5 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 import { ObjectStorageService } from "../lib/objectStorage.js";
@@ -618,6 +619,50 @@ router.get("/feed", async (req: AuthRequest, res) => {
     res.json({ activities: rows });
   } catch {
     res.status(500).json({ error: "Error al obtener feed" });
+  }
+});
+
+/* ── POST /user/change-password ── */
+router.post("/user/change-password", async (req: AuthRequest, res) => {
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword?: string;
+    newPassword?: string;
+  };
+  if (!currentPassword || !newPassword || newPassword.length < 6) {
+    res.status(400).json({ error: "Contraseña actual requerida y nueva contraseña mínimo 6 caracteres" });
+    return;
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT password_hash FROM users WHERE id = $1`,
+      [req.userId]
+    );
+    if (!rows[0]) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
+    const valid = await bcrypt.compare(currentPassword, rows[0].password_hash);
+    if (!valid) {
+      res.status(401).json({ error: "La contraseña actual es incorrecta" });
+      return;
+    }
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hash, req.userId]);
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+/* ── GET /user/payments — historial de pagos PayPal del usuario ── */
+router.get("/user/payments", async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT order_id, amount_usd, plan, promo_code, status, created_at
+       FROM paypal_transactions WHERE user_id = $1
+       ORDER BY created_at DESC LIMIT 20`,
+      [req.userId]
+    );
+    res.json({ payments: rows });
+  } catch {
+    res.status(500).json({ error: "Error al obtener historial de pagos" });
   }
 });
 

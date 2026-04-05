@@ -22,6 +22,15 @@ interface PromoResult {
   discountedCents: number;
 }
 
+interface PaymentRow {
+  order_id: string;
+  amount_usd: string;
+  plan: string;
+  promo_code: string | null;
+  status: string;
+  created_at: string;
+}
+
 function centsToDisplay(cents: number) {
   return `$${(cents / 100).toFixed(2)}`;
 }
@@ -41,6 +50,20 @@ export default function Membership() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isMegaFan = user?.membership_tier === "megafan";
+
+  /* Payment history state */
+  const [payments, setPayments]             = useState<PaymentRow[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [showPayments, setShowPayments]     = useState(false);
+
+  useEffect(() => {
+    if (!user || !showPayments) return;
+    setPaymentsLoading(true);
+    apiClient.get<{ payments: PaymentRow[] }>("/user/payments")
+      .then(d => setPayments(d.payments))
+      .catch(() => setPayments([]))
+      .finally(() => setPaymentsLoading(false));
+  }, [user, showPayments]);
 
   /* Show stripe success/cancel banners from URL */
   const stripeStatus = searchParams.get("stripe");
@@ -475,6 +498,63 @@ export default function Membership() {
           </p>
         </div>
       </div>
+
+      {/* ── T005: Payment history ── */}
+      {user && (
+        <div style={{ maxWidth: 680, margin: "0 auto 48px", padding: "0 16px" }}>
+          <button
+            onClick={() => setShowPayments(v => !v)}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "14px 18px", cursor: "pointer", marginBottom: showPayments ? 12 : 0 }}
+          >
+            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Historial de pagos</span>
+            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 18 }}>{showPayments ? "−" : "+"}</span>
+          </button>
+
+          {showPayments && (
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, overflow: "hidden" }}>
+              {paymentsLoading ? (
+                <div style={{ padding: 32, textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: 13 }}>
+                  Cargando...
+                </div>
+              ) : payments.length === 0 ? (
+                <div style={{ padding: 32, textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: 13 }}>
+                  No hay transacciones registradas.
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                      {["Fecha", "Plan", "Monto", "Estado", "Cupón"].map(h => (
+                        <th key={h} style={{ padding: "10px 14px", color: "rgba(255,255,255,0.35)", fontWeight: 700, textAlign: "left" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((p, i) => (
+                      <tr key={p.order_id} style={{ borderBottom: i < payments.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                        <td style={{ padding: "10px 14px", color: "rgba(255,255,255,0.6)" }}>
+                          {new Date(p.created_at).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" })}
+                        </td>
+                        <td style={{ padding: "10px 14px", color: "#A78BFA", fontWeight: 700, textTransform: "capitalize" }}>{p.plan}</td>
+                        <td style={{ padding: "10px 14px", color: "#22C55E", fontWeight: 800 }}>${Number(p.amount_usd).toFixed(2)}</td>
+                        <td style={{ padding: "10px 14px" }}>
+                          <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, background: p.status === "completed" ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.12)", color: p.status === "completed" ? "#22C55E" : "#F59E0B" }}>
+                            {p.status === "completed" ? "Completado" : p.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: "10px 14px", color: p.promo_code ? "#F59E0B" : "rgba(255,255,255,0.2)", fontSize: 12 }}>
+                          {p.promo_code ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <Footer />
     </>
   );
