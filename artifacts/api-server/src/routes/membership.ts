@@ -247,9 +247,23 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
           [expiresAt.toISOString(), req.userId]
         );
 
-        /* Apply promo only if this request won the delete race */
+        /*
+         * Increment promo uses_count inside this same transaction — atomic with
+         * membership activation. Only run if this request "won" the delete race
+         * (deleteRes.rows.length > 0 means no concurrent request beat us).
+         */
         if (deleteRes.rows.length > 0 && serverPromo) {
-          discountPercent = await applyPromoCode(serverPromo);
+          const promoRes = await dbClient.query(
+            `UPDATE promo_codes
+                SET uses_count = uses_count + 1
+              WHERE code = $1
+                AND active = TRUE
+                AND (max_uses IS NULL OR uses_count < max_uses)
+                AND (expires_at IS NULL OR expires_at > NOW())
+              RETURNING discount_percent`,
+            [serverPromo]
+          );
+          discountPercent = promoRes.rows[0]?.discount_percent ?? 0;
         }
 
         await dbClient.query("COMMIT");
