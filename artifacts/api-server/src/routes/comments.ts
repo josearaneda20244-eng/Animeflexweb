@@ -95,10 +95,10 @@ router.post("/comments/:animeId", requireAuth, async (req: AuthRequest, res) => 
       [req.params.animeId, req.userId, text.trim(), spoiler ?? false, parentId ?? null]
     );
     const userResult = await pool.query(
-      `SELECT username, avatar_url FROM users WHERE id = $1`,
+      `SELECT username AS author, avatar_url FROM users WHERE id = $1`,
       [req.userId]
     );
-    res.status(201).json({ ...rows[0], ...userResult.rows[0], reply_count: 0 });
+    res.status(201).json({ ...rows[0], ...userResult.rows[0], likedByMe: false, reply_count: 0 });
   } catch {
     res.status(500).json({ error: "Error al publicar comentario" });
   }
