@@ -157,6 +157,11 @@ async function runMigrations() {
     )
   `, "search_logs");
 
+  await safeQuery(
+    `ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS genres TEXT[] DEFAULT '{}'`,
+    "user_favorites.genres"
+  );
+
   await safeQuery(`
     CREATE TABLE IF NOT EXISTS admin_content (
       id SERIAL PRIMARY KEY,

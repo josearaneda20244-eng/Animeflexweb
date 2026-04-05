@@ -124,8 +124,8 @@ router.post("/user/avatar/request-url", async (req: AuthRequest, res) => {
     res.status(400).json({ error: "Solo se permiten imágenes" });
     return;
   }
-  if (size > 5 * 1024 * 1024) {
-    res.status(400).json({ error: "El archivo no debe superar 5 MB" });
+  if (size > 2 * 1024 * 1024) {
+    res.status(400).json({ error: "El archivo no debe superar 2 MB" });
     return;
   }
   try {
@@ -154,12 +154,13 @@ router.get("/user/favorites", async (req: AuthRequest, res) => {
 
 router.post("/user/favorites", async (req: AuthRequest, res) => {
   try {
-    const { animeId, animeTitle, animeImage, animeType, animeRating } = req.body;
+    const { animeId, animeTitle, animeImage, animeType, animeRating, animeGenres } = req.body;
+    const genres: string[] = Array.isArray(animeGenres) ? animeGenres.filter((g: unknown) => typeof g === "string") : [];
     await pool.query(
-      `INSERT INTO user_favorites (user_id, anime_id, anime_title, anime_image, anime_type, anime_rating)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       ON CONFLICT (user_id, anime_id) DO NOTHING`,
-      [req.userId, animeId, animeTitle, animeImage, animeType, animeRating ?? null]
+      `INSERT INTO user_favorites (user_id, anime_id, anime_title, anime_image, anime_type, anime_rating, genres)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (user_id, anime_id) DO UPDATE SET genres = EXCLUDED.genres`,
+      [req.userId, animeId, animeTitle, animeImage, animeType, animeRating ?? null, genres]
     );
     res.json({ ok: true });
   } catch {
@@ -369,7 +370,7 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
   try {
     const uid = req.userId;
 
-    const [epResult, completedResult, weeklyResult, topResult, streakResult, weekTotalResult] = await Promise.all([
+    const [epResult, completedResult, weeklyResult, topResult, streakResult, weekTotalResult, genreResult] = await Promise.all([
       pool.query<{ total_episodes: string; total_animes: string }>(
         `SELECT COUNT(*) as total_episodes, COUNT(DISTINCT anime_id) as total_animes
          FROM user_history WHERE user_id = $1`,
@@ -412,6 +413,15 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
            AND view_date >= date_trunc('week', CURRENT_DATE)`,
         [uid]
       ),
+      pool.query<{ genre: string }>(
+        `SELECT genre, COUNT(*) AS cnt
+         FROM user_favorites, unnest(genres) AS genre
+         WHERE user_id = $1
+         GROUP BY genre
+         ORDER BY cnt DESC
+         LIMIT 1`,
+        [uid]
+      ),
     ]);
 
     const totalEpisodes    = parseInt(epResult.rows[0]?.total_episodes ?? "0", 10);
@@ -420,8 +430,7 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
     const streak           = streakResult.rows[0]?.streak ?? 0;
     const episodesThisWeek = parseInt(weekTotalResult.rows[0]?.episodes_this_week ?? "0", 10);
     const estimatedHours   = Math.round((totalEpisodes * 24) / 60 * 10) / 10;
-    /* favoriteGenre requires a genre cache table not yet implemented */
-    const favoriteGenre: string | null = null;
+    const favoriteGenre: string | null = genreResult.rows[0]?.genre ?? null;
 
     const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     const weekMap: Record<string, number> = {};

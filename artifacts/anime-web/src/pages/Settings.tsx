@@ -42,14 +42,46 @@ export default function Settings() {
     );
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function cropToCircle(file: File): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const size = Math.min(img.width, img.height);
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas no disponible")); return; }
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error("Error al recortar imagen")); return; }
+          resolve(new File([blob], "avatar.png", { type: "image/png" }));
+        }, "image/png", 0.92);
+      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Error al cargar imagen")); };
+      img.src = objectUrl;
+    });
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) { setAvatarError("Solo se permiten imágenes."); return; }
-    if (file.size > 5 * 1024 * 1024) { setAvatarError("La imagen no debe superar 5 MB."); return; }
+    if (file.size > 2 * 1024 * 1024) { setAvatarError("La imagen no debe superar 2 MB."); return; }
     setAvatarError("");
-    setSelectedFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    try {
+      const cropped = await cropToCircle(file);
+      setSelectedFile(cropped);
+      setAvatarPreview(URL.createObjectURL(cropped));
+    } catch {
+      setAvatarError("No se pudo recortar la imagen. Intenta con otra.");
+    }
   };
 
   const handleSaveAvatar = async () => {

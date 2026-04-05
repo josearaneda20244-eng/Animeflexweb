@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MessageCircle, Send, ThumbsUp, Trash2, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
+import { resolveAvatarUrl } from "@/lib/utils";
 
 interface Comment {
   id: string;
@@ -142,8 +143,8 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "#fff", fontSize: 13, fontWeight: 900,
             }}>
-              {user.avatar_url
-                ? <img src={user.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+              {resolveAvatarUrl(user.avatar_url)
+                ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
                 : user.username.charAt(0).toUpperCase()}
             </div>
             <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{user.username}</span>
@@ -236,8 +237,8 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     color: "#fff", fontSize: 13, fontWeight: 900, flexShrink: 0, overflow: "hidden",
                   }}>
-                    {c.avatar_url
-                      ? <img src={c.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    {resolveAvatarUrl(c.avatar_url)
+                      ? <img src={resolveAvatarUrl(c.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : c.author.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>

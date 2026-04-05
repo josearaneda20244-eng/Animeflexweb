@@ -70,6 +70,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
           animeImage: anime.image,
           animeType: anime.type,
           animeRating: anime.rating,
+          animeGenres: anime.genres ?? [],
         }).catch(() => {});
       }
     },
