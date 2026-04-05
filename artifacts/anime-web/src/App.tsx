@@ -23,6 +23,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
   import ScrollToTop from "@/components/ScrollToTop";
   import AdScript from "@/components/AdScript";
   import AnnouncementBanner from "@/components/AnnouncementBanner";
+  import InstallPrompt from "@/components/InstallPrompt";
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -110,6 +111,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
         <AnnouncementBanner />
         <Router />
         <ScrollToTop />
+        <InstallPrompt />
       </main>
     );
   }

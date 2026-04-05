@@ -591,12 +591,22 @@ export default function Player() {
     queryKey: ["streaming", episodeId],
     queryFn: () => consumet.streaming(episodeId),
     enabled: !!episodeId,
-    retry: 3,
+    retry: (failCount, error: any) => {
+      if (error?.status === 403) return false;
+      return failCount < 3;
+    },
     retryDelay: (i) => Math.min(600 * Math.pow(2, i), 6000),
     staleTime: 1000 * 60 * 3,
     gcTime: 1000 * 60 * 8,
     refetchOnWindowFocus: false,
   });
+
+  useEffect(() => {
+    const err: any = query.error;
+    if (err?.status === 403 && err?.limitReached) {
+      setShowLimitModal(true);
+    }
+  }, [query.error]);
 
   const sources = query.data ? sortSources(query.data.sources ?? []) : [];
   const streamingHeaders = query.data?.headers ?? {};

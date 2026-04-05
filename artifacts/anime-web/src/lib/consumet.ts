@@ -115,12 +115,24 @@ export interface SubtitleDownload {
   url: string;
 }
 
-async function get<T>(path: string): Promise<T> {
+function getToken(): string | null {
+  try { return localStorage.getItem("af_token"); } catch { return null; }
+}
+
+async function get<T>(path: string, auth = false): Promise<T> {
   const url = `${BASE_URL}${path}`;
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (auth) {
+    const token = getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`API error ${response.status}: ${text.slice(0, 200)}`);
+    const json = await response.json().catch(() => null);
+    const err: any = new Error(json?.error ?? `API error ${response.status}`);
+    err.status = response.status;
+    err.limitReached = json?.limitReached ?? false;
+    throw err;
   }
   return response.json() as Promise<T>;
 }
@@ -150,7 +162,7 @@ export const consumet = {
   episodesById: (anilistId: string): Promise<AnimeInfo> =>
     get<AnimeInfo>(`/anime/episodes?anilistId=${encodeURIComponent(anilistId)}`),
   streaming: (episodeId: string): Promise<StreamingData> =>
-    get<StreamingData>(`/anime/watch?episodeId=${encodeURIComponent(episodeId)}`),
+    get<StreamingData>(`/anime/watch?episodeId=${encodeURIComponent(episodeId)}`, true),
   searchSubtitles: (title: string, episode?: number, lang = "es"): Promise<{ data: SubtitleResult[] }> =>
     get<{ data: SubtitleResult[] }>(
       `/anime/subtitles?title=${encodeURIComponent(title)}` +

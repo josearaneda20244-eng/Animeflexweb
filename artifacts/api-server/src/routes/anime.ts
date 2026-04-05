@@ -1,7 +1,25 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
 import { Readable } from "stream";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import pool from "../db.js";
+
+const DAILY_LIMIT = 5;
+const JWT_SECRET = process.env.JWT_SECRET!;
+
+interface AuthReq extends Request { userId?: number; }
+
+function optAuth(req: AuthReq, _res: Response, next: NextFunction) {
+  const h = req.headers.authorization;
+  if (h?.startsWith("Bearer ")) {
+    try {
+      const p = jwt.verify(h.slice(7), JWT_SECRET) as { userId: number };
+      req.userId = p.userId;
+    } catch {}
+  }
+  next();
+}
 
 const router: IRouter = Router();
 
@@ -726,13 +744,41 @@ async function retryFetch<T>(fn: () => Promise<T>, attempts = 4, baseDelayMs = 6
   throw lastErr;
 }
 
-router.get("/anime/watch", async (req, res) => {
+router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
   const episodeId = req.query.episodeId as string;
   if (!episodeId || !episodeId.trim()) {
     res.status(400).json({ error: "Query param 'episodeId' is required" });
     return;
   }
   const id = episodeId.trim();
+
+  // ── Verificar límite diario si el usuario está autenticado ─────────────
+  if (req.userId) {
+    try {
+      const memberResult = await pool.query(
+        `SELECT membership_tier, is_active FROM users WHERE id = $1`,
+        [req.userId]
+      );
+      const row = memberResult.rows[0];
+      if (row?.is_active === false) {
+        res.status(403).json({ error: "Cuenta desactivada" });
+        return;
+      }
+      const tier = row?.membership_tier ?? "free";
+      if (tier !== "megafan") {
+        const today = new Date().toISOString().slice(0, 10);
+        const { rows } = await pool.query(
+          `SELECT COUNT(DISTINCT episode_id) as count FROM user_daily_views WHERE user_id = $1 AND view_date = $2`,
+          [req.userId, today]
+        );
+        const count = parseInt(rows[0]?.count ?? "0", 10);
+        if (count >= DAILY_LIMIT) {
+          res.status(403).json({ error: "Límite diario alcanzado", limitReached: true, remaining: 0 });
+          return;
+        }
+      }
+    } catch { /* no bloquear por error DB */ }
+  }
   try {
     const data = await retryFetch(() => getAnimeKai().fetchEpisodeSources(id), 4, 600);
     res.json(data);

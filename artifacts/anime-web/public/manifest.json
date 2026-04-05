@@ -8,12 +8,45 @@
   "background_color": "#090A12",
   "theme_color": "#6C63FF",
   "orientation": "portrait-primary",
+  "lang": "es",
+  "categories": ["entertainment", "video"],
   "icons": [
     {
       "src": "/anime-web/favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/anime-web/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/anime-web/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tendencias",
+      "short_name": "Tendencias",
+      "url": "/anime-web/",
+      "icons": [{ "src": "/anime-web/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Buscar",
+      "short_name": "Buscar",
+      "url": "/anime-web/search",
+      "icons": [{ "src": "/anime-web/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mi lista",
+      "short_name": "Lista",
+      "url": "/anime-web/watchlist",
+      "icons": [{ "src": "/anime-web/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
