@@ -12,7 +12,6 @@ export interface AuthUser {
   role: "user" | "owner" | "admin";
   is_profile_public: boolean;
   email_verified: boolean;
-  stripe_customer_id?: string | null;
 }
 
 interface AuthContextValue {

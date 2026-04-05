@@ -74,9 +74,6 @@ const streamLimit = rateLimit({
   message: { error: "Demasiadas peticiones de stream. Espera un momento." },
 });
 
-/* Stripe webhook needs raw body for signature verification */
-app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
-
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 

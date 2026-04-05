@@ -4,7 +4,6 @@ import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useSearch } from "wouter";
 
 const PAYPAL_CLIENT_ID       = import.meta.env.VITE_PAYPAL_CLIENT_ID ?? "";
 const PAYPAL_PLAN_ID_MONTHLY = import.meta.env.VITE_PAYPAL_PLAN_ID ?? "";
@@ -37,8 +36,6 @@ function centsToDisplay(cents: number) {
 
 export default function Membership() {
   const { user, refreshUser } = useAuth();
-  const search = useSearch();
-  const searchParams = new URLSearchParams(search);
   const [plan, setPlan]         = useState<Plan>("monthly");
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -64,16 +61,6 @@ export default function Membership() {
       .catch(() => setPayments([]))
       .finally(() => setPaymentsLoading(false));
   }, [user, showPayments]);
-
-  /* Show stripe success/cancel banners from URL */
-  const stripeStatus = searchParams.get("stripe");
-
-  useEffect(() => {
-    if (stripeStatus === "success") {
-      refreshUser();
-      setSuccess(true);
-    }
-  }, [stripeStatus]);
 
   /* Price display */
   const MONTHLY_CENTS = 400;
@@ -163,35 +150,6 @@ export default function Membership() {
     }
   }
 
-  async function handleStripePortal() {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiClient.get<{ url: string }>("/stripe/portal");
-      window.location.href = data.url;
-    } catch (e: any) {
-      setError(e.message ?? "Error abriendo el portal de Stripe");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleStripeCheckout() {
-    if (!user) { setError("Debes iniciar sesión primero"); return; }
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiClient.post<{ url: string }>("/stripe/create-checkout-session", {
-        plan,
-        promoCode: couponInput.trim() || undefined,
-      });
-      window.location.href = data.url;
-    } catch (e: any) {
-      setError(e.message ?? "Error creando la sesión de pago");
-      setLoading(false);
-    }
-  }
-
   const activePayPalPlan = plan === "annual" ? PAYPAL_PLAN_ID_ANNUAL : PAYPAL_PLAN_ID_MONTHLY;
 
   return (
@@ -207,20 +165,6 @@ export default function Membership() {
             </h1>
             <p className="text-gray-400">Disfruta AnimeFlex sin interrupciones</p>
           </div>
-
-          {/* Stripe success / cancel banners */}
-          {stripeStatus === "success" && (
-            <div className="mb-6 bg-green-900/40 border border-green-500/40 rounded-xl p-4 text-center">
-              <p className="text-green-400 font-bold text-lg">¡Pago procesado con éxito!</p>
-              <p className="text-gray-400 text-sm mt-1">Tu membresía MegaFan ya está activa.</p>
-            </div>
-          )}
-          {stripeStatus === "cancel" && (
-            <div className="mb-6 bg-yellow-900/30 border border-yellow-700/40 rounded-xl p-4 text-center">
-              <p className="text-yellow-400 font-semibold">Pago cancelado</p>
-              <p className="text-gray-400 text-sm mt-1">No se realizó ningún cargo.</p>
-            </div>
-          )}
 
           {/* Plan toggle */}
           {!isMegaFan && !success && (
@@ -367,24 +311,13 @@ export default function Membership() {
                   <p className="text-purple-300 font-semibold">👑 ¡Ya eres MegaFan!</p>
                   <p className="text-gray-400 text-sm mt-1">Gracias por tu apoyo</p>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={handleManage}
-                    disabled={loading}
-                    className="w-full py-3 rounded-xl border border-purple-500/60 text-purple-300 hover:bg-purple-900/30 transition-colors text-sm"
-                  >
-                    {loading ? "Cargando..." : "Gestionar en PayPal"}
-                  </button>
-                  {user?.stripe_customer_id && (
-                    <button
-                      onClick={handleStripePortal}
-                      disabled={loading}
-                      className="w-full py-3 rounded-xl border border-indigo-500/60 text-indigo-300 hover:bg-indigo-900/30 transition-colors text-sm"
-                    >
-                      Gestionar en Stripe
-                    </button>
-                  )}
-                </div>
+                <button
+                  onClick={handleManage}
+                  disabled={loading}
+                  className="w-full py-3 rounded-xl border border-purple-500/60 text-purple-300 hover:bg-purple-900/30 transition-colors text-sm"
+                >
+                  {loading ? "Cargando..." : "Gestionar en PayPal"}
+                </button>
               </div>
             ) : success ? (
               <div className="text-center bg-green-900/40 border border-green-500/40 rounded-xl p-6">
@@ -397,32 +330,6 @@ export default function Membership() {
                   <div className="text-center text-gray-400 py-3">
                     <span className="inline-block w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mr-2" />
                     Procesando...
-                  </div>
-                )}
-
-                {/* Stripe button */}
-                {!loading && (
-                  <button
-                    onClick={handleStripeCheckout}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/40"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                      <line x1="1" y1="10" x2="23" y2="10"/>
-                    </svg>
-                    Pagar con tarjeta (Stripe)
-                    <span className="text-xs opacity-75 ml-1">
-                      {centsToDisplay(finalAmount)}{plan === "annual" ? "/año" : "/mes"}
-                    </span>
-                  </button>
-                )}
-
-                {/* Divider */}
-                {!loading && PAYPAL_CLIENT_ID && (
-                  <div className="flex items-center gap-3 my-2">
-                    <div className="flex-1 h-px bg-white/10" />
-                    <span className="text-gray-500 text-xs">o</span>
-                    <div className="flex-1 h-px bg-white/10" />
                   </div>
                 )}
 
@@ -467,10 +374,9 @@ export default function Membership() {
                       />
                     </PayPalScriptProvider>
                   ) : (
-                    /* Annual PayPal plan not configured — direct users to Stripe */
                     <div className="text-center text-yellow-500 text-xs py-3 bg-yellow-900/20 rounded-xl border border-yellow-700/40 px-4">
                       {plan === "annual"
-                        ? "Plan anual no disponible en PayPal. Usa el botón de tarjeta (Stripe) para el plan anual."
+                        ? "Plan anual no disponible aún. Configura VITE_PAYPAL_PLAN_ID_ANNUAL para activarlo."
                         : "Configura VITE_PAYPAL_PLAN_ID para pagos mensuales con PayPal."}
                     </div>
                   )
@@ -494,7 +400,7 @@ export default function Membership() {
           </div>
 
           <p className="text-center text-gray-600 text-xs mt-6">
-            Pago seguro con Stripe y PayPal · Sin contratos · Cancela cuando quieras
+            Pago seguro con PayPal · Sin contratos · Cancela cuando quieras
           </p>
         </div>
       </div>
