@@ -36,6 +36,8 @@ const allowedOrigins = [
   /\.replit\.app$/,
   /\.repl\.co$/,
   /localhost/,
+  /animeflex\.eu$/,
+  /\.animeflex\.eu$/,
 ];
 
 app.use(
