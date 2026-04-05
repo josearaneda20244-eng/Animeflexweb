@@ -15,9 +15,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const jwt = (await import("jsonwebtoken")).default;
     const { neon } = await import("@neondatabase/serverless");
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) return res.status(500).json({ error: "JWT_SECRET no configurado" });
     const payload = jwt.verify(
       header.slice(7),
-      process.env.JWT_SECRET ?? "animeflex_secret"
+      jwtSecret
     ) as { userId: number };
 
     const sql = neon(process.env.DATABASE_URL!);

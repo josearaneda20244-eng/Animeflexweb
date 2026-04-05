@@ -5,7 +5,7 @@ import "./index.css";
 if ("serviceWorker" in navigator) {
   // 1. Registrar el SW de AnimeFlex que bloquea notificaciones push de anuncios
   navigator.serviceWorker
-    .register("/afsw.js")
+    .register(`${import.meta.env.BASE_URL}afsw.js`)
     .catch(() => {});
 
   // 2. Eliminar todos los SWs de redes publicitarias (Monetag/5gvci.com)

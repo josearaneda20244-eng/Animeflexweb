@@ -201,7 +201,7 @@ export default function Navbar() {
                         </div>
                       );
                     })}
-                    <div onClick={handleSearch as any}
+                    <div onClick={() => { if (query.trim()) { navigate(`/search?q=${encodeURIComponent(query.trim())}`); setSearchOpen(false); setQuery(""); setSuggestions([]); setShowSuggestions(false); } }}
                       style={{
                         padding: "9px 14px", color: "#6C63FF", fontSize: 12, fontWeight: 700,
                         cursor: "pointer", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)",

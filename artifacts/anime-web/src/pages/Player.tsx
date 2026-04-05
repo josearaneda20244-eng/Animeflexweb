@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearch, useLocation } from "wouter";
+import { useSearch, useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Hls from "hls.js";
 import Plyr from "plyr";
@@ -775,7 +775,7 @@ export default function Player() {
                     <br />El límite se reinicia automáticamente cada día.
                   </div>
                 </div>
-                <a href="/membership" style={{
+                <Link href="/membership" style={{
                   display: "inline-flex", alignItems: "center", gap: 10,
                   background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
                   borderRadius: 16, padding: "14px 28px",
@@ -783,7 +783,7 @@ export default function Player() {
                   textDecoration: "none", boxShadow: "0 8px 32px rgba(108,99,255,0.35)",
                 }}>
                   👑 Hazte Megafan — Ver sin límites
-                </a>
+                </Link>
                 <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, lineHeight: 1.5 }}>
                   Acceso ilimitado · Sin interrupciones · Mejor calidad
                   <br />Solo <strong style={{ color: "#A78BFA" }}>$4/mes</strong> · Cancela cuando quieras

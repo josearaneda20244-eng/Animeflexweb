@@ -26,9 +26,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       RETURNING id, username, email, avatar_url, created_at
     `;
     const user = rows[0];
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) return res.status(500).json({ error: "JWT_SECRET no configurado" });
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET ?? "animeflex_secret",
+      jwtSecret,
       { expiresIn: "30d" }
     );
     return res.status(201).json({ token, user });
