@@ -164,8 +164,11 @@ router.post("/auth/forgot-password", async (req, res) => {
       [user.id, token, expiresAt]
     );
 
-    const origin = req.get("origin") ?? process.env["APP_URL"] ?? "https://animeflex.replit.app";
-    const resetUrl = `${origin}/reset-password?token=${token}`;
+    const proto  = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
+    const host   = req.get("host") ?? "animeflex.replit.app";
+    const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
+    const frontendBase = process.env["APP_URL"] ?? `${proto}://${host}${basePath}`;
+    const resetUrl = `${frontendBase}/reset-password?token=${token}`;
 
     await sendEmail({
       to: email.trim().toLowerCase(),
@@ -243,8 +246,10 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
       [req.userId, token, expiresAt]
     );
 
-    const origin = req.get("origin") ?? process.env["APP_URL"] ?? "https://animeflex.replit.app";
-    const verifyUrl = `${origin}/verify-email?token=${token}`;
+    const vProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
+    const vHost  = req.get("host") ?? "animeflex.replit.app";
+    /* Link goes to the API endpoint which verifies and then redirects to the SPA */
+    const verifyUrl = `${vProto}://${vHost}/api/auth/verify-email?token=${token}`;
 
     await sendEmail({
       to: user.email,
@@ -273,7 +278,16 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
 /* ── GET /auth/verify-email?token= ── */
 router.get("/auth/verify-email", async (req, res) => {
   const { token } = req.query as { token?: string };
-  if (!token) { res.status(400).json({ error: "Token requerido" }); return; }
+
+  /* Derive frontend base URL from the incoming request host */
+  const rProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
+  const rHost  = req.get("host") ?? "animeflex.replit.app";
+  const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
+  const frontendBase = process.env["APP_URL"] ?? `${rProto}://${rHost}${basePath}`;
+
+  if (!token) {
+    return res.redirect(302, `${frontendBase}/verify-email?status=error&msg=${encodeURIComponent("Token requerido")}`);
+  }
   try {
     const { rows } = await pool.query(
       `SELECT id, user_id FROM email_verification_tokens
@@ -281,8 +295,7 @@ router.get("/auth/verify-email", async (req, res) => {
       [token]
     );
     if (!rows[0]) {
-      res.status(400).json({ error: "El enlace no es válido o ya expiró" });
-      return;
+      return res.redirect(302, `${frontendBase}/verify-email?status=error&msg=${encodeURIComponent("El enlace no es válido o ya expiró")}`);
     }
     const { id: tokenId, user_id } = rows[0];
     await pool.query(`UPDATE users SET email_verified = TRUE WHERE id = $1`, [user_id]);
@@ -290,9 +303,9 @@ router.get("/auth/verify-email", async (req, res) => {
       `UPDATE email_verification_tokens SET verified_at = NOW() WHERE id = $1`,
       [tokenId]
     );
-    res.json({ ok: true });
+    return res.redirect(302, `${frontendBase}/verify-email?status=success`);
   } catch {
-    res.status(500).json({ error: "Error interno del servidor" });
+    return res.redirect(302, `${frontendBase}/verify-email?status=error&msg=${encodeURIComponent("Error interno del servidor")}`);
   }
 });
 

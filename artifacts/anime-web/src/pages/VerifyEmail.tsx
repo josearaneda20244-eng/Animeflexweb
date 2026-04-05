@@ -1,34 +1,36 @@
 import { useEffect, useState } from "react";
 import { useSearch, useLocation } from "wouter";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/context/AuthContext";
 
 export default function VerifyEmail() {
   const search = useSearch();
   const [, navigate] = useLocation();
   const { refreshUser } = useAuth();
-  const token = new URLSearchParams(search).get("token") ?? "";
+  const params = new URLSearchParams(search);
+  const statusParam = params.get("status");
+  const msgParam    = params.get("msg") ?? "";
 
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    statusParam === "success" ? "success"
+    : statusParam === "error" ? "error"
+    : "loading"
+  );
+  const [errorMsg, setErrorMsg] = useState(msgParam);
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      setErrorMsg("No se encontró el token de verificación.");
+    /* If the backend already verified and redirected with ?status=success,
+       just refresh the auth context so the badge updates. */
+    if (statusParam === "success") {
+      refreshUser().catch(() => {});
       return;
     }
-    apiClient.get<{ ok: boolean }>(`/auth/verify-email?token=${encodeURIComponent(token)}`)
-      .then(() => {
-        setStatus("success");
-        refreshUser().catch(() => {});
-      })
-      .catch((err: unknown) => {
-        setStatus("error");
-        setErrorMsg(err instanceof Error ? err.message : "El enlace no es válido o ya expiró.");
-      });
-  }, [token]);
+    if (statusParam === "error") return;
+
+    /* No status param — nothing to do (old ?token= flow is handled server-side now) */
+    setStatus("error");
+    setErrorMsg("Enlace de verificación no reconocido. Solicita uno nuevo desde Ajustes.");
+  }, []);
 
   return (
     <div style={{
