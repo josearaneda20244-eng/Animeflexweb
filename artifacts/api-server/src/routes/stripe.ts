@@ -100,18 +100,22 @@ router.post(
   // Raw body needed for signature verification — handled by express.raw() in app config
   async (req, res) => {
     const stripe = getStripe();
-    if (!stripe) { res.sendStatus(200); return; }
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    /* Require both Stripe SDK and webhook secret — reject silently if unconfigured */
+    if (!stripe || !webhookSecret) {
+      console.warn("Stripe webhook received but STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET not configured. Ignoring.");
+      res.sendStatus(200);
+      return;
+    }
 
     const sig = req.headers["stripe-signature"] as string;
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     let event: Stripe.Event;
     try {
-      event = webhookSecret
-        ? stripe.webhooks.constructEvent(req.body as Buffer, sig, webhookSecret)
-        : (JSON.parse((req.body as Buffer).toString()) as Stripe.Event);
+      event = stripe.webhooks.constructEvent(req.body as Buffer, sig, webhookSecret);
     } catch (err: any) {
-      console.error("Stripe webhook signature error:", err.message);
+      console.error("Stripe webhook signature verification failed:", err.message);
       res.status(400).send(`Webhook Error: ${err.message}`);
       return;
     }

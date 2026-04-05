@@ -24,6 +24,54 @@ async function getPayPalToken(): Promise<string> {
   return data.access_token;
 }
 
+/**
+ * Validate a promo code and return its discount_percent (0 if invalid/expired).
+ * If valid, increments uses_count atomically.
+ */
+async function applyPromoCode(code: string): Promise<number> {
+  if (!code) return 0;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `SELECT id, discount_percent, max_uses, uses_count, expires_at, active
+         FROM promo_codes
+        WHERE code = $1
+        FOR UPDATE`,
+      [code.toUpperCase().trim()]
+    );
+
+    if (result.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return 0;
+    }
+
+    const pc = result.rows[0];
+    const expired = pc.expires_at && new Date(pc.expires_at) < new Date();
+    const maxed   = pc.max_uses !== null && pc.uses_count >= pc.max_uses;
+
+    if (!pc.active || expired || maxed) {
+      await client.query("ROLLBACK");
+      return 0;
+    }
+
+    await client.query(
+      `UPDATE promo_codes SET uses_count = uses_count + 1 WHERE id = $1`,
+      [pc.id]
+    );
+
+    await client.query("COMMIT");
+    return pc.discount_percent as number;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 /* ── POST /membership ── */
 router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
   if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
@@ -34,9 +82,10 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
     return;
   }
 
-  const { action, subscriptionId } = req.body as {
+  const { action, subscriptionId, promoCode } = req.body as {
     action: string;
     subscriptionId?: string;
+    promoCode?: string;
   };
 
   try {
@@ -69,6 +118,12 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
 
       const expiresAt = sub.billing_info?.next_billing_time ?? null;
 
+      /* Apply & track promo code if provided */
+      let discountPercent = 0;
+      if (promoCode) {
+        discountPercent = await applyPromoCode(promoCode);
+      }
+
       await pool.query(
         `UPDATE users
          SET membership_tier = 'megafan',
@@ -78,7 +133,7 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
         [subscriptionId, expiresAt, req.userId]
       );
 
-      res.json({ ok: true, tier: "megafan" });
+      res.json({ ok: true, tier: "megafan", discountPercent });
       return;
     }
 

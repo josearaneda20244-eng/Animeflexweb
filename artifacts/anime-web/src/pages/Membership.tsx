@@ -85,7 +85,11 @@ export default function Membership() {
     setLoading(true);
     setError(null);
     try {
-      await apiClient.post("/membership", { action: "activate", subscriptionId });
+      await apiClient.post("/membership", {
+        action: "activate",
+        subscriptionId,
+        promoCode: couponStatus === "valid" ? couponInput.trim() : undefined,
+      });
       await refreshUser();
       setSuccess(true);
     } catch (e: any) {
