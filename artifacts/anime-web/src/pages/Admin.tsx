@@ -1264,9 +1264,20 @@ interface PayPalSub {
   last_payment_amount?: string; last_payment_time?: string; next_billing_time?: string;
   start_time: string;
 }
+interface PayPalReportRow {
+  transaction_info: {
+    transaction_id: string;
+    transaction_amount: { value: string; currency_code: string };
+    transaction_status: string;
+    transaction_initiation_date: string;
+    transaction_subject?: string;
+  };
+  payer_info?: { payer_name?: { alternate_full_name?: string }; email_address?: string };
+}
 interface TxData {
   transactions: PayPalTx[]; total: number; totalRevenue: number;
   subscriptions: PayPalSub[]; paypalConfigured: boolean; paypalError: string | null;
+  paypalReporting: PayPalReportRow[];
 }
 
 function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") => void }) {
@@ -1275,7 +1286,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
   const [page, setPage] = useState(1);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [tab, setTab] = useState<"onetime" | "subscriptions">("onetime");
+  const [tab, setTab] = useState<"onetime" | "subscriptions" | "reporting">("onetime");
 
   const load = useCallback(async (pg = page, f = from, t = to) => {
     setLoading(true);
@@ -1334,7 +1345,11 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
 
       {/* Tab switcher */}
       <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "#13131C", borderRadius: 12, padding: 6, border: "1px solid rgba(255,255,255,0.06)", width: "fit-content" }}>
-        {([["onetime", "Pagos únicos"], ["subscriptions", "Suscripciones PayPal"]] as const).map(([key, label]) => (
+        {([
+        ["onetime", "Pagos únicos"],
+        ["subscriptions", "Suscripciones"],
+        ["reporting", `Historial PayPal${data?.paypalReporting.length ? ` (${data.paypalReporting.length})` : ""}`],
+      ] as const).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
               background: tab === key ? "rgba(108,99,255,0.2)" : "transparent",
@@ -1421,7 +1436,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
             </div>
           )}
         </>
-      ) : (
+      ) : tab === "subscriptions" ? (
         /* Subscriptions tab — live from PayPal API */
         (!data || data.subscriptions.length === 0) ? (
           <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
@@ -1457,6 +1472,50 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
                 </div>
               </div>
             ))}
+          </div>
+        )
+      ) : (
+        /* Reporting tab — PayPal Reporting API transactions (last 30 days or filtered) */
+        (!data || data.paypalReporting.length === 0) ? (
+          <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+            <DollarSign size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
+            <p>{!data?.paypalConfigured ? "PayPal no configurado." : "Sin datos del Reporting API de PayPal (puede requerir el permiso 'Transaction Search' en tu cuenta PayPal)."}</p>
+          </div>
+        ) : (
+          <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 90px 120px", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+              {["ID Transacción", "Pagador", "Monto", "Estado", "Fecha"].map(h => (
+                <div key={h} style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
+              ))}
+            </div>
+            {data.paypalReporting.map((r, i) => {
+              const ti = r.transaction_info;
+              const piName = r.payer_info?.payer_name?.alternate_full_name;
+              const piEmail = r.payer_info?.email_address;
+              const sc = statusColor[ti.transaction_status] ?? "#6C63FF";
+              return (
+                <div key={ti.transaction_id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 90px 120px", padding: "12px 16px", borderBottom: i < data.paypalReporting.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", alignItems: "center" }}>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "monospace" }} title={ti.transaction_id}>
+                    {ti.transaction_id.substring(0, 16)}…
+                    {ti.transaction_subject && <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>{ti.transaction_subject}</div>}
+                  </div>
+                  <div>
+                    {piName && <div style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 600 }}>{piName}</div>}
+                    {piEmail && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{piEmail}</div>}
+                    {!piName && !piEmail && <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>—</span>}
+                  </div>
+                  <div style={{ color: "#22C55E", fontSize: 13, fontWeight: 800 }}>
+                    {ti.transaction_amount.currency_code} ${parseFloat(ti.transaction_amount.value).toFixed(2)}
+                  </div>
+                  <div style={{ background: `${sc}18`, color: sc, borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                    {ti.transaction_status}
+                  </div>
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
+                    {new Date(ti.transaction_initiation_date).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )
       )}

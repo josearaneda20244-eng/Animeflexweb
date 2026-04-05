@@ -5,6 +5,7 @@ import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 import { requireAdmin } from "../middleware/requireAdmin.js";
 import {
   isPayPalConfigured, getPayPalToken, fetchSubscription, fetchReportingTransactions,
+  type PayPalReportingTx,
 } from "../lib/paypal.js";
 
 const router = Router();
@@ -545,13 +546,14 @@ router.get("/admin/transactions", async (req: AuthRequest, res) => {
       pool.query(`SELECT COALESCE(SUM(amount_usd), 0) as total FROM paypal_transactions t ${where}`, values),
     ]);
 
-    /* ── 2. PayPal subscription details (real PayPal API call) ── */
+    /* ── 2. PayPal subscription details + reporting (real PayPal API calls) ── */
     let subscriptions: Array<{
       subscription_id: string; status: string; username: string; email: string;
       last_payment_amount?: string; last_payment_time?: string; next_billing_time?: string;
       start_time: string;
     }> = [];
     let paypalError: string | null = null;
+    let paypalReporting: PayPalReportingTx[] = [];
 
     if (paypalConfigured) {
       try {
@@ -584,15 +586,16 @@ router.get("/admin/transactions", async (req: AuthRequest, res) => {
           subscriptions = subDetails.filter(Boolean) as typeof subscriptions;
         }
 
-        /* ── 3. PayPal Reporting API (date-filtered transactions if configured) ── */
-        if (from || to) {
-          const startDate = from ? new Date(from).toISOString() : new Date(Date.now() - 30 * 86400000).toISOString();
-          const endDate   = to ? new Date(to + "T23:59:59").toISOString() : new Date().toISOString();
-          const token2 = await getPayPalToken();
-          const reportTxs = await fetchReportingTransactions(token2, startDate, endDate);
-          /* Attach as additional metadata to response */
-          (res as any).locals.paypalReporting = reportTxs.slice(0, 200);
-        }
+        /* ── 3. PayPal Reporting API — always fetch (default last 30 days) ── */
+        const startDate = from
+          ? new Date(from).toISOString()
+          : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+        const endDate = to
+          ? new Date(to + "T23:59:59").toISOString()
+          : new Date().toISOString();
+        const reportToken = await getPayPalToken();
+        paypalReporting = await fetchReportingTransactions(reportToken, startDate, endDate);
+
       } catch (ppErr: any) {
         paypalError = `PayPal API: ${ppErr.message}`;
         console.warn("PayPal admin fetch error", ppErr);
@@ -606,7 +609,7 @@ router.get("/admin/transactions", async (req: AuthRequest, res) => {
       subscriptions,
       paypalConfigured,
       paypalError,
-      paypalReporting: (res as any).locals.paypalReporting ?? [],
+      paypalReporting: paypalReporting.slice(0, 200),
     });
   } catch (err: any) {
     console.error("Admin transactions error", err);
