@@ -1,23 +1,39 @@
 import { Router } from "express";
+import jwt from "jsonwebtoken";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
-import { Request } from "express";
 
+const JWT_SECRET = process.env.JWT_SECRET!;
 const router = Router();
 
-/* ── GET /comments/:animeId ── Public: top-level comments with reply count */
-router.get("/comments/:animeId", async (req: Request, res) => {
+function optionalAuth(req: AuthRequest, _res: any, next: () => void) {
+  const header = req.headers.authorization;
+  if (header?.startsWith("Bearer ")) {
+    try {
+      const payload = jwt.verify(header.slice(7), JWT_SECRET) as { userId: number };
+      req.userId = payload.userId;
+    } catch {}
+  }
+  next();
+}
+
+/* ── GET /comments/:animeId ── Public: top-level comments with reply count + likedByMe */
+router.get("/comments/:animeId", optionalAuth, async (req: AuthRequest, res) => {
   try {
+    const userId = req.userId ?? null;
     const { rows } = await pool.query(
       `SELECT c.id, c.text, c.spoiler, c.likes, c.created_at, c.parent_id,
               u.username AS author, u.avatar_url,
-              (SELECT COUNT(*) FROM anime_comments r WHERE r.parent_id = c.id)::int AS reply_count
+              (SELECT COUNT(*) FROM anime_comments r WHERE r.parent_id = c.id)::int AS reply_count,
+              CASE WHEN $2::int IS NOT NULL AND
+                EXISTS(SELECT 1 FROM comment_likes cl WHERE cl.comment_id = c.id AND cl.user_id = $2)
+              THEN TRUE ELSE FALSE END AS "likedByMe"
        FROM anime_comments c
        JOIN users u ON u.id = c.user_id
        WHERE c.anime_id = $1 AND c.parent_id IS NULL
        ORDER BY c.created_at DESC
        LIMIT 200`,
-      [req.params.animeId]
+      [req.params.animeId, userId]
     );
     res.json(rows);
   } catch {
@@ -25,20 +41,24 @@ router.get("/comments/:animeId", async (req: Request, res) => {
   }
 });
 
-/* ── GET /comments/:animeId/replies/:commentId ── Public: replies to a comment */
-router.get("/comments/:animeId/replies/:commentId", async (req: Request, res) => {
+/* ── GET /comments/:animeId/replies/:commentId ── Public: replies + likedByMe */
+router.get("/comments/:animeId/replies/:commentId", optionalAuth, async (req: AuthRequest, res) => {
   try {
     const parentId = parseInt(req.params.commentId as string, 10);
     if (isNaN(parentId)) { res.status(400).json({ error: "ID inválido" }); return; }
+    const userId = req.userId ?? null;
     const { rows } = await pool.query(
       `SELECT c.id, c.text, c.spoiler, c.likes, c.created_at, c.parent_id,
-              u.username AS author, u.avatar_url
+              u.username AS author, u.avatar_url,
+              CASE WHEN $3::int IS NOT NULL AND
+                EXISTS(SELECT 1 FROM comment_likes cl WHERE cl.comment_id = c.id AND cl.user_id = $3)
+              THEN TRUE ELSE FALSE END AS "likedByMe"
        FROM anime_comments c
        JOIN users u ON u.id = c.user_id
        WHERE c.anime_id = $1 AND c.parent_id = $2
        ORDER BY c.created_at ASC
        LIMIT 50`,
-      [req.params.animeId, parentId]
+      [req.params.animeId, parentId, userId]
     );
     res.json(rows);
   } catch {

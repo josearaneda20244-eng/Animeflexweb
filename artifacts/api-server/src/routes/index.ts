@@ -18,12 +18,14 @@ router.use(storageRouter);
 router.use(animeRouter);
 router.use(authRouter);
 router.use(publicUserRouter);
-router.use(userRouter);
-router.use(adminRouter);
+// Public routes must come BEFORE userRouter (which applies requireAuth globally)
 router.use(commentsRouter);
-router.use(membershipRouter);
 router.use(ratingsRouter);
 router.use(announcementsRouter);
 router.use(searchLogRouter);
+// Auth-required routes
+router.use(userRouter);
+router.use(adminRouter);
+router.use(membershipRouter);
 
 export default router;

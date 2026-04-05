@@ -57,7 +57,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose }: {
 
   useEffect(() => {
     apiClient.get<Comment[]>(`/comments/${animeId}/replies/${parentId}`)
-      .then((rows) => setReplies(rows.map((r) => ({ ...r, likedByMe: false }))))
+      .then((rows) => setReplies(rows))
       .catch(() => setReplies([]))
       .finally(() => setLoading(false));
   }, [animeId, parentId]);
@@ -204,7 +204,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
     setLoading(true);
     try {
       const rows = await apiClient.get<Comment[]>(`/comments/${animeId}`);
-      setComments(rows.map((c) => ({ ...c, likedByMe: false })));
+      setComments(rows);
     } catch {
       setComments([]);
     } finally {
