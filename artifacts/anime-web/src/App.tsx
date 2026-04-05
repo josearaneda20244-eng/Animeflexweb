@@ -15,6 +15,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
   import Profile from "@/pages/Profile";
   import PublicProfile from "@/pages/PublicProfile";
   import Admin from "@/pages/Admin";
+  import Feed from "@/pages/Feed";
   import { FavoritesProvider } from "@/context/FavoritesContext";
   import { HistoryProvider } from "@/context/HistoryContext";
   import { WatchProgressProvider } from "@/context/WatchProgressContext";
@@ -104,6 +105,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
         <Route path="/perfil/:userId" component={PublicProfile} />
         <Route path="/profile/:userId" component={PublicProfile} />
         <Route path="/admin" component={Admin} />
+        <Route path="/feed" component={Feed} />
         <Route component={NotFound} />
       </Switch>
     );

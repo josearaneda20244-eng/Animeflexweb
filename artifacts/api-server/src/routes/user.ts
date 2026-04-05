@@ -508,4 +508,92 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
   }
 });
 
+/* ── GET /users/:id/follow-status ── Auth: check if current user follows target */
+router.get("/users/:id/follow-status", async (req: AuthRequest, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+    const [isFollowingRes, countRes] = await Promise.all([
+      pool.query(
+        `SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2`,
+        [req.userId, targetId]
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS count FROM user_follows WHERE following_id = $1`,
+        [targetId]
+      ),
+    ]);
+    res.json({
+      isFollowing: isFollowingRes.rows.length > 0,
+      followerCount: countRes.rows[0]?.count ?? 0,
+    });
+  } catch {
+    res.status(500).json({ error: "Error al obtener estado de seguimiento" });
+  }
+});
+
+/* ── POST /users/:id/follow ── Auth: toggle follow/unfollow */
+router.post("/users/:id/follow", async (req: AuthRequest, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+    if (targetId === req.userId) { res.status(400).json({ error: "No puedes seguirte a ti mismo" }); return; }
+
+    const existing = await pool.query(
+      `SELECT 1 FROM user_follows WHERE follower_id = $1 AND following_id = $2`,
+      [req.userId, targetId]
+    );
+    if (existing.rows.length > 0) {
+      await pool.query(
+        `DELETE FROM user_follows WHERE follower_id = $1 AND following_id = $2`,
+        [req.userId, targetId]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO user_follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [req.userId, targetId]
+      );
+    }
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM user_follows WHERE following_id = $1`,
+      [targetId]
+    );
+    res.json({
+      isFollowing: existing.rows.length === 0,
+      followerCount: countRes.rows[0]?.count ?? 0,
+    });
+  } catch {
+    res.status(500).json({ error: "Error al procesar seguimiento" });
+  }
+});
+
+/* ── GET /feed ── Auth: activity feed of followed users */
+router.get("/feed", async (req: AuthRequest, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         u.id AS user_id,
+         u.username,
+         u.avatar_url,
+         w.anime_id,
+         w.anime_title,
+         w.anime_image,
+         w.status,
+         w.updated_at AS activity_at
+       FROM user_watchlist w
+       JOIN users u ON u.id = w.user_id
+       WHERE w.user_id IN (
+         SELECT following_id FROM user_follows WHERE follower_id = $1
+       )
+       AND w.updated_at >= NOW() - INTERVAL '7 days'
+       ORDER BY w.updated_at DESC
+       LIMIT 40`,
+      [req.userId]
+    );
+    res.json({ activities: rows });
+  } catch {
+    res.status(500).json({ error: "Error al obtener feed" });
+  }
+});
+
 export default router;

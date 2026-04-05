@@ -105,6 +105,15 @@ async function ensureAdminTables() {
       last_searched TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE anime_comments ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES anime_comments(id) ON DELETE CASCADE`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_follows (
+      follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      following_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      PRIMARY KEY (follower_id, following_id)
+    )
+  `);
   const defaults = [
     ["daily_limit", "5"],
     ["daily_limit_enabled", "true"],

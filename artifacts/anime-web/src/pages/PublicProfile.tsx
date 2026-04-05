@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Crown, Tv2, CheckCircle2, Flame, Heart, BookOpen, ArrowLeft, Clock, Clapperboard, Tag } from "lucide-react";
+import { Crown, Tv2, CheckCircle2, Flame, Heart, BookOpen, ArrowLeft, Clock, Clapperboard, Tag, UserPlus, UserCheck, Users } from "lucide-react";
 import { resolveAvatarUrl } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { apiClient } from "@/lib/apiClient";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -50,9 +52,13 @@ interface PublicProfileData {
 export default function PublicProfile() {
   const params = useParams<{ userId: string }>();
   const [, navigate] = useLocation();
+  const { user: currentUser, token } = useAuth();
   const [data, setData] = useState<PublicProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
 
   useEffect(() => {
     const userId = params.userId;
@@ -67,6 +73,25 @@ export default function PublicProfile() {
       .catch((e) => setError(e.message ?? "Error al cargar perfil"))
       .finally(() => setLoading(false));
   }, [params.userId]);
+
+  useEffect(() => {
+    if (!token || !params.userId) return;
+    apiClient.get<{ isFollowing: boolean; followerCount: number }>(`/users/${params.userId}/follow-status`)
+      .then((d) => { setIsFollowing(d.isFollowing); setFollowerCount(d.followerCount); })
+      .catch(() => {});
+  }, [token, params.userId]);
+
+  const handleFollow = async () => {
+    if (!token || followLoading) return;
+    setFollowLoading(true);
+    try {
+      const d = await apiClient.post<{ isFollowing: boolean; followerCount: number }>(`/users/${params.userId}/follow`, {});
+      setIsFollowing(d.isFollowing);
+      setFollowerCount(d.followerCount);
+    } catch { /* noop */ } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const cardStyle = {
     background: "#13131C",
@@ -129,26 +154,37 @@ export default function PublicProfile() {
                 <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 3 }}>
                   Miembro desde {new Date(data.user.created_at).toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
                 </div>
-                <div style={{ marginTop: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                   {data.user.membership_tier === "megafan" ? (
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)",
-                      borderRadius: 20, padding: "4px 12px", color: "#F59E0B", fontSize: 12, fontWeight: 800,
-                    }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 20, padding: "4px 12px", color: "#F59E0B", fontSize: 12, fontWeight: 800 }}>
                       <Crown size={11} /> MegaFan
                     </div>
                   ) : (
-                    <div style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.25)",
-                      borderRadius: 20, padding: "4px 12px", color: "#A78BFA", fontSize: 12, fontWeight: 800,
-                    }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.25)", borderRadius: 20, padding: "4px 12px", color: "#A78BFA", fontSize: 12, fontWeight: 800 }}>
                       ✦ Gratuito
                     </div>
                   )}
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+                    <Users size={12} />
+                    <span>{followerCount} seguidores</span>
+                  </div>
                 </div>
               </div>
+
+              {token && currentUser && String(currentUser.id) !== params.userId && (
+                <button onClick={handleFollow} disabled={followLoading}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12,
+                    background: isFollowing ? "rgba(108,99,255,0.12)" : "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                    border: isFollowing ? "1px solid rgba(108,99,255,0.3)" : "none",
+                    color: isFollowing ? "#A78BFA" : "#fff",
+                    fontSize: 13, fontWeight: 700, cursor: followLoading ? "not-allowed" : "pointer",
+                    flexShrink: 0, opacity: followLoading ? 0.6 : 1, transition: "all 0.2s",
+                  }}>
+                  {isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
+                  {isFollowing ? "Siguiendo" : "Seguir"}
+                </button>
+              )}
             </div>
 
             {/* Stats grid */}

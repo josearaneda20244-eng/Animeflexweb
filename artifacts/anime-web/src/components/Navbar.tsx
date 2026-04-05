@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera, Rss } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -127,6 +127,7 @@ export default function Navbar() {
     { label: "Mi Lista", icon: <ListVideo size={18} />, href: "/watchlist" },
     { label: "Favoritos", icon: <Bookmark size={18} />, href: "/favorites" },
     { label: "Historial", icon: <Clock size={18} />, href: "/history" },
+    { label: "Feed", icon: <Rss size={18} />, href: "/feed" },
   ];
 
   return (
@@ -249,6 +250,7 @@ export default function Navbar() {
                         { label: "Mi Lista", icon: <ListVideo size={14} />, href: "/watchlist" },
                         { label: "Favoritos", icon: <Bookmark size={14} />, href: "/favorites" },
                         { label: "Historial", icon: <Clock size={14} />, href: "/history" },
+                        { label: "Feed", icon: <Rss size={14} />, href: "/feed" },
                       ].map(({ label, icon, href }) => (
                         <button key={href} onClick={() => { navigate(href); setMoreOpen(false); }}
                           style={{
