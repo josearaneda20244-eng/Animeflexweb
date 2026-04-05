@@ -50,6 +50,13 @@ async function runMigrations() {
   `, "paypal_pending_orders");
 
   await safeQuery(`
+    CREATE TABLE IF NOT EXISTS stripe_events (
+      event_id   VARCHAR(100) PRIMARY KEY,
+      processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
+  `, "stripe_events");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS user_favorites (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -266,8 +266,15 @@ export default function Membership() {
               )}
             </div>
             {promoResult && (
-              <div className="mb-3 text-green-400 text-sm font-semibold">
-                🎉 Cupón aplicado: −{promoResult.discountPercent}% de descuento
+              <div className="mb-3">
+                <p className="text-green-400 text-sm font-semibold">
+                  🎉 Cupón aplicado: −{promoResult.discountPercent}% de descuento
+                </p>
+                {PAYPAL_CLIENT_ID && (
+                  <p className="text-gray-500 text-xs mt-0.5">
+                    El pago con cupón es un cargo único. Al vencer, puedes renovar con suscripción normal.
+                  </p>
+                )}
               </div>
             )}
             <p className="text-gray-500 text-sm mb-6">Cancela cuando quieras</p>

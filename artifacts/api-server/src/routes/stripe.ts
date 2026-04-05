@@ -149,9 +149,21 @@ router.post("/stripe/webhook", async (req, res) => {
     return;
   }
 
+  /* ── Idempotency: skip if we have already processed this event ── */
+  try {
+    await pool.query(
+      `INSERT INTO stripe_events (event_id) VALUES ($1)`,
+      [event.id]
+    );
+  } catch {
+    /* Primary-key conflict → duplicate delivery, respond 200 so Stripe stops retrying */
+    res.sendStatus(200);
+    return;
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const { userId, plan, promoCode, discountPercent } = session.metadata ?? {};
+    const { userId, plan, promoCode } = session.metadata ?? {};
 
     if (userId) {
       const expiresAt = new Date();
@@ -167,9 +179,9 @@ router.post("/stripe/webhook", async (req, res) => {
 
       await pool.query(
         `UPDATE users
-            SET membership_tier       = 'megafan',
+            SET membership_tier        = 'megafan',
                 subscription_expires_at = $1,
-                stripe_customer_id    = COALESCE($2, stripe_customer_id),
+                stripe_customer_id     = COALESCE($2, stripe_customer_id),
                 stripe_subscription_id = COALESCE($3, stripe_subscription_id)
           WHERE id = $4`,
         [expiresAt.toISOString(), stripeCustomer, stripeSubId, parseInt(userId)]
