@@ -177,6 +177,19 @@ async function runMigrations() {
     )
   `, "search_logs");
 
+  await safeQuery(`
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id              SERIAL PRIMARY KEY,
+      code            VARCHAR(50) UNIQUE NOT NULL,
+      discount_percent INTEGER NOT NULL CHECK (discount_percent BETWEEN 1 AND 100),
+      max_uses        INTEGER,
+      uses_count      INTEGER NOT NULL DEFAULT 0,
+      expires_at      TIMESTAMPTZ,
+      active          BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `, "promo_codes");
+
   await safeQuery(
     `ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS genres TEXT[] DEFAULT '{}'`,
     "user_favorites.genres"
