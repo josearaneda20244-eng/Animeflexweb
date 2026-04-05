@@ -234,6 +234,14 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
           discountPercent = promoRes.rows[0]?.discount_percent ?? 0;
         }
 
+        /* Log transaction (ignore conflict — idempotent retry) */
+        await dbClient.query(
+          `INSERT INTO paypal_transactions (order_id, user_id, amount_usd, plan, promo_code, status)
+           VALUES ($1, $2, $3, $4, $5, 'completed')
+           ON CONFLICT (order_id) DO NOTHING`,
+          [orderId, req.userId, parseFloat(expectedUsd), plan, serverPromo ?? null]
+        );
+
         await dbClient.query("COMMIT");
       } catch (err) {
         await dbClient.query("ROLLBACK");

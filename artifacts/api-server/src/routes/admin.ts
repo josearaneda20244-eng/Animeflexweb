@@ -1,4 +1,5 @@
 import { Router } from "express";
+import nodemailer from "nodemailer";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 import { requireAdmin } from "../middleware/requireAdmin.js";
@@ -507,6 +508,112 @@ router.delete("/admin/promo-codes/:id", async (req: AuthRequest, res) => {
     await pool.query(`DELETE FROM promo_codes WHERE id = $1`, [parseInt(req.params.id as string)]);
     res.json({ ok: true });
   } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ── GET /admin/transactions ── */
+router.get("/admin/transactions", async (req: AuthRequest, res) => {
+  const { from, to, page = "1", limit = "20" } = req.query as Record<string, string>;
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  try {
+    const conditions: string[] = [];
+    const values: (string | number)[] = [];
+    let idx = 1;
+    if (from) { conditions.push(`t.created_at >= $${idx++}`); values.push(from); }
+    if (to)   { conditions.push(`t.created_at <= $${idx++}`); values.push(to); }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const { rows } = await pool.query(
+      `SELECT t.id, t.order_id, t.amount_usd, t.plan, t.promo_code, t.status, t.created_at,
+              u.username, u.email
+         FROM paypal_transactions t
+         JOIN users u ON u.id = t.user_id
+         ${where}
+         ORDER BY t.created_at DESC
+         LIMIT $${idx++} OFFSET $${idx++}`,
+      [...values, parseInt(limit), offset]
+    );
+    const { rows: countRows } = await pool.query(
+      `SELECT COUNT(*) as count FROM paypal_transactions t ${where}`,
+      values
+    );
+    const { rows: sumRows } = await pool.query(
+      `SELECT COALESCE(SUM(amount_usd), 0) as total FROM paypal_transactions t ${where}`,
+      values
+    );
+    res.json({
+      transactions: rows,
+      total: parseInt(countRows[0].count),
+      totalRevenue: parseFloat(sumRows[0].total),
+    });
+  } catch (err: any) {
+    console.error("Admin transactions error", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ── POST /admin/send-email ── */
+router.post("/admin/send-email", async (req: AuthRequest, res) => {
+  const { to, subject, body } = req.body as { to: "all" | "megafan" | "free"; subject: string; body: string };
+  if (!to || !subject || !body) {
+    res.status(400).json({ error: "to, subject y body son requeridos" });
+    return;
+  }
+
+  /* Check SMTP config */
+  const smtpHost = process.env["SMTP_HOST"];
+  if (!smtpHost) {
+    res.status(503).json({ error: "SMTP no configurado. Añade SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM a las variables de entorno." });
+    return;
+  }
+
+  let tierFilter = "";
+  if (to === "megafan") tierFilter = "WHERE membership_tier = 'megafan' AND is_active = TRUE";
+  else if (to === "free") tierFilter = "WHERE membership_tier = 'free' AND is_active = TRUE";
+  else tierFilter = "WHERE is_active = TRUE";
+
+  try {
+    const { rows: recipients } = await pool.query(
+      `SELECT email, username FROM users ${tierFilter} ORDER BY id`
+    );
+    if (recipients.length === 0) {
+      res.json({ ok: true, sent: 0, message: "No hay destinatarios para el segmento elegido" });
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: parseInt(process.env["SMTP_PORT"] ?? "587"),
+      secure: process.env["SMTP_PORT"] === "465",
+      auth: {
+        user: process.env["SMTP_USER"],
+        pass: process.env["SMTP_PASS"],
+      },
+    });
+
+    const from = process.env["SMTP_FROM"] ?? process.env["SMTP_USER"] ?? "noreply@animeflex.app";
+    let sent = 0;
+    const errors: string[] = [];
+
+    for (const r of recipients) {
+      try {
+        await transporter.sendMail({
+          from,
+          to: r.email,
+          subject,
+          text: body,
+          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto"><p>${body.replace(/\n/g, "<br>")}</p><hr><p style="font-size:11px;color:#888">AnimeFlex — Para darte de baja responde a este correo.</p></div>`,
+        });
+        sent++;
+      } catch (e: any) {
+        errors.push(`${r.email}: ${e.message}`);
+      }
+    }
+
+    res.json({ ok: true, sent, total: recipients.length, errors: errors.slice(0, 5) });
+  } catch (err: any) {
+    console.error("Send email error", err);
     res.status(500).json({ error: err.message });
   }
 });

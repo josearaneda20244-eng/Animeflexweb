@@ -190,6 +190,19 @@ async function runMigrations() {
     )
   `, "promo_codes");
 
+  await safeQuery(`
+    CREATE TABLE IF NOT EXISTS paypal_transactions (
+      id              SERIAL PRIMARY KEY,
+      order_id        VARCHAR(100) NOT NULL UNIQUE,
+      user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      amount_usd      NUMERIC(10,2) NOT NULL,
+      plan            VARCHAR(20) NOT NULL,
+      promo_code      VARCHAR(50),
+      status          VARCHAR(30) NOT NULL DEFAULT 'completed',
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `, "paypal_transactions");
+
   await safeQuery(
     `ALTER TABLE user_favorites ADD COLUMN IF NOT EXISTS genres TEXT[] DEFAULT '{}'`,
     "user_favorites.genres"

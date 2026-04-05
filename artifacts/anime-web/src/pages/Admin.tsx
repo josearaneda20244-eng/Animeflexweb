@@ -11,6 +11,7 @@ import {
   Zap, BarChart2, ArrowUpRight, MessageSquare,
   DollarSign, UserMinus, Megaphone, Download,
   Radio, Hash, Plus, Info,
+  Send, CreditCard, Mail, CalendarRange, RefreshCw,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -44,7 +45,7 @@ interface AdminComment {
   id: number; text: string; spoiler: boolean; likes: number;
   created_at: string; anime_id: string; author: string; user_id: number;
 }
-type Section = "dashboard" | "users" | "content" | "comments" | "monetization" | "config";
+type Section = "dashboard" | "users" | "content" | "comments" | "monetization" | "transactions" | "emails" | "config";
 
 /* ── Toast ── */
 function Toast({ msg, type, onClose }: { msg: string; type: "ok" | "err"; onClose: () => void }) {
@@ -1251,14 +1252,261 @@ function ConfigSection({ toast }: { toast: (m: string, t: "ok" | "err") => void 
   );
 }
 
+/* ── Transactions Section ── */
+interface PayPalTx {
+  id: number; order_id: string; amount_usd: string; plan: string;
+  promo_code: string | null; status: string; created_at: string;
+  username: string; email: string;
+}
+
+function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") => void }) {
+  const [txs, setTxs] = useState<PayPalTx[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  const load = useCallback(async (pg = page, f = from, t = to) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(pg), limit: "20" });
+      if (f) params.set("from", f);
+      if (t) params.set("to", t + "T23:59:59");
+      const data = await apiClient.get<{ transactions: PayPalTx[]; total: number; totalRevenue: number }>(
+        `/admin/transactions?${params.toString()}`
+      );
+      setTxs(data.transactions); setTotal(data.total); setTotalRevenue(data.totalRevenue);
+    } catch { toast("Error al cargar transacciones", "err"); }
+    finally { setLoading(false); }
+  }, [page, from, to]);
+
+  useEffect(() => { load(1); }, []);
+
+  const planColor: Record<string, string> = { monthly: "#6C63FF", annual: "#F59E0B" };
+  const statusColor: Record<string, string> = { completed: "#22C55E", pending: "#F59E0B", failed: "#DC2626" };
+
+  return (
+    <div>
+      <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 16 }}>Transacciones PayPal</h2>
+
+      {/* Summary card */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        {[
+          { label: "Total transacciones", value: total, icon: <CreditCard size={18} />, color: "#6C63FF" },
+          { label: "Ingresos totales", value: `$${totalRevenue.toFixed(2)}`, icon: <DollarSign size={18} />, color: "#22C55E" },
+        ].map(c => (
+          <div key={c.label} style={{ flex: "1 1 180px", background: "#13131C", border: `1px solid ${c.color}30`, borderRadius: 14, padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: `${c.color}18`, display: "flex", alignItems: "center", justifyContent: "center", color: c.color }}>{c.icon}</div>
+            <div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>{c.label}</div>
+              <div style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900 }}>{c.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Date filter */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <CalendarRange size={15} color="rgba(255,255,255,0.3)" />
+        <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+          style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
+        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>→</span>
+        <input type="date" value={to} onChange={e => setTo(e.target.value)}
+          style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
+        <button onClick={() => { setPage(1); load(1, from, to); }}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "#6C63FF", border: "none", borderRadius: 8, padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+          <RefreshCw size={13} /> Filtrar
+        </button>
+        {(from || to) && (
+          <button onClick={() => { setFrom(""); setTo(""); setPage(1); load(1, "", ""); }}
+            style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, padding: "8px 12px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 13 }}>
+            Limpiar
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
+      ) : txs.length === 0 ? (
+        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+          <CreditCard size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
+          <p>No hay transacciones registradas todavía.</p>
+          <p style={{ fontSize: 12, marginTop: 4 }}>Las transacciones se registran al capturar pagos PayPal.</p>
+        </div>
+      ) : (
+        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+          {/* Header */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 80px 80px 100px", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
+            {["Usuario", "Orden", "Monto", "Plan", "Estado", "Fecha"].map(h => (
+              <div key={h} style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
+            ))}
+          </div>
+          {txs.map((tx, i) => (
+            <div key={tx.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 80px 80px 100px", padding: "12px 16px", borderBottom: i < txs.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", alignItems: "center" }}>
+              <div>
+                <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>{tx.username}</div>
+                <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{tx.email}</div>
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "monospace" }} title={tx.order_id}>
+                {tx.order_id.substring(0, 16)}…
+                {tx.promo_code && <span style={{ marginLeft: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>{tx.promo_code}</span>}
+              </div>
+              <div style={{ color: "#22C55E", fontSize: 14, fontWeight: 800 }}>${parseFloat(tx.amount_usd).toFixed(2)}</div>
+              <div style={{ background: `${planColor[tx.plan] ?? "#6C63FF"}18`, color: planColor[tx.plan] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                {tx.plan === "annual" ? "Anual" : "Mensual"}
+              </div>
+              <div style={{ background: `${statusColor[tx.status] ?? "#6C63FF"}18`, color: statusColor[tx.status] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                {tx.status}
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
+                {new Date(tx.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {total > 20 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16, alignItems: "center" }}>
+          <button disabled={page === 1} onClick={() => { const p = page - 1; setPage(p); load(p); }}
+            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
+            ← Anterior
+          </button>
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Pág. {page} / {Math.ceil(total / 20)}</span>
+          <button disabled={page * 20 >= total} onClick={() => { const p = page + 1; setPage(p); load(p); }}
+            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 20 >= total ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 20 >= total ? "default" : "pointer", fontSize: 13 }}>
+            Siguiente →
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Emails Section ── */
+function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err") => void; confirm: (m: string, cb: () => void) => void }) {
+  const [to, setTo] = useState<"all" | "megafan" | "free">("all");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [lastResult, setLastResult] = useState<{ sent: number; total: number; errors: string[] } | null>(null);
+
+  const SEGMENTS = [
+    { key: "all" as const, label: "Todos los usuarios", color: "#6C63FF", desc: "Activos en la plataforma" },
+    { key: "megafan" as const, label: "Solo MegaFan", color: "#F59E0B", desc: "Usuarios de pago" },
+    { key: "free" as const, label: "Solo Gratuitos", color: "#22C55E", desc: "Tier free activos" },
+  ];
+
+  const doSend = async () => {
+    setSending(true);
+    setLastResult(null);
+    try {
+      const data = await apiClient.post<{ ok: boolean; sent: number; total: number; errors: string[]; error?: string }>(
+        "/admin/send-email", { to, subject, body }
+      );
+      if (!data.ok && data.error) {
+        toast(data.error, "err");
+      } else {
+        setLastResult({ sent: data.sent, total: data.total, errors: data.errors ?? [] });
+        toast(`Enviado a ${data.sent} de ${data.total} destinatarios`, "ok");
+        setSubject(""); setBody("");
+      }
+    } catch (e: any) {
+      toast(e?.message ?? "Error al enviar emails", "err");
+    } finally { setSending(false); }
+  };
+
+  return (
+    <div>
+      <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Envío de Emails</h2>
+      <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginBottom: 20 }}>
+        Envía mensajes a segmentos de usuarios. Requiere configurar SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM en las variables de entorno.
+      </p>
+
+      {/* Segment selector */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Destinatarios</div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {SEGMENTS.map(s => (
+            <button key={s.key} onClick={() => setTo(s.key)}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "flex-start",
+                gap: 2, padding: "12px 16px", borderRadius: 12, cursor: "pointer",
+                background: to === s.key ? `${s.color}18` : "#13131C",
+                border: `1px solid ${to === s.key ? s.color + "60" : "rgba(255,255,255,0.07)"}`,
+                color: to === s.key ? s.color : "rgba(255,255,255,0.5)",
+                transition: "all 0.15s", minWidth: 140,
+              }}>
+              <span style={{ fontWeight: 800, fontSize: 13 }}>{s.label}</span>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>{s.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Subject */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Asunto</div>
+        <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Asunto del email..."
+          style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "11px 14px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+      </div>
+
+      {/* Body */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mensaje</div>
+        <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Escribe tu mensaje aquí..." rows={7}
+          style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "12px 14px", color: "#F1F1F5", fontSize: 14, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.6 }} />
+        <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 4 }}>Soporta saltos de línea. Se convierte a HTML automáticamente.</div>
+      </div>
+
+      {/* Send button */}
+      <button
+        disabled={sending || !subject.trim() || !body.trim()}
+        onClick={() => confirm(`¿Enviar email a "${SEGMENTS.find(s => s.key === to)?.label}"?\n\nAsunto: "${subject}"`, doSend)}
+        style={{
+          display: "flex", alignItems: "center", gap: 8,
+          background: sending || !subject.trim() || !body.trim() ? "rgba(108,99,255,0.3)" : "linear-gradient(135deg,#6C63FF,#4F46E5)",
+          border: "none", borderRadius: 12, padding: "13px 24px",
+          color: "#fff", cursor: sending || !subject.trim() || !body.trim() ? "default" : "pointer",
+          fontSize: 14, fontWeight: 800, boxShadow: "0 4px 16px rgba(108,99,255,0.3)",
+        }}>
+        {sending ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> Enviando...</> : <><Send size={15} /> Enviar Email</>}
+      </button>
+
+      {/* Result */}
+      {lastResult && (
+        <div style={{ marginTop: 20, background: "#13131C", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, padding: "16px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Check size={16} color="#22C55E" />
+            <span style={{ color: "#22C55E", fontWeight: 700, fontSize: 14 }}>Envío completado</span>
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
+            Enviados: <strong style={{ color: "#F1F1F5" }}>{lastResult.sent}</strong> de <strong style={{ color: "#F1F1F5" }}>{lastResult.total}</strong> destinatarios
+          </div>
+          {lastResult.errors.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ color: "#F59E0B", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Errores ({lastResult.errors.length}):</div>
+              {lastResult.errors.map((e, i) => <div key={i} style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontFamily: "monospace" }}>{e}</div>)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Sidebar nav ── */
 const NAV: { key: Section; label: string; icon: React.ReactNode }[] = [
-  { key: "dashboard",    label: "Dashboard",    icon: <LayoutDashboard size={18} /> },
-  { key: "users",        label: "Usuarios",     icon: <Users size={18} /> },
-  { key: "content",      label: "Contenido",    icon: <Film size={18} /> },
-  { key: "comments",     label: "Comentarios",  icon: <MessageSquare size={18} /> },
-  { key: "monetization", label: "Monetización", icon: <Crown size={18} /> },
-  { key: "config",       label: "Configuración",icon: <Settings size={18} /> },
+  { key: "dashboard",    label: "Dashboard",      icon: <LayoutDashboard size={18} /> },
+  { key: "users",        label: "Usuarios",       icon: <Users size={18} /> },
+  { key: "content",      label: "Contenido",      icon: <Film size={18} /> },
+  { key: "comments",     label: "Comentarios",    icon: <MessageSquare size={18} /> },
+  { key: "monetization", label: "Monetización",   icon: <Crown size={18} /> },
+  { key: "transactions", label: "Transacciones",  icon: <CreditCard size={18} /> },
+  { key: "emails",       label: "Emails",         icon: <Mail size={18} /> },
+  { key: "config",       label: "Configuración",  icon: <Settings size={18} /> },
 ];
 
 /* ── Main Admin Page ── */
@@ -1354,6 +1602,8 @@ export default function Admin() {
           {section === "content"      && <ContentSection toast={showToast} confirm={showConfirm} />}
           {section === "comments"     && <CommentsSection toast={showToast} confirm={showConfirm} />}
           {section === "monetization" && <MonetizationSection toast={showToast} />}
+          {section === "transactions" && <TransactionsSection toast={showToast} />}
+          {section === "emails"       && <EmailsSection toast={showToast} confirm={showConfirm} />}
           {section === "config"       && <ConfigSection toast={showToast} />}
         </div>
       </div>
