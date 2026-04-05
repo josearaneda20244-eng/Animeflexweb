@@ -594,7 +594,11 @@ router.get("/admin/transactions", async (req: AuthRequest, res) => {
           ? new Date(to + "T23:59:59").toISOString()
           : new Date().toISOString();
         const reportToken = await getPayPalToken();
-        paypalReporting = await fetchReportingTransactions(reportToken, startDate, endDate);
+        const reportResult = await fetchReportingTransactions(reportToken, startDate, endDate);
+        paypalReporting = reportResult.rows;
+        if (reportResult.error) {
+          paypalError = (paypalError ? paypalError + " | " : "") + `Reporting: ${reportResult.error}`;
+        }
 
       } catch (ppErr: any) {
         paypalError = `PayPal API: ${ppErr.message}`;

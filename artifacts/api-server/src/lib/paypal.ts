@@ -62,25 +62,30 @@ export interface PayPalReportingTx {
   payer_info?: { payer_name?: { alternate_full_name?: string }; email_address?: string };
 }
 
+/** Convert any ISO string to PayPal's required format: 2024-01-01T00:00:00.000+0000 */
+function toPayPalDate(iso: string): string {
+  return iso.replace("Z", "+0000").replace(/(\.\d{3})?(\+0000)$/, ".000+0000");
+}
+
 export async function fetchReportingTransactions(
   token: string,
   startDate: string,
   endDate: string
-): Promise<PayPalReportingTx[]> {
-  try {
-    const params = new URLSearchParams({
-      start_date: startDate,
-      end_date: endDate,
-      fields: "transaction_info,payer_info",
-      page_size: "100",
-    });
-    const res = await fetch(`${PAYPAL_BASE}/v1/reporting/transactions?${params}`, {
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    });
-    if (!res.ok) return [];
-    const data = await res.json() as { transaction_details?: PayPalReportingTx[] };
-    return data.transaction_details ?? [];
-  } catch {
-    return [];
+): Promise<{ rows: PayPalReportingTx[]; error?: string }> {
+  const params = new URLSearchParams({
+    start_date: toPayPalDate(startDate),
+    end_date:   toPayPalDate(endDate),
+    fields:     "transaction_info,payer_info",
+    page_size:  "500",
+  });
+  const res = await fetch(`${PAYPAL_BASE}/v1/reporting/transactions?${params}`, {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+  const data = await res.json() as { transaction_details?: PayPalReportingTx[]; message?: string; name?: string };
+  if (!res.ok) {
+    const msg = data.message ?? data.name ?? `HTTP ${res.status}`;
+    console.warn("[PayPal Reporting] API error:", msg, "params:", params.toString());
+    return { rows: [], error: msg };
   }
+  return { rows: data.transaction_details ?? [] };
 }
