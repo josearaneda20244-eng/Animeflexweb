@@ -39,23 +39,21 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
   }
 });
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const AVATAR_PATH_RE = /^uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * GET /storage/objects/uploads/:uuid
  *
- * Serve user-uploaded avatar images. Explicitly public: avatars must be
+ * Serve user-uploaded avatar images. Explicitly public — avatars must be
  * viewable by anyone without authentication (comments, public profiles, etc.).
- * Access is restricted to the /uploads/<uuid> path shape to prevent enumeration.
+ * Restricted to exactly uploads/<uuid> format to prevent enumeration.
  */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
 
-    const parts = wildcardPath.split("/");
-    const lastPart = parts[parts.length - 1];
-    if (!UUID_RE.test(lastPart)) {
+    if (!AVATAR_PATH_RE.test(wildcardPath)) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }

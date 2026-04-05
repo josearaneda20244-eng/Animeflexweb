@@ -120,3 +120,28 @@ INSERT INTO admin_config (key, value) VALUES
   ('registration_enabled', 'true'),
   ('maintenance_mode', 'false')
 ON CONFLICT (key) DO NOTHING;
+
+-- Ratings (1-5 stars from users)
+CREATE TABLE IF NOT EXISTS anime_ratings (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  anime_id VARCHAR(200) NOT NULL,
+  score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (user_id, anime_id)
+);
+
+-- Platform announcements
+CREATE TABLE IF NOT EXISTS announcements (
+  id SERIAL PRIMARY KEY,
+  message TEXT NOT NULL,
+  type VARCHAR(20) NOT NULL DEFAULT 'info',
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Search query log
+CREATE TABLE IF NOT EXISTS search_logs (
+  query VARCHAR(300) NOT NULL PRIMARY KEY,
+  count INTEGER NOT NULL DEFAULT 1,
+  last_searched TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

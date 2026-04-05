@@ -11,7 +11,7 @@ tags:
   - name: health
     description: Health operations
   - name: Storage
-    description: Object storage upload and serving endpoints.
+    description: Object storage serving endpoints.
 paths:
   /healthz:
     get:
@@ -26,39 +26,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
-  /storage/uploads/request-url:
-    post:
-      tags: [Storage]
-      operationId: requestUploadUrl
-      summary: Request a presigned URL for file upload
-      description: |
-        Returns a presigned GCS URL for direct upload. The client sends JSON
-        metadata here, then uploads the file directly to the returned URL.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadUrlRequest'
-      responses:
-        '200':
-          description: Presigned upload URL generated.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UploadUrlResponse'
-        '400':
-          description: Missing or invalid required fields.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-        '500':
-          description: Failed to generate upload URL.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
   /storage/public-objects/{filePath}:
     get:
       tags: [Storage]
@@ -98,17 +65,18 @@ paths:
     get:
       tags: [Storage]
       operationId: getStorageObject
-      summary: Serve an object entity from PRIVATE_OBJECT_DIR
+      summary: Serve a user-uploaded avatar from object storage
       description: |
-        Serves object entities uploaded via presigned URLs. These can optionally
-        be protected with authentication or ACL checks based on the use case.
+        Serves avatar images uploaded by users. Publicly accessible without
+        authentication. Path must match uploads/<uuid> format.
       parameters:
         - name: objectPath
           in: path
           required: true
           schema:
             type: string
-          description: Object path within the private object dir (e.g. uploads/some-uuid).
+            pattern: '^uploads/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          description: Object path in uploads/<uuid> format.
       responses:
         '200':
           description: Object content streamed with correct Content-Type.
@@ -117,6 +85,12 @@ paths:
               schema:
                 type: string
                 format: binary
+        '403':
+          description: Forbidden path format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           description: Object not found.
           content:
@@ -138,35 +112,6 @@ components:
           type: string
       required:
         - status
-    UploadUrlRequest:
-      type: object
-      required: [name, size, contentType]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          description: Original file name.
-        size:
-          type: integer
-          minimum: 1
-          description: File size in bytes.
-        contentType:
-          type: string
-          minLength: 1
-          description: MIME type of the file (e.g. image/jpeg).
-    UploadUrlResponse:
-      type: object
-      required: [uploadURL, objectPath]
-      properties:
-        uploadURL:
-          type: string
-          format: uri
-          description: Presigned GCS URL for PUT upload.
-        objectPath:
-          type: string
-          description: Normalized object path (e.g. /objects/uploads/uuid). Store this in your database.
-        metadata:
-          $ref: '#/components/schemas/UploadUrlRequest'
     ErrorEnvelope:
       type: object
       required: [error]

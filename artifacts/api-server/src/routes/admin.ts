@@ -80,6 +80,31 @@ async function ensureAdminTables() {
     )
   `);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS anime_ratings (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      anime_id VARCHAR(200) NOT NULL,
+      score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      PRIMARY KEY (user_id, anime_id)
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS announcements (
+      id SERIAL PRIMARY KEY,
+      message TEXT NOT NULL,
+      type VARCHAR(20) NOT NULL DEFAULT 'info',
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS search_logs (
+      query VARCHAR(300) NOT NULL PRIMARY KEY,
+      count INTEGER NOT NULL DEFAULT 1,
+      last_searched TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
+  `);
   const defaults = [
     ["daily_limit", "5"],
     ["daily_limit_enabled", "true"],
