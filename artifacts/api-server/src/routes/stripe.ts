@@ -131,12 +131,23 @@ router.post("/stripe/webhook", async (req, res) => {
   const stripe = getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  /* Require BOTH Stripe SDK and webhook secret configured */
-  if (!stripe || !webhookSecret) {
-    console.warn(
-      "Stripe webhook received but STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET not configured. Ignoring."
-    );
+  /*
+   * Configuration guard — two cases:
+   * 1. STRIPE_SECRET_KEY absent: Stripe is completely unconfigured → 200 so no Stripe retries.
+   * 2. STRIPE_SECRET_KEY present but STRIPE_WEBHOOK_SECRET absent: partial misconfiguration.
+   *    Return 500 so Stripe retries the event — prevents silently losing paid checkouts.
+   */
+  if (!stripe) {
+    /* Stripe SDK not configured at all — not expected to receive events */
     res.sendStatus(200);
+    return;
+  }
+  if (!webhookSecret) {
+    console.error(
+      "STRIPE_WEBHOOK_SECRET is not configured. Cannot verify webhook signature. " +
+      "Returning 500 so Stripe retries — set STRIPE_WEBHOOK_SECRET to activate webhook processing."
+    );
+    res.status(500).send("Webhook secret not configured");
     return;
   }
 
