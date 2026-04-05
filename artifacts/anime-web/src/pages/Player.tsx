@@ -584,6 +584,14 @@ export default function Player() {
   const controlsHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [fullscreenControlsVisible, setFullscreenControlsVisible] = useState(true);
 
+  useEffect(() => {
+    return () => {
+      if (seekFeedbackTimerRef.current) clearTimeout(seekFeedbackTimerRef.current);
+      if (volumeFeedbackTimerRef.current) clearTimeout(volumeFeedbackTimerRef.current);
+      if (controlsHideTimerRef.current) clearTimeout(controlsHideTimerRef.current);
+    };
+  }, []);
+
   // ── Access control ─────────────────────────────────────────────────────────
   const { isMegaFan, user } = useAuth();
   const [showLimitModal, setShowLimitModal] = useState(false);
