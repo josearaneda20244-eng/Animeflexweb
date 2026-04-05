@@ -2,8 +2,20 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import pool from "./db";
 
+async function safeQuery(sql: string, label: string): Promise<void> {
+  try {
+    await pool.query(sql);
+  } catch (err: any) {
+    if (err.code === "42P07" || err.code === "23505" || err.code === "42701") {
+      logger.info({ label }, "Migration: already exists, skipping");
+    } else {
+      logger.warn({ label, code: err.code, msg: err.message }, "Migration warning");
+    }
+  }
+}
+
 async function runMigrations() {
-  await pool.query(`
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       username VARCHAR(50) UNIQUE NOT NULL,
@@ -15,13 +27,14 @@ async function runMigrations() {
       role VARCHAR(20) NOT NULL DEFAULT 'user',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
-  `);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(50) NOT NULL DEFAULT 'free'`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user'`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
+  `, "users");
 
-  await pool.query(`
+  await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_tier VARCHAR(50) NOT NULL DEFAULT 'free'`, "users.membership_tier");
+  await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ`, "users.subscription_expires_at");
+  await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user'`, "users.role");
+  await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`, "users.is_active");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS user_favorites (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -33,8 +46,9 @@ async function runMigrations() {
       added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE(user_id, anime_id)
     )
-  `);
-  await pool.query(`
+  `, "user_favorites");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS user_watchlist (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -46,8 +60,9 @@ async function runMigrations() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE(user_id, anime_id)
     )
-  `);
-  await pool.query(`
+  `, "user_watchlist");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS user_history (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -58,8 +73,9 @@ async function runMigrations() {
       watched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE(user_id, anime_id, episode_number)
     )
-  `);
-  await pool.query(`
+  `, "user_history");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS user_watch_progress (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       episode_id VARCHAR(300) NOT NULL,
@@ -72,16 +88,18 @@ async function runMigrations() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (user_id, episode_id)
     )
-  `);
-  await pool.query(`
+  `, "user_watch_progress");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS user_daily_views (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       episode_id VARCHAR(300) NOT NULL,
       view_date DATE NOT NULL DEFAULT CURRENT_DATE,
       PRIMARY KEY (user_id, episode_id, view_date)
     )
-  `);
-  await pool.query(`
+  `, "user_daily_views");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS anime_comments (
       id SERIAL PRIMARY KEY,
       anime_id VARCHAR(200) NOT NULL,
@@ -91,22 +109,25 @@ async function runMigrations() {
       likes INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
-  `);
-  await pool.query(`
+  `, "anime_comments");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS comment_likes (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       comment_id INTEGER NOT NULL REFERENCES anime_comments(id) ON DELETE CASCADE,
       PRIMARY KEY (user_id, comment_id)
     )
-  `);
-  await pool.query(`
+  `, "comment_likes");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS admin_config (
       key VARCHAR(100) PRIMARY KEY,
       value TEXT NOT NULL,
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
-  `);
-  await pool.query(`
+  `, "admin_config");
+
+  await safeQuery(`
     CREATE TABLE IF NOT EXISTS admin_content (
       id SERIAL PRIMARY KEY,
       anime_id VARCHAR(200) NOT NULL,
@@ -116,7 +137,7 @@ async function runMigrations() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       UNIQUE(anime_id, action)
     )
-  `);
+  `, "admin_content");
 
   const defaults = [
     ["daily_limit", "5"],
@@ -127,9 +148,9 @@ async function runMigrations() {
     ["maintenance_mode", "false"],
   ];
   for (const [key, value] of defaults) {
-    await pool.query(
-      `INSERT INTO admin_config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING`,
-      [key, value]
+    await safeQuery(
+      `INSERT INTO admin_config (key, value) VALUES ('${key}', '${value}') ON CONFLICT (key) DO NOTHING`,
+      `admin_config.${key}`
     );
   }
 
