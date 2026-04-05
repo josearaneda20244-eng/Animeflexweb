@@ -55,7 +55,7 @@ router.post("/comments/:animeId", requireAuth, async (req: AuthRequest, res) => 
 /* ── POST /comments/:animeId/:commentId/like ── Toggle like */
 router.post("/comments/:animeId/:commentId/like", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const commentId = parseInt(req.params.commentId, 10);
+    const commentId = parseInt(req.params.commentId as string, 10);
     const existing = await pool.query(
       `SELECT 1 FROM comment_likes WHERE comment_id = $1 AND user_id = $2`,
       [commentId, req.userId]
@@ -89,7 +89,7 @@ router.post("/comments/:animeId/:commentId/like", requireAuth, async (req: AuthR
 /* ── DELETE /comments/:animeId/:commentId ── Auth: delete own comment */
 router.delete("/comments/:animeId/:commentId", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const commentId = parseInt(req.params.commentId, 10);
+    const commentId = parseInt(req.params.commentId as string, 10);
     const result = await pool.query(
       `DELETE FROM anime_comments WHERE id = $1 AND user_id = $2`,
       [commentId, req.userId]

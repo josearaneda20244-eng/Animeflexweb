@@ -169,7 +169,7 @@ router.get("/admin/users", async (req: AuthRequest, res) => {
 /* ── PATCH /admin/users/:id ── */
 router.patch("/admin/users/:id", async (req: AuthRequest, res) => {
   const { role, membership_tier, is_active } = req.body as Record<string, string | boolean>;
-  const userId = parseInt(req.params.id);
+  const userId = parseInt(req.params.id as string);
   try {
     const updates: string[] = [];
     const values: (string | boolean | number)[] = [];
@@ -258,7 +258,7 @@ router.post("/admin/content", async (req: AuthRequest, res) => {
 /* ── DELETE /admin/content/:id ── */
 router.delete("/admin/content/:id", async (req: AuthRequest, res) => {
   try {
-    await pool.query(`DELETE FROM admin_content WHERE id = $1`, [parseInt(req.params.id)]);
+    await pool.query(`DELETE FROM admin_content WHERE id = $1`, [parseInt(req.params.id as string)]);
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: "Error al eliminar" });
@@ -291,7 +291,7 @@ router.get("/admin/comments", async (req: AuthRequest, res) => {
 /* ── DELETE /admin/comments/:id ── */
 router.delete("/admin/comments/:id", async (req: AuthRequest, res) => {
   try {
-    await pool.query(`DELETE FROM anime_comments WHERE id = $1`, [parseInt(req.params.id)]);
+    await pool.query(`DELETE FROM anime_comments WHERE id = $1`, [parseInt(req.params.id as string)]);
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: "Error al eliminar comentario" });

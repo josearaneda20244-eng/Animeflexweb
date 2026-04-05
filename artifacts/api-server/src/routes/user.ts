@@ -161,7 +161,8 @@ router.get("/user/daily-access", async (req: AuthRequest, res) => {
     );
     const tier = memberResult.rows[0]?.membership_tier ?? "free";
     if (tier === "megafan") {
-      return res.json({ isPremium: true, remaining: null, limit: null });
+      res.json({ isPremium: true, remaining: null, limit: null });
+      return;
     }
 
     const today = new Date().toISOString().slice(0, 10);
@@ -191,12 +192,14 @@ router.post("/user/daily-access/register", async (req: AuthRequest, res) => {
     );
     const tier = memberResult.rows[0]?.membership_tier ?? "free";
     if (tier === "megafan") {
-      return res.json({ ok: true, isPremium: true });
+      res.json({ ok: true, isPremium: true });
+      return;
     }
 
     const { episodeId } = req.body as { episodeId: string };
     if (!episodeId) {
-      return res.status(400).json({ error: "episodeId requerido" });
+      res.status(400).json({ error: "episodeId requerido" });
+      return;
     }
 
     const today = new Date().toISOString().slice(0, 10);
@@ -206,7 +209,8 @@ router.post("/user/daily-access/register", async (req: AuthRequest, res) => {
       [req.userId, episodeId, today]
     );
     if (existing.rows.length > 0) {
-      return res.json({ ok: true, alreadyCounted: true });
+      res.json({ ok: true, alreadyCounted: true });
+      return;
     }
 
     const { rows } = await pool.query(
@@ -215,7 +219,8 @@ router.post("/user/daily-access/register", async (req: AuthRequest, res) => {
     );
     const count = parseInt(rows[0]?.count ?? "0", 10);
     if (count >= DAILY_LIMIT) {
-      return res.status(403).json({ error: "Límite diario alcanzado", remaining: 0 });
+      res.status(403).json({ error: "Límite diario alcanzado", remaining: 0 });
+      return;
     }
 
     await pool.query(
