@@ -22,7 +22,8 @@ router.post("/auth/register", async (req, res) => {
        VALUES ($1, $2, $3)
        RETURNING id, username, email, avatar_url, created_at, membership_tier,
                  subscription_expires_at, role,
-                 COALESCE(is_profile_public, TRUE) AS is_profile_public`,
+                 COALESCE(is_profile_public, TRUE) AS is_profile_public,
+                 stripe_customer_id`,
       [username.trim(), email.trim().toLowerCase(), hash]
     );
     const user = result.rows[0];
@@ -48,7 +49,8 @@ router.post("/auth/login", async (req, res) => {
     const result = await pool.query(
       `SELECT id, username, email, password_hash, avatar_url, created_at,
               membership_tier, subscription_expires_at, role, is_active,
-              COALESCE(is_profile_public, TRUE) AS is_profile_public
+              COALESCE(is_profile_public, TRUE) AS is_profile_public,
+              stripe_customer_id
        FROM users WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
