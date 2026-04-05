@@ -6,7 +6,7 @@ import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 const JWT_SECRET = process.env.JWT_SECRET!;
 const router = Router();
 
-function optionalAuth(req: AuthRequest, _res: any, next: () => void) {
+function optionalAuth(req: AuthRequest, _res: import("express").Response, next: () => void) {
   const header = req.headers.authorization;
   if (header?.startsWith("Bearer ")) {
     try {

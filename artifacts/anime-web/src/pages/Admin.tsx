@@ -156,7 +156,7 @@ function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") =
         />
         <select
           value={type}
-          onChange={e => setType(e.target.value as any)}
+          onChange={e => setType(e.target.value as "info" | "warning" | "success")}
           style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 12px", color: "#F1F1F5", fontSize: 13, cursor: "pointer", outline: "none", fontFamily: "inherit" }}
         >
           <option value="info">ℹ️ Info</option>

@@ -311,9 +311,10 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
     }
 
     res.status(400).json({ error: "Acción no válida" });
-  } catch (err: any) {
+  } catch (err) {
     console.error("Membership API error:", err);
-    res.status(500).json({ error: err.message ?? "Error interno" });
+    const message = err instanceof Error ? err.message : "Error interno";
+    res.status(500).json({ error: message });
   }
 });
 

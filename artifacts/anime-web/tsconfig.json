@@ -8,6 +8,7 @@
     "jsx": "preserve",
     "lib": ["esnext", "dom", "dom.iterable"],
     "strict": true,
+    "skipLibCheck": true,
     "noEmit": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,

@@ -458,7 +458,7 @@ export default function AnimeDetail() {
             animeForList={animeForFav}
             onStatusChange={(status) => {
               if (status) {
-                const labels: Record<string, string> = { watching: "Viendo", completed: "Completado", plan_to_watch: "Pendiente" };
+                const labels: Record<string, string> = { watching: "Viendo", completed: "Completado", plan_to_watch: "Pendiente", dropped: "Abandonado" };
                 addNotification({
                   title: "Lista actualizada",
                   message: `${title} marcado como "${labels[status] ?? status}".`,

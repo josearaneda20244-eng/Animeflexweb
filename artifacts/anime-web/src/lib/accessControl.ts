@@ -24,7 +24,7 @@ function getAccess(): DailyAccess {
     if (parsed.date !== getTodayDate()) {
       return { count: 0, date: getTodayDate(), watchedIds: [] };
     }
-    return { watchedIds: [], ...parsed };
+    return { ...parsed, watchedIds: parsed.watchedIds ?? [] };
   } catch {
     return { count: 0, date: getTodayDate(), watchedIds: [] };
   }

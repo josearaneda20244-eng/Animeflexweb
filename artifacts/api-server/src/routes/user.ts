@@ -500,7 +500,7 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
     const estimatedHours   = Math.round((totalEpisodes * 24) / 60 * 10) / 10;
     const favoriteGenre: string | null = genreResult.rows[0]?.genre ?? null;
 
-    const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
     const weekMap: Record<string, number> = {};
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
