@@ -166,11 +166,63 @@ publicUserRouter.get("/users/:id/followers", async (req, res) => {
   }
 });
 
+/* ── GET /config/limits ── Public: get current limit settings and messages ── */
+publicUserRouter.get("/config/limits", async (req, res) => {
+  try {
+    const [dailyLimitStr, limitEnabledStr, limitMessage, megafanMessage] = await Promise.all([
+      getAdminConfig("daily_limit", "5"),
+      getAdminConfig("daily_limit_enabled", "true"),
+      getAdminConfig("limit_message", "Has alcanzado tu límite diario de episodios gratuitos."),
+      getAdminConfig("megafan_message", "¡Hazte MegaFan y disfruta sin límites!"),
+    ]);
+
+    res.json({
+      dailyLimit: parseInt(dailyLimitStr, 10) || 5,
+      dailyLimitEnabled: limitEnabledStr === "true",
+      limitMessage,
+      megafanMessage,
+    });
+  } catch (err) {
+    console.error("Error getting limits config:", err);
+    res.status(500).json({ error: "Error al obtener configuración de límites" });
+  }
+});
+
+/* ── POST /config/limits/refresh ── Public: force refresh cached config (for admin updates) ── */
+publicUserRouter.post("/config/limits/refresh", async (req, res) => {
+  try {
+    // This endpoint doesn't do anything special server-side,
+    // but clients can call it to invalidate their cache
+    res.json({ ok: true, message: "Config refresh requested" });
+  } catch (err) {
+    console.error("Error refreshing limits config:", err);
+    res.status(500).json({ error: "Error al refrescar configuración" });
+  }
+});
+
 /* ── PRIVATE ROUTER (auth required) ── */
 const router = Router();
 router.use(requireAuth);
 
-const DAILY_LIMIT = 5;
+// Helper function to get admin config from database
+async function getAdminConfig(key: string, defaultValue: string = ""): Promise<string> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT value FROM admin_config WHERE key = $1`,
+      [key]
+    );
+    return rows[0]?.value ?? defaultValue;
+  } catch (err) {
+    console.error(`Error getting admin config ${key}:`, err);
+    return defaultValue;
+  }
+}
+
+// Helper function to get daily limit as number
+async function getDailyLimit(): Promise<number> {
+  const limitStr = await getAdminConfig("daily_limit", "5");
+  return parseInt(limitStr, 10) || 5;
+}
 
 /* ── AVATAR UPLOAD (Cloudinary) ── */
 
@@ -367,11 +419,12 @@ router.get("/user/daily-access", async (req: AuthRequest, res) => {
       [req.userId, today]
     );
     const count = parseInt(rows[0]?.count ?? "0", 10);
+    const dailyLimit = await getDailyLimit();
     res.json({
       isPremium: false,
       watched: count,
-      remaining: Math.max(0, DAILY_LIMIT - count),
-      limit: DAILY_LIMIT,
+      remaining: Math.max(0, dailyLimit - count),
+      limit: dailyLimit,
     });
   } catch {
     res.status(500).json({ error: "Error al verificar acceso" });
@@ -412,7 +465,8 @@ router.post("/user/daily-access/register", async (req: AuthRequest, res) => {
       [req.userId, today]
     );
     const count = parseInt(rows[0]?.count ?? "0", 10);
-    if (count >= DAILY_LIMIT) {
+    const dailyLimit = await getDailyLimit();
+    if (count >= dailyLimit) {
       res.status(403).json({ error: "Límite diario alcanzado", remaining: 0 });
       return;
     }
@@ -421,7 +475,7 @@ router.post("/user/daily-access/register", async (req: AuthRequest, res) => {
       `INSERT INTO user_daily_views (user_id, episode_id, view_date) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
       [req.userId, episodeId, today]
     );
-    res.json({ ok: true, remaining: Math.max(0, DAILY_LIMIT - count - 1) });
+    res.json({ ok: true, remaining: Math.max(0, dailyLimit - count - 1) });
   } catch {
     res.status(500).json({ error: "Error al registrar episodio" });
   }

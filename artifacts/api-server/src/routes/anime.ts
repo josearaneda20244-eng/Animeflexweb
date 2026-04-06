@@ -5,8 +5,27 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import jwt from "jsonwebtoken";
 import pool from "../db.js";
 
-const DAILY_LIMIT = 5;
 const JWT_SECRET = process.env.JWT_SECRET!;
+
+// Helper function to get admin config from database
+async function getAdminConfig(key: string, defaultValue: string = ""): Promise<string> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT value FROM admin_config WHERE key = $1`,
+      [key]
+    );
+    return rows[0]?.value ?? defaultValue;
+  } catch (err) {
+    console.error(`Error getting admin config ${key}:`, err);
+    return defaultValue;
+  }
+}
+
+// Helper function to get daily limit as number
+async function getDailyLimit(): Promise<number> {
+  const limitStr = await getAdminConfig("daily_limit", "5");
+  return parseInt(limitStr, 10) || 5;
+}
 
 function escapeHtml(s: string): string {
   return s
@@ -789,7 +808,8 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
           [req.userId, today]
         );
         const count = parseInt(rows[0]?.count ?? "0", 10);
-        if (count >= DAILY_LIMIT) {
+        const dailyLimit = await getDailyLimit();
+        if (count >= dailyLimit) {
           res.status(403).json({ error: "Límite diario alcanzado", limitReached: true, remaining: 0 });
           return;
         }

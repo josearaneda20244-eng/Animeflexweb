@@ -318,4 +318,56 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+/* ── POST /promo-codes/validate ── */
+router.post("/promo-codes/validate", async (req, res) => {
+  const { code, plan = "monthly" } = req.body as { code?: string; plan?: "monthly" | "annual" };
+
+  if (!code || !code.trim()) {
+    res.status(400).json({ error: "Código de promoción requerido" });
+    return;
+  }
+
+  try {
+    const pcRes = await pool.query(
+      `SELECT discount_percent, max_uses, uses_count, expires_at, active
+         FROM promo_codes WHERE code = $1`,
+      [code.toUpperCase().trim()]
+    );
+
+    if (pcRes.rows.length === 0) {
+      res.status(404).json({ valid: false, error: "Código no encontrado" });
+      return;
+    }
+
+    const pc = pcRes.rows[0];
+    const expired = pc.expires_at && new Date(pc.expires_at) < new Date();
+    const maxed = pc.max_uses !== null && pc.uses_count >= pc.max_uses;
+
+    if (!pc.active || expired || maxed) {
+      res.status(400).json({
+        valid: false,
+        error: !pc.active ? "Código inactivo" : expired ? "Código expirado" : "Límite de usos alcanzado",
+      });
+      return;
+    }
+
+    /* Calculate discounted price */
+    const baseAmount = plan === "annual" ? ANNUAL_USD : MONTHLY_USD;
+    const originalCents = Math.round(parseFloat(baseAmount) * 100);
+    const discountedAmount = applyDiscount(baseAmount, pc.discount_percent);
+    const discountedCents = Math.round(parseFloat(discountedAmount) * 100);
+
+    res.json({
+      valid: true,
+      code: code.toUpperCase().trim(),
+      discountPercent: pc.discount_percent,
+      originalCents,
+      discountedCents,
+    });
+  } catch (err) {
+    console.error("Promo code validation error:", err);
+    res.status(500).json({ valid: false, error: "Error validando código" });
+  }
+});
+
 export default router;
