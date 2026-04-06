@@ -11,7 +11,6 @@ import { consumet, resolveTitle, type Episode, type AnimeResult } from "@/lib/co
 import { useFavorites } from "@/context/FavoritesContext";
 import { useHistory } from "@/context/HistoryContext";
 import { useWatchProgress } from "@/context/WatchProgressContext";
-import { useNotifications } from "@/context/NotificationsContext";
 import { useWatchList, type WatchStatus } from "@/context/WatchListContext";
 import CommentsSection from "@/components/CommentsSection";
 import { useAuth } from "@/context/AuthContext";
@@ -256,7 +255,7 @@ export default function AnimeDetail() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToHistory } = useHistory();
   const { getAnimeProgress } = useWatchProgress();
-  const { addNotification } = useNotifications();
+  // const { addNotification } = useNotifications(); // Commented out - using new notification system
   const [descExpanded, setDescExpanded] = useState(false);
   const [watchedEps, setWatchedEps] = useState<Set<string>>(new Set());
   const [epFilter, setEpFilter] = useState<"all" | "unwatched">("all");
@@ -479,12 +478,12 @@ export default function AnimeDetail() {
             onStatusChange={(status) => {
               if (status) {
                 const labels: Record<string, string> = { watching: "Viendo", completed: "Completado", plan_to_watch: "Pendiente", dropped: "Abandonado" };
-                addNotification({
-                  title: "Lista actualizada",
-                  message: `${title} marcado como "${labels[status] ?? status}".`,
-                  animeId: id ?? "",
-                  animeImage: image,
-                });
+                // addNotification({
+                //   title: "Lista actualizada",
+                //   message: `${title} marcado como "${labels[status] ?? status}".`,
+                //   animeId: id ?? "",
+                //   animeImage: image,
+                // });
               }
             }}
           />
@@ -494,12 +493,12 @@ export default function AnimeDetail() {
               const wasNotFav = !fav;
               toggleFavorite(animeForFav);
               if (wasNotFav) {
-                addNotification({
-                  title: "Añadido a favoritos",
-                  message: `${title} fue añadido a tu lista de favoritos.`,
-                  animeId: id,
-                  animeImage: image,
-                });
+                // addNotification({
+                //   title: "Añadido a favoritos",
+                //   message: `${title} fue añadido a tu lista de favoritos.`,
+                //   animeId: id,
+                //   animeImage: image,
+                // });
               }
             }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${

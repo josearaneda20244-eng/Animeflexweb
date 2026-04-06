@@ -2,7 +2,6 @@ import { Link, useLocation } from "wouter";
 import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera, Rss, LayoutDashboard } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
-import { useNotifications } from "@/context/NotificationsContext";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useWatchList } from "@/context/WatchListContext";
@@ -31,7 +30,6 @@ export default function Navbar() {
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { notifications, unreadCount, markAllRead, clearAll } = useNotifications();
   const { user, logout, isMegaFan, isOwner } = useAuth();
   const { favorites } = useFavorites();
   const { watchList } = useWatchList();

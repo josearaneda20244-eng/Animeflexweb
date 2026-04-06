@@ -24,7 +24,6 @@ const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
   import { FavoritesProvider } from "@/context/FavoritesContext";
   import { HistoryProvider } from "@/context/HistoryContext";
   import { WatchProgressProvider } from "@/context/WatchProgressContext";
-  import { NotificationsProvider } from "@/context/NotificationsContext";
   import { WatchListProvider } from "@/context/WatchListContext";
   import { AuthProvider } from "@/context/AuthContext";
   import { NotificationProvider } from "@/components/NotificationManager";
