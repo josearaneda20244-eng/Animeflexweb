@@ -52,8 +52,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     try {
       // Try to load from API first
-      const response = await apiClient.get<{ data: any[] }>(`/users/${user.id}/notifications`);
-      const apiNotifications = response.data.map((n: any) => ({
+      const response = await apiClient.get<any>(`/users/${user.id}/notifications`);
+      const rawList: any[] = Array.isArray(response) ? response : (response?.data ?? []);
+      const apiNotifications = rawList.map((n: any) => ({
         ...n,
         timestamp: new Date(n.timestamp)
       }));
