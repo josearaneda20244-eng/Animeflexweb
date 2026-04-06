@@ -7,13 +7,31 @@ import {
   Tv2, Heart, TrendingUp, Crown, Shield, Clock,
   Flame, CheckCircle2, BarChart2, BookOpen, Share2,
 } from "lucide-react";
-import { getRemainingEpisodes, getEpisodesWatchedToday } from "@/lib/accessControl";
+import { getEpisodesWatchedToday } from "@/lib/accessControl";
 import { apiClient } from "@/lib/apiClient";
 import { resolveAvatarUrl } from "@/lib/utils";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
+
+// Función auxiliar para obtener el acceso diario (extraída de accessControl.ts)
+function getAccess() {
+  const STORAGE_KEY = "af_daily_access";
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { count: 0, date: new Date().toISOString().slice(0, 10), watchedIds: [] };
+    const parsed = JSON.parse(raw);
+    // Reinicio automático cada nuevo día
+    const today = new Date().toISOString().slice(0, 10);
+    if (parsed.date !== today) {
+      return { count: 0, date: today, watchedIds: [] };
+    }
+    return { ...parsed, watchedIds: parsed.watchedIds ?? [] };
+  } catch {
+    return { count: 0, date: new Date().toISOString().slice(0, 10), watchedIds: [] };
+  }
+}
 
 interface UserStats {
   totalEpisodes: number;
@@ -52,7 +70,9 @@ export default function Profile() {
   const [loadingStats, setLoadingStats] = useState(false);
 
   const watchedToday = getEpisodesWatchedToday();
-  const remaining = getRemainingEpisodes(isMegaFan);
+  // Calcular remaining usando la configuración actual del hook
+  const access = getAccess();
+  const remaining = isMegaFan ? Infinity : Math.max(0, limitsConfig.dailyLimit - access.count);
 
   useEffect(() => {
     if (!user) return;

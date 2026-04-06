@@ -1,23 +1,26 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
-  import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-  import Home from "@/pages/Home";
-  import Search from "@/pages/Search";
-  import AnimeDetail from "@/pages/AnimeDetail";
-  import Player from "@/pages/Player";
-  import Favorites from "@/pages/Favorites";
-  import History from "@/pages/History";
-  import Movies from "@/pages/Movies";
-  import OVAs from "@/pages/OVAs";
-  import Schedule from "@/pages/Schedule";
-  import WatchList from "@/pages/WatchList";
-  import Membership from "@/pages/Membership";
-  import Settings from "@/pages/Settings";
-  import Profile from "@/pages/Profile";
-  import PublicProfile from "@/pages/PublicProfile";
-  import Admin from "@/pages/Admin";
-  import Feed from "@/pages/Feed";
-import ResetPassword from "@/pages/ResetPassword";
-import VerifyEmail from "@/pages/VerifyEmail";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Lazy load pages for better performance
+const Home = lazy(() => import("@/pages/Home"));
+const Search = lazy(() => import("@/pages/Search"));
+const AnimeDetail = lazy(() => import("@/pages/AnimeDetail"));
+const Player = lazy(() => import("@/pages/Player"));
+const Favorites = lazy(() => import("@/pages/Favorites"));
+const History = lazy(() => import("@/pages/History"));
+const Movies = lazy(() => import("@/pages/Movies"));
+const OVAs = lazy(() => import("@/pages/OVAs"));
+const Schedule = lazy(() => import("@/pages/Schedule"));
+const WatchList = lazy(() => import("@/pages/WatchList"));
+const Membership = lazy(() => import("@/pages/Membership"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const PublicProfile = lazy(() => import("@/pages/PublicProfile"));
+const Admin = lazy(() => import("@/pages/Admin"));
+const Feed = lazy(() => import("@/pages/Feed"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
   import { FavoritesProvider } from "@/context/FavoritesContext";
   import { HistoryProvider } from "@/context/HistoryContext";
   import { WatchProgressProvider } from "@/context/WatchProgressContext";
@@ -89,29 +92,31 @@ import VerifyEmail from "@/pages/VerifyEmail";
 
   function Router() {
     return (
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/search" component={Search} />
-        <Route path="/anime/:id" component={AnimeDetail} />
-        <Route path="/watch" component={Player} />
-        <Route path="/favorites" component={Favorites} />
-        <Route path="/history" component={History} />
-        <Route path="/movies" component={Movies} />
-        <Route path="/ovas" component={OVAs} />
-        <Route path="/schedule" component={Schedule} />
-        <Route path="/watchlist" component={WatchList} />
-        <Route path="/membership" component={Membership} />
-        <Route path="/settings" component={Settings} />
-        <Route path="/perfil" component={Profile} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/perfil/:userId" component={PublicProfile} />
-        <Route path="/profile/:userId" component={PublicProfile} />
-        <Route path="/admin" component={Admin} />
-        <Route path="/feed" component={Feed} />
-        <Route path="/reset-password" component={ResetPassword} />
-        <Route path="/verify-email" component={VerifyEmail} />
-        <Route component={NotFound} />
-      </Switch>
+      <Suspense fallback={<div style={{ minHeight: "100vh", background: "#090A12", display: "flex", alignItems: "center", justifyContent: "center" }}><div>Cargando...</div></div>}>
+        <Switch>
+          <Route path="/"><Home /></Route>
+          <Route path="/search"><Search /></Route>
+          <Route path="/anime/:id"><AnimeDetail /></Route>
+          <Route path="/watch"><Player /></Route>
+          <Route path="/favorites"><Favorites /></Route>
+          <Route path="/history"><History /></Route>
+          <Route path="/movies"><Movies /></Route>
+          <Route path="/ovas"><OVAs /></Route>
+          <Route path="/schedule"><Schedule /></Route>
+          <Route path="/watchlist"><WatchList /></Route>
+          <Route path="/membership"><Membership /></Route>
+          <Route path="/settings"><Settings /></Route>
+          <Route path="/perfil"><Profile /></Route>
+          <Route path="/profile"><Profile /></Route>
+          <Route path="/perfil/:userId"><PublicProfile /></Route>
+          <Route path="/profile/:userId"><PublicProfile /></Route>
+          <Route path="/admin"><Admin /></Route>
+          <Route path="/feed"><Feed /></Route>
+          <Route path="/reset-password"><ResetPassword /></Route>
+          <Route path="/verify-email"><VerifyEmail /></Route>
+          <Route><NotFound /></Route>
+        </Switch>
+      </Suspense>
     );
   }
 

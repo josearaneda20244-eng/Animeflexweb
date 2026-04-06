@@ -22,9 +22,26 @@ import { useLimitsConfig } from "@/hooks/use-limits-config";
 import {
   canWatchEpisode,
   registerEpisodeView,
-  getRemainingEpisodes,
   REGISTER_THRESHOLD_SECONDS,
 } from "@/lib/accessControl";
+
+// Función auxiliar para obtener el acceso diario (extraída de accessControl.ts)
+function getAccess() {
+  const STORAGE_KEY = "af_daily_access";
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { count: 0, date: new Date().toISOString().slice(0, 10), watchedIds: [] };
+    const parsed = JSON.parse(raw);
+    // Reinicio automático cada nuevo día
+    const today = new Date().toISOString().slice(0, 10);
+    if (parsed.date !== today) {
+      return { count: 0, date: today, watchedIds: [] };
+    }
+    return { ...parsed, watchedIds: parsed.watchedIds ?? [] };
+  } catch {
+    return { count: 0, date: new Date().toISOString().slice(0, 10), watchedIds: [] };
+  }
+}
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
@@ -598,10 +615,11 @@ export default function Player() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [serverRemaining, setServerRemaining] = useState<number | null>(null);
   const episodeRegisteredRef = useRef(false);
-  // Para usuarios logueados: usar cuenta del servidor. Para invitados: localStorage.
-  const remaining = user
-    ? (serverRemaining ?? getRemainingEpisodes(isMegaFan))
-    : getRemainingEpisodes(isMegaFan);
+
+  // Calcular remaining usando la configuración actual del hook
+  const access = getAccess();
+  const localRemaining = isMegaFan ? Infinity : Math.max(0, limitsConfig.dailyLimit - access.count);
+  const remaining = user ? (serverRemaining ?? localRemaining) : localRemaining;
 
   // Verifica límite en el servidor cuando cambia el episodio (solo usuarios logueados)
   useEffect(() => {

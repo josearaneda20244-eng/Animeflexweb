@@ -1,8 +1,26 @@
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "wouter";
 import { Crown, Tv2 } from "lucide-react";
-import { getRemainingEpisodes, canWatchEpisodeSync, getCurrentDailyLimit } from "@/lib/accessControl";
+import { canWatchEpisodeSync } from "@/lib/accessControl";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
+
+// Función auxiliar para obtener el acceso diario (extraída de accessControl.ts)
+function getAccess() {
+  const STORAGE_KEY = "af_daily_access";
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { count: 0, date: new Date().toISOString().slice(0, 10), watchedIds: [] };
+    const parsed = JSON.parse(raw);
+    // Reinicio automático cada nuevo día
+    const today = new Date().toISOString().slice(0, 10);
+    if (parsed.date !== today) {
+      return { count: 0, date: today, watchedIds: [] };
+    }
+    return { ...parsed, watchedIds: parsed.watchedIds ?? [] };
+  } catch {
+    return { count: 0, date: new Date().toISOString().slice(0, 10), watchedIds: [] };
+  }
+}
 
 interface EpisodeCounterProps {
   variant?: "horizontal" | "square";
@@ -24,9 +42,11 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
   // MegaFan no ve nada — experiencia limpia total
   if (isMegaFan) return null;
 
-  const remaining = getRemainingEpisodes(false);
-  const currentLimit = getCurrentDailyLimit();
-  const canWatch = canWatchEpisodeSync(false);
+  // Calcular valores usando la configuración actual del hook
+  const access = getAccess();
+  const remaining = Math.max(0, limitsConfig.dailyLimit - access.count);
+  const currentLimit = limitsConfig.dailyLimit;
+  const canWatch = remaining > 0 && limitsConfig.dailyLimitEnabled;
 
   if (!canWatch) {
     // Límite alcanzado — CTA de conversión

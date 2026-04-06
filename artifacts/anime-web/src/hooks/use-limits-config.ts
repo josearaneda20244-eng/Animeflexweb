@@ -23,9 +23,21 @@ export function useLimitsConfig() {
     gcTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  const refreshConfig = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["limits-config"] });
-    return refetch();
+  const refreshConfig = async (): Promise<void> => {
+    try {
+      // Clear localStorage cache to force fresh data
+      localStorage.removeItem('af_limits_config');
+      // Mark cache as invalidated for synchronous functions
+      localStorage.setItem('af_limits_config_invalidated', 'true');
+
+      await queryClient.invalidateQueries({ queryKey: ["limits-config"] });
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing limits config:', error);
+      // Revert the invalidation mark on error
+      localStorage.removeItem('af_limits_config_invalidated');
+      throw error;
+    }
   };
 
   return { config, loading, refreshConfig };

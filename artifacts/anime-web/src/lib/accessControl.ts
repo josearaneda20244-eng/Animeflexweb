@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/apiClient";
 
 const STORAGE_KEY = "af_daily_access";
 const CONFIG_STORAGE_KEY = "af_limits_config";
+const CONFIG_INVALIDATION_KEY = "af_limits_config_invalidated";
 export const DAILY_LIMIT = 5; // Fallback por defecto
 // Anti-exploit: mínimo de segundos vistos antes de contar un episodio
 export const REGISTER_THRESHOLD_SECONDS = 60;
@@ -137,6 +138,15 @@ export function resetDailyCounter(): void {
 export function getRemainingEpisodes(isPremium: boolean): number {
   if (isPremium) return Infinity;
 
+  // Verificar si el cache ha sido invalidado
+  const invalidated = localStorage.getItem(CONFIG_INVALIDATION_KEY);
+  if (invalidated) {
+    // Cache invalidado, usar fallback y limpiar la marca
+    localStorage.removeItem(CONFIG_INVALIDATION_KEY);
+    const access = getAccess();
+    return Math.max(0, DAILY_LIMIT - access.count);
+  }
+
   try {
     const cached = localStorage.getItem(CONFIG_STORAGE_KEY);
     if (cached) {
@@ -166,6 +176,14 @@ export function getEpisodesWatchedToday(): number {
 
 /** Obtener límite diario actual (versión síncrona con cache) */
 export function getCurrentDailyLimit(): number {
+  // Verificar si el cache ha sido invalidado
+  const invalidated = localStorage.getItem(CONFIG_INVALIDATION_KEY);
+  if (invalidated) {
+    // Cache invalidado, usar fallback y limpiar la marca
+    localStorage.removeItem(CONFIG_INVALIDATION_KEY);
+    return DAILY_LIMIT;
+  }
+
   try {
     const cached = localStorage.getItem(CONFIG_STORAGE_KEY);
     if (cached) {
