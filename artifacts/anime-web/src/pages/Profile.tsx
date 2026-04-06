@@ -7,9 +7,10 @@ import {
   Tv2, Heart, TrendingUp, Crown, Shield, Clock,
   Flame, CheckCircle2, BarChart2, BookOpen, Share2,
 } from "lucide-react";
-import { DAILY_LIMIT, getRemainingEpisodes, getEpisodesWatchedToday } from "@/lib/accessControl";
+import { getRemainingEpisodes, getEpisodesWatchedToday } from "@/lib/accessControl";
 import { apiClient } from "@/lib/apiClient";
 import { resolveAvatarUrl } from "@/lib/utils";
+import { useLimitsConfig } from "@/hooks/use-limits-config";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -43,6 +44,7 @@ const COLORS_BAR = ["#6C63FF", "#7C73FF", "#8C83FF", "#9C93FF", "#A78BFA", "#B7A
 export default function Profile() {
   const { user, isMegaFan, isOwner } = useAuth();
   const [, navigate] = useLocation();
+  const { config: limitsConfig } = useLimitsConfig();
 
   const [stats, setStats] = useState<UserStats | null>(null);
   const [favorites, setFavorites] = useState<AnimeItem[]>([]);
@@ -237,13 +239,13 @@ export default function Profile() {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>Episodios gratis hoy</div>
-              <div style={{ color: "#A78BFA", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{DAILY_LIMIT}</div>
+              <div style={{ color: "#A78BFA", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{limitsConfig.dailyLimit}</div>
             </div>
             <div style={{ height: 7, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
               <div style={{
                 height: "100%", borderRadius: 99,
-                width: `${Math.min(100, (watchedToday / DAILY_LIMIT) * 100)}%`,
-                background: watchedToday >= DAILY_LIMIT
+                width: `${Math.min(100, (watchedToday / limitsConfig.dailyLimit) * 100)}%`,
+                background: watchedToday >= limitsConfig.dailyLimit
                   ? "linear-gradient(90deg,#EF4444,#F87171)"
                   : "linear-gradient(90deg,#6C63FF,#A78BFA)",
                 transition: "width 0.4s",

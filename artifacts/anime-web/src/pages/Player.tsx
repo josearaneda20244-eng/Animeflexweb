@@ -18,6 +18,7 @@ import {
 import { useWatchProgress } from "@/context/WatchProgressContext";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
+import { useLimitsConfig } from "@/hooks/use-limits-config";
 import {
   canWatchEpisode,
   registerEpisodeView,
@@ -538,7 +539,8 @@ export default function Player() {
   const savedProgress = getProgress(episodeId);
   const startAt = savedProgress?.currentTime;
 
-  // Fetch full episodes list to correctly compute next/next-next episode at all times
+  const { user, isMegaFan } = useAuth();
+  const { config: limitsConfig } = useLimitsConfig();
   const episodesQuery = useQuery({
     queryKey: ["animeEpisodesById", animeId],
     queryFn: () => consumet.episodesById(animeId),
@@ -593,7 +595,6 @@ export default function Player() {
   }, []);
 
   // ── Access control ─────────────────────────────────────────────────────────
-  const { isMegaFan, user } = useAuth();
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [serverRemaining, setServerRemaining] = useState<number | null>(null);
   const episodeRegisteredRef = useRef(false);
@@ -932,10 +933,10 @@ export default function Player() {
                 }}>😢</div>
                 <div>
                   <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900, marginBottom: 8, lineHeight: 1.2 }}>
-                    Has alcanzado el límite diario
+                    {limitsConfig.limitMessage.split('.')[0] || "Has alcanzado el límite diario"}
                   </div>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.5, maxWidth: 320 }}>
-                    Solo puedes ver <strong style={{ color: "#A78BFA" }}>5 episodios por día</strong> con la cuenta gratuita.
+                    Solo puedes ver <strong style={{ color: "#A78BFA" }}>{limitsConfig.dailyLimit} episodios por día</strong> con la cuenta gratuita.
                     <br />El límite se reinicia automáticamente cada día.
                   </div>
                 </div>
@@ -946,7 +947,7 @@ export default function Player() {
                   color: "#fff", fontSize: 16, fontWeight: 900,
                   textDecoration: "none", boxShadow: "0 8px 32px rgba(108,99,255,0.35)",
                 }}>
-                  👑 Hazte Megafan — Ver sin límites
+                  👑 {limitsConfig.megafanMessage}
                 </Link>
                 <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, lineHeight: 1.5 }}>
                   Acceso ilimitado · Sin interrupciones · Mejor calidad

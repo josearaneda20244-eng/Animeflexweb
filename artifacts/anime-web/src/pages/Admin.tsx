@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
+import { useLimitsConfig } from "@/hooks/use-limits-config";
 import {
   LayoutDashboard, Users, Shield, Settings, Film,
   TrendingUp, Crown, Eye, EyeOff, Star, Ban,
@@ -963,7 +964,13 @@ function MonetizationSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
 
   const save = async (patch: Record<string, string>) => {
     setSaving(true);
-    try { await apiClient.put("/admin/config", patch); setConfig(prev => ({ ...prev, ...patch })); toast("Guardado", "ok"); }
+    try {
+      await apiClient.put("/admin/config", patch);
+      setConfig(prev => ({ ...prev, ...patch }));
+      // Refresh global config cache for all users
+      await refreshConfig();
+      toast("Guardado", "ok");
+    }
     catch { toast("Error al guardar", "err"); }
     finally { setSaving(false); }
   };
@@ -1218,7 +1225,13 @@ function ConfigSection({ toast }: { toast: (m: string, t: "ok" | "err") => void 
 
   const save = async (patch: Record<string, string>) => {
     setSaving(true);
-    try { await apiClient.put("/admin/config", patch); setConfig(prev => ({ ...prev, ...patch })); toast("Guardado", "ok"); }
+    try {
+      await apiClient.put("/admin/config", patch);
+      setConfig(prev => ({ ...prev, ...patch }));
+      // Refresh global config cache for all users
+      await refreshConfig();
+      toast("Guardado", "ok");
+    }
     catch { toast("Error al guardar", "err"); }
     finally { setSaving(false); }
   };
@@ -1651,6 +1664,7 @@ const NAV: { key: Section; label: string; icon: React.ReactNode }[] = [
 export default function Admin() {
   const { user, isOwner, loading } = useAuth();
   const [, navigate] = useLocation();
+  const { refreshConfig } = useLimitsConfig();
   const [section, setSection] = useState<Section>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);

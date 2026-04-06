@@ -145,3 +145,46 @@ CREATE TABLE IF NOT EXISTS search_logs (
   count INTEGER NOT NULL DEFAULT 1,
   last_searched TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- ========== MEMBERSHIP & PAYPAL TABLES ==========
+
+-- Promo codes for membership discounts
+CREATE TABLE IF NOT EXISTS promo_codes (
+  code VARCHAR(50) PRIMARY KEY,
+  discount_percent INTEGER NOT NULL DEFAULT 0 CHECK (discount_percent >= 0 AND discount_percent <= 100),
+  max_uses INTEGER,
+  uses_count INTEGER NOT NULL DEFAULT 0,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Pending PayPal orders (before capture)
+CREATE TABLE IF NOT EXISTS paypal_pending_orders (
+  order_id VARCHAR(100) PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  plan VARCHAR(20) NOT NULL CHECK (plan IN ('monthly', 'annual')),
+  promo_code VARCHAR(50),
+  expected_usd NUMERIC(10, 2) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(order_id)
+);
+
+-- Completed PayPal transactions (audit log)
+CREATE TABLE IF NOT EXISTS paypal_transactions (
+  order_id VARCHAR(100) PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount_usd NUMERIC(10, 2) NOT NULL,
+  plan VARCHAR(20) NOT NULL CHECK (plan IN ('monthly', 'annual')),
+  promo_code VARCHAR(50),
+  status VARCHAR(50) NOT NULL DEFAULT 'completed' CHECK (status IN ('completed', 'failed', 'refunded')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(order_id)
+);
+
+-- Create indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_paypal_pending_orders_user_id ON paypal_pending_orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_paypal_pending_orders_created_at ON paypal_pending_orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_paypal_transactions_user_id ON paypal_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_paypal_transactions_created_at ON paypal_transactions(created_at);
+CREATE INDEX IF NOT EXISTS idx_promo_codes_active ON promo_codes(active, expires_at);

@@ -1,7 +1,8 @@
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "wouter";
 import { Crown, Tv2 } from "lucide-react";
-import { getRemainingEpisodes, canWatchEpisode } from "@/lib/accessControl";
+import { getRemainingEpisodes, canWatchEpisodeSync, getCurrentDailyLimit } from "@/lib/accessControl";
+import { useLimitsConfig } from "@/hooks/use-limits-config";
 
 interface EpisodeCounterProps {
   variant?: "horizontal" | "square";
@@ -18,12 +19,14 @@ interface EpisodeCounterProps {
  */
 export default function AdBanner({ variant = "horizontal", className }: EpisodeCounterProps) {
   const { isMegaFan } = useAuth();
+  const { config: limitsConfig } = useLimitsConfig();
 
   // MegaFan no ve nada — experiencia limpia total
   if (isMegaFan) return null;
 
   const remaining = getRemainingEpisodes(false);
-  const canWatch = canWatchEpisode(false);
+  const currentLimit = getCurrentDailyLimit();
+  const canWatch = canWatchEpisodeSync(false);
 
   if (!canWatch) {
     // Límite alcanzado — CTA de conversión
@@ -44,10 +47,10 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, marginBottom: 3 }}>
-            Límite diario alcanzado 😢
+            {limitsConfig.limitMessage.split('.')[0] || "Límite diario alcanzado"} 😢
           </div>
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-            Hazte MegaFan y ve sin límites, sin interrupciones.
+            {limitsConfig.megafanMessage}
           </div>
         </div>
         <Link href="/membership" style={{ textDecoration: "none", flexShrink: 0 }}>
@@ -57,7 +60,7 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
             borderRadius: 10, padding: "9px 14px",
             color: "#fff", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap",
           }}>
-            <Crown size={12} /> Hazte MegaFan
+            <Crown size={12} /> {limitsConfig.megafanMessage.split(' ')[0] || "Hazte MegaFan"}
           </div>
         </Link>
       </div>
@@ -78,7 +81,7 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
         <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
           Te {remaining === 1 ? "queda" : "quedan"}{" "}
           <span style={{ color: "#A78BFA", fontWeight: 800 }}>{remaining} episodio{remaining !== 1 ? "s" : ""}</span>{" "}
-          gratis hoy
+          gratis hoy (de {currentLimit})
         </span>
       </div>
       <Link href="/membership" style={{ textDecoration: "none", flexShrink: 0 }}>
