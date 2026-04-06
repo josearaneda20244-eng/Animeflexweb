@@ -27,6 +27,7 @@ const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
   import { NotificationsProvider } from "@/context/NotificationsContext";
   import { WatchListProvider } from "@/context/WatchListContext";
   import { AuthProvider } from "@/context/AuthContext";
+  import { NotificationProvider } from "@/components/NotificationManager";
   import ScrollToTop from "@/components/ScrollToTop";
   import AdScript from "@/components/AdScript";
   import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -136,7 +137,7 @@ const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AdScript />
-          <NotificationsProvider>
+          <NotificationProvider>
             <WatchProgressProvider>
               <WatchListProvider>
                 <FavoritesProvider>
@@ -148,7 +149,7 @@ const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
                 </FavoritesProvider>
               </WatchListProvider>
             </WatchProgressProvider>
-          </NotificationsProvider>
+          </NotificationProvider>
         </AuthProvider>
       </QueryClientProvider>
     );

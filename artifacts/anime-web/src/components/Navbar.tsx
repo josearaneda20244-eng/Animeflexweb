@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useWatchList } from "@/context/WatchListContext";
 import { useHistory } from "@/context/HistoryContext";
+import { NotificationManager } from "@/components/NotificationManager";
 import AuthModal from "@/components/AuthModal";
 import { resolveAvatarUrl } from "@/lib/utils";
 
@@ -101,7 +102,6 @@ export default function Navbar() {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (notifsRef.current && !notifsRef.current.contains(e.target as Node)) setShowNotifs(false);
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowSuggestions(false);
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false);
@@ -297,76 +297,7 @@ export default function Navbar() {
                 </button>
 
                 {/* Notifications */}
-                <div ref={notifsRef} style={{ position: "relative" }}>
-                  <button
-                    onClick={() => { setShowNotifs((v) => !v); if (!showNotifs) markAllRead(); }}
-                    style={{ position: "relative", padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex" }}
-                  >
-                    <Bell size={17} color="rgba(255,255,255,0.65)" />
-                    {unreadCount > 0 && (
-                      <span style={{
-                        position: "absolute", top: 4, right: 4, width: 14, height: 14,
-                        background: "#EF4444", borderRadius: "50%", border: "2px solid #090A12",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: "#fff", fontSize: 8, fontWeight: 900,
-                      }}>{unreadCount > 9 ? "9+" : unreadCount}</span>
-                    )}
-                  </button>
-
-                  {showNotifs && (
-                    <div style={{
-                      position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
-                      background: "#13131C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
-                      padding: 0, width: 320, boxShadow: "0 16px 40px rgba(0,0,0,0.6)",
-                      maxHeight: 400, overflow: "hidden", display: "flex", flexDirection: "column",
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                        <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Notificaciones</span>
-                        {notifications.length > 0 && (
-                          <button onClick={clearAll} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", fontSize: 12, cursor: "pointer" }}>Limpiar todo</button>
-                        )}
-                      </div>
-                      <div style={{ overflowY: "auto", flex: 1 }}>
-                        {notifications.length === 0 ? (
-                          <div style={{ padding: "32px 16px", textAlign: "center" }}>
-                            <Bell size={28} color="rgba(255,255,255,0.15)" style={{ margin: "0 auto 8px" }} />
-                            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>Sin notificaciones</div>
-                          </div>
-                        ) : (
-                          notifications.slice(0, 20).map((n) => (
-                            <div
-                              key={n.id}
-                              onClick={() => { if (n.animeId) navigate(`/anime/${n.animeId}`); setShowNotifs(false); }}
-                              style={{
-                                display: "flex", alignItems: "flex-start", gap: 10, padding: "12px 16px",
-                                borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: n.animeId ? "pointer" : "default",
-                                background: n.read ? "transparent" : "rgba(108,99,255,0.06)",
-                              }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
-                              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = n.read ? "transparent" : "rgba(108,99,255,0.06)"; }}
-                            >
-                              {n.animeImage ? (
-                                <img src={n.animeImage} alt="" style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                              ) : (
-                                <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(108,99,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                  <Bell size={16} color="#6C63FF" />
-                                </div>
-                              )}
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700, marginBottom: 2 }} className="line-clamp-1">{n.title}</div>
-                                <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }} className="line-clamp-2">{n.message}</div>
-                                <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, marginTop: 4 }}>
-                                  {new Date(n.timestamp).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
-                                </div>
-                              </div>
-                              {!n.read && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#6C63FF", flexShrink: 0, marginTop: 4 }} />}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <NotificationManager />
 
                 {/* Auth button / user avatar */}
                 {user ? (

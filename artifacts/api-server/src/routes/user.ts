@@ -200,6 +200,358 @@ publicUserRouter.post("/config/limits/refresh", async (req, res) => {
   }
 });
 
+/* ── GET /users/:id/recommendations ── Public: get personalized recommendations ── */
+publicUserRouter.get("/users/:id/recommendations", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+
+    // Obtener géneros favoritos del usuario basado en su historial
+    const genreQuery = await pool.query(`
+      SELECT g.genre, COUNT(*) as count
+      FROM user_history uh
+      JOIN anime_genres g ON uh.anime_id = g.anime_id
+      WHERE uh.user_id = $1
+      GROUP BY g.genre
+      ORDER BY count DESC
+      LIMIT 5
+    `, [targetId]);
+
+    const favoriteGenres = genreQuery.rows.map(row => row.genre);
+
+    // Obtener animes similares basados en géneros
+    let recommendations = [];
+    if (favoriteGenres.length > 0) {
+      const genreCondition = favoriteGenres.map((_, i) => `genre = $${i + 2}`).join(' OR ');
+      const animeQuery = await pool.query(`
+        SELECT DISTINCT a.id, a.title, a.image, a.rating, a.total_episodes,
+               a.release_date, a.status, a.type,
+               ROUND(AVG(g.score) OVER (PARTITION BY a.id), 1) as avg_score
+        FROM anime a
+        JOIN anime_genres g ON a.id = g.anime_id
+        WHERE (${genreCondition})
+        AND a.id NOT IN (
+          SELECT anime_id FROM user_history WHERE user_id = $1
+          UNION
+          SELECT anime_id FROM user_watchlist WHERE user_id = $1
+        )
+        AND a.status IN ('ongoing', 'completed')
+        ORDER BY a.rating DESC, a.release_date DESC
+        LIMIT 20
+      `, [targetId, ...favoriteGenres]);
+
+      recommendations = animeQuery.rows.map(row => ({
+        anime_id: row.id,
+        title: row.title,
+        image: row.image,
+        score: row.rating || row.avg_score || 0,
+        reason: `Basado en tus géneros favoritos: ${favoriteGenres.slice(0, 2).join(', ')}`,
+        genres: favoriteGenres.slice(0, 3),
+        status: row.status,
+        total_episodes: row.total_episodes
+      }));
+    }
+
+    // Si no hay suficientes recomendaciones, agregar trending
+    if (recommendations.length < 12) {
+      const trendingQuery = await pool.query(`
+        SELECT a.id, a.title, a.image, a.rating, a.total_episodes,
+               a.release_date, a.status, a.type
+        FROM anime a
+        WHERE a.status = 'ongoing'
+        AND a.rating > 7
+        AND a.id NOT IN (
+          SELECT anime_id FROM user_history WHERE user_id = $1
+          UNION
+          SELECT anime_id FROM user_watchlist WHERE user_id = $1
+        )
+        ORDER BY a.rating DESC, a.release_date DESC
+        LIMIT 12
+      `, [targetId]);
+
+      const trendingRecommendations = trendingQuery.rows.map(row => ({
+        anime_id: row.id,
+        title: row.title,
+        image: row.image,
+        score: row.rating || 0,
+        reason: "Tendencia popular",
+        genres: [],
+        status: row.status,
+        total_episodes: row.total_episodes
+      }));
+
+      recommendations = [...recommendations, ...trendingRecommendations];
+    }
+
+    // Remover duplicados y limitar a 12
+    const uniqueRecommendations = recommendations
+      .filter((rec, index, self) =>
+        index === self.findIndex(r => r.anime_id === rec.anime_id)
+      )
+      .slice(0, 12);
+
+    res.json(uniqueRecommendations);
+  } catch (err) {
+    console.error("Error getting recommendations:", err);
+    res.status(500).json({ error: "Error al obtener recomendaciones" });
+  }
+});
+
+/* ── GET /anime/trending ── Public: get trending/popular anime ── */
+publicUserRouter.get("/anime/trending", async (req, res) => {
+  try {
+    const trendingQuery = await pool.query(`
+      SELECT a.id, a.title, a.image, a.rating, a.total_episodes,
+             a.release_date, a.status, a.type
+      FROM anime a
+      WHERE a.status IN ('ongoing', 'completed')
+      AND a.rating > 6
+      ORDER BY a.rating DESC, a.release_date DESC
+      LIMIT 20
+    `);
+
+    const recommendations = trendingQuery.rows.map(row => ({
+      anime_id: row.id,
+      title: row.title,
+      image: row.image,
+      score: row.rating || 0,
+      reason: "Tendencia popular",
+      genres: [],
+      status: row.status,
+      total_episodes: row.total_episodes
+    }));
+
+    res.json(recommendations);
+  } catch (err) {
+    console.error("Error getting trending anime:", err);
+    res.status(500).json({ error: "Error al obtener tendencias" });
+  }
+});
+
+/* ── GET /anime/:id/similar ── Public: get similar anime ── */
+publicUserRouter.get("/anime/:id/similar", async (req, res) => {
+  try {
+    const animeId = req.params.id;
+
+    // Obtener géneros del anime
+    const genreQuery = await pool.query(`
+      SELECT genre FROM anime_genres WHERE anime_id = $1
+    `, [animeId]);
+
+    const genres = genreQuery.rows.map(row => row.genre);
+
+    if (genres.length === 0) {
+      return res.json([]);
+    }
+
+    // Encontrar animes similares
+    const genreCondition = genres.map((_, i) => `genre = $${i + 2}`).join(' OR ');
+    const similarQuery = await pool.query(`
+      SELECT DISTINCT a.id, a.title, a.image, a.rating, a.total_episodes,
+             a.release_date, a.status, a.type
+      FROM anime a
+      JOIN anime_genres g ON a.id = g.anime_id
+      WHERE (${genreCondition})
+      AND a.id != $1
+      AND a.status IN ('ongoing', 'completed')
+      ORDER BY a.rating DESC
+      LIMIT 12
+    `, [animeId, ...genres]);
+
+    const recommendations = similarQuery.rows.map(row => ({
+      anime_id: row.id,
+      title: row.title,
+      image: row.image,
+      score: row.rating || 0,
+      reason: `Similar a este anime`,
+      genres: genres.slice(0, 3),
+      status: row.status,
+      total_episodes: row.total_episodes
+    }));
+
+    res.json(recommendations);
+  } catch (err) {
+    console.error("Error getting similar anime:", err);
+    res.status(500).json({ error: "Error al obtener animes similares" });
+  }
+});
+
+/* ── GET /users/:id/notifications ── Auth required: get user notifications ── */
+publicUserRouter.get("/users/:id/notifications", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+
+    // Verificar que el usuario solo acceda a sus propias notificaciones
+    const authUserId = req.user?.id;
+    if (authUserId && authUserId !== targetId) {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
+    const notificationsQuery = await pool.query(`
+      SELECT id, type, title, message, timestamp, read, action_url, action_text
+      FROM user_notifications
+      WHERE user_id = $1
+      ORDER BY timestamp DESC
+      LIMIT 50
+    `, [targetId]);
+
+    const notifications = notificationsQuery.rows.map(row => ({
+      id: row.id.toString(),
+      type: row.type,
+      title: row.title,
+      message: row.message,
+      timestamp: row.timestamp,
+      read: row.read,
+      actionUrl: row.action_url,
+      actionText: row.action_text
+    }));
+
+    res.json(notifications);
+  } catch (err) {
+    console.error("Error getting notifications:", err);
+    res.status(500).json({ error: "Error al obtener notificaciones" });
+  }
+});
+
+/* ── POST /users/:id/notifications ── Auth required: create notification ── */
+publicUserRouter.post("/users/:id/notifications", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+
+    const { type, title, message, actionUrl, actionText } = req.body;
+
+    if (!type || !title || !message) {
+      return res.status(400).json({ error: "Tipo, título y mensaje son requeridos" });
+    }
+
+    const insertQuery = await pool.query(`
+      INSERT INTO user_notifications (user_id, type, title, message, action_url, action_text, timestamp, read)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW(), false)
+      RETURNING id, type, title, message, timestamp, read, action_url, action_text
+    `, [targetId, type, title, message, actionUrl || null, actionText || null]);
+
+    const notification = {
+      id: insertQuery.rows[0].id.toString(),
+      type: insertQuery.rows[0].type,
+      title: insertQuery.rows[0].title,
+      message: insertQuery.rows[0].message,
+      timestamp: insertQuery.rows[0].timestamp,
+      read: insertQuery.rows[0].read,
+      actionUrl: insertQuery.rows[0].action_url,
+      actionText: insertQuery.rows[0].action_text
+    };
+
+    res.status(201).json(notification);
+  } catch (err) {
+    console.error("Error creating notification:", err);
+    res.status(500).json({ error: "Error al crear notificación" });
+  }
+});
+
+/* ── PATCH /users/:id/notifications/:notificationId/read ── Auth required: mark notification as read ── */
+publicUserRouter.patch("/users/:id/notifications/:notificationId/read", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    const notificationId = req.params.notificationId;
+
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID de usuario inválido" }); return; }
+
+    // Verificar que el usuario solo acceda a sus propias notificaciones
+    const authUserId = req.user?.id;
+    if (authUserId && authUserId !== targetId) {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
+    await pool.query(`
+      UPDATE user_notifications
+      SET read = true
+      WHERE id = $1 AND user_id = $2
+    `, [notificationId, targetId]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error marking notification as read:", err);
+    res.status(500).json({ error: "Error al marcar notificación como leída" });
+  }
+});
+
+/* ── PATCH /users/:id/notifications/read-all ── Auth required: mark all notifications as read ── */
+publicUserRouter.patch("/users/:id/notifications/read-all", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+
+    // Verificar que el usuario solo acceda a sus propias notificaciones
+    const authUserId = req.user?.id;
+    if (authUserId && authUserId !== targetId) {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
+    await pool.query(`
+      UPDATE user_notifications
+      SET read = true
+      WHERE user_id = $1 AND read = false
+    `, [targetId]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error marking all notifications as read:", err);
+    res.status(500).json({ error: "Error al marcar todas las notificaciones como leídas" });
+  }
+});
+
+/* ── DELETE /users/:id/notifications/:notificationId ── Auth required: delete notification ── */
+publicUserRouter.delete("/users/:id/notifications/:notificationId", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    const notificationId = req.params.notificationId;
+
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID de usuario inválido" }); return; }
+
+    // Verificar que el usuario solo acceda a sus propias notificaciones
+    const authUserId = req.user?.id;
+    if (authUserId && authUserId !== targetId) {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
+    await pool.query(`
+      DELETE FROM user_notifications
+      WHERE id = $1 AND user_id = $2
+    `, [notificationId, targetId]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting notification:", err);
+    res.status(500).json({ error: "Error al eliminar notificación" });
+  }
+});
+
+/* ── DELETE /users/:id/notifications ── Auth required: delete all notifications ── */
+publicUserRouter.delete("/users/:id/notifications", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id as string, 10);
+    if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
+
+    // Verificar que el usuario solo acceda a sus propias notificaciones
+    const authUserId = req.user?.id;
+    if (authUserId && authUserId !== targetId) {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
+    await pool.query(`
+      DELETE FROM user_notifications
+      WHERE user_id = $1
+    `, [targetId]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting all notifications:", err);
+    res.status(500).json({ error: "Error al eliminar todas las notificaciones" });
+  }
+});
+
 /* ── PRIVATE ROUTER (auth required) ── */
 const router = Router();
 router.use(requireAuth);

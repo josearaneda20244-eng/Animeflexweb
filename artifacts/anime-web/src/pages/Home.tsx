@@ -4,6 +4,8 @@ import { Play, Info, Star, ChevronLeft, ChevronRight, Tv } from "lucide-react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { fetchAiringSchedule, fetchSeasonalAnime, getCurrentSeason, seasonLabel, type AiringEntry, type SeasonAnime } from "@/lib/anilist";
 import { useWatchProgress } from "@/context/WatchProgressContext";
+import { useAuth } from "@/context/AuthContext";
+import AnimeRecommendations from "@/components/AnimeRecommendations";
 import { useCallback, useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -345,6 +347,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const [heroIdx, setHeroIdx] = useState(0);
   const { progress: watchProgress } = useWatchProgress();
+  const { user } = useAuth();
 
   const trending = useQuery({ queryKey: ["trending"], queryFn: consumet.trending, staleTime: 1000 * 60 * 10 });
   const popular = useQuery({ queryKey: ["popular"], queryFn: consumet.popular, staleTime: 1000 * 60 * 10 });
@@ -418,6 +421,28 @@ export default function Home() {
             {popular.isLoading ? Array.from({ length: 6 }).map((_, i) => <SkeletonP key={i} />) : popularList.slice(0, 12).map((a) => <PortraitCard key={`p-${a.id}`} anime={a} />)}
           </div>
         </div>
+
+        {/* Recomendaciones personalizadas */}
+        {user && (
+          <div style={{ marginTop: 28, padding: "0 16px" }}>
+            <AnimeRecommendations
+              userId={user.id}
+              type="personal"
+              limit={12}
+            />
+          </div>
+        )}
+
+        {/* Recomendaciones trending para usuarios no autenticados */}
+        {!user && (
+          <div style={{ marginTop: 28, padding: "0 16px" }}>
+            <AnimeRecommendations
+              type="trending"
+              title="Tendencias Populares"
+              limit={12}
+            />
+          </div>
+        )}
 
         <ScheduleSection />
 

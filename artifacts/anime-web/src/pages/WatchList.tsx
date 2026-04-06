@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Play, CheckCircle2, Clock3, XCircle, Trash2 } from "lucide-react";
-import { resolveTitle } from "@/lib/consumet";
+import { Play, CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { useWatchList, type WatchStatus } from "@/context/WatchListContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import DraggableWatchlist from "@/components/DraggableWatchlist";
 
 const TABS: { value: WatchStatus; label: string; icon: React.ReactNode; color: string }[] = [
   { value: "watching", label: "Viendo", icon: <Play size={14} fill="currentColor" />, color: "#6C63FF" },
@@ -18,8 +18,35 @@ export default function WatchList() {
   const [activeTab, setActiveTab] = useState<WatchStatus>("watching");
   const { getByStatus, setStatus } = useWatchList();
 
-  const items = getByStatus(activeTab);
   const currentTab = TABS.find((t) => t.value === activeTab)!;
+
+  const handleStatusChange = (animeId: string, newStatus: WatchStatus) => {
+    // Buscar el anime en todas las listas para cambiar su estado
+    const allItems = [
+      ...getByStatus("watching"),
+      ...getByStatus("completed"),
+      ...getByStatus("plan_to_watch"),
+      ...getByStatus("dropped")
+    ];
+    const anime = allItems.find(item => item.anime.id === animeId)?.anime;
+    if (anime) {
+      setStatus(anime, newStatus);
+    }
+  };
+
+  const handleRemove = (animeId: string) => {
+    // Buscar el anime en todas las listas para removerlo
+    const allItems = [
+      ...getByStatus("watching"),
+      ...getByStatus("completed"),
+      ...getByStatus("plan_to_watch"),
+      ...getByStatus("dropped")
+    ];
+    const anime = allItems.find(item => item.anime.id === animeId)?.anime;
+    if (anime) {
+      setStatus(anime, null);
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#090A12" }}>
@@ -66,9 +93,17 @@ export default function WatchList() {
           })}
         </div>
 
-        {/* Grid */}
-        {items.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80, gap: 12 }}>
+        {/* Draggable Watchlist */}
+        <DraggableWatchlist
+          status={activeTab}
+          onStatusChange={handleStatusChange}
+          onRemove={handleRemove}
+          className="max-w-4xl mx-auto"
+        />
+
+        {/* Empty State Alternative */}
+        {getByStatus(activeTab).length === 0 && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 40, gap: 12 }}>
             <div style={{ opacity: 0.15, color: currentTab.color, fontSize: 64 }}>
               {currentTab.icon}
             </div>
@@ -90,69 +125,6 @@ export default function WatchList() {
             >
               Explorar anime
             </button>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 14 }}>
-            {items.map(({ anime }) => {
-              const title = resolveTitle(anime.title);
-              return (
-                <div key={anime.id} style={{ position: "relative" }}>
-                  <div
-                    onClick={() => navigate(`/anime/${anime.id}`)}
-                    style={{
-                      borderRadius: 14, overflow: "hidden", background: "#13131C",
-                      border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer",
-                      aspectRatio: "2/3", transition: "transform 0.18s, box-shadow 0.18s",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)";
-                      (e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 28px rgba(108,99,255,0.28)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.transform = "";
-                      (e.currentTarget as HTMLDivElement).style.boxShadow = "";
-                    }}
-                  >
-                    <img
-                      src={anime.image}
-                      alt={title}
-                      loading="lazy"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 50%, rgba(9,10,18,0.97) 100%)" }} />
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 10 }}>
-                      <div style={{ color: "#fff", fontSize: 11, fontWeight: 700, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as any}>
-                        {title}
-                      </div>
-                    </div>
-                    <div style={{
-                      position: "absolute", top: 8, left: 8,
-                      background: currentTab.color + "cc",
-                      borderRadius: 6, padding: "3px 6px",
-                      display: "flex", alignItems: "center", gap: 4,
-                      color: "#fff", fontSize: 9, fontWeight: 800,
-                    }}>
-                      {currentTab.icon}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setStatus(anime, null)}
-                    title="Quitar de la lista"
-                    style={{
-                      position: "absolute", top: 6, right: 6,
-                      background: "rgba(0,0,0,0.7)", border: "none",
-                      borderRadius: 8, padding: 5, cursor: "pointer",
-                      display: "flex", alignItems: "center",
-                      opacity: 0, transition: "opacity 0.15s",
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.8)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,0,0,0.7)"; }}
-                  >
-                    <Trash2 size={12} color="#fff" />
-                  </button>
-                </div>
-              );
-            })}
           </div>
         )}
       </div>

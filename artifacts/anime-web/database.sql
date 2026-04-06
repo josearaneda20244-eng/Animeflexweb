@@ -188,3 +188,49 @@ CREATE INDEX IF NOT EXISTS idx_paypal_pending_orders_created_at ON paypal_pendin
 CREATE INDEX IF NOT EXISTS idx_paypal_transactions_user_id ON paypal_transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_paypal_transactions_created_at ON paypal_transactions(created_at);
 CREATE INDEX IF NOT EXISTS idx_promo_codes_active ON promo_codes(active, expires_at);
+
+-- ========== ANIME & RECOMMENDATIONS TABLES ==========
+
+-- Anime table for recommendations system
+CREATE TABLE IF NOT EXISTS anime (
+  id VARCHAR(200) PRIMARY KEY,
+  title TEXT NOT NULL,
+  image TEXT,
+  rating DECIMAL(3,1),
+  total_episodes INTEGER,
+  release_date DATE,
+  status VARCHAR(20) DEFAULT 'unknown',
+  type VARCHAR(20),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Anime genres for recommendations
+CREATE TABLE IF NOT EXISTS anime_genres (
+  anime_id VARCHAR(200) REFERENCES anime(id) ON DELETE CASCADE,
+  genre VARCHAR(50) NOT NULL,
+  PRIMARY KEY (anime_id, genre)
+);
+
+-- User notifications system
+CREATE TABLE IF NOT EXISTS user_notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  type VARCHAR(20) NOT NULL CHECK (type IN ('info', 'success', 'warning', 'error')),
+  title VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  read BOOLEAN DEFAULT FALSE,
+  action_url TEXT,
+  action_text VARCHAR(100)
+);
+
+-- Create indexes for notifications
+CREATE INDEX IF NOT EXISTS idx_user_notifications_user_id ON user_notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_notifications_read ON user_notifications(read);
+CREATE INDEX IF NOT EXISTS idx_user_notifications_timestamp ON user_notifications(timestamp DESC);
+
+-- Create indexes for anime recommendations
+CREATE INDEX IF NOT EXISTS idx_anime_status ON anime(status);
+CREATE INDEX IF NOT EXISTS idx_anime_rating ON anime(rating DESC);
+CREATE INDEX IF NOT EXISTS idx_anime_release_date ON anime(release_date DESC);
+CREATE INDEX IF NOT EXISTS idx_anime_genres_genre ON anime_genres(genre);
