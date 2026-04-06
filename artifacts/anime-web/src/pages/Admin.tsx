@@ -940,7 +940,7 @@ interface PromoCode {
 }
 
 /* ── Monetization Section ── */
-function MonetizationSection({ toast }: { toast: (m: string, t: "ok" | "err") => void }) {
+function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "ok" | "err") => void; refreshConfig: () => Promise<void> }) {
   const [config, setConfig]       = useState<Record<string, string>>({});
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
@@ -1211,7 +1211,7 @@ function MonetizationSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
 }
 
 /* ── Config Section ── */
-function ConfigSection({ toast }: { toast: (m: string, t: "ok" | "err") => void }) {
+function ConfigSection({ toast, refreshConfig }: { toast: (m: string, t: "ok" | "err") => void; refreshConfig: () => Promise<void> }) {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1753,10 +1753,10 @@ export default function Admin() {
           {section === "users"        && <UsersSection toast={showToast} confirm={showConfirm} />}
           {section === "content"      && <ContentSection toast={showToast} confirm={showConfirm} />}
           {section === "comments"     && <CommentsSection toast={showToast} confirm={showConfirm} />}
-          {section === "monetization" && <MonetizationSection toast={showToast} />}
+          {section === "monetization" && <MonetizationSection toast={showToast} refreshConfig={refreshConfig} />}
           {section === "transactions" && <TransactionsSection toast={showToast} />}
           {section === "emails"       && <EmailsSection toast={showToast} confirm={showConfirm} />}
-          {section === "config"       && <ConfigSection toast={showToast} />}
+          {section === "config"       && <ConfigSection toast={showToast} refreshConfig={refreshConfig} />}
         </div>
       </div>
 
