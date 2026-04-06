@@ -220,7 +220,10 @@ publicUserRouter.get("/users/:id/recommendations", async (req, res) => {
     const favoriteGenres = genreQuery.rows.map(row => row.genre);
 
     // Obtener animes similares basados en géneros
-    let recommendations = [];
+    let recommendations: Array<{
+      anime_id: string; title: string; image: string; score: number;
+      reason: string; genres: string[]; status: string; total_episodes: number;
+    }> = [];
     if (favoriteGenres.length > 0) {
       const genreCondition = favoriteGenres.map((_, i) => `genre = $${i + 2}`).join(' OR ');
       const animeQuery = await pool.query(`
@@ -341,7 +344,8 @@ publicUserRouter.get("/anime/:id/similar", async (req, res) => {
     const genres = genreQuery.rows.map(row => row.genre);
 
     if (genres.length === 0) {
-      return res.json([]);
+      res.json([]);
+      return;
     }
 
     // Encontrar animes similares
@@ -383,9 +387,10 @@ publicUserRouter.get("/users/:id/notifications", async (req, res) => {
     if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
 
     // Verificar que el usuario solo acceda a sus propias notificaciones
-    const authUserId = req.user?.id;
+    const authUserId = (req as AuthRequest).userId;
     if (authUserId && authUserId !== targetId) {
-      return res.status(403).json({ error: "No autorizado" });
+      res.status(403).json({ error: "No autorizado" });
+      return;
     }
 
     const notificationsQuery = await pool.query(`
@@ -423,7 +428,8 @@ publicUserRouter.post("/users/:id/notifications", async (req, res) => {
     const { type, title, message, actionUrl, actionText } = req.body;
 
     if (!type || !title || !message) {
-      return res.status(400).json({ error: "Tipo, título y mensaje son requeridos" });
+      res.status(400).json({ error: "Tipo, título y mensaje son requeridos" });
+      return;
     }
 
     const insertQuery = await pool.query(`
@@ -459,9 +465,10 @@ publicUserRouter.patch("/users/:id/notifications/:notificationId/read", async (r
     if (isNaN(targetId)) { res.status(400).json({ error: "ID de usuario inválido" }); return; }
 
     // Verificar que el usuario solo acceda a sus propias notificaciones
-    const authUserId = req.user?.id;
+    const authUserId = (req as AuthRequest).userId;
     if (authUserId && authUserId !== targetId) {
-      return res.status(403).json({ error: "No autorizado" });
+      res.status(403).json({ error: "No autorizado" });
+      return;
     }
 
     await pool.query(`
@@ -484,9 +491,10 @@ publicUserRouter.patch("/users/:id/notifications/read-all", async (req, res) => 
     if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
 
     // Verificar que el usuario solo acceda a sus propias notificaciones
-    const authUserId = req.user?.id;
+    const authUserId = (req as AuthRequest).userId;
     if (authUserId && authUserId !== targetId) {
-      return res.status(403).json({ error: "No autorizado" });
+      res.status(403).json({ error: "No autorizado" });
+      return;
     }
 
     await pool.query(`
@@ -511,9 +519,10 @@ publicUserRouter.delete("/users/:id/notifications/:notificationId", async (req, 
     if (isNaN(targetId)) { res.status(400).json({ error: "ID de usuario inválido" }); return; }
 
     // Verificar que el usuario solo acceda a sus propias notificaciones
-    const authUserId = req.user?.id;
+    const authUserId = (req as AuthRequest).userId;
     if (authUserId && authUserId !== targetId) {
-      return res.status(403).json({ error: "No autorizado" });
+      res.status(403).json({ error: "No autorizado" });
+      return;
     }
 
     await pool.query(`
@@ -535,9 +544,10 @@ publicUserRouter.delete("/users/:id/notifications", async (req, res) => {
     if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
 
     // Verificar que el usuario solo acceda a sus propias notificaciones
-    const authUserId = req.user?.id;
+    const authUserId = (req as AuthRequest).userId;
     if (authUserId && authUserId !== targetId) {
-      return res.status(403).json({ error: "No autorizado" });
+      res.status(403).json({ error: "No autorizado" });
+      return;
     }
 
     await pool.query(`
