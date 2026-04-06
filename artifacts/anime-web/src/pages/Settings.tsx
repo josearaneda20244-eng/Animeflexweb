@@ -16,7 +16,6 @@ export default function Settings() {
   const [avatarPreview, setAvatarPreview] = useState<string>(() => {
     const url = user?.avatar_url ?? "";
     if (!url || url.startsWith("data:")) return url;
-    if (url.startsWith("/objects/")) return `${API_BASE}/storage${url}`;
     return url;
   });
   const [avatarMode, setAvatarMode] = useState<"url" | "upload">("url");
@@ -109,35 +108,22 @@ export default function Settings() {
       if (avatarMode === "upload" && selectedFile) {
         const token = localStorage.getItem("af_token");
 
-        const urlRes = await fetch(`${API_BASE}/user/avatar/request-url`, {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        const uploadRes = await fetch(`${API_BASE}/user/avatar/upload`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            name: selectedFile.name,
-            size: selectedFile.size,
-            contentType: selectedFile.type,
-          }),
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
         });
 
-        if (!urlRes.ok) {
-          const err = await urlRes.json().catch(() => ({}));
-          throw new Error((err as { error?: string }).error ?? "Error al obtener URL de subida");
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error ?? "Error al subir imagen");
         }
 
-        const { uploadURL, objectPath } = await urlRes.json() as { uploadURL: string; objectPath: string };
-
-        const putRes = await fetch(uploadURL, {
-          method: "PUT",
-          headers: { "Content-Type": selectedFile.type },
-          body: selectedFile,
-        });
-
-        if (!putRes.ok) throw new Error("Error al subir imagen al almacenamiento");
-
-        finalAvatarUrl = objectPath;
+        const { avatarUrl: cloudinaryUrl } = await uploadRes.json() as { avatarUrl: string };
+        finalAvatarUrl = cloudinaryUrl;
       } else if (avatarMode === "url") {
         finalAvatarUrl = avatarUrl.trim() || null;
       }
