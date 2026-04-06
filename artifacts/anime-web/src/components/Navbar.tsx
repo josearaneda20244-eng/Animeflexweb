@@ -19,13 +19,11 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState<AnimeResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showNotifs, setShowNotifs] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const notifsRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
