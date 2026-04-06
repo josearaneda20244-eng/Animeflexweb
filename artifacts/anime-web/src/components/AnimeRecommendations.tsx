@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Heart, Star, TrendingUp, Clock, Users, RefreshCw } from 'lucide-react';
+import { Star, TrendingUp, Users, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
 import { resolveTitle } from '@/lib/consumet';
 import AnimeCard from './AnimeCard';
@@ -10,7 +10,7 @@ import { SkeletonCard } from './SkeletonCard';
 import { Button } from './ui/button';
 
 interface Recommendation {
-  anime_id: number;
+  anime_id: string | number;
   title: string;
   image: string;
   score: number;
@@ -28,6 +28,29 @@ interface AnimeRecommendationsProps {
   limit?: number;
 }
 
+function normalizeToRecommendations(data: unknown): Recommendation[] {
+  if (!data) return [];
+  if (Array.isArray(data)) {
+    return data.map((item: any) => ({
+      anime_id: item.anime_id ?? item.id ?? 0,
+      title: typeof item.title === 'string'
+        ? item.title
+        : (item.title?.english || item.title?.romaji || item.title?.userPreferred || 'Unknown'),
+      image: item.image || item.cover || '',
+      score: item.score ?? item.rating ?? 0,
+      reason: item.reason ?? 'Tendencia popular',
+      genres: Array.isArray(item.genres) ? item.genres : [],
+      status: item.status ?? '',
+      total_episodes: item.total_episodes ?? item.totalEpisodes ?? 0,
+    }));
+  }
+  const obj = data as any;
+  if (obj.results && Array.isArray(obj.results)) {
+    return normalizeToRecommendations(obj.results);
+  }
+  return [];
+}
+
 export default function AnimeRecommendations({
   userId,
   animeId,
@@ -40,14 +63,14 @@ export default function AnimeRecommendations({
 
   const getRecommendations = async (): Promise<Recommendation[]> => {
     if (type === 'personal' && userId) {
-      const response = await apiClient.get<Recommendation[]>(`/users/${userId}/recommendations`);
-      return response;
+      const response = await apiClient.get<unknown>(`/users/${userId}/recommendations`);
+      return normalizeToRecommendations(response);
     } else if (type === 'trending') {
-      const response = await apiClient.get<Recommendation[]>('/anime/trending');
-      return response;
+      const response = await apiClient.get<unknown>('/anime/trending');
+      return normalizeToRecommendations(response);
     } else if (type === 'similar' && animeId) {
-      const response = await apiClient.get<Recommendation[]>(`/anime/${animeId}/similar`);
-      return response;
+      const response = await apiClient.get<unknown>(`/anime/${animeId}/similar`);
+      return normalizeToRecommendations(response);
     }
     return [];
   };
@@ -56,8 +79,8 @@ export default function AnimeRecommendations({
     queryKey: ['recommendations', type, userId, animeId, refreshKey],
     queryFn: getRecommendations,
     enabled: !!(userId || animeId || type === 'trending'),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const handleRefresh = () => {
@@ -68,27 +91,19 @@ export default function AnimeRecommendations({
   const getTitle = () => {
     if (title) return title;
     switch (type) {
-      case 'personal':
-        return 'Recomendaciones para ti';
-      case 'trending':
-        return 'Tendencias';
-      case 'similar':
-        return 'Animes similares';
-      default:
-        return 'Recomendaciones';
+      case 'personal': return 'Recomendaciones para ti';
+      case 'trending': return 'Tendencias';
+      case 'similar': return 'Animes similares';
+      default: return 'Recomendaciones';
     }
   };
 
   const getIcon = () => {
     switch (type) {
-      case 'personal':
-        return <Users className="w-5 h-5" />;
-      case 'trending':
-        return <TrendingUp className="w-5 h-5" />;
-      case 'similar':
-        return <Star className="w-5 h-5" />;
-      default:
-        return <Star className="w-5 h-5" />;
+      case 'personal': return <Users className="w-5 h-5" />;
+      case 'trending': return <TrendingUp className="w-5 h-5" />;
+      case 'similar': return <Star className="w-5 h-5" />;
+      default: return <Star className="w-5 h-5" />;
     }
   };
 
@@ -103,12 +118,7 @@ export default function AnimeRecommendations({
         </div>
         <div className="text-center py-8 text-muted-foreground">
           Error al cargar recomendaciones. Intenta de nuevo.
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            className="ml-2"
-          >
+          <Button variant="outline" size="sm" onClick={handleRefresh} className="ml-2">
             <RefreshCw className="w-4 h-4 mr-2" />
             Reintentar
           </Button>
@@ -117,7 +127,9 @@ export default function AnimeRecommendations({
     );
   }
 
-  const displayRecommendations = recommendations?.slice(0, limit) || [];
+  const displayRecommendations = Array.isArray(recommendations)
+    ? recommendations.slice(0, limit)
+    : [];
 
   return (
     <div className="space-y-4">
@@ -126,24 +138,17 @@ export default function AnimeRecommendations({
           {getIcon()}
           {getTitle()}
         </h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={isLoading}
-        >
+        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isLoading}>
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {isLoading ? (
-          Array.from({ length: limit }, (_, i) => (
-            <SkeletonCard key={i} />
-          ))
+          Array.from({ length: limit }, (_, i) => <SkeletonCard key={i} />)
         ) : displayRecommendations.length > 0 ? (
           displayRecommendations.map((rec) => (
-            <div key={rec.anime_id} className="space-y-2">
+            <div key={`${rec.anime_id}`} className="space-y-2">
               <AnimeCard
                 anime={{
                   id: rec.anime_id.toString(),
@@ -152,7 +157,7 @@ export default function AnimeRecommendations({
                   rating: rec.score,
                   totalEpisodes: rec.total_episodes,
                   status: rec.status,
-                  genres: rec.genres
+                  genres: rec.genres,
                 }}
               />
               <div className="text-xs text-muted-foreground text-center px-1">
