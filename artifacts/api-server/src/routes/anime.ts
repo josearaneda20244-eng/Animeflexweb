@@ -54,7 +54,7 @@ const router: IRouter = Router();
 let anilist: InstanceType<typeof META.Anilist>;
 let animeKai: InstanceType<typeof ANIME.AnimeKai>;
 let anilistWithKai: InstanceType<typeof META.Anilist>;
-let gogoanime: InstanceType<typeof ANIME.Gogoanime>;
+let gogoanime: InstanceType<typeof ANIME.Hianime>;
 
 function getAnilist() {
   if (!anilist) anilist = new META.Anilist();
@@ -67,7 +67,7 @@ function getAnimeKai() {
 }
 
 function getGogoanime() {
-  if (!gogoanime) gogoanime = new ANIME.Gogoanime();
+  if (!gogoanime) gogoanime = new ANIME.Hianime();
   return gogoanime;
 }
 
@@ -856,11 +856,11 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
       const titleVariantList = titleVariants(animeTitle);
       for (const variant of titleVariantList) {
         try {
-          const searchData = await retryFetch(() => getGogoanime().search(variant), 2, 400);
+          const searchData = await retryFetch(() => getGogoanime().search(variant), 2, 400) as any;
           const firstResult = (searchData.results ?? [])[0];
           if (!firstResult) continue;
-          const info = await retryFetch(() => getGogoanime().fetchAnimeInfo(firstResult.id as string), 2, 400);
-          const ep = (info.episodes ?? []).find((e) => String(e.number) === episodeNum);
+          const info = await retryFetch(() => getGogoanime().fetchAnimeInfo(firstResult.id as string), 2, 400) as any;
+          const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
           if (!ep) continue;
           const data = await retryFetch(() => getGogoanime().fetchEpisodeSources(ep.id as string), 3, 500);
           req.log.info({ provider: "gogoanime", variant }, "Gogoanime fallback succeeded");
