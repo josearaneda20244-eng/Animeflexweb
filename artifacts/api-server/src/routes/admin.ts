@@ -9,8 +9,8 @@ import {
 } from "../lib/paypal.js";
 
 const router = Router();
-router.use(requireAuth);
-router.use(requireAdmin);
+router.use("/admin", requireAuth);
+router.use("/admin", requireAdmin);
 
 /* ── Setup tables on first run ── */
 async function ensureAdminTables() {
