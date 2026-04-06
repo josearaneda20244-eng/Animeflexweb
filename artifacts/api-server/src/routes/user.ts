@@ -4,6 +4,7 @@ import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 import multer from "multer";
 import { uploadAvatarToCloudinary } from "../lib/cloudinary.js";
+import { META } from "@consumet/extensions";
 
 interface DailyViewRow { day: string; episodes: number }
 interface TopAnimeRow { anime_id: string; anime_title: string; anime_image: string; ep_count: string }
@@ -200,102 +201,60 @@ publicUserRouter.post("/config/limits/refresh", async (req, res) => {
   }
 });
 
-/* ── GET /users/:id/recommendations ── Public: get personalized recommendations ── */
+/* ── GET /users/:id/recommendations ── Public: personalized recs via AniList ── */
 publicUserRouter.get("/users/:id/recommendations", async (req, res) => {
   try {
     const targetId = parseInt(req.params.id as string, 10);
     if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-    // Obtener géneros favoritos del usuario basado en su historial
-    const genreQuery = await pool.query(`
-      SELECT g.genre, COUNT(*) as count
-      FROM user_history uh
-      JOIN anime_genres g ON uh.anime_id = g.anime_id
-      WHERE uh.user_id = $1
-      GROUP BY g.genre
-      ORDER BY count DESC
-      LIMIT 5
-    `, [targetId]);
+    // Obtener IDs y géneros de anime ya vistos por el usuario
+    const historyRes = await pool.query<{ anime_id: string; genres: string[] }>(
+      `SELECT anime_id, COALESCE(genres, '{}') as genres FROM user_history WHERE user_id = $1`,
+      [targetId]
+    );
 
-    const favoriteGenres = genreQuery.rows.map(row => row.genre);
+    const watchedIds = new Set(historyRes.rows.map(r => String(r.anime_id)));
 
-    // Obtener animes similares basados en géneros
-    let recommendations: Array<{
-      anime_id: string; title: string; image: string; score: number;
-      reason: string; genres: string[]; status: string; total_episodes: number;
-    }> = [];
-    if (favoriteGenres.length > 0) {
-      const genreCondition = favoriteGenres.map((_, i) => `genre = $${i + 2}`).join(' OR ');
-      const animeQuery = await pool.query(`
-        SELECT DISTINCT a.id, a.title, a.image, a.rating, a.total_episodes,
-               a.release_date, a.status, a.type,
-               ROUND(AVG(g.score) OVER (PARTITION BY a.id), 1) as avg_score
-        FROM anime a
-        JOIN anime_genres g ON a.id = g.anime_id
-        WHERE (${genreCondition})
-        AND a.id NOT IN (
-          SELECT anime_id FROM user_history WHERE user_id = $1
-          UNION
-          SELECT anime_id FROM user_watchlist WHERE user_id = $1
-        )
-        AND a.status IN ('ongoing', 'completed')
-        ORDER BY a.rating DESC, a.release_date DESC
-        LIMIT 20
-      `, [targetId, ...favoriteGenres]);
-
-      recommendations = animeQuery.rows.map(row => ({
-        anime_id: row.id,
-        title: row.title,
-        image: row.image,
-        score: row.rating || row.avg_score || 0,
-        reason: `Basado en tus géneros favoritos: ${favoriteGenres.slice(0, 2).join(', ')}`,
-        genres: favoriteGenres.slice(0, 3),
-        status: row.status,
-        total_episodes: row.total_episodes
-      }));
+    // Calcular géneros favoritos del usuario
+    const genreMap = new Map<string, number>();
+    for (const row of historyRes.rows) {
+      for (const g of (row.genres ?? [])) {
+        if (g) genreMap.set(g, (genreMap.get(g) ?? 0) + 1);
+      }
     }
+    const favoriteGenres = [...genreMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([g]) => g);
 
-    // Si no hay suficientes recomendaciones, agregar trending
-    if (recommendations.length < 12) {
-      const trendingQuery = await pool.query(`
-        SELECT a.id, a.title, a.image, a.rating, a.total_episodes,
-               a.release_date, a.status, a.type
-        FROM anime a
-        WHERE a.status = 'ongoing'
-        AND a.rating > 7
-        AND a.id NOT IN (
-          SELECT anime_id FROM user_history WHERE user_id = $1
-          UNION
-          SELECT anime_id FROM user_watchlist WHERE user_id = $1
-        )
-        ORDER BY a.rating DESC, a.release_date DESC
-        LIMIT 12
-      `, [targetId]);
+    // Usar AniList para obtener anime trending
+    const anilist = new META.Anilist();
+    const trendingData = await anilist.fetchTrendingAnime(1, 30);
+    const trendingResults = (trendingData as any).results ?? [];
 
-      const trendingRecommendations = trendingQuery.rows.map(row => ({
-        anime_id: row.id,
-        title: row.title,
-        image: row.image,
-        score: row.rating || 0,
-        reason: "Tendencia popular",
-        genres: [],
-        status: row.status,
-        total_episodes: row.total_episodes
+    const reason = favoriteGenres.length > 0
+      ? `Basado en tus géneros favoritos: ${favoriteGenres.slice(0, 2).join(", ")}`
+      : "Tendencia popular";
+
+    const recommendations = trendingResults
+      .filter((a: any) => !watchedIds.has(String(a.id)))
+      .slice(0, 12)
+      .map((a: any) => ({
+        anime_id: String(a.id),
+        title: typeof a.title === "string"
+          ? a.title
+          : (a.title?.english || a.title?.romaji || a.title?.userPreferred || "Unknown"),
+        image: a.image || a.cover || "",
+        score: a.rating ?? 0,
+        reason,
+        genres: Array.isArray(a.genres) ? a.genres : [],
+        status: a.status ?? "",
+        total_episodes: a.totalEpisodes ?? 0,
       }));
 
-      recommendations = [...recommendations, ...trendingRecommendations];
-    }
-
-    // Remover duplicados y limitar a 12
-    const uniqueRecommendations = recommendations
-      .filter((rec, index, self) =>
-        index === self.findIndex(r => r.anime_id === rec.anime_id)
-      )
-      .slice(0, 12);
-
-    res.json(uniqueRecommendations);
+    res.json(recommendations);
   } catch (err) {
-    console.error("Error getting recommendations:", err);
+    req.log.error({ err }, "Error getting recommendations");
     res.status(500).json({ error: "Error al obtener recomendaciones" });
   }
 });
