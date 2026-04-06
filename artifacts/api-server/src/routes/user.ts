@@ -2,7 +2,8 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
-import { ObjectStorageService } from "../lib/objectStorage.js";
+import multer from "multer";
+import { uploadAvatarToCloudinary } from "../lib/cloudinary.js";
 
 interface DailyViewRow { day: string; episodes: number }
 interface TopAnimeRow { anime_id: string; anime_title: string; anime_image: string; ep_count: string }
@@ -170,35 +171,31 @@ const router = Router();
 router.use(requireAuth);
 
 const DAILY_LIMIT = 5;
-const objectStorageService = new ObjectStorageService();
 
-/* ── AVATAR UPLOAD ── */
+/* ── AVATAR UPLOAD (Cloudinary) ── */
 
-/* POST /user/avatar/request-url — returns a presigned GCS URL for direct upload.
-   Client sends JSON { name, size, contentType }, receives { uploadURL, objectPath }.
-   Client PUTs the file to uploadURL, then calls PATCH /auth/me with
-   avatar_url = objectPath to persist the avatar reference. */
-router.post("/user/avatar/request-url", async (req: AuthRequest, res) => {
-  const { name, size, contentType } = req.body as { name?: string; size?: number; contentType?: string };
-  if (!name || !size || !contentType) {
-    res.status(400).json({ error: "name, size y contentType son requeridos" });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
+
+/* POST /user/avatar/upload — uploads image to Cloudinary and returns the URL.
+   Client sends multipart/form-data with a "file" field. */
+router.post("/user/avatar/upload", upload.single("file"), async (req: AuthRequest, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: "No se recibió ningún archivo" });
     return;
   }
-  if (!contentType.startsWith("image/")) {
+  if (!req.file.mimetype.startsWith("image/")) {
     res.status(400).json({ error: "Solo se permiten imágenes" });
     return;
   }
-  if (size > 2 * 1024 * 1024) {
-    res.status(400).json({ error: "El archivo no debe superar 2 MB" });
-    return;
-  }
   try {
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-    res.json({ uploadURL, objectPath });
+    const avatarUrl = await uploadAvatarToCloudinary(req.file.buffer, req.file.mimetype);
+    res.json({ avatarUrl });
   } catch (err) {
-    console.error("Avatar upload URL error:", err);
-    res.status(500).json({ error: "Error al generar URL de subida" });
+    console.error("Avatar upload error:", err);
+    res.status(500).json({ error: "Error al subir imagen. Verifica que CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET estén configurados." });
   }
 });
 
