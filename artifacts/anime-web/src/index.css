@@ -90,7 +90,7 @@
 .animated-bg {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   overflow: hidden;
 }
@@ -519,3 +519,104 @@
   border: 1px solid rgba(124,111,255,0.14);
   border-radius: 16px;
 }
+
+  /* ═══════════════════════════════════════════
+     RECOMMENDATIONS SECTION
+  ═══════════════════════════════════════════ */
+  .rec-section {
+    position: relative;
+    overflow: hidden;
+    padding: 20px 0 24px;
+    margin-top: 28px;
+  }
+  .rec-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(7,8,15,0) 0%, rgba(30,10,60,0.38) 50%, rgba(7,8,15,0) 100%);
+  }
+  .rec-orb-1 {
+    position: absolute;
+    width: 340px; height: 340px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,111,255,0.22) 0%, transparent 70%);
+    top: -80px; left: 5%;
+    animation: recOrb1 10s ease-in-out infinite;
+    filter: blur(30px);
+    pointer-events: none;
+  }
+  .rec-orb-2 {
+    position: absolute;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(179,157,255,0.18) 0%, transparent 70%);
+    top: -60px; right: 10%;
+    animation: recOrb2 13s ease-in-out infinite;
+    filter: blur(25px);
+    pointer-events: none;
+  }
+  .rec-orb-3 {
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(91,82,245,0.16) 0%, transparent 70%);
+    bottom: -40px; left: 50%;
+    animation: recOrb3 8s ease-in-out infinite;
+    filter: blur(20px);
+    pointer-events: none;
+  }
+  @keyframes recOrb1 {
+    0%   { transform: translate(0px, 0px) scale(1); }
+    33%  { transform: translate(60px, -30px) scale(1.15); }
+    66%  { transform: translate(-40px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  @keyframes recOrb2 {
+    0%   { transform: translate(0px, 0px) scale(1); }
+    33%  { transform: translate(-50px, 30px) scale(0.85); }
+    66%  { transform: translate(70px, -25px) scale(1.1); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  @keyframes recOrb3 {
+    0%   { transform: translate(0px, 0px) scale(1); }
+    50%  { transform: translate(30px, 50px) scale(1.2); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+
+  /* ═══════════════════════════════════════════
+     REC CARD
+  ═══════════════════════════════════════════ */
+  .rec-card {
+    position: relative;
+    width: 130px;
+    height: 197px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0F0F1A;
+    border: 1px solid rgba(124,111,255,0.18);
+    cursor: pointer;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease, border-color 0.22s ease;
+  }
+  .rec-card:hover {
+    transform: translateY(-6px) scale(1.025);
+    box-shadow: 0 14px 36px rgba(124,111,255,0.38);
+    border-color: rgba(179,157,255,0.65);
+  }
+  .rec-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.32s ease;
+  }
+  .rec-card:hover img { transform: scale(1.07); }
+
+  /* ═══════════════════════════════════════════
+     SPIN ANIMATION (for loading icons)
+  ═══════════════════════════════════════════ */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  
