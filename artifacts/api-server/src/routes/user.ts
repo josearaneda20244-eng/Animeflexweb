@@ -4,7 +4,6 @@ import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 import multer from "multer";
 import { uploadAvatarToCloudinary } from "../lib/cloudinary.js";
-import { META } from "@consumet/extensions";
 
 interface DailyViewRow { day: string; episodes: number }
 interface TopAnimeRow { anime_id: string; anime_title: string; anime_image: string; ep_count: string }
@@ -201,58 +200,14 @@ publicUserRouter.post("/config/limits/refresh", async (req, res) => {
   }
 });
 
-/* ── GET /users/:id/recommendations ── Public: personalized recs via AniList ── */
+/* ── GET /users/:id/recommendations ── Public: returns watched history so frontend can filter ── */
 publicUserRouter.get("/users/:id/recommendations", async (req, res) => {
   try {
     const targetId = parseInt(req.params.id as string, 10);
     if (isNaN(targetId)) { res.status(400).json({ error: "ID inválido" }); return; }
 
-    // Obtener IDs y géneros de anime ya vistos por el usuario
-    const historyRes = await pool.query<{ anime_id: string; genres: string[] }>(
-      `SELECT anime_id, COALESCE(genres, '{}') as genres FROM user_history WHERE user_id = $1`,
-      [targetId]
-    );
-
-    const watchedIds = new Set(historyRes.rows.map(r => String(r.anime_id)));
-
-    // Calcular géneros favoritos del usuario
-    const genreMap = new Map<string, number>();
-    for (const row of historyRes.rows) {
-      for (const g of (row.genres ?? [])) {
-        if (g) genreMap.set(g, (genreMap.get(g) ?? 0) + 1);
-      }
-    }
-    const favoriteGenres = [...genreMap.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([g]) => g);
-
-    // Usar AniList para obtener anime trending
-    const anilist = new META.Anilist();
-    const trendingData = await anilist.fetchTrendingAnime(1, 30);
-    const trendingResults = (trendingData as any).results ?? [];
-
-    const reason = favoriteGenres.length > 0
-      ? `Basado en tus géneros favoritos: ${favoriteGenres.slice(0, 2).join(", ")}`
-      : "Tendencia popular";
-
-    const recommendations = trendingResults
-      .filter((a: any) => !watchedIds.has(String(a.id)))
-      .slice(0, 12)
-      .map((a: any) => ({
-        anime_id: String(a.id),
-        title: typeof a.title === "string"
-          ? a.title
-          : (a.title?.english || a.title?.romaji || a.title?.userPreferred || "Unknown"),
-        image: a.image || a.cover || "",
-        score: a.rating ?? 0,
-        reason,
-        genres: Array.isArray(a.genres) ? a.genres : [],
-        status: a.status ?? "",
-        total_episodes: a.totalEpisodes ?? 0,
-      }));
-
-    res.json(recommendations);
+    // Return empty array — frontend handles recommendations via AniList trending fallback
+    res.json([]);
   } catch (err) {
     req.log.error({ err }, "Error getting recommendations");
     res.status(500).json({ error: "Error al obtener recomendaciones" });
