@@ -424,7 +424,7 @@ export default function Home() {
 
         {/* Recomendaciones personalizadas */}
         {user && (
-          <div style={{ marginTop: 28, padding: "0 16px" }}>
+          <div style={{ marginTop: 28 }}>
             <AnimeRecommendations
               userId={user.id}
               type="personal"
@@ -435,7 +435,7 @@ export default function Home() {
 
         {/* Recomendaciones trending para usuarios no autenticados */}
         {!user && (
-          <div style={{ marginTop: 28, padding: "0 16px" }}>
+          <div style={{ marginTop: 28 }}>
             <AnimeRecommendations
               type="trending"
               title="Tendencias Populares"
