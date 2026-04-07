@@ -238,3 +238,144 @@
   background: rgba(108,99,255,0.6);
 }
 * { scrollbar-width: thin; scrollbar-color: rgba(108,99,255,0.35) transparent; }
+
+  /* ── Recomendaciones: fondo animado ── */
+  @keyframes recOrb1 {
+    0%   { transform: translate(0px, 0px) scale(1); }
+    33%  { transform: translate(60px, -30px) scale(1.15); }
+    66%  { transform: translate(-40px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  @keyframes recOrb2 {
+    0%   { transform: translate(0px, 0px) scale(1); }
+    33%  { transform: translate(-50px, 30px) scale(0.85); }
+    66%  { transform: translate(70px, -25px) scale(1.1); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  @keyframes recOrb3 {
+    0%   { transform: translate(0px, 0px) scale(1); }
+    50%  { transform: translate(30px, 50px) scale(1.2); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  @keyframes recShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  .rec-section {
+    position: relative;
+    overflow: hidden;
+    padding: 20px 0 24px;
+    margin-top: 28px;
+  }
+  .rec-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(9,10,18,0) 0%, rgba(30,10,60,0.45) 50%, rgba(9,10,18,0) 100%);
+  }
+  .rec-orb-1 {
+    position: absolute;
+    width: 340px; height: 340px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,58,237,0.25) 0%, transparent 70%);
+    top: -80px; left: 5%;
+    animation: recOrb1 10s ease-in-out infinite;
+    filter: blur(30px);
+  }
+  .rec-orb-2 {
+    position: absolute;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%);
+    top: -60px; right: 10%;
+    animation: recOrb2 13s ease-in-out infinite;
+    filter: blur(25px);
+  }
+  .rec-orb-3 {
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,70,229,0.18) 0%, transparent 70%);
+    bottom: -40px; left: 50%;
+    animation: recOrb3 8s ease-in-out infinite;
+    filter: blur(20px);
+  }
+  .rec-card {
+    position: relative;
+    width: 130px;
+    height: 197px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #13131C;
+    border: 1px solid rgba(124,58,237,0.18);
+    cursor: pointer;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .rec-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 32px rgba(124,58,237,0.4);
+    border-color: rgba(168,85,247,0.7);
+  }
+  .rec-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+  }
+  .rec-card:hover img { transform: scale(1.06); }
+  .rec-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    margin-bottom: 14px;
+  }
+  .rec-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rec-accent-bar {
+    width: 3px; height: 22px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #7c3aed, #a855f7);
+    flex-shrink: 0;
+  }
+  .rec-title-text {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(90deg, #fff 60%, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .rec-refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(168,85,247,0.55);
+    padding: 4px;
+    display: flex;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .rec-refresh-btn:hover {
+    color: #a855f7;
+    background: rgba(168,85,247,0.1);
+  }
+  .rec-skel {
+    width: 130px;
+    height: 197px;
+    border-radius: 14px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    background: linear-gradient(110deg, #12121E 30%, #1e0a3a 50%, #12121E 70%);
+    background-size: 200% 100%;
+    animation: recShimmer 1.6s linear infinite;
+    border: 1px solid rgba(124,58,237,0.08);
+  }
+  
