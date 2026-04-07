@@ -1,9 +1,9 @@
 // components/AnimeRecommendations.tsx
   import { useState } from 'react';
   import { useQuery } from '@tanstack/react-query';
-  import { Star, TrendingUp, Users, RefreshCw } from 'lucide-react';
+  import { TrendingUp, Users, RefreshCw } from 'lucide-react';
   import { apiClient } from '@/lib/apiClient';
-  import { consumet, resolveTitle } from '@/lib/consumet';
+  import { consumet } from '@/lib/consumet';
   import AnimeCard from './AnimeCard';
   import { SkeletonCard } from './SkeletonCard';
   import { Button } from './ui/button';
@@ -69,7 +69,7 @@
           const response = await apiClient.get<unknown>(`/anime/${animeId}/similar`);
           const recs = normalizeToRecommendations(response, 'Anime similar');
           if (recs.length > 0) return recs;
-        } catch { /* fallthrough to trending */ }
+        } catch { /* fallthrough */ }
       }
 
       if (type === 'personal' && userId) {
@@ -77,10 +77,10 @@
           const response = await apiClient.get<unknown>(`/users/${userId}/recommendations`);
           const recs = normalizeToRecommendations(response, 'Recomendado para ti');
           if (recs.length > 0) return recs;
-        } catch { /* fallthrough to trending */ }
+        } catch { /* fallthrough */ }
       }
 
-      // Fallback universal: AniList trending
+      // Fallback: AniList trending directo
       const response = await consumet.trending();
       return normalizeToRecommendations(response, 'Tendencia popular');
     };
@@ -103,7 +103,7 @@
       if (title) return title;
       switch (type) {
         case 'personal': return 'Recomendaciones para ti';
-        case 'trending': return 'Tendencias';
+        case 'trending': return 'Tendencias Populares';
         case 'similar': return 'Animes similares';
         default: return 'Recomendaciones';
       }
@@ -113,8 +113,7 @@
       switch (type) {
         case 'personal': return <Users className="w-5 h-5" />;
         case 'trending': return <TrendingUp className="w-5 h-5" />;
-        case 'similar': return <Star className="w-5 h-5" />;
-        default: return <Star className="w-5 h-5" />;
+        default: return <TrendingUp className="w-5 h-5" />;
       }
     };
 
@@ -123,23 +122,27 @@
       : [];
 
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
+      <div>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', marginBottom: 10 }}>
+          <h2 style={{ color: '#fff', fontSize: 17, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
             {getIcon()}
             {getTitle()}
           </h2>
-          <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isLoading} style={{ color: 'rgba(255,255,255,0.5)', padding: '4px 8px' }}>
+            <RefreshCw style={{ width: 14, height: 14 }} className={isLoading ? 'animate-spin' : ''} />
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {/* Carousel — same layout as "Más Populares" */}
+        <div className="carousel-scroll">
           {isLoading ? (
-            Array.from({ length: limit }, (_, i) => <SkeletonCard key={i} />)
+            Array.from({ length: 8 }, (_, i) => (
+              <div key={i} style={{ width: 130, height: 197, borderRadius: 14, background: '#12121E', flexShrink: 0, scrollSnapAlign: 'start' }} />
+            ))
           ) : displayRecommendations.length > 0 ? (
             displayRecommendations.map((rec) => (
-              <div key={`${rec.anime_id}`} className="space-y-2">
+              <div key={String(rec.anime_id)} style={{ width: 130, flexShrink: 0, scrollSnapAlign: 'start' }}>
                 <AnimeCard
                   anime={{
                     id: rec.anime_id.toString(),
@@ -151,14 +154,11 @@
                     genres: rec.genres,
                   }}
                 />
-                <div className="text-xs text-muted-foreground text-center px-1">
-                  {rec.reason}
-                </div>
               </div>
             ))
           ) : (
-            <div className="col-span-full text-center py-8 text-muted-foreground">
-              No hay recomendaciones disponibles en este momento.
+            <div style={{ padding: '32px 0', color: 'rgba(255,255,255,0.3)', fontSize: 13, textAlign: 'center', width: '100%' }}>
+              No hay recomendaciones disponibles.
             </div>
           )}
         </div>
