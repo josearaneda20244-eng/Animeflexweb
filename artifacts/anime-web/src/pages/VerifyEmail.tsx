@@ -34,7 +34,7 @@ export default function VerifyEmail() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#090A12",
+      minHeight: "100vh", background: "#07080F",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: 16, position: "relative", overflow: "hidden",
     }}>
@@ -44,18 +44,18 @@ export default function VerifyEmail() {
 
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 32 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>▶</span>
           </div>
           <span style={{ fontSize: 16, fontWeight: 900 }}>
-            <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
+            <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#7C6FFF" }}>FLEX</span>
           </span>
         </div>
 
         {status === "loading" && (
           <>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(108,99,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-              <Loader2 size={28} color="#A78BFA" style={{ animation: "spin 1s linear infinite" }} />
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(124,111,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+              <Loader2 size={28} color="#B39DFF" style={{ animation: "spin 1s linear infinite" }} />
             </div>
             <h2 style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>Verificando...</h2>
             <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 14 }}>Estamos confirmando tu correo electrónico</p>
@@ -91,7 +91,7 @@ export default function VerifyEmail() {
             </p>
             <button
               onClick={() => navigate("/settings")}
-              style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#6C63FF,#4F46E5)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}
+              style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}
             >
               Ir a Ajustes
             </button>

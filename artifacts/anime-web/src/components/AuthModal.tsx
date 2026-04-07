@@ -80,11 +80,11 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                 <ArrowLeft size={14} color="rgba(255,255,255,0.6)" />
               </button>
             )}
-            <div style={{ width: 26, height: 26, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#6C63FF,#4F46E5)" }}>
+            <div style={{ width: 26, height: 26, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#7C6FFF,#5B52F5)" }}>
               <span style={{ color: "#fff", fontSize: 11, fontWeight: 900 }}>▶</span>
             </div>
             <span style={{ fontSize: 15, fontWeight: 900 }}>
-              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
+              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#7C6FFF" }}>FLEX</span>
             </span>
           </div>
           <button onClick={onClose} style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer", display: "flex" }}>
@@ -98,7 +98,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             {(["login", "register"] as const).map((t) => (
               <button key={t} onClick={() => switchTab(t)} style={{
                 flex: 1, padding: "9px 0", borderRadius: 9, border: "none", cursor: "pointer",
-                background: tab === t ? "#6C63FF" : "transparent",
+                background: tab === t ? "#7C6FFF" : "transparent",
                 color: tab === t ? "#fff" : "rgba(255,255,255,0.5)",
                 fontSize: 13, fontWeight: 700, transition: "all 0.2s",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -113,8 +113,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         {tab === "forgot" && (
           <div style={{ padding: "20px 24px 0" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <KeyRound size={15} color="#A78BFA" />
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <KeyRound size={15} color="#B39DFF" />
               </div>
               <div>
                 <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>Recuperar contraseña</div>
@@ -171,7 +171,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
 
             <button type="submit" disabled={loading} style={{
               marginTop: 4, padding: "13px 0", borderRadius: 12, border: "none", cursor: loading ? "not-allowed" : "pointer",
-              background: loading ? "rgba(108,99,255,0.5)" : "linear-gradient(135deg,#6C63FF,#4F46E5)",
+              background: loading ? "rgba(124,111,255,0.5)" : "linear-gradient(135deg,#7C6FFF,#5B52F5)",
               color: "#fff", fontSize: 14, fontWeight: 800, transition: "opacity 0.2s",
             }}>
               {loading ? "Cargando..." : tab === "login" ? "Entrar" : tab === "register" ? "Crear cuenta" : "Enviar enlace"}
@@ -191,7 +191,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               <p style={{ textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 12, margin: 0 }}>
                 {tab === "login" ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
                 <button type="button" onClick={() => switchTab(tab === "login" ? "register" : "login")}
-                  style={{ background: "none", border: "none", color: "#A78BFA", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+                  style={{ background: "none", border: "none", color: "#B39DFF", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}>
                   {tab === "login" ? "Regístrate" : "Inicia sesión"}
                 </button>
               </p>
@@ -220,7 +220,7 @@ function Field({ icon, placeholder, value, onChange, type, required }: {
           borderRadius: 12, color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit",
           transition: "border-color 0.2s",
         }}
-        onFocus={(e) => (e.target.style.borderColor = "rgba(108,99,255,0.6)")}
+        onFocus={(e) => (e.target.style.borderColor = "rgba(124,111,255,0.6)")}
         onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
       />
     </div>

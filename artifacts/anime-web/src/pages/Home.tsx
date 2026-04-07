@@ -19,18 +19,18 @@ function nav(navigate: (to: string) => void, id: string | number) {
 function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; idx: number; onPrev: () => void; onNext: () => void }) {
   const [, navigate] = useLocation();
   const anime = animes[idx];
-  if (!anime) return <div style={{ height: "min(70vw, 520px)", background: "#13131C" }} />;
+  if (!anime) return <div style={{ height: "min(70vw, 520px)", background: "#0F0F1A" }} />;
   const title = resolveTitle(anime.title);
 
   return (
     <div style={{ position: "relative", height: "min(70vw, 520px)", overflow: "hidden" }}>
       <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(9,10,18,0) 0%, rgba(9,10,18,0.35) 30%, rgba(9,10,18,0.88) 70%, #090A12 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(9,10,18,0) 0%, rgba(9,10,18,0.35) 30%, rgba(9,10,18,0.88) 70%, #07080F 100%)" }} />
       <div style={{ position: "absolute", inset: 0, width: "55%", background: "linear-gradient(to right, rgba(9,10,18,0.6), transparent)" }} />
 
       <div style={{ position: "absolute", bottom: 32, left: 20, right: 20, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <span style={{ background: "#6C63FF", borderRadius: 5, padding: "3px 8px", color: "#fff", fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>HD</span>
+          <span style={{ background: "#7C6FFF", borderRadius: 5, padding: "3px 8px", color: "#fff", fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>HD</span>
           {anime.type && <span style={{ background: "rgba(255,255,255,0.13)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 5, padding: "3px 8px", color: "#fff", fontSize: 9, fontWeight: 700 }}>{anime.type}</span>}
           {anime.status === "Ongoing" && (
             <span style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 5, padding: "3px 8px", color: "#22C55E", fontSize: 9, fontWeight: 900, letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 4 }}>
@@ -52,7 +52,7 @@ function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; id
         {anime.genres && anime.genres.length > 0 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {anime.genres.slice(0, 3).map((g) => (
-              <span key={g} style={{ background: "rgba(108,99,255,0.2)", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 6, padding: "3px 8px", color: "#A78BFA", fontSize: 10, fontWeight: 600 }}>{g}</span>
+              <span key={g} style={{ background: "rgba(124,111,255,0.2)", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 6, padding: "3px 8px", color: "#B39DFF", fontSize: 10, fontWeight: 600 }}>{g}</span>
             ))}
           </div>
         )}
@@ -62,7 +62,7 @@ function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; id
           </div>
         )}
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <button onClick={() => nav(navigate, anime.id)} style={{ background: "linear-gradient(135deg, #6C63FF, #4F46E5)", border: "none", borderRadius: 12, padding: "12px 20px", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}>
+          <button onClick={() => nav(navigate, anime.id)} style={{ background: "linear-gradient(135deg, #7C6FFF, #5B52F5)", border: "none", borderRadius: 12, padding: "12px 20px", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}>
             <Play size={16} fill="#fff" /> Ver Ahora
           </button>
           <button onClick={() => nav(navigate, anime.id)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12, padding: "12px 16px", color: "rgba(255,255,255,0.65)", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}>
@@ -73,7 +73,7 @@ function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; id
 
       <div style={{ position: "absolute", bottom: 14, right: 20, display: "flex", gap: 4 }}>
         {animes.slice(0, 6).map((_, i) => (
-          <div key={i} style={{ height: 5, borderRadius: 3, background: i === idx ? "#6C63FF" : "rgba(255,255,255,0.25)", width: i === idx ? 18 : 5, transition: "width 0.3s" }} />
+          <div key={i} style={{ height: 5, borderRadius: 3, background: i === idx ? "#7C6FFF" : "rgba(255,255,255,0.25)", width: i === idx ? 18 : 5, transition: "width 0.3s" }} />
         ))}
       </div>
 
@@ -92,13 +92,13 @@ function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => vo
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", marginBottom: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ width: 3, height: 18, borderRadius: 2, background: "#6C63FF" }} />
+        <div style={{ width: 3, height: 18, borderRadius: 2, background: "#7C6FFF" }} />
         <span style={{ color: "#F1F1F5", fontSize: 17, fontWeight: 800 }}>{title}</span>
       </div>
       {onSeeAll && (
         <button onClick={onSeeAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>
-          <span style={{ color: "#6C63FF", fontSize: 13, fontWeight: 700 }}>Ver todo</span>
-          <ChevronRight size={14} color="#6C63FF" />
+          <span style={{ color: "#7C6FFF", fontSize: 13, fontWeight: 700 }}>Ver todo</span>
+          <ChevronRight size={14} color="#7C6FFF" />
         </button>
       )}
     </div>
@@ -144,7 +144,7 @@ function RecentCard({ anime }: { anime: AnimeResult }) {
         <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(6,182,212,0.3)", borderRadius: 6, padding: "3px 6px", color: "#06B6D4", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 3 }}>
           <Tv size={9} color="#06B6D4" /> EP {anime.currentEpisode ?? "?"}
         </span>
-        <span style={{ background: "#6C63FF", borderRadius: 5, padding: "2px 5px", color: "#fff", fontSize: 8, fontWeight: 900 }}>HD</span>
+        <span style={{ background: "#7C6FFF", borderRadius: 5, padding: "2px 5px", color: "#fff", fontSize: 8, fontWeight: 900 }}>HD</span>
       </div>
       <div className="r-card-footer">
         <div className="r-card-title">{title}</div>
@@ -163,7 +163,7 @@ function SeasonalCard({ anime }: { anime: SeasonAnime }) {
       <img src={anime.coverImage.large} alt={title} />
       <div className="p-card-grad" />
       <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-        <span style={{ background: "#6C63FF", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900 }}>NEW</span>
+        <span style={{ background: "#7C6FFF", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900 }}>NEW</span>
         {anime.episodes && <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.episodes}</span>}
       </div>
       {anime.averageScore != null && anime.averageScore > 0 && (
@@ -188,12 +188,12 @@ function TopAnimeRow({ anime, rank }: { anime: AnimeResult; rank: number }) {
     <div onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 4px", borderBottom: "1px solid rgba(255,255,255,0.07)", cursor: "pointer", borderRadius: 4, transition: "background 0.15s" }}
       onMouseEnter={e => (e.currentTarget.style.background = "#12121E")}
       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-      <span style={{ color: rank <= 3 ? "#6C63FF" : "rgba(255,255,255,0.35)", fontSize: 18, fontWeight: 900, width: 30, textAlign: "center" }}>{String(rank).padStart(2, "0")}</span>
+      <span style={{ color: rank <= 3 ? "#7C6FFF" : "rgba(255,255,255,0.35)", fontSize: 18, fontWeight: 900, width: 30, textAlign: "center" }}>{String(rank).padStart(2, "0")}</span>
       <img src={anime.image} alt={title} style={{ width: 46, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
         <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, lineHeight: 1.35 }} className="line-clamp-2">{title}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {anime.type && <span style={{ color: "#6C63FF", fontSize: 9, fontWeight: 700, background: "rgba(108,99,255,0.18)", padding: "1px 5px", borderRadius: 4 }}>{anime.type}</span>}
+          {anime.type && <span style={{ color: "#7C6FFF", fontSize: 9, fontWeight: 700, background: "rgba(124,111,255,0.18)", padding: "1px 5px", borderRadius: 4 }}>{anime.type}</span>}
           {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{anime.releaseDate}</span>}
         </div>
         {anime.genres && anime.genres.length > 0 && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }} className="line-clamp-1">{anime.genres.slice(0, 2).join(" · ")}</div>}
@@ -240,9 +240,9 @@ function ScheduleSection() {
           const isToday = i === todayIdx;
           const isActive = i === activeDay;
           return (
-            <button key={i} onClick={() => setActiveDay(i)} style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 20, border: `1px solid ${isActive ? "#6C63FF" : "rgba(255,255,255,0.1)"}`, background: isActive ? "rgba(108,99,255,0.2)" : "rgba(255,255,255,0.04)", color: isActive ? "#A78BFA" : "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: 700, cursor: "pointer", position: "relative" }}>
+            <button key={i} onClick={() => setActiveDay(i)} style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 20, border: `1px solid ${isActive ? "#7C6FFF" : "rgba(255,255,255,0.1)"}`, background: isActive ? "rgba(124,111,255,0.2)" : "rgba(255,255,255,0.04)", color: isActive ? "#B39DFF" : "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: 700, cursor: "pointer", position: "relative" }}>
               {d}
-              {isToday && <span style={{ position: "absolute", top: -3, right: -3, width: 7, height: 7, borderRadius: "50%", background: "#22C55E", border: "1.5px solid #090A12" }} />}
+              {isToday && <span style={{ position: "absolute", top: -3, right: -3, width: 7, height: 7, borderRadius: "50%", background: "#22C55E", border: "1.5px solid #07080F" }} />}
             </button>
           );
         })}
@@ -267,7 +267,7 @@ function ScheduleSection() {
             const time = new Date(entry.airingAt * 1000).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
             return (
               <div key={`${entry.media.id}-${entry.episode}`} onClick={() => nav(navigate, entry.media.id)}
-                style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#13131C", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer", width: 130, height: 197, flexShrink: 0, transition: "transform 0.18s" }}
+                style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer", width: 130, height: 197, flexShrink: 0, transition: "transform 0.18s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; }}>
                 <img src={entry.media.coverImage.large} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
@@ -300,7 +300,7 @@ function GenresSection() {
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 16px" }}>
       {GENRES.map((g) => (
         <button key={g} onClick={() => navigate(`/search?q=${g}`)} style={{ background: "#12121E", borderRadius: 20, padding: "8px 14px", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.65)", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.15s" }}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(108,99,255,0.15)"; e.currentTarget.style.borderColor = "rgba(108,99,255,0.35)"; e.currentTarget.style.color = "#A78BFA"; }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(124,111,255,0.15)"; e.currentTarget.style.borderColor = "rgba(124,111,255,0.35)"; e.currentTarget.style.color = "#B39DFF"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "#12121E"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "rgba(255,255,255,0.65)"; }}>
           {g}
         </button>
@@ -370,13 +370,13 @@ export default function Home() {
   }, [trendList.length, nextHero]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#090A12" }}>
+    <div style={{ minHeight: "100vh", background: "#07080F" }}>
       <Navbar />
 
       <div style={{ paddingTop: 56 }}>
         {trendList.length > 0
           ? <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} />
-          : <div style={{ height: "min(70vw, 520px)", background: "#13131C" }} />}
+          : <div style={{ height: "min(70vw, 520px)", background: "#0F0F1A" }} />}
 
         {watchProgress.length > 0 && (
           <div style={{ marginTop: 28 }}>

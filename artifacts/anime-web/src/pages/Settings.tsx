@@ -50,7 +50,7 @@ export default function Settings() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", background: "#090A12", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#07080F", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Debes iniciar sesión para ver esta página.</div>
       </div>
     );
@@ -208,7 +208,7 @@ export default function Settings() {
     : null;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#090A12" }}>
+    <div style={{ minHeight: "100vh", background: "#07080F" }}>
       <Navbar />
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "80px 16px 48px" }}>
         {/* Header */}
@@ -228,12 +228,12 @@ export default function Settings() {
         {/* Profile card */}
         <div style={{
           background: "linear-gradient(180deg,#16172A,#111220)",
-          border: "1px solid rgba(108,99,255,0.2)",
+          border: "1px solid rgba(124,111,255,0.2)",
           borderRadius: 20, overflow: "hidden", marginBottom: 16,
         }}>
           {/* Banner */}
           <div style={{ height: 80, background: "linear-gradient(135deg,#2D1B69,#1A1A3E,#0D0D1F)", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 60%,rgba(108,99,255,0.4),transparent 65%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 60%,rgba(124,111,255,0.4),transparent 65%)" }} />
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 40%,rgba(245,158,11,0.15),transparent 65%)" }} />
           </div>
 
@@ -243,11 +243,11 @@ export default function Settings() {
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <div style={{
                   width: 72, height: 72, borderRadius: 20,
-                  background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                  background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
                   border: "4px solid #111220",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   overflow: "hidden",
-                  boxShadow: "0 4px 20px rgba(108,99,255,0.5)",
+                  boxShadow: "0 4px 20px rgba(124,111,255,0.5)",
                 }}>
                   {avatarPreview
                     ? <img src={avatarPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setAvatarPreview("")} />
@@ -287,10 +287,10 @@ export default function Settings() {
         </div>
 
         {/* Avatar section */}
-        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(108,99,255,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
+        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Camera size={14} color="#A78BFA" />
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Camera size={14} color="#B39DFF" />
             </div>
             <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Foto de perfil</span>
           </div>
@@ -302,8 +302,8 @@ export default function Settings() {
                 style={{
                   flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   padding: "8px 12px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
-                  background: avatarMode === mode ? "rgba(108,99,255,0.25)" : "none",
-                  color: avatarMode === mode ? "#A78BFA" : "rgba(255,255,255,0.4)",
+                  background: avatarMode === mode ? "rgba(124,111,255,0.25)" : "none",
+                  color: avatarMode === mode ? "#B39DFF" : "rgba(255,255,255,0.4)",
                   transition: "all 0.15s",
                 }}
               >
@@ -320,7 +320,7 @@ export default function Settings() {
               placeholder="https://ejemplo.com/mi-foto.jpg"
               style={{
                 width: "100%", padding: "11px 14px", borderRadius: 12, boxSizing: "border-box",
-                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(108,99,255,0.3)",
+                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(124,111,255,0.3)",
                 color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit",
               }}
             />
@@ -330,14 +330,14 @@ export default function Settings() {
               <button onClick={() => fileRef.current?.click()}
                 style={{
                   width: "100%", padding: "24px 14px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.04)", border: "2px dashed rgba(108,99,255,0.35)",
+                  background: "rgba(255,255,255,0.04)", border: "2px dashed rgba(124,111,255,0.35)",
                   color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(108,99,255,0.6)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(108,99,255,0.35)"; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(124,111,255,0.6)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(124,111,255,0.35)"; }}
               >
-                <Upload size={22} color="#6C63FF" />
+                <Upload size={22} color="#7C6FFF" />
                 <span>{selectedFile ? `${selectedFile.name} ✓ — Click para cambiar` : "Click para seleccionar imagen (máx. 2 MB)"}</span>
               </button>
             </div>
@@ -352,7 +352,7 @@ export default function Settings() {
           <button onClick={handleSaveAvatar} disabled={savingAvatar}
             style={{
               marginTop: 12, width: "100%", padding: "11px", borderRadius: 12, border: "none",
-              background: avatarSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#6C63FF,#4F46E5)",
+              background: avatarSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#7C6FFF,#5B52F5)",
               color: "#fff", fontSize: 13, fontWeight: 800, cursor: savingAvatar ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
               opacity: savingAvatar ? 0.7 : 1, transition: "all 0.2s",
@@ -365,10 +365,10 @@ export default function Settings() {
         </div>
 
         {/* Username section */}
-        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(108,99,255,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
+        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <User size={14} color="#A78BFA" />
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <User size={14} color="#B39DFF" />
             </div>
             <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Nombre de usuario</span>
           </div>
@@ -381,7 +381,7 @@ export default function Settings() {
             placeholder="Tu nombre de usuario"
             style={{
               width: "100%", padding: "11px 14px", borderRadius: 12, boxSizing: "border-box",
-              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(108,99,255,0.3)",
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(124,111,255,0.3)",
               color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit",
             }}
           />
@@ -396,7 +396,7 @@ export default function Settings() {
           <button onClick={handleSaveUsername} disabled={savingUsername || username.trim() === user.username}
             style={{
               marginTop: 12, width: "100%", padding: "11px", borderRadius: 12, border: "none",
-              background: usernameSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#6C63FF,#4F46E5)",
+              background: usernameSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#7C6FFF,#5B52F5)",
               color: "#fff", fontSize: 13, fontWeight: 800,
               cursor: (savingUsername || username.trim() === user.username) ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
@@ -428,10 +428,10 @@ export default function Settings() {
         </div>
 
         {/* Privacy section */}
-        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(108,99,255,0.15)", borderRadius: 20, padding: 20, marginTop: 14 }}>
+        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginTop: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {isProfilePublic ? <Eye size={14} color="#A78BFA" /> : <EyeOff size={14} color="#A78BFA" />}
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {isProfilePublic ? <Eye size={14} color="#B39DFF" /> : <EyeOff size={14} color="#B39DFF" />}
             </div>
             <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Privacidad del perfil</span>
           </div>
@@ -446,7 +446,7 @@ export default function Settings() {
               onClick={() => !savingPrivacy && handleSavePrivacy(!isProfilePublic)}
               style={{
                 width: 44, height: 24, borderRadius: 99, border: "none", cursor: savingPrivacy ? "not-allowed" : "pointer",
-                background: isProfilePublic ? "linear-gradient(135deg,#6C63FF,#4F46E5)" : "rgba(255,255,255,0.12)",
+                background: isProfilePublic ? "linear-gradient(135deg,#7C6FFF,#5B52F5)" : "rgba(255,255,255,0.12)",
                 position: "relative", transition: "background 0.2s", flexShrink: 0,
               }}
             >
@@ -509,8 +509,8 @@ export default function Settings() {
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(108,99,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <KeyRound size={14} color="#A78BFA" />
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(124,111,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <KeyRound size={14} color="#B39DFF" />
               </div>
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Cambiar contraseña</span>
             </div>
@@ -532,7 +532,7 @@ export default function Settings() {
                       onChange={(e) => setter(e.target.value)}
                       required
                       style={{ width: "100%", paddingLeft: 34, paddingRight: 12, paddingTop: 10, paddingBottom: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-                      onFocus={(e) => (e.target.style.borderColor = "rgba(108,99,255,0.5)")}
+                      onFocus={(e) => (e.target.style.borderColor = "rgba(124,111,255,0.5)")}
                       onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
                     />
                   </div>
@@ -546,7 +546,7 @@ export default function Settings() {
               <button
                 type="submit"
                 disabled={savingPass}
-                style={{ padding: "11px", borderRadius: 11, border: "none", background: passSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#6C63FF,#4F46E5)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: savingPass ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
+                style={{ padding: "11px", borderRadius: 11, border: "none", background: passSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#7C6FFF,#5B52F5)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: savingPass ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
               >
                 {savingPass ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> Guardando...</>
                   : passSuccess ? <><Check size={13} /> ¡Contraseña actualizada!</>

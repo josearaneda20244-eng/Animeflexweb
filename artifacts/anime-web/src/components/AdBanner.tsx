@@ -53,14 +53,14 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
     return (
       <div className={className} style={{
         borderRadius: 16, overflow: "hidden",
-        background: "linear-gradient(135deg, rgba(108,99,255,0.12), rgba(79,70,229,0.06))",
-        border: "1px solid rgba(108,99,255,0.25)",
+        background: "linear-gradient(135deg, rgba(124,111,255,0.12), rgba(79,70,229,0.06))",
+        border: "1px solid rgba(124,111,255,0.25)",
         padding: "18px 20px",
         display: "flex", alignItems: "center", gap: 16,
       }}>
         <div style={{
           width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-          background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+          background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
           display: "flex", alignItems: "center", justifyContent: "center",
         }}>
           <Crown size={22} color="#fff" />
@@ -76,7 +76,7 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
         <Link href="/membership" style={{ textDecoration: "none", flexShrink: 0 }}>
           <div style={{
             display: "flex", alignItems: "center", gap: 6,
-            background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+            background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
             borderRadius: 10, padding: "9px 14px",
             color: "#fff", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap",
           }}>
@@ -91,23 +91,23 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
   return (
     <div className={className} style={{
       borderRadius: 12, overflow: "hidden",
-      background: "rgba(108,99,255,0.05)",
-      border: "1px solid rgba(108,99,255,0.1)",
+      background: "rgba(124,111,255,0.05)",
+      border: "1px solid rgba(124,111,255,0.1)",
       padding: "10px 14px",
       display: "flex", alignItems: "center", gap: 12,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-        <Tv2 size={15} color="#A78BFA" />
+        <Tv2 size={15} color="#B39DFF" />
         <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>
           Te {remaining === 1 ? "queda" : "quedan"}{" "}
-          <span style={{ color: "#A78BFA", fontWeight: 800 }}>{remaining} episodio{remaining !== 1 ? "s" : ""}</span>{" "}
+          <span style={{ color: "#B39DFF", fontWeight: 800 }}>{remaining} episodio{remaining !== 1 ? "s" : ""}</span>{" "}
           gratis hoy (de {currentLimit})
         </span>
       </div>
       <Link href="/membership" style={{ textDecoration: "none", flexShrink: 0 }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 5,
-          background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+          background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
           borderRadius: 8, padding: "7px 11px",
           color: "#fff", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap",
         }}>

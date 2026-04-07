@@ -41,33 +41,48 @@ const queryClient = new QueryClient({
   },
 });
 
+function AnimatedBackground() {
+  return (
+    <div className="animated-bg">
+      <div className="bg-stars" />
+      <div className="bg-grid" />
+      <div className="orb orb-1" />
+      <div className="orb orb-2" />
+      <div className="orb orb-3" />
+      <div className="orb orb-4" />
+      <div className="orb orb-5" />
+    </div>
+  );
+}
+
 function NotFound() {
   return (
-    <div style={{ minHeight: "100vh", background: "#090A12", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0, padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(108,99,255,0.12) 0%,transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: "10%", right: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(236,72,153,0.07) 0%,transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", top: 40, left: 24, color: "rgba(108,99,255,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>迷</div>
-      <div style={{ position: "absolute", bottom: 40, right: 24, color: "rgba(108,99,255,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>子</div>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0, padding: 24, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(124,111,255,0.14) 0%,transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: "10%", right: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(244,114,182,0.08) 0%,transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: 40, left: 24, color: "rgba(124,111,255,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>迷</div>
+      <div style={{ position: "absolute", bottom: 40, right: 24, color: "rgba(124,111,255,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>子</div>
       <div style={{ position: "relative", marginBottom: 20 }}>
         <div style={{
           width: 110, height: 110, borderRadius: "50%",
-          background: "linear-gradient(135deg, rgba(108,99,255,0.2), rgba(79,70,229,0.08))",
-          border: "2px solid rgba(108,99,255,0.3)",
+          background: "linear-gradient(135deg, rgba(124,111,255,0.22), rgba(91,82,245,0.1))",
+          border: "2px solid rgba(124,111,255,0.35)",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52,
+          boxShadow: "0 0 40px rgba(124,111,255,0.3)",
         }}>🎌</div>
-        <div style={{ position: "absolute", top: -8, right: -8, background: "linear-gradient(135deg,#EF4444,#DC2626)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid #090A12" }}>！</div>
+        <div style={{ position: "absolute", top: -8, right: -8, background: "linear-gradient(135deg,#EF4444,#DC2626)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid #07080F", boxShadow: "0 0 12px rgba(239,68,68,0.4)" }}>！</div>
       </div>
-      <div style={{ color: "transparent", fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: -6, background: "linear-gradient(135deg,#6C63FF,#A78BFA,#EC4899)", WebkitBackgroundClip: "text", backgroundClip: "text", marginBottom: 12 } as any}>404</div>
-      <div style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Página no encontrada</div>
-      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, textAlign: "center", maxWidth: 300, lineHeight: 1.7, marginBottom: 24 }}>
+      <div style={{ color: "transparent", fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: -6, background: "linear-gradient(135deg,#7C6FFF,#B39DFF,#F472B6)", WebkitBackgroundClip: "text", backgroundClip: "text", marginBottom: 12 } as any}>404</div>
+      <div style={{ color: "#F0F0FA", fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Página no encontrada</div>
+      <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 14, textAlign: "center", maxWidth: 300, lineHeight: 1.7, marginBottom: 24 }}>
         El capitán no encontró este episodio. Puede que haya sido movido o eliminado del servidor.
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
         <a href="/" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
-          background: "linear-gradient(135deg,#6C63FF,#4F46E5)", borderRadius: 14,
+          background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", borderRadius: 14,
           padding: "12px 24px", color: "#fff", fontSize: 14, fontWeight: 800,
-          textDecoration: "none", boxShadow: "0 8px 24px rgba(108,99,255,0.35)",
+          textDecoration: "none", boxShadow: "0 8px 28px rgba(124,111,255,0.4)",
         }}>▶ Volver al inicio</a>
         <a href="/search" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
@@ -82,7 +97,7 @@ function NotFound() {
 
 function Router() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#090A12", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "rgba(255,255,255,0.5)" }}>Cargando...</div></div>}>
+    <Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "rgba(255,255,255,0.45)", fontSize: 15 }}>Cargando...</div></div>}>
       <Switch>
         <Route path="/"><Home /></Route>
         <Route path="/search"><Search /></Route>
@@ -112,7 +127,7 @@ function Router() {
 
 function Layout() {
   return (
-    <main className="page-enter">
+    <main className="page-enter" style={{ position: "relative", zIndex: 1 }}>
       <AnnouncementBanner />
       <Router />
       <ScrollToTop />
@@ -132,6 +147,7 @@ export default function App() {
               <WatchListProvider>
                 <FavoritesProvider>
                   <HistoryProvider>
+                    <AnimatedBackground />
                     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
                       <Layout />
                     </WouterRouter>

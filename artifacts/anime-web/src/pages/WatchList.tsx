@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import DraggableWatchlist from "@/components/DraggableWatchlist";
 
 const TABS: { value: WatchStatus; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: "watching", label: "Viendo", icon: <Play size={14} fill="currentColor" />, color: "#6C63FF" },
+  { value: "watching", label: "Viendo", icon: <Play size={14} fill="currentColor" />, color: "#7C6FFF" },
   { value: "completed", label: "Completado", icon: <CheckCircle2 size={14} />, color: "#22C55E" },
   { value: "plan_to_watch", label: "Pendiente", icon: <Clock3 size={14} />, color: "#F59E0B" },
   { value: "dropped", label: "Abandonado", icon: <XCircle size={14} />, color: "#EF4444" },
@@ -49,11 +49,11 @@ export default function WatchList() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#090A12" }}>
+    <div style={{ minHeight: "100vh", background: "#07080F" }}>
       <Navbar />
       <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 20, paddingTop: 4 }}>
-          <div style={{ width: 4, height: 28, borderRadius: 2, background: "#6C63FF" }} />
+          <div style={{ width: 4, height: 28, borderRadius: 2, background: "#7C6FFF" }} />
           <div>
             <div style={{ color: "#F1F1F5", fontSize: 24, fontWeight: 900, letterSpacing: -0.5 }}>Mi Lista</div>
             <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 1 }}>Tu colección personal de anime</div>
@@ -72,7 +72,7 @@ export default function WatchList() {
                 style={{
                   display: "flex", alignItems: "center", gap: 6, padding: "9px 16px",
                   borderRadius: 12, border: `1px solid ${isActive ? tab.color + "55" : "rgba(255,255,255,0.1)"}`,
-                  background: isActive ? tab.color + "18" : "#13131C",
+                  background: isActive ? tab.color + "18" : "#0F0F1A",
                   color: isActive ? tab.color : "rgba(255,255,255,0.5)",
                   fontSize: 13, fontWeight: 700, cursor: "pointer",
                 }}
@@ -119,7 +119,7 @@ export default function WatchList() {
               onClick={() => navigate("/")}
               style={{
                 marginTop: 8, padding: "10px 20px", borderRadius: 12,
-                background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+                background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
                 border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
               }}
             >

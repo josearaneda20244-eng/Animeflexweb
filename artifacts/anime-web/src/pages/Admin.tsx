@@ -69,14 +69,14 @@ function Toast({ msg, type, onClose }: { msg: string; type: "ok" | "err"; onClos
 function Confirm({ msg, onOk, onCancel }: { msg: string; onOk: () => void; onCancel: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
-      <div style={{ background: "#1a1a2e", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 20, padding: 28, maxWidth: 360, width: "90%", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+      <div style={{ background: "#1a1a2e", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 20, padding: 28, maxWidth: 360, width: "90%", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <AlertTriangle size={20} color="#F59E0B" />
           <span style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 16 }}>Confirmar acción</span>
         </div>
         <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>{msg}</p>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onOk} style={{ flex: 1, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", border: "none", borderRadius: 10, padding: "10px 0", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>Confirmar</button>
+          <button onClick={onOk} style={{ flex: 1, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", border: "none", borderRadius: 10, padding: "10px 0", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>Confirmar</button>
           <button onClick={onCancel} style={{ flex: 1, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 0", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 14 }}>Cancelar</button>
         </div>
       </div>
@@ -138,10 +138,10 @@ function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") =
   const TYPE_COLORS: Record<string, string> = { info: "#06B6D4", warning: "#F59E0B", success: "#22C55E" };
 
   return (
-    <div style={{ background: "#13131C", border: "1px solid rgba(108,99,255,0.15)", borderRadius: 18, padding: "20px" }}>
+    <div style={{ background: "#0F0F1A", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 18, padding: "20px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Megaphone size={14} color="#A78BFA" />
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Megaphone size={14} color="#B39DFF" />
         </div>
         <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Anuncios a usuarios</span>
       </div>
@@ -166,7 +166,7 @@ function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") =
         </select>
         <button
           onClick={send} disabled={loading || !msg.trim()}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading || !msg.trim() ? 0.5 : 1 }}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading || !msg.trim() ? 0.5 : 1 }}
         >
           {loading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Plus size={14} />}
           Enviar
@@ -179,8 +179,8 @@ function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") =
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {announcements.map(a => (
-            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, background: `${TYPE_COLORS[a.type] ?? "#6C63FF"}10`, border: `1px solid ${TYPE_COLORS[a.type] ?? "#6C63FF"}28`, borderRadius: 10, padding: "10px 14px" }}>
-              <Info size={14} color={TYPE_COLORS[a.type] ?? "#6C63FF"} style={{ flexShrink: 0 }} />
+            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, background: `${TYPE_COLORS[a.type] ?? "#7C6FFF"}10`, border: `1px solid ${TYPE_COLORS[a.type] ?? "#7C6FFF"}28`, borderRadius: 10, padding: "10px 14px" }}>
+              <Info size={14} color={TYPE_COLORS[a.type] ?? "#7C6FFF"} style={{ flexShrink: 0 }} />
               <span style={{ flex: 1, color: "#F1F1F5", fontSize: 13 }}>{a.message}</span>
               <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, flexShrink: 0 }}>
                 {new Date(a.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
@@ -218,7 +218,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80, gap: 16 }}>
-      <Loader2 size={32} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} />
+      <Loader2 size={32} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} />
       <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>Cargando estadísticas...</span>
     </div>
   );
@@ -233,9 +233,9 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
     {
       label: "Usuarios totales", value: stats?.totalUsers ?? 0,
       sub: `+${stats?.newUsersToday ?? 0} hoy`,
-      icon: <Users size={20} />, color: "#6C63FF",
-      gradient: "linear-gradient(135deg,rgba(108,99,255,0.15),rgba(108,99,255,0.04))",
-      border: "rgba(108,99,255,0.25)",
+      icon: <Users size={20} />, color: "#7C6FFF",
+      gradient: "linear-gradient(135deg,rgba(124,111,255,0.15),rgba(124,111,255,0.04))",
+      border: "rgba(124,111,255,0.25)",
     },
     {
       label: "Usuarios MegaFan", value: stats?.megafanUsers ?? 0,
@@ -283,11 +283,11 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         <div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 4, textTransform: "capitalize" }}>{dateStr}</div>
           <h2 style={{ color: "#F1F1F5", fontSize: 26, fontWeight: 900, margin: 0, letterSpacing: -0.5 }}>
-            Hola, <span style={{ color: "#A78BFA" }}>{user.username}</span>
+            Hola, <span style={{ color: "#B39DFF" }}>{user.username}</span>
           </h2>
           <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 14, marginTop: 4 }}>Aquí está el resumen de tu plataforma</div>
         </div>
-        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.25)", borderRadius: 10, padding: "8px 14px", color: "#A78BFA", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(124,111,255,0.1)", border: "1px solid rgba(124,111,255,0.25)", borderRadius: 10, padding: "8px 14px", color: "#B39DFF", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
           <Activity size={14} /> Actualizar
         </button>
       </div>
@@ -327,7 +327,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
       {/* Conversion + Health row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <Zap size={15} color="#F59E0B" />
             <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Tasa de conversión</span>
@@ -343,7 +343,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           </div>
         </div>
 
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <BarChart2 size={15} color="#22C55E" />
             <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Estado de la plataforma</span>
@@ -351,7 +351,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           {[
             { label: "Ratio premium", pct: Math.min(100, parseFloat(conversionRate)), color: "#F59E0B" },
             { label: "Actividad (ep. hoy / 200)", pct: Math.min(100, ((stats?.episodesToday ?? 0) / 200) * 100), color: "#22C55E" },
-            { label: "Cuentas activas", pct: stats?.totalUsers ? Math.max(0, 100 - ((stats.inactiveUsers ?? 0) / stats.totalUsers) * 100) : 100, color: "#6C63FF" },
+            { label: "Cuentas activas", pct: stats?.totalUsers ? Math.max(0, 100 - ((stats.inactiveUsers ?? 0) / stats.totalUsers) * 100) : 100, color: "#7C6FFF" },
           ].map(row => (
             <div key={row.label} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
@@ -368,18 +368,18 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
       {/* Top Anime Chart */}
       {stats?.topAnime && stats.topAnime.length > 0 && (
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "22px 20px" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "22px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <TrendingUp size={16} color="#6C63FF" />
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <TrendingUp size={16} color="#7C6FFF" />
               </div>
               <span style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>Animes más vistos</span>
             </div>
             <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>Top {stats.topAnime.length}</span>
           </div>
           {(() => {
-            const BAR_COLORS = ["#6C63FF", "#A78BFA", "#22C55E", "#06B6D4", "#F59E0B"];
+            const BAR_COLORS = ["#7C6FFF", "#B39DFF", "#22C55E", "#06B6D4", "#F59E0B"];
             return stats.topAnime.map((a, i) => {
               const pct = (parseInt(a.views) / maxViews) * 100;
               return (
@@ -409,13 +409,13 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       )}
 
       {/* Quick Actions */}
-      <div style={{ background: "linear-gradient(135deg,rgba(108,99,255,0.08),rgba(79,70,229,0.04))", border: "1px solid rgba(108,99,255,0.15)", borderRadius: 18, padding: "20px" }}>
+      <div style={{ background: "linear-gradient(135deg,rgba(124,111,255,0.08),rgba(79,70,229,0.04))", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 18, padding: "20px" }}>
         <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-          <Zap size={15} color="#A78BFA" /> Accesos rápidos
+          <Zap size={15} color="#B39DFF" /> Accesos rápidos
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {[
-            { label: "Ver usuarios", icon: <Users size={14} />, color: "#6C63FF", section: "users" as Section },
+            { label: "Ver usuarios", icon: <Users size={14} />, color: "#7C6FFF", section: "users" as Section },
             { label: "Contenido", icon: <Film size={14} />, color: "#22C55E", section: "content" as Section },
             { label: "Comentarios", icon: <MessageSquare size={14} />, color: "#8B5CF6", section: "comments" as Section },
             { label: "Monetización", icon: <Crown size={14} />, color: "#F59E0B", section: "monetization" as Section },
@@ -432,21 +432,21 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
 
         {/* Recent registrations */}
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <UserCheck size={14} color="#6C63FF" />
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <UserCheck size={14} color="#7C6FFF" />
               </div>
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Últimos registros</span>
             </div>
-            <button onClick={() => onNavigate("users")} style={{ background: "none", border: "none", color: "rgba(108,99,255,0.7)", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>Ver todos →</button>
+            <button onClick={() => onNavigate("users")} style={{ background: "none", border: "none", color: "rgba(124,111,255,0.7)", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>Ver todos →</button>
           </div>
           {(stats?.recentUsers ?? []).length === 0 ? (
             <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, textAlign: "center", padding: "16px 0" }}>Sin usuarios aún</div>
           ) : (stats?.recentUsers ?? []).map((u, i) => (
             <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < (stats!.recentUsers.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: u.membership_tier === "megafan" ? "linear-gradient(135deg,#F59E0B,#D97706)" : "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: u.membership_tier === "megafan" ? "linear-gradient(135deg,#F59E0B,#D97706)" : "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
                 {u.username.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -454,7 +454,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                   {u.username}
                   {u.membership_tier === "megafan" && <span style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>👑</span>}
                   {u.role === "owner" && <span style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>OWNER</span>}
-                  {u.role === "admin" && <span style={{ background: "rgba(108,99,255,0.15)", color: "#A78BFA", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>ADMIN</span>}
+                  {u.role === "admin" && <span style={{ background: "rgba(124,111,255,0.15)", color: "#B39DFF", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>ADMIN</span>}
                 </div>
                 <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{u.email}</div>
               </div>
@@ -466,7 +466,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
 
         {/* MegaFan subscribers */}
-        <div style={{ background: "#13131C", border: "1px solid rgba(245,158,11,0.12)", borderRadius: 18, padding: "20px" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(245,158,11,0.12)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -502,11 +502,11 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
       {/* Growth Chart + Active Users */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 14, alignItems: "stretch" }}>
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(108,99,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <TrendingUp size={14} color="#6C63FF" />
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <TrendingUp size={14} color="#7C6FFF" />
               </div>
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Crecimiento de usuarios (30 días)</span>
             </div>
@@ -539,10 +539,10 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                 <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip
-                  contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 10, color: "#F1F1F5", fontSize: 12 }}
+                  contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 10, color: "#F1F1F5", fontSize: 12 }}
                   labelStyle={{ color: "rgba(255,255,255,0.5)" }}
                 />
-                <Line type="monotone" dataKey="Usuarios" stroke="#6C63FF" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: "#6C63FF", strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="Usuarios" stroke="#7C6FFF" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: "#7C6FFF", strokeWidth: 0 }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -551,7 +551,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             </div>
           )}
         </div>
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px", minWidth: 160, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px", minWidth: 160, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Radio size={22} color="#22C55E" />
           </div>
@@ -564,7 +564,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
       {/* Search Trends */}
       {(stats?.searchTrends ?? []).length > 0 && (
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(6,182,212,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Hash size={14} color="#06B6D4" />
@@ -588,7 +588,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
       {/* Recent activity */}
       {(stats?.recentActivity ?? []).length > 0 && (
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Activity size={14} color="#22C55E" />
@@ -601,7 +601,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: i < (stats!.recentActivity.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", flexShrink: 0, boxShadow: "0 0 6px #22C55E" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ color: "#A78BFA", fontWeight: 700, fontSize: 13 }}>{a.username}</span>
+                  <span style={{ color: "#B39DFF", fontWeight: 700, fontSize: 13 }}>{a.username}</span>
                   <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}> vio </span>
                   <span style={{ color: "#F1F1F5", fontWeight: 600, fontSize: 13 }}>{a.anime_title || "un anime"}</span>
                   <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}> ep. {a.episode_num}</span>
@@ -649,7 +649,7 @@ function UsersSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err") 
     } catch { toast("Error al actualizar", "err"); }
   };
 
-  const roleColor: Record<string, string> = { owner: "#F59E0B", admin: "#6C63FF", user: "rgba(255,255,255,0.4)" };
+  const roleColor: Record<string, string> = { owner: "#F59E0B", admin: "#7C6FFF", user: "rgba(255,255,255,0.4)" };
   const FILTERS: { key: typeof filter; label: string }[] = [
     { key: "all", label: "Todos" },
     { key: "megafan", label: "MegaFan" },
@@ -662,13 +662,13 @@ function UsersSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err") 
       <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 16 }}>Gestión de Usuarios</h2>
 
       {/* Filter tabs */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "#13131C", borderRadius: 12, padding: 6, border: "1px solid rgba(255,255,255,0.06)", width: "fit-content" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "#0F0F1A", borderRadius: 12, padding: 6, border: "1px solid rgba(255,255,255,0.06)", width: "fit-content" }}>
         {FILTERS.map(f => (
           <button key={f.key} onClick={() => { setFilter(f.key); setPage(1); load(q, 1, f.key); }}
             style={{
               padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
-              background: filter === f.key ? "rgba(108,99,255,0.2)" : "transparent",
-              color: filter === f.key ? "#A78BFA" : "rgba(255,255,255,0.45)",
+              background: filter === f.key ? "rgba(124,111,255,0.2)" : "transparent",
+              color: filter === f.key ? "#B39DFF" : "rgba(255,255,255,0.45)",
             }}>
             {f.label}
           </button>
@@ -681,21 +681,21 @@ function UsersSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err") 
           <Search size={15} color="rgba(255,255,255,0.3)" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
           <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { setPage(1); load(q, 1, filter); } }}
             placeholder="Buscar por nombre o email..."
-            style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 12px 10px 36px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 12px 10px 36px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
         </div>
-        <button onClick={() => { setPage(1); load(q, 1, filter); }} style={{ background: "#6C63FF", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>Buscar</button>
+        <button onClick={() => { setPage(1); load(q, 1, filter); }} style={{ background: "#7C6FFF", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>Buscar</button>
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
+        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} /></div>
       ) : (
-        <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
           {users.length === 0
             ? <div style={{ padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>No se encontraron usuarios</div>
             : users.map((u, i) => (
               <div key={u.id} style={{ padding: "14px 16px", borderBottom: i < users.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 16, flexShrink: 0, overflow: "hidden" }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 16, flexShrink: 0, overflow: "hidden" }}>
                     {u.avatar_url ? <img src={u.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : u.username.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -742,12 +742,12 @@ function UsersSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err") 
       {total > 15 && (
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16, alignItems: "center" }}>
           <button disabled={page === 1} onClick={() => { const p = page - 1; setPage(p); load(q, p, filter); }}
-            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
+            style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
             ← Anterior
           </button>
           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Pág. {page} / {Math.ceil(total / 15)}</span>
           <button disabled={page * 15 >= total} onClick={() => { const p = page + 1; setPage(p); load(q, p, filter); }}
-            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 15 >= total ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 15 >= total ? "default" : "pointer", fontSize: 13 }}>
+            style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 15 >= total ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 15 >= total ? "default" : "pointer", fontSize: 13 }}>
             Siguiente →
           </button>
         </div>
@@ -793,14 +793,14 @@ function ContentSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err"
 
   const actionStyles: Record<string, { bg: string; color: string; label: string; icon: React.ReactNode }> = {
     hidden:   { bg: "rgba(245,158,11,0.12)", color: "#F59E0B",  label: "Oculto",    icon: <EyeOff size={13} /> },
-    featured: { bg: "rgba(108,99,255,0.12)", color: "#6C63FF",  label: "Destacado", icon: <Star size={13} /> },
+    featured: { bg: "rgba(124,111,255,0.12)", color: "#7C6FFF",  label: "Destacado", icon: <Star size={13} /> },
     blocked:  { bg: "rgba(220,38,38,0.12)", color: "#DC2626",   label: "Bloqueado", icon: <Ban size={13} /> },
   };
 
   return (
     <div>
       <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 16 }}>Control de Contenido</h2>
-      <div style={{ background: "#13131C", border: "1px solid rgba(108,99,255,0.15)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
+      <div style={{ background: "#0F0F1A", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
         <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800, marginBottom: 14 }}>Añadir anime</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <input value={animeId} onChange={e => setAnimeId(e.target.value)} placeholder="ID del anime (ej: 21)" style={{ flex: 2, minWidth: 140, background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none" }} />
@@ -810,17 +810,17 @@ function ContentSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err"
             <option value="featured">Destacar</option>
             <option value="blocked">Bloquear</option>
           </select>
-          <button onClick={add} disabled={adding} style={{ background: "linear-gradient(135deg,#6C63FF,#4F46E5)", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={add} disabled={adding} style={{ background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
             {adding ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Check size={14} />} Añadir
           </button>
         </div>
       </div>
       {loading
-        ? <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
+        ? <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} /></div>
         : items.length === 0
-          ? <div style={{ background: "#13131C", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>No hay contenido gestionado aún</div>
+          ? <div style={{ background: "#0F0F1A", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>No hay contenido gestionado aún</div>
           : (
-            <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
               {items.map((item, i) => {
                 const s = actionStyles[item.action];
                 return (
@@ -880,17 +880,17 @@ function CommentsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err
       </div>
 
       {loading
-        ? <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
+        ? <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} /></div>
         : comments.length === 0
-          ? <div style={{ background: "#13131C", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>No hay comentarios aún</div>
+          ? <div style={{ background: "#0F0F1A", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>No hay comentarios aún</div>
           : (
-            <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
               {comments.map((c, i) => (
                 <div key={c.id} style={{ padding: "14px 16px", borderBottom: i < comments.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                        <span style={{ color: "#A78BFA", fontSize: 13, fontWeight: 700 }}>{c.author}</span>
+                        <span style={{ color: "#B39DFF", fontSize: 13, fontWeight: 700 }}>{c.author}</span>
                         <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11 }}>·</span>
                         <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>Anime ID: {c.anime_id}</span>
                         {c.spoiler && <span style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 800 }}>SPOILER</span>}
@@ -913,12 +913,12 @@ function CommentsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err
       {total > 20 && (
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16, alignItems: "center" }}>
           <button disabled={page === 1} onClick={() => { const p = page - 1; setPage(p); load(p); }}
-            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
+            style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
             ← Anterior
           </button>
           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Pág. {page} / {Math.ceil(total / 20)}</span>
           <button disabled={page * 20 >= total} onClick={() => { const p = page + 1; setPage(p); load(p); }}
-            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 20 >= total ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 20 >= total ? "default" : "pointer", fontSize: 13 }}>
+            style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 20 >= total ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 20 >= total ? "default" : "pointer", fontSize: 13 }}>
             Siguiente →
           </button>
         </div>
@@ -1015,14 +1015,14 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
     } catch { toast("Error eliminando cupón", "err"); }
   };
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>;
+  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} /></div>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 0 }}>Control de Monetización</h2>
 
       {/* Daily limit */}
-      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+      <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
             <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15 }}>Sistema de límite diario</div>
@@ -1037,13 +1037,13 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
           <input type="number" min={1} max={100} value={config["daily_limit"] ?? "5"}
             onChange={e => setConfig(prev => ({ ...prev, daily_limit: e.target.value }))}
             onBlur={e => save({ daily_limit: e.target.value })}
-            style={{ width: 70, background: "#0D0D1A", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 15, fontWeight: 800, textAlign: "center", outline: "none" }} />
+            style={{ width: 70, background: "#0D0D1A", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 15, fontWeight: 800, textAlign: "center", outline: "none" }} />
           <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>episodios/día para usuarios gratuitos</span>
         </div>
       </div>
 
       {/* Messages */}
-      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+      <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
         <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Mensaje de límite alcanzado</div>
         <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 12 }}>Lo que ve el usuario al superar su límite diario</div>
         <textarea value={config["limit_message"] ?? ""}
@@ -1053,7 +1053,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
           style={{ width: "100%", background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 12px", color: "#F1F1F5", fontSize: 14, resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
       </div>
 
-      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+      <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
         <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Mensaje "Hazte MegaFan"</div>
         <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 12 }}>Propuesta de valor para convertir a premium</div>
         <textarea value={config["megafan_message"] ?? ""}
@@ -1066,7 +1066,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
       {saving && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, textAlign: "center" }}>Guardando...</div>}
 
       {/* ── Promo Codes ── */}
-      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+      <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
             <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15 }}>Cupones de descuento</div>
@@ -1074,7 +1074,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
           </div>
           <button
             onClick={() => setShowForm(v => !v)}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "#6C63FF", border: "none", borderRadius: 10, padding: "8px 14px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#7C6FFF", border: "none", borderRadius: 10, padding: "8px 14px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}
           >
             <Plus size={14} /> Nuevo cupón
           </button>
@@ -1082,7 +1082,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
 
         {/* Create form */}
         {showForm && (
-          <div style={{ background: "#0D0D1A", border: "1px solid rgba(108,99,255,0.2)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "#0D0D1A", border: "1px solid rgba(124,111,255,0.2)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 10, marginBottom: 10 }}>
               <div>
                 <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, display: "block", marginBottom: 4 }}>Código</label>
@@ -1091,7 +1091,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
                   placeholder="VERANO2025"
                   value={newCode.code}
                   onChange={e => setNewCode(p => ({ ...p, code: e.target.value.toUpperCase() }))}
-                  style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "monospace", boxSizing: "border-box" }}
+                  style={{ width: "100%", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "monospace", boxSizing: "border-box" }}
                 />
               </div>
               <div>
@@ -1100,7 +1100,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
                   type="number" min={1} max={100}
                   value={newCode.discountPercent}
                   onChange={e => setNewCode(p => ({ ...p, discountPercent: parseInt(e.target.value) || 1 }))}
-                  style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", textAlign: "center", boxSizing: "border-box" }}
+                  style={{ width: "100%", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", textAlign: "center", boxSizing: "border-box" }}
                 />
               </div>
             </div>
@@ -1111,7 +1111,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
                   type="number" min={1} placeholder="∞"
                   value={newCode.maxUses}
                   onChange={e => setNewCode(p => ({ ...p, maxUses: e.target.value }))}
-                  style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }}
                 />
               </div>
               <div>
@@ -1120,7 +1120,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
                   type="date"
                   value={newCode.expiresAt}
                   onChange={e => setNewCode(p => ({ ...p, expiresAt: e.target.value }))}
-                  style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }}
                 />
               </div>
             </div>
@@ -1128,7 +1128,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
               <button
                 onClick={createCode}
                 disabled={creating}
-                style={{ flex: 1, background: "#6C63FF", border: "none", borderRadius: 9, padding: "9px 0", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}
+                style={{ flex: 1, background: "#7C6FFF", border: "none", borderRadius: 9, padding: "9px 0", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}
               >
                 {creating ? "Creando..." : "Crear cupón"}
               </button>
@@ -1144,7 +1144,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
 
         {/* Table */}
         {codesLoading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 24 }}><Loader2 size={22} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
+          <div style={{ display: "flex", justifyContent: "center", padding: 24 }}><Loader2 size={22} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} /></div>
         ) : codes.length === 0 ? (
           <div style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", padding: "24px 0", fontSize: 14 }}>
             No hay cupones. Crea el primero.
@@ -1167,7 +1167,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
                   const statusColor: Record<string, string> = { activo: "#22C55E", inactivo: "rgba(255,255,255,0.3)", expirado: "#F59E0B", agotado: "#EF4444" };
                   return (
                     <tr key={c.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                      <td style={{ padding: "10px 10px", color: "#A78BFA", fontFamily: "monospace", fontWeight: 700 }}>{c.code}</td>
+                      <td style={{ padding: "10px 10px", color: "#B39DFF", fontFamily: "monospace", fontWeight: 700 }}>{c.code}</td>
                       <td style={{ padding: "10px 10px", color: "#F1F1F5", fontWeight: 700 }}>−{c.discount_percent}%</td>
                       <td style={{ padding: "10px 10px", color: "rgba(255,255,255,0.6)" }}>
                         {c.uses_count}{c.max_uses !== null ? `/${c.max_uses}` : ""}
@@ -1250,12 +1250,12 @@ function ConfigSection({ toast, refreshConfig }: { toast: (m: string, t: "ok" | 
     </div>
   );
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>;
+  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} /></div>;
 
   return (
     <div>
       <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 20 }}>Configuración General</h2>
-      <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "4px 20px" }}>
+      <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "4px 20px" }}>
         <BoolRow label="Registro de usuarios" desc="Permite que nuevos usuarios se registren en la plataforma" k="registration_enabled" />
         <BoolRow label="Modo mantenimiento" desc="Muestra un aviso de mantenimiento a todos los visitantes" k="maintenance_mode" />
         <BoolRow label="Límite diario activo" desc="Activa el sistema de límite de episodios para usuarios gratuitos" k="daily_limit_enabled" />
@@ -1315,7 +1315,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
 
   useEffect(() => { load(1); }, []);
 
-  const planColor: Record<string, string> = { monthly: "#6C63FF", annual: "#F59E0B" };
+  const planColor: Record<string, string> = { monthly: "#7C6FFF", annual: "#F59E0B" };
   const statusColor: Record<string, string> = {
     completed: "#22C55E", ACTIVE: "#22C55E", pending: "#F59E0B", SUSPENDED: "#F59E0B",
     failed: "#DC2626", CANCELLED: "#DC2626", EXPIRED: "#DC2626",
@@ -1342,11 +1342,11 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
       {/* Summary cards */}
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         {[
-          { label: "Pagos únicos", value: data?.total ?? 0, icon: <CreditCard size={18} />, color: "#6C63FF" },
+          { label: "Pagos únicos", value: data?.total ?? 0, icon: <CreditCard size={18} />, color: "#7C6FFF" },
           { label: "Ingresos capturados", value: `$${(data?.totalRevenue ?? 0).toFixed(2)}`, icon: <DollarSign size={18} />, color: "#22C55E" },
           { label: "Suscripciones activas", value: data?.subscriptions.filter(s => s.status === "ACTIVE").length ?? 0, icon: <Crown size={18} />, color: "#F59E0B" },
         ].map(c => (
-          <div key={c.label} style={{ flex: "1 1 160px", background: "#13131C", border: `1px solid ${c.color}30`, borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div key={c.label} style={{ flex: "1 1 160px", background: "#0F0F1A", border: `1px solid ${c.color}30`, borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `${c.color}18`, display: "flex", alignItems: "center", justifyContent: "center", color: c.color }}>{c.icon}</div>
             <div>
               <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>{c.label}</div>
@@ -1357,7 +1357,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
       </div>
 
       {/* Tab switcher */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "#13131C", borderRadius: 12, padding: 6, border: "1px solid rgba(255,255,255,0.06)", width: "fit-content" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "#0F0F1A", borderRadius: 12, padding: 6, border: "1px solid rgba(255,255,255,0.06)", width: "fit-content" }}>
         {([
         ["onetime", "Pagos únicos"],
         ["subscriptions", "Suscripciones"],
@@ -1365,8 +1365,8 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
       ] as const).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
-              background: tab === key ? "rgba(108,99,255,0.2)" : "transparent",
-              color: tab === key ? "#A78BFA" : "rgba(255,255,255,0.45)" }}>
+              background: tab === key ? "rgba(124,111,255,0.2)" : "transparent",
+              color: tab === key ? "#B39DFF" : "rgba(255,255,255,0.45)" }}>
             {label}
           </button>
         ))}
@@ -1377,12 +1377,12 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
         <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
           <CalendarRange size={15} color="rgba(255,255,255,0.3)" />
           <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
+            style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
           <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>→</span>
           <input type="date" value={to} onChange={e => setTo(e.target.value)}
-            style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
+            style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
           <button onClick={() => { setPage(1); load(1, from, to); }}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "#6C63FF", border: "none", borderRadius: 8, padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#7C6FFF", border: "none", borderRadius: 8, padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
             <RefreshCw size={13} /> Filtrar
           </button>
           {(from || to) && (
@@ -1395,17 +1395,17 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
       )}
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} /></div>
+        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} /></div>
       ) : tab === "onetime" ? (
         <>
           {(!data || data.transactions.length === 0) ? (
-            <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+            <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
               <CreditCard size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
               <p>No hay pagos únicos registrados todavía.</p>
               <p style={{ fontSize: 12, marginTop: 4 }}>Se registran al capturar órdenes PayPal con cupón.</p>
             </div>
           ) : (
-            <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+            <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 90px 80px 80px 100px", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
                 {["Usuario", "Orden", "Monto", "Plan", "Estado", "Fecha"].map(h => (
                   <div key={h} style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
@@ -1422,10 +1422,10 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
                     {tx.promo_code && <span style={{ marginLeft: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>{tx.promo_code}</span>}
                   </div>
                   <div style={{ color: "#22C55E", fontSize: 14, fontWeight: 800 }}>${parseFloat(tx.amount_usd).toFixed(2)}</div>
-                  <div style={{ background: `${planColor[tx.plan] ?? "#6C63FF"}18`, color: planColor[tx.plan] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                  <div style={{ background: `${planColor[tx.plan] ?? "#7C6FFF"}18`, color: planColor[tx.plan] ?? "#7C6FFF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
                     {tx.plan === "annual" ? "Anual" : "Mensual"}
                   </div>
-                  <div style={{ background: `${statusColor[tx.status] ?? "#6C63FF"}18`, color: statusColor[tx.status] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                  <div style={{ background: `${statusColor[tx.status] ?? "#7C6FFF"}18`, color: statusColor[tx.status] ?? "#7C6FFF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
                     {tx.status}
                   </div>
                   <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
@@ -1438,12 +1438,12 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
           {(data?.total ?? 0) > 20 && (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 16, alignItems: "center" }}>
               <button disabled={page === 1} onClick={() => { const p = page - 1; setPage(p); load(p); }}
-                style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
+                style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page === 1 ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page === 1 ? "default" : "pointer", fontSize: 13 }}>
                 ← Anterior
               </button>
               <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Pág. {page} / {Math.ceil((data?.total ?? 0) / 20)}</span>
               <button disabled={page * 20 >= (data?.total ?? 0)} onClick={() => { const p = page + 1; setPage(p); load(p); }}
-                style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 20 >= (data?.total ?? 0) ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 20 >= (data?.total ?? 0) ? "default" : "pointer", fontSize: 13 }}>
+                style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 14px", color: page * 20 >= (data?.total ?? 0) ? "rgba(255,255,255,0.2)" : "#F1F1F5", cursor: page * 20 >= (data?.total ?? 0) ? "default" : "pointer", fontSize: 13 }}>
                 Siguiente →
               </button>
             </div>
@@ -1452,12 +1452,12 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
       ) : tab === "subscriptions" ? (
         /* Subscriptions tab — live from PayPal API */
         (!data || data.subscriptions.length === 0) ? (
-          <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+          <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
             <Crown size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
             <p>{!data?.paypalConfigured ? "PayPal no configurado." : "No hay suscriptores activos con ID de suscripción PayPal."}</p>
           </div>
         ) : (
-          <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+          <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 110px 120px 120px", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
               {["Usuario", "Estado", "Últ. pago", "Próx. cobro", "Inicio"].map(h => (
                 <div key={h} style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
@@ -1470,7 +1470,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
                   <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{s.email}</div>
                   <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, fontFamily: "monospace", marginTop: 2 }} title={s.subscription_id}>{s.subscription_id.substring(0, 18)}…</div>
                 </div>
-                <div style={{ background: `${statusColor[s.status] ?? "#6C63FF"}18`, color: statusColor[s.status] ?? "#6C63FF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                <div style={{ background: `${statusColor[s.status] ?? "#7C6FFF"}18`, color: statusColor[s.status] ?? "#7C6FFF", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
                   {s.status}
                 </div>
                 <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
@@ -1490,12 +1490,12 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
       ) : (
         /* Reporting tab — PayPal Reporting API transactions (last 30 days or filtered) */
         (!data || data.paypalReporting.length === 0) ? (
-          <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
+          <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>
             <DollarSign size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
             <p>{!data?.paypalConfigured ? "PayPal no configurado." : "Sin datos del Reporting API de PayPal (puede requerir el permiso 'Transaction Search' en tu cuenta PayPal)."}</p>
           </div>
         ) : (
-          <div style={{ background: "#13131C", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
+          <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 90px 120px", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
               {["ID Transacción", "Pagador", "Monto", "Estado", "Fecha"].map(h => (
                 <div key={h} style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
@@ -1505,7 +1505,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
               const ti = r.transaction_info;
               const piName = r.payer_info?.payer_name?.alternate_full_name;
               const piEmail = r.payer_info?.email_address;
-              const sc = statusColor[ti.transaction_status] ?? "#6C63FF";
+              const sc = statusColor[ti.transaction_status] ?? "#7C6FFF";
               return (
                 <div key={ti.transaction_id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 90px 120px", padding: "12px 16px", borderBottom: i < data.paypalReporting.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", alignItems: "center" }}>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "monospace" }} title={ti.transaction_id}>
@@ -1545,7 +1545,7 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
   const [lastResult, setLastResult] = useState<{ sent: number; total: number; errors: string[] } | null>(null);
 
   const SEGMENTS = [
-    { key: "all" as const, label: "Todos los usuarios", color: "#6C63FF", desc: "Activos en la plataforma" },
+    { key: "all" as const, label: "Todos los usuarios", color: "#7C6FFF", desc: "Activos en la plataforma" },
     { key: "megafan" as const, label: "Solo MegaFan", color: "#F59E0B", desc: "Usuarios de pago" },
     { key: "free" as const, label: "Solo Gratuitos", color: "#22C55E", desc: "Tier free activos" },
   ];
@@ -1585,7 +1585,7 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
               style={{
                 display: "flex", flexDirection: "column", alignItems: "flex-start",
                 gap: 2, padding: "12px 16px", borderRadius: 12, cursor: "pointer",
-                background: to === s.key ? `${s.color}18` : "#13131C",
+                background: to === s.key ? `${s.color}18` : "#0F0F1A",
                 border: `1px solid ${to === s.key ? s.color + "60" : "rgba(255,255,255,0.07)"}`,
                 color: to === s.key ? s.color : "rgba(255,255,255,0.5)",
                 transition: "all 0.15s", minWidth: 140,
@@ -1601,14 +1601,14 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
       <div style={{ marginBottom: 14 }}>
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Asunto</div>
         <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Asunto del email..."
-          style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "11px 14px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+          style={{ width: "100%", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "11px 14px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
       </div>
 
       {/* Body */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Mensaje</div>
         <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Escribe tu mensaje aquí..." rows={7}
-          style={{ width: "100%", background: "#13131C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "12px 14px", color: "#F1F1F5", fontSize: 14, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.6 }} />
+          style={{ width: "100%", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "12px 14px", color: "#F1F1F5", fontSize: 14, outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.6 }} />
         <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 4 }}>Soporta saltos de línea. Se convierte a HTML automáticamente.</div>
       </div>
 
@@ -1618,17 +1618,17 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
         onClick={() => confirm(`¿Enviar email a "${SEGMENTS.find(s => s.key === to)?.label}"?\n\nAsunto: "${subject}"`, doSend)}
         style={{
           display: "flex", alignItems: "center", gap: 8,
-          background: sending || !subject.trim() || !body.trim() ? "rgba(108,99,255,0.3)" : "linear-gradient(135deg,#6C63FF,#4F46E5)",
+          background: sending || !subject.trim() || !body.trim() ? "rgba(124,111,255,0.3)" : "linear-gradient(135deg,#7C6FFF,#5B52F5)",
           border: "none", borderRadius: 12, padding: "13px 24px",
           color: "#fff", cursor: sending || !subject.trim() || !body.trim() ? "default" : "pointer",
-          fontSize: 14, fontWeight: 800, boxShadow: "0 4px 16px rgba(108,99,255,0.3)",
+          fontSize: 14, fontWeight: 800, boxShadow: "0 4px 16px rgba(124,111,255,0.3)",
         }}>
         {sending ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> Enviando...</> : <><Send size={15} /> Enviar Email</>}
       </button>
 
       {/* Result */}
       {lastResult && (
-        <div style={{ marginTop: 20, background: "#13131C", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, padding: "16px 20px" }}>
+        <div style={{ marginTop: 20, background: "#0F0F1A", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, padding: "16px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <Check size={16} color="#22C55E" />
             <span style={{ color: "#22C55E", fontWeight: 700, fontSize: 14 }}>Envío completado</span>
@@ -1677,13 +1677,13 @@ export default function Admin() {
   useEffect(() => { if (!loading && (!user || !isOwner)) navigate("/"); }, [loading, user, isOwner]);
 
   if (loading || !user || !isOwner) return (
-    <div style={{ minHeight: "100vh", background: "#090A12", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Loader2 size={32} color="#6C63FF" style={{ animation: "spin 1s linear infinite" }} />
+    <div style={{ minHeight: "100vh", background: "#07080F", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Loader2 size={32} color="#7C6FFF" style={{ animation: "spin 1s linear infinite" }} />
     </div>
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#090A12", display: "flex" }}>
+    <div style={{ minHeight: "100vh", background: "#07080F", display: "flex" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -1700,7 +1700,7 @@ export default function Admin() {
       <aside className="admin-sidebar" style={{ width: 230, flexShrink: 0, background: "#0D0D1A", borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50, transition: "transform 0.2s ease" }}>
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(108,99,255,0.35)" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(124,111,255,0.35)" }}>
               <Shield size={18} color="#fff" />
             </div>
             <div>
@@ -1711,7 +1711,7 @@ export default function Admin() {
         </div>
         <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
           {NAV.map(n => (
-            <button key={n.key} onClick={() => handleNavigate(n.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left", fontSize: 14, fontWeight: 600, background: section === n.key ? "rgba(108,99,255,0.15)" : "transparent", color: section === n.key ? "#A78BFA" : "rgba(255,255,255,0.5)", transition: "all 0.15s", borderLeft: section === n.key ? "2px solid #6C63FF" : "2px solid transparent" }}>
+            <button key={n.key} onClick={() => handleNavigate(n.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left", fontSize: 14, fontWeight: 600, background: section === n.key ? "rgba(124,111,255,0.15)" : "transparent", color: section === n.key ? "#B39DFF" : "rgba(255,255,255,0.5)", transition: "all 0.15s", borderLeft: section === n.key ? "2px solid #7C6FFF" : "2px solid transparent" }}>
               {n.icon} {n.label}
             </button>
           ))}
@@ -1740,7 +1740,7 @@ export default function Admin() {
             <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 6px #22C55E" }} />
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Online</span>
             <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.08)" }} />
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#6C63FF,#4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 900 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 900 }}>
               {user.username.charAt(0).toUpperCase()}
             </div>
             <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600 }}>{user.username}</span>

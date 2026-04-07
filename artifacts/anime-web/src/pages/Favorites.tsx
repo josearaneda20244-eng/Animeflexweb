@@ -14,7 +14,7 @@ function FavCard({ anime }: { anime: AnimeResult }) {
       onClick={() => navigate(`/anime/${anime.id}`)}
       style={{ position: "relative", cursor: "pointer" }}
     >
-      <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#13131C", border: "1px solid rgba(255,255,255,0.07)", aspectRatio: "2/3" }}>
+      <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.07)", aspectRatio: "2/3" }}>
         <img src={anime.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 45%, rgba(9,10,18,0.97) 100%)" }} />
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
@@ -51,13 +51,13 @@ export default function Favorites() {
   const { favorites } = useFavorites();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#090A12" }}>
+    <div style={{ minHeight: "100vh", background: "#07080F" }}>
       <Navbar />
 
       <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 14, paddingTop: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 4, height: 28, borderRadius: 2, background: "#6C63FF" }} />
+            <div style={{ width: 4, height: 28, borderRadius: 2, background: "#7C6FFF" }} />
             <div>
               <div style={{ color: "#F1F1F5", fontSize: 24, fontWeight: 900, letterSpacing: -0.5 }}>Favoritos</div>
               <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 1 }}>
@@ -66,7 +66,7 @@ export default function Favorites() {
             </div>
           </div>
           {favorites.length > 0 && (
-            <div style={{ background: "linear-gradient(135deg,#6C63FF,#4F46E5)", borderRadius: 14, padding: "6px 12px" }}>
+            <div style={{ background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", borderRadius: 14, padding: "6px 12px" }}>
               <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>{favorites.length}</span>
             </div>
           )}
@@ -76,8 +76,8 @@ export default function Favorites() {
 
         {favorites.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 14 }}>
-            <div style={{ width: 110, height: 110, borderRadius: 55, background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Heart size={48} color="#6C63FF" />
+            <div style={{ width: 110, height: 110, borderRadius: 55, background: "rgba(124,111,255,0.1)", border: "1px solid rgba(124,111,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Heart size={48} color="#7C6FFF" />
             </div>
             <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 800 }}>Aún no tienes favoritos</div>
             <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 14, textAlign: "center", lineHeight: 1.6, maxWidth: 280 }}>
@@ -85,7 +85,7 @@ export default function Favorites() {
             </div>
             <button
               onClick={() => navigate("/")}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(108,99,255,0.15)", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 20, padding: "9px 16px", color: "#6C63FF", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 4 }}
+              style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(124,111,255,0.15)", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 20, padding: "9px 16px", color: "#7C6FFF", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 4 }}
             >
               <Compass size={14} /> Explorar anime
             </button>

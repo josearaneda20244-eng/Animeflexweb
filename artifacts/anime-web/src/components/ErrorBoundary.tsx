@@ -27,7 +27,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div style={{
-          minHeight: "100vh", background: "#090A12",
+          minHeight: "100vh", background: "#07080F",
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           padding: 24, gap: 16, fontFamily: "Inter, sans-serif",
@@ -42,7 +42,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           <button
             onClick={() => window.location.reload()}
             style={{
-              background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+              background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
               border: "none", borderRadius: 12, padding: "10px 22px",
               color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 14,
             }}

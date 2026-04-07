@@ -57,7 +57,7 @@ const DAY_ES: Record<string, string> = {
   Sun: "Do", Mon: "Lu", Tue: "Ma", Wed: "Mi", Thu: "Ju", Fri: "Vi", Sat: "Sá",
 };
 
-const COLORS_BAR = ["#6C63FF", "#7C73FF", "#8C83FF", "#9C93FF", "#A78BFA", "#B7A3FB", "#C7B3FC"];
+const COLORS_BAR = ["#7C6FFF", "#7C73FF", "#8C83FF", "#9C93FF", "#B39DFF", "#B7A3FB", "#C7B3FC"];
 
 export default function Profile() {
   const { user, isMegaFan, isOwner } = useAuth();
@@ -93,43 +93,43 @@ export default function Profile() {
 
   const STAT_CARDS = stats
     ? [
-        { icon: <Tv2 size={20} color="#6C63FF" />, label: "Episodios vistos", value: stats.totalEpisodes, sub: `${stats.episodesThisWeek} esta semana` },
+        { icon: <Tv2 size={20} color="#7C6FFF" />, label: "Episodios vistos", value: stats.totalEpisodes, sub: `${stats.episodesThisWeek} esta semana` },
         { icon: <Clock size={20} color="#22C55E" />, label: "Horas de anime", value: `${stats.estimatedHours}h`, sub: `${stats.totalAnimes} animes distintos` },
         { icon: <CheckCircle2 size={20} color="#EC4899" />, label: "Completados", value: stats.completed, sub: "animes terminados" },
         { icon: <Flame size={20} color="#F59E0B" />, label: "Racha activa", value: `${stats.streak}d`, sub: stats.streak === 1 ? "día seguido" : "días seguidos" },
       ]
     : [
-        { icon: <Tv2 size={20} color="#6C63FF" />, label: "Episodios vistos", value: "–", sub: "cargando..." },
+        { icon: <Tv2 size={20} color="#7C6FFF" />, label: "Episodios vistos", value: "–", sub: "cargando..." },
         { icon: <Clock size={20} color="#22C55E" />, label: "Horas de anime", value: "–", sub: "" },
         { icon: <CheckCircle2 size={20} color="#EC4899" />, label: "Completados", value: "–", sub: "" },
         { icon: <Flame size={20} color="#F59E0B" />, label: "Racha activa", value: "–", sub: "" },
       ];
 
   const cardStyle = {
-    background: "#13131C",
+    background: "#0F0F1A",
     border: "1px solid rgba(255,255,255,0.06)",
     borderRadius: 16,
     padding: "18px 16px",
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#090A12" }}>
+    <div style={{ minHeight: "100vh", background: "#07080F" }}>
       <Navbar />
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "72px 16px 48px" }}>
 
         {/* Profile header */}
         <div style={{
-          background: "linear-gradient(135deg,#13131C,#1a1a2e)",
-          border: "1px solid rgba(108,99,255,0.15)", borderRadius: 20,
+          background: "linear-gradient(135deg,#0F0F1A,#1a1a2e)",
+          border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20,
           padding: "24px", marginBottom: 16,
           display: "flex", alignItems: "center", gap: 18,
         }}>
           <div style={{
             width: 70, height: 70, borderRadius: 18, flexShrink: 0,
-            background: "linear-gradient(135deg,#6C63FF,#4F46E5)",
+            background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
-            boxShadow: "0 4px 20px rgba(108,99,255,0.4)",
+            boxShadow: "0 4px 20px rgba(124,111,255,0.4)",
           }}>
             {resolveAvatarUrl(user?.avatar_url)
               ? <img src={resolveAvatarUrl(user?.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -141,10 +141,10 @@ export default function Profile() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(108,99,255,0.1)",
-                border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.35)" : "rgba(108,99,255,0.25)"}`,
+                background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(124,111,255,0.1)",
+                border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.35)" : "rgba(124,111,255,0.25)"}`,
                 borderRadius: 20, padding: "4px 12px",
-                color: isMegaFan ? "#F59E0B" : "#A78BFA", fontSize: 12, fontWeight: 800,
+                color: isMegaFan ? "#F59E0B" : "#B39DFF", fontSize: 12, fontWeight: 800,
               }}>
                 {isMegaFan ? <><Crown size={11} /> MegaFan</> : "✦ Gratuito"}
               </div>
@@ -153,9 +153,9 @@ export default function Profile() {
                   onClick={() => navigate("/admin")}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 7,
-                    background: "linear-gradient(135deg,rgba(108,99,255,0.2),rgba(79,70,229,0.1))",
-                    border: "1px solid rgba(108,99,255,0.35)", borderRadius: 10,
-                    padding: "5px 12px", color: "#A78BFA", cursor: "pointer",
+                    background: "linear-gradient(135deg,rgba(124,111,255,0.2),rgba(79,70,229,0.1))",
+                    border: "1px solid rgba(124,111,255,0.35)", borderRadius: 10,
+                    padding: "5px 12px", color: "#B39DFF", cursor: "pointer",
                     fontSize: 12, fontWeight: 800,
                   }}
                 >
@@ -183,8 +183,8 @@ export default function Profile() {
                     title="Copiar enlace de perfil público"
                     style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
-                      background: "rgba(108,99,255,0.1)", border: "1px solid rgba(108,99,255,0.25)",
-                      borderRadius: 10, padding: "5px 10px", color: "#A78BFA",
+                      background: "rgba(124,111,255,0.1)", border: "1px solid rgba(124,111,255,0.25)",
+                      borderRadius: 10, padding: "5px 10px", color: "#B39DFF",
                       cursor: "pointer", fontSize: 12, fontWeight: 700,
                     }}
                   >
@@ -196,7 +196,7 @@ export default function Profile() {
           </div>
           {!isMegaFan && user && (
             <button onClick={() => navigate("/membership")} style={{
-              background: "linear-gradient(135deg,#6C63FF,#4F46E5)", border: "none",
+              background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", border: "none",
               borderRadius: 12, padding: "9px 16px", color: "#fff",
               fontSize: 12, fontWeight: 800, cursor: "pointer", flexShrink: 0,
             }}>
@@ -221,7 +221,7 @@ export default function Profile() {
         {stats && (
           <div style={{ ...cardStyle, marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <BarChart2 size={15} color="#6C63FF" />
+              <BarChart2 size={15} color="#7C6FFF" />
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Actividad esta semana</span>
               <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 11 }}>últimos 7 días</span>
             </div>
@@ -235,8 +235,8 @@ export default function Profile() {
                 />
                 <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip
-                  contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(108,99,255,0.3)", borderRadius: 10, fontSize: 12 }}
-                  labelStyle={{ color: "#A78BFA", fontWeight: 700 }}
+                  contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 10, fontSize: 12 }}
+                  labelStyle={{ color: "#B39DFF", fontWeight: 700 }}
                   itemStyle={{ color: "#F1F1F5" }}
                   formatter={(v: number) => [`${v} ep.`, "Episodios"]}
                   labelFormatter={(label: string) => DAY_ES[label] ?? label}
@@ -254,12 +254,12 @@ export default function Profile() {
         {/* Daily usage bar (free users) */}
         {!isMegaFan && user && (
           <div style={{
-            background: "rgba(108,99,255,0.07)", border: "1px solid rgba(108,99,255,0.18)",
+            background: "rgba(124,111,255,0.07)", border: "1px solid rgba(124,111,255,0.18)",
             borderRadius: 16, padding: "16px 20px", marginBottom: 16,
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>Episodios gratis hoy</div>
-              <div style={{ color: "#A78BFA", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{limitsConfig.dailyLimit}</div>
+              <div style={{ color: "#B39DFF", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{limitsConfig.dailyLimit}</div>
             </div>
             <div style={{ height: 7, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
               <div style={{
@@ -267,7 +267,7 @@ export default function Profile() {
                 width: `${Math.min(100, (watchedToday / limitsConfig.dailyLimit) * 100)}%`,
                 background: watchedToday >= limitsConfig.dailyLimit
                   ? "linear-gradient(90deg,#EF4444,#F87171)"
-                  : "linear-gradient(90deg,#6C63FF,#A78BFA)",
+                  : "linear-gradient(90deg,#7C6FFF,#B39DFF)",
                 transition: "width 0.4s",
               }} />
             </div>
@@ -281,7 +281,7 @@ export default function Profile() {
         {stats && stats.topAnime.length > 0 && (
           <div style={{ ...cardStyle, marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <TrendingUp size={15} color="#6C63FF" />
+              <TrendingUp size={15} color="#7C6FFF" />
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Top animes vistos</span>
             </div>
             {stats.topAnime.map((a, i) => (
@@ -305,11 +305,11 @@ export default function Profile() {
         {watchlist.length > 0 && (
           <div style={{ ...cardStyle, marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <BookOpen size={15} color="#6C63FF" />
+              <BookOpen size={15} color="#7C6FFF" />
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Viendo / Completados</span>
               <button
                 onClick={() => navigate("/watchlist")}
-                style={{ marginLeft: "auto", background: "none", border: "none", color: "#6C63FF", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                style={{ marginLeft: "auto", background: "none", border: "none", color: "#7C6FFF", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
               >
                 Ver lista →
               </button>
@@ -337,7 +337,7 @@ export default function Profile() {
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Favoritos</span>
               <button
                 onClick={() => navigate("/favorites")}
-                style={{ marginLeft: "auto", background: "none", border: "none", color: "#6C63FF", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                style={{ marginLeft: "auto", background: "none", border: "none", color: "#7C6FFF", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
               >
                 Ver todos →
               </button>

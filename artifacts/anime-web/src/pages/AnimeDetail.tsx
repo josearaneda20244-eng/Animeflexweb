@@ -17,7 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import AdBanner from "@/components/AdBanner";
 
 const STATUS_OPTIONS: { value: WatchStatus; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#6C63FF" },
+  { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#7C6FFF" },
   { value: "completed", label: "Completado", icon: <CheckCircle2 size={13} />, color: "#22C55E" },
   { value: "plan_to_watch", label: "Pendiente", icon: <Clock3 size={13} />, color: "#F59E0B" },
   { value: "dropped", label: "Abandonado", icon: <XCircle size={13} />, color: "#EF4444" },
@@ -133,7 +133,7 @@ function UserRatingWidget({ animeId }: { animeId: string }) {
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
         <div className="section-accent" />
-        <Star size={14} className="text-[#6C63FF]" />
+        <Star size={14} className="text-[#7C6FFF]" />
         <h2 className="text-sm font-bold text-[#F0F0FF]">Tu valoración</h2>
         {communityTotal > 0 && (
           <span style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.3)", fontSize: 11, marginLeft: "auto" }}>
@@ -219,7 +219,7 @@ function RecommendationCard({ anime }: { anime: AnimeResult }) {
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = ""; }}
     >
-      <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "2/3", position: "relative", background: "#13131C" }}>
+      <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "2/3", position: "relative", background: "#0F0F1A" }}>
         <img
           src={anime.image}
           alt={title}
@@ -358,9 +358,9 @@ export default function AnimeDetail() {
 
   if (infoQuery.isLoading) {
     return (
-      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#090A12" }}>
+      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#07080F" }}>
         <div className="flex flex-col items-center gap-3 text-[#4A4A6A]">
-          <div className="w-8 h-8 border-2 border-[#6C63FF] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#7C6FFF] border-t-transparent rounded-full animate-spin" />
           <p className="text-sm">Cargando...</p>
         </div>
       </div>
@@ -369,10 +369,10 @@ export default function AnimeDetail() {
 
   if (infoQuery.isError) {
     return (
-      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#090A12" }}>
+      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#07080F" }}>
         <div className="text-center text-[#4A4A6A]">
           <p className="text-[#F0F0FF] font-medium mb-2">No se pudo cargar el anime</p>
-          <button onClick={() => navigate("/")} className="text-sm text-[#6C63FF] hover:underline">
+          <button onClick={() => navigate("/")} className="text-sm text-[#7C6FFF] hover:underline">
             Volver al inicio
           </button>
         </div>
@@ -381,7 +381,7 @@ export default function AnimeDetail() {
   }
 
   return (
-    <div className="min-h-screen pb-16" style={{ background: "#090A12" }}>
+    <div className="min-h-screen pb-16" style={{ background: "#07080F" }}>
       {showTrailer && hasYouTubeTrailer && (
         <TrailerModal trailerId={trailer!.id} onClose={() => setShowTrailer(false)} />
       )}
@@ -447,7 +447,7 @@ export default function AnimeDetail() {
                 if (ep) handleEpisode(ep);
               }}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white justify-center transition-opacity hover:opacity-90"
-              style={{ background: "linear-gradient(135deg,#6C63FF,#EC4899)" }}
+              style={{ background: "linear-gradient(135deg,#7C6FFF,#EC4899)" }}
             >
               <Play size={16} fill="currentColor" />
               Continuar Ep. {animeProgress.episodeNum}
@@ -456,7 +456,7 @@ export default function AnimeDetail() {
             <button
               onClick={() => handleEpisode(episodes[0])}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white justify-center transition-opacity hover:opacity-90"
-              style={{ background: "linear-gradient(135deg,#6C63FF,#EC4899)" }}
+              style={{ background: "linear-gradient(135deg,#7C6FFF,#EC4899)" }}
             >
               <Play size={16} fill="currentColor" />
               Reproducir
@@ -532,14 +532,14 @@ export default function AnimeDetail() {
 
         {/* Description */}
         {rawDesc && (
-          <div className="mb-6 p-4 rounded-xl" style={{ background: "#13131C" }}>
+          <div className="mb-6 p-4 rounded-xl" style={{ background: "#0F0F1A" }}>
             <p className={`text-sm text-[#9090B0] leading-relaxed ${!descExpanded ? "line-clamp-3" : ""}`}>
               {rawDesc}
             </p>
             {rawDesc.length > 200 && (
               <button
                 onClick={() => setDescExpanded(!descExpanded)}
-                className="flex items-center gap-1 mt-2 text-xs text-[#6C63FF] hover:underline"
+                className="flex items-center gap-1 mt-2 text-xs text-[#7C6FFF] hover:underline"
               >
                 {descExpanded ? <><ChevronUp size={12} />Menos</> : <><ChevronDown size={12} />Más</>}
               </button>
@@ -555,7 +555,7 @@ export default function AnimeDetail() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <div className="section-accent" />
-              <Users size={14} className="text-[#6C63FF]" />
+              <Users size={14} className="text-[#7C6FFF]" />
               <h2 className="text-sm font-bold text-[#F0F0FF]">Personajes</h2>
             </div>
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
@@ -563,8 +563,8 @@ export default function AnimeDetail() {
                 <div key={char.id} style={{ flexShrink: 0, textAlign: "center", width: 72 }}>
                   <div style={{
                     width: 64, height: 64, borderRadius: "50%", overflow: "hidden",
-                    margin: "0 auto 6px", border: "2px solid rgba(108,99,255,0.3)",
-                    background: "#13131C",
+                    margin: "0 auto 6px", border: "2px solid rgba(124,111,255,0.3)",
+                    background: "#0F0F1A",
                   }}>
                     <img
                       src={char.image}
@@ -576,7 +576,7 @@ export default function AnimeDetail() {
                   <div style={{ color: "#F1F1F5", fontSize: 9, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as any}>
                     {char.name}
                   </div>
-                  <div style={{ color: char.role === "MAIN" ? "#A78BFA" : "rgba(255,255,255,0.3)", fontSize: 8, fontWeight: 600, marginTop: 2 }}>
+                  <div style={{ color: char.role === "MAIN" ? "#B39DFF" : "rgba(255,255,255,0.3)", fontSize: 8, fontWeight: 600, marginTop: 2 }}>
                     {char.role === "MAIN" ? "Principal" : "Secundario"}
                   </div>
                 </div>
@@ -590,7 +590,7 @@ export default function AnimeDetail() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="section-accent" />
-              <List size={14} className="text-[#6C63FF]" />
+              <List size={14} className="text-[#7C6FFF]" />
               <h2 className="text-sm font-bold text-[#F0F0FF]">
                 Episodios ({episodes.length})
               </h2>
@@ -599,13 +599,13 @@ export default function AnimeDetail() {
               <div className="flex rounded-lg overflow-hidden border border-[#1E1E32] text-xs">
                 <button
                   onClick={() => setEpFilter("all")}
-                  className={`px-3 py-1.5 transition-colors ${epFilter === "all" ? "bg-[#6C63FF] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
+                  className={`px-3 py-1.5 transition-colors ${epFilter === "all" ? "bg-[#7C6FFF] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
                 >
                   Todos
                 </button>
                 <button
                   onClick={() => setEpFilter("unwatched")}
-                  className={`px-3 py-1.5 transition-colors ${epFilter === "unwatched" ? "bg-[#6C63FF] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
+                  className={`px-3 py-1.5 transition-colors ${epFilter === "unwatched" ? "bg-[#7C6FFF] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
                 >
                   Sin ver
                 </button>
@@ -615,7 +615,7 @@ export default function AnimeDetail() {
 
           {paheQuery.isLoading && (
             <div className="flex items-center gap-2 text-xs text-[#4A4A6A] mb-3">
-              <div className="w-3 h-3 border border-[#6C63FF] border-t-transparent rounded-full animate-spin" />
+              <div className="w-3 h-3 border border-[#7C6FFF] border-t-transparent rounded-full animate-spin" />
               Cargando fuentes...
             </div>
           )}
@@ -634,13 +634,13 @@ export default function AnimeDetail() {
                     key={ep.id}
                     onClick={() => handleEpisode(ep)}
                     className={`flex items-center gap-3 p-3 rounded-xl text-left transition-colors group w-full ${watched ? "opacity-60" : ""}`}
-                    style={{ background: "#13131C", border: "1px solid #1E1E32" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#6C63FF40")}
+                    style={{ background: "#0F0F1A", border: "1px solid #1E1E32" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7C6FFF40")}
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1E1E32")}
                   >
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                      style={watched ? { background: "#1A1A27", color: "#4A4A6A" } : { background: "rgba(108,99,255,0.15)", color: "#6C63FF" }}
+                      style={watched ? { background: "#1A1A27", color: "#4A4A6A" } : { background: "rgba(124,111,255,0.15)", color: "#7C6FFF" }}
                     >
                       {ep.number}
                     </div>
@@ -654,7 +654,7 @@ export default function AnimeDetail() {
                     </div>
                     <Play
                       size={14}
-                      className="text-[#6C63FF] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                      className="text-[#7C6FFF] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                     />
                   </button>
                 );
@@ -668,7 +668,7 @@ export default function AnimeDetail() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
               <div className="section-accent" />
-              <Sparkles size={14} className="text-[#6C63FF]" />
+              <Sparkles size={14} className="text-[#7C6FFF]" />
               <h2 className="text-sm font-bold text-[#F0F0FF]">Animes similares</h2>
               <ChevronRight size={14} className="text-[#4A4A6A]" />
             </div>

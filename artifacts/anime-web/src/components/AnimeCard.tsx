@@ -21,10 +21,10 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
       <Link href={href} style={{ display: "block", textDecoration: "none" }}>
         <div
           style={{
-            borderRadius: 14, overflow: "hidden", background: "#13131C", cursor: "pointer",
+            borderRadius: 14, overflow: "hidden", background: "#0F0F1A", cursor: "pointer",
             transition: "transform 0.18s ease, box-shadow 0.18s ease",
             transform: hovered ? "translateY(-5px)" : "",
-            boxShadow: hovered ? "0 12px 32px rgba(108,99,255,0.35)" : "none",
+            boxShadow: hovered ? "0 12px 32px rgba(124,111,255,0.35)" : "none",
           }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
@@ -54,9 +54,9 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
               }}>
                 <div style={{
                   width: 46, height: 46, borderRadius: "50%",
-                  background: "linear-gradient(135deg, #6C63FF, #4F46E5)",
+                  background: "linear-gradient(135deg, #7C6FFF, #5B52F5)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 4px 14px rgba(108,99,255,0.5)",
+                  boxShadow: "0 4px 14px rgba(124,111,255,0.5)",
                 }}>
                   <Play size={18} color="#fff" fill="#fff" />
                 </div>
@@ -64,8 +64,8 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 3, justifyContent: "center", padding: "0 10px" }}>
                     {anime.genres.slice(0, 2).map((g) => (
                       <span key={g} style={{
-                        background: "rgba(108,99,255,0.35)", borderRadius: 6,
-                        padding: "2px 6px", color: "#A78BFA", fontSize: 8, fontWeight: 700,
+                        background: "rgba(124,111,255,0.35)", borderRadius: 6,
+                        padding: "2px 6px", color: "#B39DFF", fontSize: 8, fontWeight: 700,
                       }}>{g}</span>
                     ))}
                   </div>
@@ -76,7 +76,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
             <div style={{ position: "absolute", top: 6, left: 6, display: "flex", gap: 3 }}>
               <span style={{ background: "#22C55E", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.4 }}>SUB</span>
               {anime.type && (
-                <span style={{ background: "rgba(108,99,255,0.85)", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.4 }}>{anime.type}</span>
+                <span style={{ background: "rgba(124,111,255,0.85)", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.4 }}>{anime.type}</span>
               )}
             </div>
 
@@ -89,7 +89,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
 
             {progress != null && progress > 0 && (
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(255,255,255,0.15)" }}>
-                <div style={{ height: "100%", background: "#6C63FF", width: `${Math.min(progress * 100, 100)}%` }} />
+                <div style={{ height: "100%", background: "#7C6FFF", width: `${Math.min(progress * 100, 100)}%` }} />
               </div>
             )}
           </div>

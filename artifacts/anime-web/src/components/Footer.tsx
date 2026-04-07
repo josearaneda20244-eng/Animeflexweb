@@ -11,16 +11,16 @@ const SOCIAL_LINKS = [
 export default function Footer() {
   const [, navigate] = useLocation();
   return (
-    <footer style={{ background: "#0D0D1A", borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 48, padding: "40px 24px 24px" }}>
+    <footer style={{ background: "rgba(7,8,15,0.95)", backdropFilter: "blur(12px)" , borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 48, padding: "40px 24px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 32, marginBottom: 40 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #6C63FF, #4F46E5)" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #7C6FFF, #5B52F5)" }}>
                 <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>▶</span>
               </div>
               <span style={{ fontSize: 18, fontWeight: 900 }}>
-                <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#6C63FF" }}>FLEX</span>
+                <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#7C6FFF" }}>FLEX</span>
               </span>
             </div>
             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, lineHeight: 1.7, marginBottom: 16 }}>
@@ -39,7 +39,7 @@ export default function Footer() {
                     border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center",
                     justifyContent: "center", textDecoration: "none", fontSize: 14, transition: "background 0.15s, border-color 0.15s",
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(108,99,255,0.2)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(108,99,255,0.4)"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(124,111,255,0.2)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(124,111,255,0.4)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.07)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "rgba(255,255,255,0.1)"; }}
                 >
                   {icon}
@@ -62,7 +62,7 @@ export default function Footer() {
               <div key={to} style={{ marginBottom: 7 }}>
                 <button onClick={() => navigate(to)}
                   style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", fontSize: 13, cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#A78BFA")}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#B39DFF")}
                   onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}
                 >
                   {label}
@@ -76,9 +76,9 @@ export default function Footer() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {GENRES.map((g) => (
                 <button key={g} onClick={() => navigate(`/search?q=${g}`)}
-                  style={{ background: "rgba(108,99,255,0.08)", border: "1px solid rgba(108,99,255,0.18)", borderRadius: 6, padding: "3px 8px", color: "rgba(255,255,255,0.45)", fontSize: 11, cursor: "pointer" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = "#A78BFA"; e.currentTarget.style.borderColor = "rgba(108,99,255,0.45)"; e.currentTarget.style.background = "rgba(108,99,255,0.15)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.borderColor = "rgba(108,99,255,0.18)"; e.currentTarget.style.background = "rgba(108,99,255,0.08)"; }}
+                  style={{ background: "rgba(124,111,255,0.08)", border: "1px solid rgba(124,111,255,0.18)", borderRadius: 6, padding: "3px 8px", color: "rgba(255,255,255,0.45)", fontSize: 11, cursor: "pointer" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#B39DFF"; e.currentTarget.style.borderColor = "rgba(124,111,255,0.45)"; e.currentTarget.style.background = "rgba(124,111,255,0.15)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; e.currentTarget.style.borderColor = "rgba(124,111,255,0.18)"; e.currentTarget.style.background = "rgba(124,111,255,0.08)"; }}
                 >{g}</button>
               ))}
             </div>
@@ -95,7 +95,7 @@ export default function Footer() {
             ].map(({ label, href }) => (
               <div key={label} style={{ marginBottom: 7 }}>
                 <a href={href} style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "none" }}
-                  onMouseEnter={(e) => ((e.target as HTMLAnchorElement).style.color = "#A78BFA")}
+                  onMouseEnter={(e) => ((e.target as HTMLAnchorElement).style.color = "#B39DFF")}
                   onMouseLeave={(e) => ((e.target as HTMLAnchorElement).style.color = "rgba(255,255,255,0.4)")}
                 >{label}</a>
               </div>
@@ -118,7 +118,7 @@ export default function Footer() {
                 href={s === "AniList" ? "https://anilist.co" : s === "MyAnimeList" ? "https://myanimelist.net" : "https://kitsu.io"}
                 target="_blank" rel="noopener noreferrer"
                 style={{ color: "rgba(255,255,255,0.28)", fontSize: 11, textDecoration: "none" }}
-                onMouseEnter={(e) => ((e.target as HTMLAnchorElement).style.color = "#6C63FF")}
+                onMouseEnter={(e) => ((e.target as HTMLAnchorElement).style.color = "#7C6FFF")}
                 onMouseLeave={(e) => ((e.target as HTMLAnchorElement).style.color = "rgba(255,255,255,0.28)")}
               >{s}</a>
             ))}

@@ -31,7 +31,7 @@ export default function Schedule() {
   const dayEntries = grouped[activeDay] ?? [];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#090A12" }}>
+    <div style={{ minHeight: "100vh", background: "#07080F" }}>
       <Navbar />
       <div style={{ paddingTop: 56 }}>
         <div style={{ padding: "32px 16px 20px" }}>
@@ -58,18 +58,18 @@ export default function Schedule() {
                   style={{
                     flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                     padding: "12px 20px", borderRadius: 16,
-                    border: `1px solid ${isActive ? "#6C63FF" : "rgba(255,255,255,0.1)"}`,
-                    background: isActive ? "rgba(108,99,255,0.2)" : "rgba(255,255,255,0.04)",
-                    color: isActive ? "#A78BFA" : "rgba(255,255,255,0.55)",
+                    border: `1px solid ${isActive ? "#7C6FFF" : "rgba(255,255,255,0.1)"}`,
+                    background: isActive ? "rgba(124,111,255,0.2)" : "rgba(255,255,255,0.04)",
+                    color: isActive ? "#B39DFF" : "rgba(255,255,255,0.55)",
                     cursor: "pointer", position: "relative",
                   }}
                 >
                   <span style={{ fontSize: 13, fontWeight: 800 }}>{d}</span>
-                  <span style={{ fontSize: 10, color: isActive ? "#A78BFA" : "rgba(255,255,255,0.35)" }}>{count} ep</span>
+                  <span style={{ fontSize: 10, color: isActive ? "#B39DFF" : "rgba(255,255,255,0.35)" }}>{count} ep</span>
                   {isToday && (
                     <span style={{
                       position: "absolute", top: -4, right: -4, width: 10, height: 10,
-                      borderRadius: "50%", background: "#22C55E", border: "2px solid #090A12",
+                      borderRadius: "50%", background: "#22C55E", border: "2px solid #07080F",
                     }} />
                   )}
                 </button>
@@ -116,12 +116,12 @@ export default function Schedule() {
                     onClick={() => navigate(`/anime/${entry.media.id}`)}
                     style={{
                       display: "flex", alignItems: "center", gap: 16, padding: 16,
-                      background: "#13131C", borderRadius: 16,
+                      background: "#0F0F1A", borderRadius: 16,
                       border: `1px solid ${isPast ? "rgba(255,255,255,0.06)" : "rgba(34,197,94,0.15)"}`,
                       cursor: "pointer", transition: "border-color 0.15s, background 0.15s",
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#161620"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#13131C"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#0F0F1A"; }}
                   >
                     <img
                       src={entry.media.coverImage.large}
@@ -158,7 +158,7 @@ export default function Schedule() {
                     <button
                       style={{
                         flexShrink: 0, width: 40, height: 40, borderRadius: "50%",
-                        background: isPast ? "#6C63FF" : "rgba(255,255,255,0.07)",
+                        background: isPast ? "#7C6FFF" : "rgba(255,255,255,0.07)",
                         border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                       }}
                     >

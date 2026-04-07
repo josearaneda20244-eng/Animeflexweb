@@ -14,7 +14,7 @@ const STATUS_CONFIG: Record<WatchStatus, { label: string; icon: React.ReactNode;
   watching: {
     label: 'Viendo',
     icon: <Play size={16} fill="currentColor" />,
-    color: '#6C63FF',
+    color: '#7C6FFF',
     bgColor: 'rgba(108, 99, 255, 0.1)'
   },
   completed: {

@@ -1,6 +1,6 @@
 export function SkeletonCard() {
   return (
-    <div className="rounded-xl overflow-hidden bg-[#13131C] animate-pulse">
+    <div className="rounded-xl overflow-hidden bg-[#0F0F1A] animate-pulse">
       <div className="aspect-[2/3] bg-[#1A1A27]" />
       <div className="p-2">
         <div className="h-3 bg-[#1A1A27] rounded mb-1" />
