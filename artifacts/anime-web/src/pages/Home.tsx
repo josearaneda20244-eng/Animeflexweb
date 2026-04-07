@@ -1,634 +1,570 @@
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { Play, Info, Star, ChevronLeft, ChevronRight, Tv } from "lucide-react";
-import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
-import { fetchAiringSchedule, fetchSeasonalAnime, getCurrentSeason, seasonLabel, type AiringEntry, type SeasonAnime } from "@/lib/anilist";
-import { useWatchProgress } from "@/context/WatchProgressContext";
-import { useAuth } from "@/context/AuthContext";
-import AnimeRecommendations from "@/components/AnimeRecommendations";
-import { useCallback, useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import AdBanner from "@/components/AdBanner";
+  import { useLocation } from "wouter";
+  import { Play, Info, Star, ChevronLeft, ChevronRight, Tv } from "lucide-react";
+  import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
+  import { fetchAiringSchedule, fetchSeasonalAnime, getCurrentSeason, seasonLabel, type AiringEntry, type SeasonAnime } from "@/lib/anilist";
+  import { useWatchProgress } from "@/context/WatchProgressContext";
+  import { useAuth } from "@/context/AuthContext";
+  import AnimeRecommendations from "@/components/AnimeRecommendations";
+  import { useCallback, useState, useEffect, useRef } from "react";
+  import Navbar from "@/components/Navbar";
+  import Footer from "@/components/Footer";
+  import AdBanner from "@/components/AdBanner";
 
-function nav(navigate: (to: string) => void, id: string | number) {
-  navigate(`/anime/${id}`);
-}
+  function nav(navigate: (to: string) => void, id: string | number) {
+    navigate(`/anime/${id}`);
+  }
 
-/* ── HERO BANNER ── */
-function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; idx: number; onPrev: () => void; onNext: () => void }) {
-  const [, navigate] = useLocation();
-  const anime = animes[idx];
-  if (!anime) return <div style={{ height: "min(70vw, 540px)", background: "#07080F" }} />;
-  const title = resolveTitle(anime.title);
+  /* ── SCROLLABLE CAROUSEL WITH ARROWS ── */
+  function ScrollableCarousel({ children, scrollAmount = 420 }: { children: React.ReactNode; scrollAmount?: number }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [canLeft, setCanLeft] = useState(false);
+    const [canRight, setCanRight] = useState(true);
 
-  return (
-    <div style={{ position: "relative", height: "min(70vw, 540px)", overflow: "hidden" }}>
-      {/* Image */}
-      <img
-        src={anime.cover || anime.image}
-        alt={title}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", transition: "opacity 0.5s" }}
-      />
-      {/* Dark gradient overlays */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(7,8,15,0.08) 0%, rgba(7,8,15,0.45) 35%, rgba(7,8,15,0.92) 75%, #07080F 100%)" }} />
-      <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(to right, rgba(7,8,15,0.75), transparent)" }} />
-      {/* Purple vignette on left */}
-      <div style={{ position: "absolute", inset: 0, width: "45%", background: "linear-gradient(to right, rgba(109,40,217,0.12), transparent)", pointerEvents: "none" }} />
+    const update = () => {
+      const el = ref.current;
+      if (!el) return;
+      setCanLeft(el.scrollLeft > 4);
+      setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    };
 
-      {/* Content */}
-      <div style={{ position: "absolute", bottom: 36, left: 24, right: 24, display: "flex", flexDirection: "column", gap: 12, maxWidth: 520 }}>
-        {/* Badges */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <span style={{
-            background: "linear-gradient(135deg, #8B5CF6, #6D28D9)",
-            borderRadius: 6, padding: "3px 9px", color: "#fff", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
-            boxShadow: "0 0 12px rgba(139,92,246,0.55)"
-          }}>HD</span>
-          {anime.type && <span style={{
-            background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.22)",
-            borderRadius: 6, padding: "3px 9px", color: "#fff", fontSize: 9, fontWeight: 700
-          }}>{anime.type}</span>}
-          {anime.status === "Ongoing" && (
-            <span style={{
-              background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)",
-              borderRadius: 6, padding: "3px 9px", color: "#22C55E", fontSize: 9, fontWeight: 900, letterSpacing: 0.5,
-              display: "flex", alignItems: "center", gap: 4
-            }}>
-              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E", display: "inline-block", boxShadow: "0 0 6px #22C55E" }} />
-              EN EMISIÓN
-            </span>
-          )}
+    useEffect(() => { update(); }, [children]);
+
+    const scroll = (dir: number) => {
+      ref.current?.scrollBy({ left: dir * scrollAmount, behavior: "smooth" });
+      setTimeout(update, 350);
+    };
+
+    const ARROW_STYLE = (active: boolean, side: "left" | "right"): React.CSSProperties => ({
+      position: "absolute", top: "50%", transform: "translateY(-50%)",
+      [side]: side === "left" ? 6 : 6,
+      zIndex: 10,
+      background: "rgba(7,8,15,0.82)",
+      backdropFilter: "blur(12px)",
+      border: "1px solid rgba(139,92,246,0.35)",
+      borderRadius: 22,
+      width: 38, height: 38,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      cursor: active ? "pointer" : "default",
+      opacity: active ? 1 : 0,
+      pointerEvents: active ? "auto" : "none",
+      transition: "opacity 0.22s, background 0.18s, transform 0.18s, box-shadow 0.18s",
+      boxShadow: "0 4px 20px rgba(0,0,0,0.5), 0 0 14px rgba(139,92,246,0.25)",
+    });
+
+    return (
+      <div style={{ position: "relative" }}
+        onMouseEnter={update}
+        onMouseLeave={() => {}}>
+        {/* Left arrow */}
+        <button
+          onClick={() => scroll(-1)}
+          style={ARROW_STYLE(canLeft, "left")}
+          onMouseEnter={e => { if (canLeft) { e.currentTarget.style.background = "rgba(139,92,246,0.45)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(139,92,246,0.5)"; e.currentTarget.style.transform = "translateY(-50%) scale(1.1)"; }}}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.82)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.5), 0 0 14px rgba(139,92,246,0.25)"; e.currentTarget.style.transform = "translateY(-50%) scale(1)"; }}>
+          <ChevronLeft size={20} color="#C4B5FD" />
+        </button>
+
+        {/* Right arrow */}
+        <button
+          onClick={() => scroll(1)}
+          style={ARROW_STYLE(canRight, "right")}
+          onMouseEnter={e => { if (canRight) { e.currentTarget.style.background = "rgba(139,92,246,0.45)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(139,92,246,0.5)"; e.currentTarget.style.transform = "translateY(-50%) scale(1.1)"; }}}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.82)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.5), 0 0 14px rgba(139,92,246,0.25)"; e.currentTarget.style.transform = "translateY(-50%) scale(1)"; }}>
+          <ChevronRight size={20} color="#C4B5FD" />
+        </button>
+
+        {/* Carousel scroll container */}
+        <div
+          ref={ref}
+          className="carousel-scroll"
+          onScroll={update}>
+          {children}
         </div>
 
-        {/* Title */}
-        <div style={{
-          color: "#fff", fontSize: "clamp(22px, 4.5vw, 34px)", fontWeight: 900, lineHeight: 1.15,
-          letterSpacing: -0.5,
-          textShadow: "0 2px 16px rgba(0,0,0,0.9), 0 0 40px rgba(139,92,246,0.2)",
-          maxWidth: 500
-        }} className="line-clamp-2">{title}</div>
+        {/* Left fade mask */}
+        {canLeft && (
+          <div style={{
+            position: "absolute", top: 0, left: 0, width: 60, height: "100%", pointerEvents: "none",
+            background: "linear-gradient(to right, rgba(7,8,15,0.85), transparent)"
+          }} />
+        )}
+        {/* Right fade mask */}
+        {canRight && (
+          <div style={{
+            position: "absolute", top: 0, right: 0, width: 60, height: "100%", pointerEvents: "none",
+            background: "linear-gradient(to left, rgba(7,8,15,0.85), transparent)"
+          }} />
+        )}
+      </div>
+    );
+  }
 
-        {/* Meta row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          {anime.rating != null && anime.rating > 0 && (
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Star size={13} color="#F59E0B" fill="#F59E0B" />
-              <span style={{ color: "#F59E0B", fontSize: 14, fontWeight: 900 }}>{(anime.rating / 10).toFixed(1)}</span>
-            </span>
-          )}
-          {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13 }}>{anime.releaseDate}</span>}
-          {anime.totalEpisodes && (
-            <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, display: "flex", alignItems: "center", gap: 3 }}>
-              <Tv size={11} color="rgba(255,255,255,0.4)" /> {anime.totalEpisodes} EP
-            </span>
-          )}
-        </div>
+  /* ── HERO BANNER ── */
+  function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; idx: number; onPrev: () => void; onNext: () => void }) {
+    const [, navigate] = useLocation();
+    const anime = animes[idx];
+    if (!anime) return <div style={{ height: "min(70vw, 540px)", background: "#07080F" }} />;
+    const title = resolveTitle(anime.title);
 
-        {/* Genres */}
-        {anime.genres && anime.genres.length > 0 && (
+    return (
+      <div style={{ position: "relative", height: "min(70vw, 540px)", overflow: "hidden" }}>
+        <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", transition: "opacity 0.5s" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(7,8,15,0.08) 0%, rgba(7,8,15,0.45) 35%, rgba(7,8,15,0.92) 75%, #07080F 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(to right, rgba(7,8,15,0.75), transparent)" }} />
+        <div style={{ position: "absolute", inset: 0, width: "45%", background: "linear-gradient(to right, rgba(109,40,217,0.12), transparent)", pointerEvents: "none" }} />
+
+        <div style={{ position: "absolute", bottom: 36, left: 24, right: 24, display: "flex", flexDirection: "column", gap: 12, maxWidth: 520 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {anime.genres.slice(0, 4).map((g) => (
-              <span key={g} style={{
-                background: "rgba(139,92,246,0.18)", border: "1px solid rgba(139,92,246,0.32)",
-                borderRadius: 20, padding: "3px 10px", color: "#C4B5FD", fontSize: 10, fontWeight: 700
-              }}>{g}</span>
-            ))}
+            <span style={{ background: "linear-gradient(135deg, #8B5CF6, #6D28D9)", borderRadius: 6, padding: "3px 9px", color: "#fff", fontSize: 9, fontWeight: 900, letterSpacing: 1.2, boxShadow: "0 0 12px rgba(139,92,246,0.55)" }}>HD</span>
+            {anime.type && <span style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 6, padding: "3px 9px", color: "#fff", fontSize: 9, fontWeight: 700 }}>{anime.type}</span>}
+            {anime.status === "Ongoing" && (
+              <span style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: 6, padding: "3px 9px", color: "#22C55E", fontSize: 9, fontWeight: 900, letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22C55E", display: "inline-block", boxShadow: "0 0 6px #22C55E" }} /> EN EMISIÓN
+              </span>
+            )}
+          </div>
+          <div style={{ color: "#fff", fontSize: "clamp(22px, 4.5vw, 34px)", fontWeight: 900, lineHeight: 1.15, letterSpacing: -0.5, textShadow: "0 2px 16px rgba(0,0,0,0.9), 0 0 40px rgba(139,92,246,0.2)", maxWidth: 500 }} className="line-clamp-2">{title}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            {anime.rating != null && anime.rating > 0 && (
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <Star size={13} color="#F59E0B" fill="#F59E0B" />
+                <span style={{ color: "#F59E0B", fontSize: 14, fontWeight: 900 }}>{(anime.rating / 10).toFixed(1)}</span>
+              </span>
+            )}
+            {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13 }}>{anime.releaseDate}</span>}
+            {anime.totalEpisodes && (
+              <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, display: "flex", alignItems: "center", gap: 3 }}>
+                <Tv size={11} color="rgba(255,255,255,0.4)" /> {anime.totalEpisodes} EP
+              </span>
+            )}
+          </div>
+          {anime.genres && anime.genres.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {anime.genres.slice(0, 4).map((g) => (
+                <span key={g} style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(139,92,246,0.32)", borderRadius: 20, padding: "3px 10px", color: "#C4B5FD", fontSize: 10, fontWeight: 700 }}>{g}</span>
+              ))}
+            </div>
+          )}
+          {anime.description && (
+            <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 13, lineHeight: 1.55, maxWidth: 420, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as any} dangerouslySetInnerHTML={{ __html: anime.description.replace(/<[^>]+>/g, '') }} />
+          )}
+          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+            <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg, #8B5CF6, #6D28D9)", border: "none", borderRadius: 10, padding: "11px 22px", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", boxShadow: "0 0 24px rgba(139,92,246,0.55), 0 4px 15px rgba(0,0,0,0.4)", transition: "transform 0.18s, box-shadow 0.18s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 0 36px rgba(139,92,246,0.75), 0 4px 20px rgba(0,0,0,0.5)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 0 24px rgba(139,92,246,0.55), 0 4px 15px rgba(0,0,0,0.4)"; }}>
+              <Play size={16} fill="#fff" color="#fff" /> Ver Ahora
+            </button>
+            <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.1)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 10, padding: "11px 18px", color: "rgba(255,255,255,0.88)", fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "all 0.18s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.2)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.5)"; e.currentTarget.style.color = "#C4B5FD"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.22)"; e.currentTarget.style.color = "rgba(255,255,255,0.88)"; }}>
+              <Info size={15} /> Detalles
+            </button>
+          </div>
+        </div>
+
+        <div style={{ position: "absolute", bottom: 18, right: 24, display: "flex", gap: 5, alignItems: "center" }}>
+          {animes.slice(0, 6).map((_, i) => (
+            <div key={i} style={{ height: 4, borderRadius: 3, background: i === idx ? "#8B5CF6" : "rgba(255,255,255,0.22)", width: i === idx ? 22 : 6, transition: "width 0.35s, background 0.35s", boxShadow: i === idx ? "0 0 10px rgba(139,92,246,0.7)" : "none" }} />
+          ))}
+        </div>
+
+        <button onClick={onPrev} style={{ position: "absolute", top: "55%", left: 14, transform: "translateY(-50%)", background: "rgba(7,8,15,0.6)", backdropFilter: "blur(8px)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 24, padding: "10px 11px", cursor: "pointer", display: "flex", transition: "all 0.18s" }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.25)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.55)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.6)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)"; }}>
+          <ChevronLeft size={22} color="rgba(255,255,255,0.88)" />
+        </button>
+        <button onClick={onNext} style={{ position: "absolute", top: "55%", right: 14, transform: "translateY(-50%)", background: "rgba(7,8,15,0.6)", backdropFilter: "blur(8px)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 24, padding: "10px 11px", cursor: "pointer", display: "flex", transition: "all 0.18s" }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.25)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.55)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.6)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)"; }}>
+          <ChevronRight size={22} color="rgba(255,255,255,0.88)" />
+        </button>
+      </div>
+    );
+  }
+
+  /* ── SECTION HEADER ── */
+  function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 3, height: 22, borderRadius: 2, background: "linear-gradient(180deg, #8B5CF6, #C4B5FD)", flexShrink: 0, boxShadow: "0 0 12px rgba(139,92,246,0.7)" }} />
+          <span style={{ fontSize: 18, fontWeight: 800, background: "linear-gradient(90deg, #ffffff 60%, #C4B5FD 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{title}</span>
+        </div>
+        {onSeeAll && (
+          <button onClick={onSeeAll} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 3, padding: "5px 10px", borderRadius: 8, transition: "background 0.18s" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(139,92,246,0.12)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "none")}>
+            <span style={{ color: "#8B5CF6", fontSize: 13, fontWeight: 700 }}>Ver todo</span>
+            <ChevronRight size={14} color="#8B5CF6" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  /* ── PORTRAIT CARD ── */
+  function PortraitCard({ anime }: { anime: AnimeResult }) {
+    const [, navigate] = useLocation();
+    const title = resolveTitle(anime.title);
+    return (
+      <div className="p-card" onClick={() => nav(navigate, anime.id)}>
+        <img src={anime.image} alt={title} />
+        <div className="p-card-grad" />
+        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
+          <span style={{ background: "linear-gradient(135deg,#22C55E,#16A34A)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>SUB</span>
+          {anime.totalEpisodes && <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.totalEpisodes}</span>}
+        </div>
+        {anime.rating != null && anime.rating > 0 && (
+          <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "2px 5px", display: "flex", alignItems: "center", gap: 2 }}>
+            <Star size={8} color="#F59E0B" fill="#F59E0B" />
+            <span style={{ color: "#F59E0B", fontSize: 8, fontWeight: 800 }}>{(anime.rating / 10).toFixed(1)}</span>
           </div>
         )}
+        <div className="p-card-footer">
+          <div className="p-card-title">{title}</div>
+          {anime.type && <div className="p-card-type">{anime.type}</div>}
+        </div>
+      </div>
+    );
+  }
 
-        {/* Description */}
-        {anime.description && (
-          <div style={{
-            color: "rgba(255,255,255,0.62)", fontSize: 13, lineHeight: 1.55, maxWidth: 420,
-            overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical"
-          } as any} dangerouslySetInnerHTML={{ __html: anime.description.replace(/<[^>]+>/g, '') }} />
+  /* ── RECENT CARD ── */
+  function RecentCard({ anime }: { anime: AnimeResult }) {
+    const [, navigate] = useLocation();
+    const title = resolveTitle(anime.title);
+    return (
+      <div className="r-card" onClick={() => nav(navigate, anime.id)}>
+        <img src={anime.cover || anime.image} alt={title} />
+        <div className="r-card-grad" />
+        <div className="r-play-circle"><Play size={18} color="#fff" fill="#fff" /></div>
+        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 5 }}>
+          <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(6,182,212,0.3)", borderRadius: 6, padding: "3px 6px", color: "#06B6D4", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 3 }}>
+            <Tv size={9} color="#06B6D4" /> EP {anime.currentEpisode ?? "?"}
+          </span>
+          <span style={{ background: "linear-gradient(135deg,#8B5CF6,#6D28D9)", borderRadius: 5, padding: "2px 5px", color: "#fff", fontSize: 8, fontWeight: 900 }}>HD</span>
+        </div>
+        <div className="r-card-footer">
+          <div className="r-card-title">{title}</div>
+          {anime.type && <div className="r-card-type">{anime.type}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── SEASONAL CARD ── */
+  function SeasonalCard({ anime }: { anime: SeasonAnime }) {
+    const [, navigate] = useLocation();
+    const title = anime.title.english || anime.title.romaji;
+    return (
+      <div className="p-card" onClick={() => nav(navigate, anime.id)}>
+        <img src={anime.coverImage.large} alt={title} />
+        <div className="p-card-grad" />
+        <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
+          <span style={{ background: "linear-gradient(135deg,#8B5CF6,#6D28D9)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900 }}>NEW</span>
+          {anime.episodes && <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.episodes}</span>}
+        </div>
+        {anime.averageScore != null && anime.averageScore > 0 && (
+          <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "2px 5px", display: "flex", alignItems: "center", gap: 2 }}>
+            <Star size={8} color="#F59E0B" fill="#F59E0B" />
+            <span style={{ color: "#F59E0B", fontSize: 8, fontWeight: 800 }}>{(anime.averageScore / 10).toFixed(1)}</span>
+          </div>
         )}
-
-        {/* Action buttons */}
-        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <button onClick={() => nav(navigate, anime.id)} style={{
-            display: "flex", alignItems: "center", gap: 8,
-            background: "linear-gradient(135deg, #8B5CF6, #6D28D9)",
-            border: "none", borderRadius: 10, padding: "11px 22px", color: "#fff",
-            fontSize: 14, fontWeight: 800, cursor: "pointer",
-            boxShadow: "0 0 24px rgba(139,92,246,0.55), 0 4px 15px rgba(0,0,0,0.4)",
-            transition: "transform 0.18s, box-shadow 0.18s"
-          }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "0 0 36px rgba(139,92,246,0.75), 0 4px 20px rgba(0,0,0,0.5)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 0 24px rgba(139,92,246,0.55), 0 4px 15px rgba(0,0,0,0.4)"; }}>
-            <Play size={16} fill="#fff" color="#fff" /> Ver Ahora
-          </button>
-          <button onClick={() => nav(navigate, anime.id)} style={{
-            display: "flex", alignItems: "center", gap: 7,
-            background: "rgba(255,255,255,0.1)", backdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.22)", borderRadius: 10, padding: "11px 18px", color: "rgba(255,255,255,0.88)",
-            fontSize: 14, fontWeight: 700, cursor: "pointer",
-            transition: "all 0.18s"
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.2)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.5)"; e.currentTarget.style.color = "#C4B5FD"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.22)"; e.currentTarget.style.color = "rgba(255,255,255,0.88)"; }}>
-            <Info size={15} /> Detalles
-          </button>
+        <div className="p-card-footer">
+          <div className="p-card-title">{title}</div>
+          {anime.format && <div className="p-card-type">{anime.format}</div>}
         </div>
       </div>
+    );
+  }
 
-      {/* Progress dots */}
-      <div style={{ position: "absolute", bottom: 18, right: 24, display: "flex", gap: 5, alignItems: "center" }}>
-        {animes.slice(0, 6).map((_, i) => (
-          <div key={i} style={{
-            height: 4, borderRadius: 3,
-            background: i === idx ? "#8B5CF6" : "rgba(255,255,255,0.22)",
-            width: i === idx ? 22 : 6,
-            transition: "width 0.35s, background 0.35s",
-            boxShadow: i === idx ? "0 0 10px rgba(139,92,246,0.7)" : "none"
-          }} />
-        ))}
-      </div>
+  /* ── TOP ANIME ROW ── */
+  const RANK_COLORS: Record<number, string> = {
+    1: "linear-gradient(135deg, #FBBF24, #F59E0B)",
+    2: "linear-gradient(135deg, #94A3B8, #CBD5E1)",
+    3: "linear-gradient(135deg, #D97706, #B45309)",
+  };
 
-      {/* Nav arrows */}
-      <button onClick={onPrev} style={{
-        position: "absolute", top: "55%", left: 14, transform: "translateY(-50%)",
-        background: "rgba(7,8,15,0.6)", backdropFilter: "blur(8px)",
-        border: "1px solid rgba(139,92,246,0.25)", borderRadius: 24, padding: "10px 11px", cursor: "pointer", display: "flex",
-        transition: "all 0.18s"
-      }}
-        onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.25)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.55)"; }}
-        onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.6)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)"; }}>
-        <ChevronLeft size={22} color="rgba(255,255,255,0.88)" />
-      </button>
-      <button onClick={onNext} style={{
-        position: "absolute", top: "55%", right: 14, transform: "translateY(-50%)",
-        background: "rgba(7,8,15,0.6)", backdropFilter: "blur(8px)",
-        border: "1px solid rgba(139,92,246,0.25)", borderRadius: 24, padding: "10px 11px", cursor: "pointer", display: "flex",
-        transition: "all 0.18s"
-      }}
-        onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.25)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.55)"; }}
-        onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.6)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)"; }}>
-        <ChevronRight size={22} color="rgba(255,255,255,0.88)" />
-      </button>
-    </div>
-  );
-}
-
-/* ── SECTION HEADER ── */
-function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{
-          width: 3, height: 22, borderRadius: 2,
-          background: "linear-gradient(180deg, #8B5CF6, #C4B5FD)",
-          flexShrink: 0,
-          boxShadow: "0 0 12px rgba(139,92,246,0.7)"
-        }} />
-        <span style={{
-          fontSize: 18, fontWeight: 800,
-          background: "linear-gradient(90deg, #ffffff 60%, #C4B5FD 100%)",
-          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text"
-        }}>{title}</span>
-      </div>
-      {onSeeAll && (
-        <button onClick={onSeeAll} style={{
-          background: "none", border: "none", cursor: "pointer",
-          display: "flex", alignItems: "center", gap: 3,
-          padding: "5px 10px", borderRadius: 8,
-          transition: "background 0.18s"
-        }}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(139,92,246,0.12)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "none")}>
-          <span style={{ color: "#8B5CF6", fontSize: 13, fontWeight: 700 }}>Ver todo</span>
-          <ChevronRight size={14} color="#8B5CF6" />
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ── PORTRAIT CARD ── */
-function PortraitCard({ anime }: { anime: AnimeResult }) {
-  const [, navigate] = useLocation();
-  const title = resolveTitle(anime.title);
-  return (
-    <div className="p-card" onClick={() => nav(navigate, anime.id)}>
-      <img src={anime.image} alt={title} />
-      <div className="p-card-grad" />
-      <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-        <span style={{ background: "linear-gradient(135deg,#22C55E,#16A34A)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>SUB</span>
-        {anime.totalEpisodes && <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.totalEpisodes}</span>}
-      </div>
-      {anime.rating != null && anime.rating > 0 && (
-        <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "2px 5px", display: "flex", alignItems: "center", gap: 2 }}>
-          <Star size={8} color="#F59E0B" fill="#F59E0B" />
-          <span style={{ color: "#F59E0B", fontSize: 8, fontWeight: 800 }}>{(anime.rating / 10).toFixed(1)}</span>
+  function TopAnimeRow({ anime, rank }: { anime: AnimeResult; rank: number }) {
+    const [, navigate] = useLocation();
+    const title = resolveTitle(anime.title);
+    return (
+      <div onClick={() => nav(navigate, anime.id)}
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 8px", borderBottom: "1px solid rgba(139,92,246,0.08)", cursor: "pointer", borderRadius: 8, transition: "background 0.15s" }}
+        onMouseEnter={e => (e.currentTarget.style.background = "rgba(139,92,246,0.07)")}
+        onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+        <span style={{ background: RANK_COLORS[rank] ?? "none", WebkitBackgroundClip: RANK_COLORS[rank] ? "text" : undefined, WebkitTextFillColor: RANK_COLORS[rank] ? "transparent" : undefined, backgroundClip: RANK_COLORS[rank] ? "text" : undefined, color: RANK_COLORS[rank] ? undefined : "rgba(255,255,255,0.2)", fontSize: 19, fontWeight: 900, width: 32, textAlign: "center", flexShrink: 0 }}>{String(rank).padStart(2, "0")}</span>
+        <img src={anime.image} alt={title} style={{ width: 48, height: 66, borderRadius: 8, objectFit: "cover", flexShrink: 0, boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+          <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, lineHeight: 1.35 }} className="line-clamp-2">{title}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {anime.type && <span style={{ color: "#8B5CF6", fontSize: 9, fontWeight: 700, background: "rgba(139,92,246,0.15)", padding: "1px 6px", borderRadius: 4 }}>{anime.type}</span>}
+            {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>{anime.releaseDate}</span>}
+          </div>
+          {anime.genres && anime.genres.length > 0 && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }} className="line-clamp-1">{anime.genres.slice(0, 2).join(" · ")}</div>}
         </div>
-      )}
-      <div className="p-card-footer">
-        <div className="p-card-title">{title}</div>
-        {anime.type && <div className="p-card-type">{anime.type}</div>}
+        {anime.rating != null && anime.rating > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+            <Star size={11} color="#F59E0B" fill="#F59E0B" />
+            <span style={{ color: "#F59E0B", fontSize: 12, fontWeight: 800 }}>{(anime.rating / 10).toFixed(1)}</span>
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-/* ── RECENT CARD ── */
-function RecentCard({ anime }: { anime: AnimeResult }) {
-  const [, navigate] = useLocation();
-  const title = resolveTitle(anime.title);
-  return (
-    <div className="r-card" onClick={() => nav(navigate, anime.id)}>
-      <img src={anime.cover || anime.image} alt={title} />
-      <div className="r-card-grad" />
-      <div className="r-play-circle"><Play size={18} color="#fff" fill="#fff" /></div>
-      <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 5 }}>
-        <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(6,182,212,0.3)", borderRadius: 6, padding: "3px 6px", color: "#06B6D4", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", gap: 3 }}>
-          <Tv size={9} color="#06B6D4" /> EP {anime.currentEpisode ?? "?"}
-        </span>
-        <span style={{ background: "linear-gradient(135deg,#8B5CF6,#6D28D9)", borderRadius: 5, padding: "2px 5px", color: "#fff", fontSize: 8, fontWeight: 900 }}>HD</span>
-      </div>
-      <div className="r-card-footer">
-        <div className="r-card-title">{title}</div>
-        {anime.type && <div className="r-card-type">{anime.type}</div>}
-      </div>
-    </div>
-  );
-}
+  /* ── SCHEDULE SECTION ── */
+  const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const DAY_NAMES_FULL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
-/* ── SEASONAL CARD ── */
-function SeasonalCard({ anime }: { anime: SeasonAnime }) {
-  const [, navigate] = useLocation();
-  const title = anime.title.english || anime.title.romaji;
-  return (
-    <div className="p-card" onClick={() => nav(navigate, anime.id)}>
-      <img src={anime.coverImage.large} alt={title} />
-      <div className="p-card-grad" />
-      <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-        <span style={{ background: "linear-gradient(135deg,#8B5CF6,#6D28D9)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900 }}>NEW</span>
-        {anime.episodes && <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.episodes}</span>}
-      </div>
-      {anime.averageScore != null && anime.averageScore > 0 && (
-        <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.75)", borderRadius: 4, padding: "2px 5px", display: "flex", alignItems: "center", gap: 2 }}>
-          <Star size={8} color="#F59E0B" fill="#F59E0B" />
-          <span style={{ color: "#F59E0B", fontSize: 8, fontWeight: 800 }}>{(anime.averageScore / 10).toFixed(1)}</span>
-        </div>
-      )}
-      <div className="p-card-footer">
-        <div className="p-card-title">{title}</div>
-        {anime.format && <div className="p-card-type">{anime.format}</div>}
-      </div>
-    </div>
-  );
-}
+  function ScheduleSection() {
+    const [, navigate] = useLocation();
+    const todayIdx = new Date().getDay();
+    const [activeDay, setActiveDay] = useState(todayIdx);
 
-/* ── TOP ANIME ROW ── */
-const RANK_COLORS: Record<number, string> = {
-  1: "linear-gradient(135deg, #FBBF24, #F59E0B)",
-  2: "linear-gradient(135deg, #94A3B8, #CBD5E1)",
-  3: "linear-gradient(135deg, #D97706, #B45309)",
-};
+    const { data: schedule = [], isLoading } = useQuery({
+      queryKey: ["airingSchedule"],
+      queryFn: fetchAiringSchedule,
+      staleTime: 1000 * 60 * 30,
+      retry: 1,
+    });
 
-function TopAnimeRow({ anime, rank }: { anime: AnimeResult; rank: number }) {
-  const [, navigate] = useLocation();
-  const title = resolveTitle(anime.title);
-  return (
-    <div onClick={() => nav(navigate, anime.id)}
-      style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 8px", borderBottom: "1px solid rgba(139,92,246,0.08)", cursor: "pointer", borderRadius: 8, transition: "background 0.15s" }}
-      onMouseEnter={e => (e.currentTarget.style.background = "rgba(139,92,246,0.07)")}
-      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-      <span style={{
-        background: RANK_COLORS[rank] ?? "none",
-        WebkitBackgroundClip: RANK_COLORS[rank] ? "text" : undefined,
-        WebkitTextFillColor: RANK_COLORS[rank] ? "transparent" : undefined,
-        backgroundClip: RANK_COLORS[rank] ? "text" : undefined,
-        color: RANK_COLORS[rank] ? undefined : "rgba(255,255,255,0.2)",
-        fontSize: 19, fontWeight: 900, width: 32, textAlign: "center", flexShrink: 0
-      }}>{String(rank).padStart(2, "0")}</span>
-      <img src={anime.image} alt={title} style={{ width: 48, height: 66, borderRadius: 8, objectFit: "cover", flexShrink: 0, boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-        <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, lineHeight: 1.35 }} className="line-clamp-2">{title}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {anime.type && <span style={{ color: "#8B5CF6", fontSize: 9, fontWeight: 700, background: "rgba(139,92,246,0.15)", padding: "1px 6px", borderRadius: 4 }}>{anime.type}</span>}
-          {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>{anime.releaseDate}</span>}
-        </div>
-        {anime.genres && anime.genres.length > 0 && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }} className="line-clamp-1">{anime.genres.slice(0, 2).join(" · ")}</div>}
-      </div>
-      {anime.rating != null && anime.rating > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-          <Star size={11} color="#F59E0B" fill="#F59E0B" />
-          <span style={{ color: "#F59E0B", fontSize: 12, fontWeight: 800 }}>{(anime.rating / 10).toFixed(1)}</span>
-        </div>
-      )}
-    </div>
-  );
-}
+    const grouped = DAY_NAMES.map((_, i) => schedule.filter((e) => new Date(e.airingAt * 1000).getDay() === i));
+    const dayEntries = grouped[activeDay] ?? [];
 
-/* ── SCHEDULE SECTION ── */
-const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const DAY_NAMES_FULL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-
-function ScheduleSection() {
-  const [, navigate] = useLocation();
-  const todayIdx = new Date().getDay();
-  const [activeDay, setActiveDay] = useState(todayIdx);
-
-  const { data: schedule = [], isLoading } = useQuery({
-    queryKey: ["airingSchedule"],
-    queryFn: fetchAiringSchedule,
-    staleTime: 1000 * 60 * 30,
-    retry: 1,
-  });
-
-  const grouped = DAY_NAMES.map((_, i) => {
-    const entries = schedule.filter((e) => new Date(e.airingAt * 1000).getDay() === i);
-    return entries;
-  });
-
-  const dayEntries = grouped[activeDay] ?? [];
-
-  return (
-    <div style={{ marginTop: 32 }}>
-      <SectionHeader title="📅 Calendario de Emisión" />
-
-      <div style={{ display: "flex", gap: 7, paddingLeft: 18, paddingRight: 18, marginBottom: 14, overflowX: "auto" }}>
-        {DAY_NAMES.map((d, i) => {
-          const isToday = i === todayIdx;
-          const isActive = i === activeDay;
-          return (
-            <button key={i} onClick={() => setActiveDay(i)} style={{
-              flexShrink: 0, padding: "8px 16px", borderRadius: 22,
-              border: `1px solid ${isActive ? "#8B5CF6" : "rgba(255,255,255,0.1)"}`,
-              background: isActive ? "rgba(139,92,246,0.22)" : "rgba(255,255,255,0.04)",
-              color: isActive ? "#C4B5FD" : "rgba(255,255,255,0.5)",
-              fontSize: 12, fontWeight: 700, cursor: "pointer", position: "relative",
-              boxShadow: isActive ? "0 0 12px rgba(139,92,246,0.3)" : "none",
-              transition: "all 0.18s"
-            }}>
-              {d}
-              {isToday && <span style={{ position: "absolute", top: -3, right: -3, width: 7, height: 7, borderRadius: "50%", background: "#22C55E", border: "1.5px solid #07080F", boxShadow: "0 0 6px #22C55E" }} />}
-            </button>
-          );
-        })}
-      </div>
-
-      {isLoading && (
-        <div className="carousel-scroll">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} style={{ width: 130, height: 197, borderRadius: 14, background: "#0D0D1C", flexShrink: 0 }} />)}
-        </div>
-      )}
-
-      {!isLoading && dayEntries.length === 0 && (
-        <div style={{ padding: "24px 18px", color: "rgba(255,255,255,0.28)", fontSize: 13, textAlign: "center" }}>
-          Sin episodios programados para {DAY_NAMES_FULL[activeDay]}
-        </div>
-      )}
-
-      {dayEntries.length > 0 && (
-        <div className="carousel-scroll">
-          {dayEntries.slice(0, 15).map((entry) => {
-            const title = entry.media.title.english || entry.media.title.romaji;
-            const time = new Date(entry.airingAt * 1000).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+    return (
+      <div style={{ marginTop: 32 }}>
+        <SectionHeader title="📅 Calendario de Emisión" />
+        <div style={{ display: "flex", gap: 7, paddingLeft: 18, paddingRight: 18, marginBottom: 14, overflowX: "auto" }}>
+          {DAY_NAMES.map((d, i) => {
+            const isToday = i === todayIdx;
+            const isActive = i === activeDay;
             return (
-              <div key={`${entry.media.id}-${entry.episode}`} onClick={() => nav(navigate, entry.media.id)}
-                style={{
-                  position: "relative", borderRadius: 14, overflow: "hidden",
-                  background: "#0D0D1C", border: "1px solid rgba(139,92,246,0.12)",
-                  cursor: "pointer", width: 130, height: 197, flexShrink: 0,
-                  transition: "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s"
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-6px) scale(1.02)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 12px 32px rgba(139,92,246,0.3)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}>
-                <img src={entry.media.coverImage.large} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 42%, rgba(7,8,15,0.97) 100%)" }} />
-                <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.8)", borderRadius: 6, padding: "3px 7px", color: "#06B6D4", fontSize: 9, fontWeight: 800, border: "1px solid rgba(6,182,212,0.3)" }}>
-                  EP {entry.episode}
-                </div>
-                <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.8)", borderRadius: 6, padding: "3px 7px", color: "#F59E0B", fontSize: 9, fontWeight: 800 }}>
-                  {time}
-                </div>
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 10 }}>
-                  <div style={{ color: "#fff", fontSize: 11, fontWeight: 700, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as any}>{title}</div>
-                  {entry.media.format && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, marginTop: 2 }}>{entry.media.format}</div>}
-                </div>
-              </div>
+              <button key={i} onClick={() => setActiveDay(i)} style={{ flexShrink: 0, padding: "8px 16px", borderRadius: 22, border: `1px solid ${isActive ? "#8B5CF6" : "rgba(255,255,255,0.1)"}`, background: isActive ? "rgba(139,92,246,0.22)" : "rgba(255,255,255,0.04)", color: isActive ? "#C4B5FD" : "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700, cursor: "pointer", position: "relative", boxShadow: isActive ? "0 0 12px rgba(139,92,246,0.3)" : "none", transition: "all 0.18s" }}>
+                {d}
+                {isToday && <span style={{ position: "absolute", top: -3, right: -3, width: 7, height: 7, borderRadius: "50%", background: "#22C55E", border: "1.5px solid #07080F", boxShadow: "0 0 6px #22C55E" }} />}
+              </button>
             );
           })}
         </div>
-      )}
-    </div>
-  );
-}
-
-/* ── GENRES ── */
-const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Sci-Fi", "Shounen", "Isekai", "Thriller", "Mystery"];
-const GENRE_COLORS: Record<string, string> = {
-  Action: "rgba(239,68,68,0.15)", Adventure: "rgba(245,158,11,0.15)", Comedy: "rgba(34,197,94,0.15)",
-  Drama: "rgba(139,92,246,0.15)", Fantasy: "rgba(196,181,253,0.15)", Horror: "rgba(239,68,68,0.18)",
-  Romance: "rgba(244,114,182,0.18)", "Sci-Fi": "rgba(6,182,212,0.15)", Shounen: "rgba(251,191,36,0.15)",
-  Isekai: "rgba(139,92,246,0.2)", Thriller: "rgba(239,68,68,0.12)", Mystery: "rgba(109,40,217,0.18)"
-};
-const GENRE_TEXT: Record<string, string> = {
-  Action: "#F87171", Adventure: "#FCD34D", Comedy: "#4ADE80", Drama: "#C4B5FD", Fantasy: "#A78BFA",
-  Horror: "#F87171", Romance: "#F9A8D4", "Sci-Fi": "#22D3EE", Shounen: "#FDE68A", Isekai: "#8B5CF6",
-  Thriller: "#F97316", Mystery: "#A78BFA"
-};
-
-function GenresSection() {
-  const [, navigate] = useLocation();
-  return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 18px" }}>
-      {GENRES.map((g) => (
-        <button key={g} onClick={() => navigate(`/search?q=${g}`)} style={{
-          background: GENRE_COLORS[g] ?? "rgba(139,92,246,0.12)",
-          borderRadius: 22, padding: "8px 16px",
-          border: `1px solid ${(GENRE_TEXT[g] ?? "#8B5CF6")}44`,
-          color: GENRE_TEXT[g] ?? "#C4B5FD",
-          fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.18s"
-        }}
-          onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 6px 18px ${(GENRE_TEXT[g] ?? "#8B5CF6")}33`; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
-          {g}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ── CONTINUE WATCHING ── */
-type WatchEntry = ReturnType<typeof useWatchProgress>["progress"][number];
-function ContinueWatchingCard({ entry }: { entry: WatchEntry }) {
-  const [, navigate] = useLocation();
-  const pct = Math.min(1, entry.currentTime / Math.max(entry.duration, 1));
-
-  const handleClick = () => {
-    const p = new URLSearchParams({
-      episodeId: entry.episodeId,
-      episodeNum: String(entry.episodeNum),
-      animeTitle: entry.animeTitle,
-      animeId: entry.animeId,
-      animeImage: entry.animeImage,
-    });
-    navigate(`/watch?${p.toString()}`);
-  };
-
-  return (
-    <div className="cw-card" onClick={handleClick}>
-      <img src={entry.animeImage} alt={entry.animeTitle} />
-      <div className="cw-card-grad" />
-      <div className="cw-card-info">
-        <div style={{ color: "#fff", fontSize: 12, fontWeight: 700 }} className="line-clamp-1">{entry.animeTitle}</div>
-        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>Episodio {entry.episodeNum}</div>
-        <div className="cw-bar"><div className="cw-fill" style={{ width: `${Math.round(pct * 100)}%` }} /></div>
+        {isLoading && (
+          <ScrollableCarousel>
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} style={{ width: 130, height: 197, borderRadius: 14, background: "#0D0D1C", flexShrink: 0 }} />)}
+          </ScrollableCarousel>
+        )}
+        {!isLoading && dayEntries.length === 0 && (
+          <div style={{ padding: "24px 18px", color: "rgba(255,255,255,0.28)", fontSize: 13, textAlign: "center" }}>
+            Sin episodios programados para {DAY_NAMES_FULL[activeDay]}
+          </div>
+        )}
+        {dayEntries.length > 0 && (
+          <ScrollableCarousel>
+            {dayEntries.slice(0, 15).map((entry) => {
+              const title = entry.media.title.english || entry.media.title.romaji;
+              const time = new Date(entry.airingAt * 1000).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+              return (
+                <div key={`${entry.media.id}-${entry.episode}`} onClick={() => nav(navigate, entry.media.id)}
+                  style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#0D0D1C", border: "1px solid rgba(139,92,246,0.12)", cursor: "pointer", width: 130, height: 197, flexShrink: 0, transition: "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-6px) scale(1.02)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 12px 32px rgba(139,92,246,0.3)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}>
+                  <img src={entry.media.coverImage.large} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 42%, rgba(7,8,15,0.97) 100%)" }} />
+                  <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.8)", borderRadius: 6, padding: "3px 7px", color: "#06B6D4", fontSize: 9, fontWeight: 800, border: "1px solid rgba(6,182,212,0.3)" }}>EP {entry.episode}</div>
+                  <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.8)", borderRadius: 6, padding: "3px 7px", color: "#F59E0B", fontSize: 9, fontWeight: 800 }}>{time}</div>
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 10 }}>
+                    <div style={{ color: "#fff", fontSize: 11, fontWeight: 700, lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as any}>{title}</div>
+                    {entry.media.format && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, marginTop: 2 }}>{entry.media.format}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </ScrollableCarousel>
+        )}
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-/* ── SECTION DIVIDER ── */
-function SectionDivider() {
-  return (
-    <div style={{ height: 1, margin: "8px 18px 0", background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.2) 30%, rgba(139,92,246,0.2) 70%, transparent)" }} />
-  );
-}
+  /* ── GENRES ── */
+  const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Sci-Fi", "Shounen", "Isekai", "Thriller", "Mystery"];
+  const GENRE_COLORS: Record<string, string> = { Action: "rgba(239,68,68,0.15)", Adventure: "rgba(245,158,11,0.15)", Comedy: "rgba(34,197,94,0.15)", Drama: "rgba(139,92,246,0.15)", Fantasy: "rgba(196,181,253,0.15)", Horror: "rgba(239,68,68,0.18)", Romance: "rgba(244,114,182,0.18)", "Sci-Fi": "rgba(6,182,212,0.15)", Shounen: "rgba(251,191,36,0.15)", Isekai: "rgba(139,92,246,0.2)", Thriller: "rgba(239,68,68,0.12)", Mystery: "rgba(109,40,217,0.18)" };
+  const GENRE_TEXT: Record<string, string> = { Action: "#F87171", Adventure: "#FCD34D", Comedy: "#4ADE80", Drama: "#C4B5FD", Fantasy: "#A78BFA", Horror: "#F87171", Romance: "#F9A8D4", "Sci-Fi": "#22D3EE", Shounen: "#FDE68A", Isekai: "#8B5CF6", Thriller: "#F97316", Mystery: "#A78BFA" };
 
-function SkeletonP() { return <div style={{ width: 130, height: 197, borderRadius: 14, background: "#0D0D1C", flexShrink: 0, border: "1px solid rgba(139,92,246,0.07)" }} />; }
-function SkeletonR() { return <div style={{ width: 220, height: 136, borderRadius: 14, background: "#0D0D1C", flexShrink: 0, border: "1px solid rgba(139,92,246,0.07)" }} />; }
+  function GenresSection() {
+    const [, navigate] = useLocation();
+    return (
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 18px" }}>
+        {GENRES.map((g) => (
+          <button key={g} onClick={() => navigate(`/search?q=${g}`)} style={{ background: GENRE_COLORS[g] ?? "rgba(139,92,246,0.12)", borderRadius: 22, padding: "8px 16px", border: `1px solid ${(GENRE_TEXT[g] ?? "#8B5CF6")}44`, color: GENRE_TEXT[g] ?? "#C4B5FD", fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.18s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 6px 18px ${(GENRE_TEXT[g] ?? "#8B5CF6")}33`; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
+            {g}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
-/* ── MAIN ── */
-export default function Home() {
-  const [, navigate] = useLocation();
-  const [heroIdx, setHeroIdx] = useState(0);
-  const { progress: watchProgress } = useWatchProgress();
-  const { user } = useAuth();
+  /* ── CONTINUE WATCHING ── */
+  type WatchEntry = ReturnType<typeof useWatchProgress>["progress"][number];
+  function ContinueWatchingCard({ entry }: { entry: WatchEntry }) {
+    const [, navigate] = useLocation();
+    const pct = Math.min(1, entry.currentTime / Math.max(entry.duration, 1));
+    const handleClick = () => {
+      const p = new URLSearchParams({ episodeId: entry.episodeId, episodeNum: String(entry.episodeNum), animeTitle: entry.animeTitle, animeId: entry.animeId, animeImage: entry.animeImage });
+      navigate(`/watch?${p.toString()}`);
+    };
+    return (
+      <div className="cw-card" onClick={handleClick}>
+        <img src={entry.animeImage} alt={entry.animeTitle} />
+        <div className="cw-card-grad" />
+        <div className="cw-card-info">
+          <div style={{ color: "#fff", fontSize: 12, fontWeight: 700 }} className="line-clamp-1">{entry.animeTitle}</div>
+          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>Episodio {entry.episodeNum}</div>
+          <div className="cw-bar"><div className="cw-fill" style={{ width: `${Math.round(pct * 100)}%` }} /></div>
+        </div>
+      </div>
+    );
+  }
 
-  const trending = useQuery({ queryKey: ["trending"], queryFn: consumet.trending, staleTime: 1000 * 60 * 10 });
-  const popular = useQuery({ queryKey: ["popular"], queryFn: consumet.popular, staleTime: 1000 * 60 * 10 });
-  const recent = useQuery({ queryKey: ["recent"], queryFn: consumet.recentEpisodes, staleTime: 1000 * 60 * 5 });
-  const { season, year } = getCurrentSeason();
-  const seasonal = useQuery({ queryKey: ["seasonal", season, year], queryFn: fetchSeasonalAnime, staleTime: 1000 * 60 * 60, retry: 1 });
+  /* ── SECTION DIVIDER ── */
+  function SectionDivider() {
+    return <div style={{ height: 1, margin: "8px 18px 0", background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.2) 30%, rgba(139,92,246,0.2) 70%, transparent)" }} />;
+  }
 
-  const trendList = trending.data?.results ?? [];
-  const popularList = popular.data?.results ?? [];
-  const recentList = recent.data?.results ?? [];
-  const seasonalList = seasonal.data ?? [];
+  function SkeletonP() { return <div style={{ width: 130, height: 197, borderRadius: 14, background: "#0D0D1C", flexShrink: 0, border: "1px solid rgba(139,92,246,0.07)" }} />; }
+  function SkeletonR() { return <div style={{ width: 220, height: 136, borderRadius: 14, background: "#0D0D1C", flexShrink: 0, border: "1px solid rgba(139,92,246,0.07)" }} />; }
 
-  const prevHero = useCallback(() => setHeroIdx(i => (i > 0 ? i - 1 : Math.max(0, trendList.length - 1))), [trendList.length]);
-  const nextHero = useCallback(() => setHeroIdx(i => (i < trendList.length - 1 ? i + 1 : 0)), [trendList.length]);
+  /* ── MAIN ── */
+  export default function Home() {
+    const [, navigate] = useLocation();
+    const [heroIdx, setHeroIdx] = useState(0);
+    const { progress: watchProgress } = useWatchProgress();
+    const { user } = useAuth();
 
-  useEffect(() => {
-    if (trendList.length === 0) return;
-    const t = setInterval(nextHero, 6000);
-    return () => clearInterval(t);
-  }, [trendList.length, nextHero]);
+    const trending = useQuery({ queryKey: ["trending"], queryFn: consumet.trending, staleTime: 1000 * 60 * 10 });
+    const popular = useQuery({ queryKey: ["popular"], queryFn: consumet.popular, staleTime: 1000 * 60 * 10 });
+    const recent = useQuery({ queryKey: ["recent"], queryFn: consumet.recentEpisodes, staleTime: 1000 * 60 * 5 });
+    const { season, year } = getCurrentSeason();
+    const seasonal = useQuery({ queryKey: ["seasonal", season, year], queryFn: fetchSeasonalAnime, staleTime: 1000 * 60 * 60, retry: 1 });
 
-  const cwItems = watchProgress
-    .filter((e, idx, arr) => arr.findIndex((x) => x.animeId === e.animeId) === idx)
-    .slice(0, 8);
+    const trendList = trending.data?.results ?? [];
+    const popularList = popular.data?.results ?? [];
+    const recentList = recent.data?.results ?? [];
+    const seasonalList = seasonal.data ?? [];
 
-  return (
-    <div style={{ minHeight: "100vh" }}>
-      <Navbar />
+    const prevHero = useCallback(() => setHeroIdx(i => (i > 0 ? i - 1 : Math.max(0, trendList.length - 1))), [trendList.length]);
+    const nextHero = useCallback(() => setHeroIdx(i => (i < trendList.length - 1 ? i + 1 : 0)), [trendList.length]);
 
-      <div style={{ paddingTop: 56 }}>
-        {/* Hero */}
-        {trendList.length > 0
-          ? <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} />
-          : <div style={{ height: "min(70vw, 540px)", background: "linear-gradient(180deg, #1a0a3e, #07080F)" }} />}
+    useEffect(() => {
+      if (trendList.length === 0) return;
+      const t = setInterval(nextHero, 6000);
+      return () => clearInterval(t);
+    }, [trendList.length, nextHero]);
 
-        {/* Continue watching – uses responsive grid to avoid black space */}
-        {cwItems.length > 0 && (
+    const cwItems = watchProgress
+      .filter((e, idx, arr) => arr.findIndex((x) => x.animeId === e.animeId) === idx)
+      .slice(0, 8);
+
+    return (
+      <div style={{ minHeight: "100vh" }}>
+        <Navbar />
+        <div style={{ paddingTop: 56 }}>
+          {/* Hero */}
+          {trendList.length > 0
+            ? <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} />
+            : <div style={{ height: "min(70vw, 540px)", background: "linear-gradient(180deg, #1a0a3e, #07080F)" }} />}
+
+          {/* Continue watching */}
+          {cwItems.length > 0 && (
+            <div style={{ marginTop: 28 }}>
+              <SectionHeader title="▶ Continuar viendo" onSeeAll={() => navigate("/history")} />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, padding: "0 18px" }}>
+                {cwItems.map((e) => <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} />)}
+              </div>
+            </div>
+          )}
+
+          <SectionDivider />
+
+          {/* Trending */}
           <div style={{ marginTop: 28 }}>
-            <SectionHeader title="▶ Continuar viendo" onSeeAll={() => navigate("/history")} />
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: `repeat(auto-fill, minmax(200px, 1fr))`,
-              gap: 12, padding: "0 18px"
-            }}>
-              {cwItems.map((e) => <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} />)}
+            <SectionHeader title="🔥 Tendencias" />
+            <ScrollableCarousel>
+              {trending.isLoading ? Array.from({ length: 8 }).map((_, i) => <SkeletonP key={i} />) : trendList.slice(0, 14).map((a) => <PortraitCard key={`t-${a.id}`} anime={a} />)}
+            </ScrollableCarousel>
+          </div>
+
+          {/* Seasonal */}
+          <div style={{ marginTop: 28 }}>
+            <SectionHeader title={`🌸 Temporada — ${seasonLabel(season)} ${year}`} />
+            <ScrollableCarousel>
+              {seasonal.isLoading ? Array.from({ length: 8 }).map((_, i) => <SkeletonP key={i} />) : seasonalList.map((a) => <SeasonalCard key={`s-${a.id}`} anime={a} />)}
+            </ScrollableCarousel>
+          </div>
+
+          {/* Ad banner */}
+          <div style={{ padding: "0 18px", marginTop: 20 }}>
+            <AdBanner variant="horizontal" />
+          </div>
+
+          <SectionDivider />
+
+          {/* Latest episodes */}
+          <div style={{ marginTop: 20 }}>
+            <SectionHeader title="⚡ Últimos Episodios" />
+            <ScrollableCarousel scrollAmount={660}>
+              {recent.isLoading ? Array.from({ length: 5 }).map((_, i) => <SkeletonR key={i} />) : recentList.slice(0, 12).map((a) => <RecentCard key={`r-${a.id}`} anime={a} />)}
+            </ScrollableCarousel>
+          </div>
+
+          <SectionDivider />
+
+          {/* Most popular */}
+          <div style={{ marginTop: 28 }}>
+            <SectionHeader title="⭐ Más Populares" />
+            <ScrollableCarousel>
+              {popular.isLoading ? Array.from({ length: 8 }).map((_, i) => <SkeletonP key={i} />) : popularList.slice(0, 14).map((a) => <PortraitCard key={`p-${a.id}`} anime={a} />)}
+            </ScrollableCarousel>
+          </div>
+
+          {/* Recommendations */}
+          {user ? (
+            <div style={{ marginTop: 28 }}>
+              <AnimeRecommendations userId={user.id} type="personal" limit={14} />
+            </div>
+          ) : (
+            <div style={{ marginTop: 28 }}>
+              <AnimeRecommendations type="trending" title="Recomendaciones para ti" limit={14} />
+            </div>
+          )}
+
+          <SectionDivider />
+
+          <ScheduleSection />
+
+          <SectionDivider />
+
+          {/* Top 10 */}
+          <div style={{ marginTop: 28 }}>
+            <SectionHeader title="🏆 Top Anime" />
+            <div style={{ padding: "0 18px" }}>
+              {popular.isLoading
+                ? Array.from({ length: 5 }).map((_, i) => <div key={i} style={{ height: 72, background: "#0D0D1C", borderRadius: 10, marginBottom: 4, opacity: 0.5 }} />)
+                : popularList.slice(0, 10).map((a, i) => <TopAnimeRow key={`top-${a.id}`} anime={a} rank={i + 1} />)}
             </div>
           </div>
-        )}
 
-        <SectionDivider />
+          <SectionDivider />
 
-        {/* Trending */}
-        <div style={{ marginTop: 28 }}>
-          <SectionHeader title="🔥 Tendencias" />
-          <div className="carousel-scroll">
-            {trending.isLoading ? Array.from({ length: 6 }).map((_, i) => <SkeletonP key={i} />) : trendList.slice(0, 14).map((a) => <PortraitCard key={`t-${a.id}`} anime={a} />)}
-          </div>
-        </div>
-
-        {/* Seasonal */}
-        <div style={{ marginTop: 28 }}>
-          <SectionHeader title={`🌸 Temporada — ${seasonLabel(season)} ${year}`} />
-          <div className="carousel-scroll">
-            {seasonal.isLoading ? Array.from({ length: 6 }).map((_, i) => <SkeletonP key={i} />) : seasonalList.map((a) => <SeasonalCard key={`s-${a.id}`} anime={a} />)}
-          </div>
-        </div>
-
-        {/* Ad banner */}
-        <div style={{ padding: "0 18px", marginTop: 20 }}>
-          <AdBanner variant="horizontal" />
-        </div>
-
-        <SectionDivider />
-
-        {/* Latest episodes */}
-        <div style={{ marginTop: 20 }}>
-          <SectionHeader title="⚡ Últimos Episodios" />
-          <div className="carousel-scroll">
-            {recent.isLoading ? Array.from({ length: 5 }).map((_, i) => <SkeletonR key={i} />) : recentList.slice(0, 12).map((a) => <RecentCard key={`r-${a.id}`} anime={a} />)}
-          </div>
-        </div>
-
-        <SectionDivider />
-
-        {/* Most popular */}
-        <div style={{ marginTop: 28 }}>
-          <SectionHeader title="⭐ Más Populares" />
-          <div className="carousel-scroll">
-            {popular.isLoading ? Array.from({ length: 6 }).map((_, i) => <SkeletonP key={i} />) : popularList.slice(0, 14).map((a) => <PortraitCard key={`p-${a.id}`} anime={a} />)}
-          </div>
-        </div>
-
-        {/* Recommendations */}
-        {user ? (
+          {/* Genres */}
           <div style={{ marginTop: 28 }}>
-            <AnimeRecommendations userId={user.id} type="personal" limit={14} />
+            <SectionHeader title="🎭 Géneros" />
+            <GenresSection />
           </div>
-        ) : (
-          <div style={{ marginTop: 28 }}>
-            <AnimeRecommendations type="trending" title="Recomendaciones para ti" limit={14} />
-          </div>
-        )}
 
-        <SectionDivider />
-
-        <ScheduleSection />
-
-        <SectionDivider />
-
-        {/* Top 10 */}
-        <div style={{ marginTop: 28 }}>
-          <SectionHeader title="🏆 Top Anime" />
-          <div style={{ padding: "0 18px" }}>
-            {popular.isLoading
-              ? Array.from({ length: 5 }).map((_, i) => <div key={i} style={{ height: 72, background: "#0D0D1C", borderRadius: 10, marginBottom: 4, opacity: 0.5 }} />)
-              : popularList.slice(0, 10).map((a, i) => <TopAnimeRow key={`top-${a.id}`} anime={a} rank={i + 1} />)}
-          </div>
+          <div style={{ marginBottom: 24 }} />
         </div>
-
-        <SectionDivider />
-
-        {/* Genres */}
-        <div style={{ marginTop: 28 }}>
-          <SectionHeader title="🎭 Géneros" />
-          <GenresSection />
-        </div>
-
-        <div style={{ marginBottom: 20 }} />
+        <Footer />
       </div>
-      <Footer />
-    </div>
-  );
-}
+    );
+  }
