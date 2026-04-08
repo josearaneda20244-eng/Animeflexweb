@@ -1,5 +1,6 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
+import { getAnimeFLVWatch } from "../lib/animeflv.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -1058,6 +1059,46 @@ router.get("/anime/subtitle-proxy", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Subtitle proxy failed");
     res.status(500).send("Subtitle proxy failed");
+  }
+});
+
+/**
+ * AnimeFLV — Spanish dubbed/subtitled anime streaming
+ * GET /api/anime/animeflv-watch?title=...&episode=N
+ */
+router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
+  const title = (req.query.title as string | undefined)?.trim();
+  const episode = parseInt(req.query.episode as string);
+  if (!title || !episode || isNaN(episode)) {
+    res.status(400).json({ error: "Query params 'title' and 'episode' are required" });
+    return;
+  }
+  try {
+    const data = await getAnimeFLVWatch(title, episode);
+    res.json(data);
+  } catch (err) {
+    req.log.warn({ err, title, episode }, "AnimeFLV watch failed");
+    res.status(404).json({ error: "No se encontró el episodio en AnimeFLV" });
+  }
+});
+
+/**
+ * AnimeFLV — Search Spanish anime
+ * GET /api/anime/animeflv-search?q=...
+ */
+router.get("/anime/animeflv-search", async (req, res) => {
+  const query = (req.query.q as string | undefined)?.trim();
+  if (!query) {
+    res.status(400).json({ error: "Query param 'q' is required" });
+    return;
+  }
+  try {
+    const { searchAnimeFLV } = await import("../lib/animeflv.js");
+    const results = await searchAnimeFLV(query);
+    res.json({ results });
+  } catch (err) {
+    req.log.error({ err }, "AnimeFLV search failed");
+    res.status(500).json({ error: "AnimeFLV search failed" });
   }
 });
 
