@@ -575,6 +575,7 @@ export default function Player() {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
   const [subLang, setSubLang] = useState<"es" | "en" | "off">("es");
+  const [audioLang, setAudioLang] = useState<"sub" | "lat">("sub");
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
@@ -661,6 +662,16 @@ export default function Player() {
     refetchOnWindowFocus: false,
   });
 
+  const latQuery = useQuery({
+    queryKey: ["animeflv", animeTitle, episodeNum],
+    queryFn: () => consumet.animeflvWatch(animeTitle, parseInt(episodeNum || "1")),
+    enabled: audioLang === "lat" && !!animeTitle && !!episodeNum,
+    retry: 1,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
+  });
+
   useEffect(() => {
     const err: any = query.error;
     if (err?.status === 403 && err?.limitReached) {
@@ -668,7 +679,9 @@ export default function Player() {
     }
   }, [query.error]);
 
-  const sources = query.data ? sortSources(query.data.sources ?? []) : [];
+  const subSources = query.data ? sortSources(query.data.sources ?? []) : [];
+  const latSources = latQuery.data ? (latQuery.data.sources ?? []).map(s => ({ ...s, isDub: true })) : [];
+  const sources = audioLang === "lat" ? latSources : subSources;
   const streamingHeaders = query.data?.headers ?? {};
   const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
@@ -696,6 +709,7 @@ export default function Player() {
     setShowAutoNext(false);
     setServerRemaining(null);
     setSubLang("es");
+    setAudioLang("sub");
     episodeRegisteredRef.current = false;
     // El modal de límite lo gestiona el useEffect de /user/daily-access arriba
   }, [episodeId]);
@@ -974,20 +988,34 @@ export default function Player() {
               </div>
             )}
 
-          {query.isError && (
+          {(audioLang === "lat" ? latQuery.isError : query.isError) && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="#EF4444" />
-                <p style={{ color: "#F1F1F5", fontSize: 14 }}>No se pudo cargar el episodio</p>
-                <button onClick={() => query.refetch()} style={{ padding: "8px 16px", borderRadius: 10, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, cursor: "pointer" }}>Reintentar</button>
+                <p style={{ color: "#F1F1F5", fontSize: 14 }}>
+                  {audioLang === "lat"
+                    ? "No se encontró en AnimeFLV — prueba con otro anime o episodio"
+                    : "No se pudo cargar el episodio"}
+                </p>
+                <button
+                  onClick={() => audioLang === "lat" ? latQuery.refetch() : query.refetch()}
+                  style={{ padding: "8px 16px", borderRadius: 10, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, cursor: "pointer" }}>
+                  Reintentar
+                </button>
               </div>
             )}
-            {!query.isLoading && !query.isError && !selected && (
+            {audioLang === "lat" && latQuery.isLoading && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
+                <Loader2 size={36} color="#F59E0B" className="animate-spin" />
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando episodio en AnimeFLV...</p>
+              </div>
+            )}
+            {!query.isLoading && !query.isError && !(audioLang === "lat" && latQuery.isLoading) && !selected && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="rgba(255,255,255,0.2)" />
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
               </div>
             )}
-            {!showLimitModal && !query.isLoading && !query.isError && selected && proxyM3u8 && (
+            {!showLimitModal && !query.isLoading && !query.isError && !(audioLang === "lat" && latQuery.isLoading) && selected && proxyM3u8 && (
               <PlyrPlayer
                 key={`${episodeId}-${selectedIdx}`}
                 m3u8Url={proxyM3u8}
@@ -1130,8 +1158,29 @@ export default function Player() {
                   {theaterMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                   <span className="hidden md:inline">{theaterMode ? "Normal" : "Modo Teatro"}</span>
                 </button>
+                {/* Audio language toggle: Sub / Latino */}
+                <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "2px 4px" }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 700, paddingLeft: 4 }}>Audio:</span>
+                  {(["sub", "lat"] as const).map((lang) => {
+                    const active = audioLang === lang;
+                    return (
+                      <button key={lang} onClick={() => { setAudioLang(lang); setSelectedIdx(0); }}
+                        title={lang === "lat" ? "Latino (AnimeFLV)" : "Subtitulado (original)"}
+                        style={{
+                          padding: "5px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, cursor: "pointer",
+                          background: active ? (lang === "lat" ? "rgba(245,158,11,0.2)" : "rgba(124,111,255,0.2)") : "transparent",
+                          border: `1px solid ${active ? (lang === "lat" ? "rgba(245,158,11,0.5)" : "rgba(124,111,255,0.5)") : "transparent"}`,
+                          color: active ? (lang === "lat" ? "#F59E0B" : "#B39DFF") : "rgba(255,255,255,0.35)",
+                          display: "flex", alignItems: "center", gap: 4,
+                        }}>
+                        {lang === "lat" ? "🌎 LAT" : "🎌 SUB"}
+                        {lang === "lat" && latQuery.isLoading && <span style={{ fontSize: 9 }}>···</span>}
+                      </button>
+                    );
+                  })}
+                </div>
                 {/* Subtitle language selector */}
-                {(streamSpanishSub || streamEnglishSub || hlsSubTracks.length > 0) && (
+                {audioLang === "sub" && (streamSpanishSub || streamEnglishSub || hlsSubTracks.length > 0) && (
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <Captions size={14} style={{ color: subLang !== "off" ? "#22C55E" : "rgba(255,255,255,0.35)", flexShrink: 0 }} />
                     {(["es", "en", "off"] as const).map((lang) => {
@@ -1233,7 +1282,8 @@ export default function Player() {
                     <button key={i} onClick={() => setSelectedIdx(i)}
                       style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 10, background: i === selectedIdx ? "rgba(124,111,255,0.2)" : "transparent", border: `1px solid ${i === selectedIdx ? "#7C6FFF" : "rgba(255,255,255,0.1)"}`, color: i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                       {parseResolution(src)}
-                      {isDub(src) && <span style={{ background: "rgba(59,130,246,0.3)", color: "#3B82F6", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>DUB</span>}
+                      {src.isDub && audioLang === "lat" && <span style={{ background: "rgba(245,158,11,0.3)", color: "#F59E0B", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>LAT</span>}
+                      {isDub(src) && audioLang !== "lat" && <span style={{ background: "rgba(59,130,246,0.3)", color: "#3B82F6", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>DUB</span>}
                     </button>
                   ))}
                 </div>
