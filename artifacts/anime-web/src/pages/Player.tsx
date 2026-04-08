@@ -20,7 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
 import {
-  canWatchEpisode,
+  canWatchEpisodeSync,
   registerEpisodeView,
   REGISTER_THRESHOLD_SECONDS,
 } from "@/lib/accessControl";
@@ -625,8 +625,8 @@ export default function Player() {
   useEffect(() => {
     if (!episodeId || isMegaFan) return;
     if (!user) {
-      // Invitado: verificar por localStorage
-      if (!canWatchEpisode(false)) setShowLimitModal(true);
+      // Invitado: verificar por localStorage (sync)
+      if (!canWatchEpisodeSync(false)) setShowLimitModal(true);
       else setShowLimitModal(false);
       return;
     }
@@ -642,7 +642,7 @@ export default function Player() {
       })
       .catch(() => {
         // Si falla el servidor, caer a localStorage como respaldo
-        if (!canWatchEpisode(false)) setShowLimitModal(true);
+        if (!canWatchEpisodeSync(false)) setShowLimitModal(true);
         else setShowLimitModal(false);
       });
   }, [episodeId, isMegaFan, user]);
@@ -987,7 +987,7 @@ export default function Player() {
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
               </div>
             )}
-            {!query.isLoading && !query.isError && selected && proxyM3u8 && (
+            {!showLimitModal && !query.isLoading && !query.isError && selected && proxyM3u8 && (
               <PlyrPlayer
                 key={`${episodeId}-${selectedIdx}`}
                 m3u8Url={proxyM3u8}
