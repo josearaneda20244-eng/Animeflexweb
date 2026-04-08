@@ -281,7 +281,7 @@ router.post("/membership", requireAuth, async (req: AuthRequest, res) => {
         billing_info?: { next_billing_time?: string };
       };
 
-      if (sub.status !== "ACTIVE") {
+      if (sub.status !== "ACTIVE" && sub.status !== "APPROVED") {
         res.status(400).json({ error: "La suscripción no está activa en PayPal" });
         return;
       }
