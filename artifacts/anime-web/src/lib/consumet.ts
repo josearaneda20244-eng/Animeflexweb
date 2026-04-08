@@ -175,4 +175,9 @@ export const consumet = {
     ),
   downloadSubtitle: (fileId: number): Promise<SubtitleDownload> =>
     post<SubtitleDownload>(`/anime/subtitles/download`, { fileId }),
+  animeflvWatch: (title: string, episode: number): Promise<StreamingData & { slug?: string }> =>
+    get<StreamingData & { slug?: string }>(
+      `/anime/animeflv-watch?title=${encodeURIComponent(title)}&episode=${encodeURIComponent(episode)}`,
+      true
+    ),
 };
