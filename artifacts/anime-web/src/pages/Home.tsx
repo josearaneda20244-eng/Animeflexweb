@@ -209,7 +209,7 @@ import { useQuery } from "@tanstack/react-query";
     const title = resolveTitle(anime.title);
     return (
       <div className="p-card" onClick={() => nav(navigate, anime.id)}>
-        <img src={anime.image} alt={title} />
+        <img src={anime.image} alt={title} loading="lazy" decoding="async" />
         <div className="p-card-grad" />
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
           <span style={{ background: "linear-gradient(135deg,#22C55E,#16A34A)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>SUB</span>
@@ -235,7 +235,7 @@ import { useQuery } from "@tanstack/react-query";
     const title = resolveTitle(anime.title);
     return (
       <div className="r-card" onClick={() => nav(navigate, anime.id)}>
-        <img src={anime.cover || anime.image} alt={title} />
+        <img src={anime.cover || anime.image} alt={title} loading="lazy" decoding="async" />
         <div className="r-card-grad" />
         <div className="r-play-circle"><Play size={18} color="#fff" fill="#fff" /></div>
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 5 }}>
@@ -258,7 +258,7 @@ import { useQuery } from "@tanstack/react-query";
     const title = anime.title.english || anime.title.romaji;
     return (
       <div className="p-card" onClick={() => nav(navigate, anime.id)}>
-        <img src={anime.coverImage.large} alt={title} />
+        <img src={anime.coverImage.large} alt={title} loading="lazy" decoding="async" />
         <div className="p-card-grad" />
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
           <span style={{ background: "linear-gradient(135deg,#8B5CF6,#6D28D9)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900 }}>NEW</span>
@@ -294,7 +294,7 @@ import { useQuery } from "@tanstack/react-query";
         onMouseEnter={e => (e.currentTarget.style.background = "rgba(139,92,246,0.07)")}
         onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
         <span style={{ background: RANK_COLORS[rank] ?? "none", WebkitBackgroundClip: RANK_COLORS[rank] ? "text" : undefined, WebkitTextFillColor: RANK_COLORS[rank] ? "transparent" : undefined, backgroundClip: RANK_COLORS[rank] ? "text" : undefined, color: RANK_COLORS[rank] ? undefined : "rgba(255,255,255,0.2)", fontSize: 19, fontWeight: 900, width: 32, textAlign: "center", flexShrink: 0 }}>{String(rank).padStart(2, "0")}</span>
-        <img src={anime.image} alt={title} style={{ width: 48, height: 66, borderRadius: 8, objectFit: "cover", flexShrink: 0, boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }} />
+        <img src={anime.image} alt={title} loading="lazy" decoding="async" style={{ width: 48, height: 66, borderRadius: 8, objectFit: "cover", flexShrink: 0, boxShadow: "0 4px 12px rgba(0,0,0,0.4)" }} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
           <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, lineHeight: 1.35 }} className="line-clamp-2">{title}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -441,11 +441,11 @@ import { useQuery } from "@tanstack/react-query";
     const { progress: watchProgress } = useWatchProgress();
     const { user } = useAuth();
 
-    const trending = useQuery({ queryKey: ["trending"], queryFn: consumet.trending, staleTime: 1000 * 60 * 10 });
-    const popular = useQuery({ queryKey: ["popular"], queryFn: consumet.popular, staleTime: 1000 * 60 * 10 });
-    const recent = useQuery({ queryKey: ["recent"], queryFn: consumet.recentEpisodes, staleTime: 1000 * 60 * 5 });
+    const trending = useQuery({ queryKey: ["trending"], queryFn: consumet.trending, staleTime: 1000 * 60 * 15, gcTime: 1000 * 60 * 60 });
+    const popular = useQuery({ queryKey: ["popular"], queryFn: consumet.popular, staleTime: 1000 * 60 * 15, gcTime: 1000 * 60 * 60 });
+    const recent = useQuery({ queryKey: ["recent"], queryFn: consumet.recentEpisodes, staleTime: 1000 * 60 * 8, gcTime: 1000 * 60 * 30 });
     const { season, year } = getCurrentSeason();
-    const seasonal = useQuery({ queryKey: ["seasonal", season, year], queryFn: fetchSeasonalAnime, staleTime: 1000 * 60 * 60, retry: 1 });
+    const seasonal = useQuery({ queryKey: ["seasonal", season, year], queryFn: fetchSeasonalAnime, staleTime: 1000 * 60 * 60, gcTime: 1000 * 60 * 120, retry: 1 });
 
     const trendList = trending.data?.results ?? [];
     const popularList = popular.data?.results ?? [];

@@ -499,52 +499,47 @@
      MOBILE RESPONSIVE
   ═══════════════════════════════════════ */
   @media (max-width: 640px) {
-    /* Reduce orb sizes to improve performance on mobile */
-    .orb-1 { width: 300px; height: 300px; filter: blur(40px); }
-    .orb-2 { width: 260px; height: 260px; filter: blur(35px); }
-    .orb-3 { width: 220px; height: 220px; filter: blur(30px); }
+    /* ─── SCROLL PERFORMANCE: most critical fixes ─── */
 
-    /* Reduce backdrop-filter blur on mobile for better performance */
-    nav { backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important; }
-    .glass-card { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-
-    /* Carousel: slightly smaller cards to show more on screen */
-    .p-card { width: 110px; height: 170px; border-radius: 12px; }
-    .r-card { width: 175px; height: 110px; }
-
-    /* Section headers: reduce font size */
-    .p-card-title { font-size: 10px; }
-    .p-card-type { font-size: 8px; }
-
-    /* Carousels: tighter padding on mobile */
-    .carousel-scroll { padding: 0 12px 8px; gap: 8px; }
-
-    /* Prevent horizontal overflow globally */
-    body { overflow-x: hidden; }
+    /* Remove fixed attachment — it disables GPU-accelerated scroll on iOS/Android */
+    body {
+      background-attachment: scroll !important;
+      overflow-x: hidden;
+    }
     #root { overflow-x: hidden; max-width: 100vw; }
 
-    /* Player page improvements on mobile */
+    /* Hide animated background entirely on mobile — 5 blurred orbs destroy GPU */
+    .animated-bg { display: none !important; }
+    .orb { display: none !important; }
+    .bg-stars { animation: none !important; }
+    .bg-grid { display: none !important; }
+
+    /* Simplify nav backdrop-filter on mobile */
+    nav {
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+    }
+    .glass-card { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+    /* ─── LAYOUT ─── */
+
+    /* Carousel: slightly smaller cards to show 2+ on screen */
+    .p-card { width: 110px; height: 170px; border-radius: 12px; }
+    .r-card { width: 175px; height: 110px; }
+    .p-card-title { font-size: 10px; }
+    .p-card-type { font-size: 8px; }
+    .carousel-scroll { padding: 0 12px 8px; gap: 8px; }
+
+    /* Player page */
     .plyr { border-radius: 0 !important; }
     .plyr__controls { padding: 4px 8px !important; }
     .plyr__control { padding: 6px !important; }
-
-    /* Fix mobile menu backdrop blur */
-    [style*="backdrop-filter: blur(24px)"] {
-      backdrop-filter: blur(12px) !important;
-      -webkit-backdrop-filter: blur(12px) !important;
-    }
   }
 
-  /* Mobile-specific touch improvements */
+  /* Touch device: disable hover effects that get "stuck" on tap */
   @media (hover: none) and (pointer: coarse) {
-    /* Increase touch target sizes */
-    .p-card, .r-card { cursor: pointer; }
-
-    /* Disable hover transforms on touch devices to prevent stuck states */
-    .p-card:hover { transform: none; box-shadow: none; border-color: rgba(139,92,246,0.18); }
-    .r-card:hover { transform: none; box-shadow: none; border-color: rgba(139,92,246,0.15); }
-
-    /* Ensure Plyr controls are large enough on mobile */
+    .p-card:hover { transform: none !important; box-shadow: none !important; border-color: rgba(139,92,246,0.18) !important; }
+    .r-card:hover { transform: none !important; box-shadow: none !important; border-color: rgba(139,92,246,0.15) !important; }
     .plyr__controls__item.plyr__time { font-size: 11px !important; }
   }
   
