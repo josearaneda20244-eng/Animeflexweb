@@ -127,7 +127,7 @@ function Router() {
 
 function Layout() {
   return (
-    <main className="page-enter" style={{ position: "relative", zIndex: 1 }}>
+    <main className="page-enter page-transition" style={{ position: "relative", zIndex: 1, minHeight: "100vh", overflow: "hidden" }}>
       <AnnouncementBanner />
       <Router />
       <ScrollToTop />

@@ -1703,7 +1703,7 @@ export default function Admin() {
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40, backdropFilter: "blur(2px)" }} />}
 
       {/* Sidebar */}
-      <aside className="admin-sidebar" style={{ width: 230, flexShrink: 0, background: "#0D0D1A", borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50, transition: "transform 0.2s ease" }}>
+      <aside className="admin-sidebar" style={{ width: 230, flexShrink: 0, background: "linear-gradient(180deg, #0D0D1A 0%, #07080F 100%)", borderRight: "1px solid rgba(124,111,255,0.08)", boxShadow: "0 24px 70px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50, transition: "transform 0.22s ease, box-shadow 0.22s ease" }}>
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(124,111,255,0.35)" }}>
@@ -1717,7 +1717,7 @@ export default function Admin() {
         </div>
         <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
           {NAV.map(n => (
-            <button key={n.key} onClick={() => handleNavigate(n.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left", fontSize: 14, fontWeight: 600, background: section === n.key ? "rgba(124,111,255,0.15)" : "transparent", color: section === n.key ? "#B39DFF" : "rgba(255,255,255,0.5)", transition: "all 0.15s", borderLeft: section === n.key ? "2px solid #7C6FFF" : "2px solid transparent" }}>
+            <button key={n.key} onClick={() => handleNavigate(n.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left", fontSize: 14, fontWeight: 600, background: section === n.key ? "rgba(124,111,255,0.18)" : "transparent", color: section === n.key ? "#EDE9FE" : "rgba(255,255,255,0.68)", transition: "background 0.2s ease, transform 0.2s ease, color 0.2s ease", borderLeft: section === n.key ? "3px solid #7C6FFF" : "3px solid transparent" }} onMouseEnter={(e) => { if (section !== n.key) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)"; }} onMouseLeave={(e) => { if (section !== n.key) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
               {n.icon} {n.label}
             </button>
           ))}
@@ -1732,7 +1732,7 @@ export default function Admin() {
       {/* Main */}
       <div className="admin-main" style={{ flex: 1, marginLeft: 230, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         {/* Topbar */}
-        <div style={{ height: 60, background: "#0D0D1A", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(8px)" }}>
+        <div style={{ height: 60, background: "rgba(13,13,26,0.96)", borderBottom: "1px solid rgba(124,111,255,0.12)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(14px)", boxShadow: "0 18px 40px rgba(0,0,0,0.18)" }}>
           <button onClick={() => setSidebarOpen(true)} className="sidebar-toggle" style={{ display: "none", background: "none", border: "none", cursor: "pointer", color: "#F1F1F5", padding: 4 }}>
             <Menu size={20} />
           </button>
