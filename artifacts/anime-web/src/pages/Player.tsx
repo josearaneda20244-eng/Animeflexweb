@@ -662,10 +662,16 @@ export default function Player() {
     refetchOnWindowFocus: false,
   });
 
-  const latQuery = useQuery({
+  const hasPrimarySources = !!query.data?.sources?.length;
+  const shouldFetchAnimeFlv = !!animeTitle && !!episodeNum && (
+    audioLang === "lat" ||
+    (!query.isLoading && (query.isError || !hasPrimarySources))
+  );
+
+  const animeflvQuery = useQuery({
     queryKey: ["animeflv", animeTitle, episodeNum],
     queryFn: () => consumet.animeflvWatch(animeTitle, parseInt(episodeNum || "1")),
-    enabled: audioLang === "lat" && !!animeTitle && !!episodeNum,
+    enabled: shouldFetchAnimeFlv,
     retry: 1,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -680,11 +686,15 @@ export default function Player() {
   }, [query.error]);
 
   const subSources = query.data ? sortSources(query.data.sources ?? []) : [];
-  const latSources = latQuery.data ? (latQuery.data.sources ?? []).map(s => ({ ...s, isDub: true })) : [];
-  const sources = audioLang === "lat" ? latSources : subSources;
+  const animeflvSources = animeflvQuery.data ? (animeflvQuery.data.sources ?? []).map(s => ({ ...s, isDub: true })) : [];
+  const hasAnimeflvSources = animeflvSources.length > 0;
+  const sources = audioLang === "lat"
+    ? animeflvSources
+    : (subSources.length > 0 ? subSources : animeflvSources);
   const streamingHeaders = query.data?.headers ?? {};
   const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
+  const showMainError = query.isError && !hasAnimeflvSources;
 
   const streamSubtitles = query.data?.subtitles ?? [];
   const streamSpanishSub =
@@ -988,7 +998,7 @@ export default function Player() {
               </div>
             )}
 
-          {(audioLang === "lat" ? latQuery.isError : query.isError) && (
+          {(audioLang === "lat" ? animeflvQuery.isError : showMainError) && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="#EF4444" />
                 <p style={{ color: "#F1F1F5", fontSize: 14 }}>
@@ -997,25 +1007,25 @@ export default function Player() {
                     : "No se pudo cargar el episodio"}
                 </p>
                 <button
-                  onClick={() => audioLang === "lat" ? latQuery.refetch() : query.refetch()}
+                  onClick={() => audioLang === "lat" ? animeflvQuery.refetch() : query.refetch()}
                   style={{ padding: "8px 16px", borderRadius: 10, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, cursor: "pointer" }}>
                   Reintentar
                 </button>
               </div>
             )}
-            {audioLang === "lat" && latQuery.isLoading && (
+            {audioLang === "lat" && animeflvQuery.isLoading && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <Loader2 size={36} color="#F59E0B" className="animate-spin" />
                 <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando episodio en AnimeFLV...</p>
               </div>
             )}
-            {!query.isLoading && !query.isError && !(audioLang === "lat" && latQuery.isLoading) && !selected && (
+            {!query.isLoading && !showMainError && !(audioLang === "lat" && animeflvQuery.isLoading) && !selected && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="rgba(255,255,255,0.2)" />
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
               </div>
             )}
-            {!showLimitModal && !query.isLoading && !query.isError && !(audioLang === "lat" && latQuery.isLoading) && selected && proxyM3u8 && (
+            {!showLimitModal && !query.isLoading && !query.isError && !(audioLang === "lat" && animeflvQuery.isLoading) && selected && proxyM3u8 && (
               <PlyrPlayer
                 key={`${episodeId}-${selectedIdx}`}
                 m3u8Url={proxyM3u8}
@@ -1174,7 +1184,7 @@ export default function Player() {
                           display: "flex", alignItems: "center", gap: 4,
                         }}>
                         {lang === "lat" ? "🌎 LAT" : "🎌 SUB"}
-                        {lang === "lat" && latQuery.isLoading && <span style={{ fontSize: 9 }}>···</span>}
+                        {lang === "lat" && animeflvQuery.isLoading && <span style={{ fontSize: 9 }}>···</span>}
                       </button>
                     );
                   })}
