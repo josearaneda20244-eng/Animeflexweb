@@ -276,7 +276,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, position: "relative", animation: "fadeUp 0.45s ease forwards", opacity: 0, zIndex: 1 }}>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
@@ -287,7 +287,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           </h2>
           <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 14, marginTop: 4 }}>Aquí está el resumen de tu plataforma</div>
         </div>
-        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(124,111,255,0.1)", border: "1px solid rgba(124,111,255,0.25)", borderRadius: 10, padding: "8px 14px", color: "#B39DFF", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(124,111,255,0.14), rgba(124,111,255,0.04))", border: "1px solid rgba(124,111,255,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(124,111,255,0.12)", transition: "transform 0.25s ease, background 0.25s ease" }} onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}>
           <Activity size={14} /> Actualizar
         </button>
       </div>
@@ -307,8 +307,8 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
       {/* Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-        {CARDS.map(c => (
-          <div key={c.label} style={{ background: c.gradient, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden", transition: "transform 0.3s ease, box-shadow 0.3s ease", cursor: "pointer" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-5px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
+        {CARDS.map((c, index) => (
+          <div key={c.label} style={{ background: c.gradient, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden", transition: "transform 0.3s ease, box-shadow 0.3s ease", cursor: "pointer", animation: `fadeUp 0.45s ease ${0.05 * index}s forwards`, opacity: 0, boxShadow: "0 18px 45px rgba(12,14,30,0.14)" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 24px 60px rgba(12,14,30,0.18)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 18px 45px rgba(12,14,30,0.14)"; }}>
             <div style={{ position: "absolute", top: -16, right: -16, width: 64, height: 64, borderRadius: "50%", background: `${c.color}10` }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: `${c.color}20`, display: "flex", alignItems: "center", justifyContent: "center", color: c.color }}>
@@ -421,7 +421,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             { label: "Monetización", icon: <Crown size={14} />, color: "#F59E0B", section: "monetization" as Section },
             { label: "Configuración", icon: <Settings size={14} />, color: "#06B6D4", section: "config" as Section },
           ].map(q => (
-            <button key={q.label} onClick={() => onNavigate(q.section)} style={{ display: "flex", alignItems: "center", gap: 7, background: `${q.color}14`, border: `1px solid ${q.color}30`, borderRadius: 10, padding: "9px 14px", color: q.color, cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "all 0.3s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = `${q.color}20`; e.currentTarget.style.transform = "scale(1.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = `${q.color}14`; e.currentTarget.style.transform = "scale(1)"; }}>
+            <button key={q.label} onClick={() => onNavigate(q.section)} style={{ display: "flex", alignItems: "center", gap: 7, background: `${q.color}14`, border: `1px solid ${q.color}30`, borderRadius: 12, padding: "11px 16px", color: q.color, cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease", boxShadow: "0 12px 24px rgba(0,0,0,0.08)" }} onMouseEnter={(e) => { e.currentTarget.style.background = `${q.color}24`; e.currentTarget.style.transform = "scale(1.03)"; e.currentTarget.style.boxShadow = "0 18px 30px rgba(0,0,0,0.12)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = `${q.color}14`; e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.08)"; }}>
               {q.icon} {q.label}
             </button>
           ))}
@@ -1683,16 +1683,22 @@ export default function Admin() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#07080F", display: "flex" }}>
+    <div style={{ minHeight: "100vh", background: "#07080F", display: "flex", position: "relative", overflow: "hidden" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+        @keyframes fadeUp { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes glowPulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.75; } }
         @media (max-width: 768px) {
           .admin-sidebar { transform: translateX(-100%) !important; }
           .sidebar-toggle { display: flex !important; }
           .admin-main { margin-left: 0 !important; }
         }
       `}</style>
+
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 20% 12%, rgba(124,111,255,0.18), transparent 18%), radial-gradient(circle at 80% 18%, rgba(14,165,233,0.12), transparent 20%), radial-gradient(circle at 60% 75%, rgba(245,158,11,0.14), transparent 24%)", pointerEvents: "none", zIndex: 0 }} />
+      <div style={{ position: "absolute", top: 80, left: -40, width: 260, height: 260, borderRadius: "50%", background: "rgba(124,111,255,0.1)", filter: "blur(80px)", pointerEvents: "none", animation: "glowPulse 8s ease-in-out infinite" }} />
+      <div style={{ position: "absolute", bottom: 40, right: -50, width: 260, height: 260, borderRadius: "50%", background: "rgba(14,165,233,0.08)", filter: "blur(100px)", pointerEvents: "none", animation: "glowPulse 7s ease-in-out infinite reverse" }} />
 
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40, backdropFilter: "blur(2px)" }} />}
 
