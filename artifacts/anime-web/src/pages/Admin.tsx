@@ -227,7 +227,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
     ? ((stats.megafanUsers / stats.totalUsers) * 100).toFixed(1)
     : "0.0";
   const estimatedRevenue = (stats?.megafanUsers ?? 0) * 4;
-  const maxViews = stats?.topAnime[0] ? parseInt(stats.topAnime[0].views) : 1;
+  const maxViews = stats?.topAnime && stats.topAnime.length > 0 ? Math.max(...stats.topAnime.map(a => parseInt(a.views) || 0)) || 1 : 1;
 
   const CARDS = [
     {
@@ -306,9 +306,9 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       )}
 
       {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         {CARDS.map(c => (
-          <div key={c.label} style={{ background: c.gradient, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden" }}>
+          <div key={c.label} style={{ background: c.gradient, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden", transition: "transform 0.3s ease, box-shadow 0.3s ease", cursor: "pointer" }} onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-5px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
             <div style={{ position: "absolute", top: -16, right: -16, width: 64, height: 64, borderRadius: "50%", background: `${c.color}10` }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: `${c.color}20`, display: "flex", alignItems: "center", justifyContent: "center", color: c.color }}>
@@ -326,7 +326,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       </div>
 
       {/* Conversion + Health row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
         <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <Zap size={15} color="#F59E0B" />
@@ -421,7 +421,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             { label: "Monetización", icon: <Crown size={14} />, color: "#F59E0B", section: "monetization" as Section },
             { label: "Configuración", icon: <Settings size={14} />, color: "#06B6D4", section: "config" as Section },
           ].map(q => (
-            <button key={q.label} onClick={() => onNavigate(q.section)} style={{ display: "flex", alignItems: "center", gap: 7, background: `${q.color}14`, border: `1px solid ${q.color}30`, borderRadius: 10, padding: "9px 14px", color: q.color, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            <button key={q.label} onClick={() => onNavigate(q.section)} style={{ display: "flex", alignItems: "center", gap: 7, background: `${q.color}14`, border: `1px solid ${q.color}30`, borderRadius: 10, padding: "9px 14px", color: q.color, cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "all 0.3s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = `${q.color}20`; e.currentTarget.style.transform = "scale(1.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = `${q.color}14`; e.currentTarget.style.transform = "scale(1)"; }}>
               {q.icon} {q.label}
             </button>
           ))}
@@ -429,7 +429,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       </div>
 
       {/* Recent users + MegaFan list */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
 
         {/* Recent registrations */}
         <div style={{ background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
