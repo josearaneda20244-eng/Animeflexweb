@@ -112,27 +112,18 @@ import { useQuery } from "@tanstack/react-query";
         <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", filter: "saturate(1.05) brightness(0.92)", transition: "opacity 0.6s" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(7,8,15,0.06) 0%, rgba(7,8,15,0.45) 28%, rgba(7,8,15,0.92) 78%, #07080F 100%)" }} />
         <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(to right, rgba(7,8,15,0.9), transparent)" }} />
-        <div style={{ position: "absolute", top: 24, right: 24, padding: 18, width: 220, background: "rgba(7,8,15,0.64)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 24, backdropFilter: "blur(18px)", boxShadow: "0 18px 40px rgba(0,0,0,0.25)", zIndex: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
-            <span style={{ color: "#B39DFF", fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase" }}>Destacado</span>
-            <span style={{ color: "rgba(255,255,255,0.75)", fontSize: 12 }}>Nuevo</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {anime.genres?.slice(0, 3).map((g) => (
-              <span key={g} style={{ padding: "6px 10px", borderRadius: 999, background: "rgba(139,92,246,0.2)", color: "#E9D5FF", fontSize: 10, fontWeight: 700, border: "1px solid rgba(196,181,253,0.25)" }}>{g}</span>
-            ))}
-          </div>
-        </div>
-
         <div style={{ position: "absolute", bottom: 34, left: 34, maxWidth: 560, zIndex: 2 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ background: "linear-gradient(135deg, #8B5CF6, #6D28D9)", borderRadius: 999, padding: "4px 11px", color: "#fff", fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>EDICIÓN ESPECIAL</span>
-            {anime.status === "Ongoing" && (
-              <span style={{ background: "rgba(34,197,94,0.18)", borderRadius: 999, padding: "4px 10px", color: "#86EFAC", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%" }} /> EMISIÓN
-              </span>
-            )}
-          </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ background: "linear-gradient(135deg, #8B5CF6, #6D28D9)", borderRadius: 999, padding: "4px 11px", color: "#fff", fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>DESTACADO</span>
+              {anime.status === "Ongoing" && (
+                <span style={{ background: "rgba(34,197,94,0.18)", borderRadius: 999, padding: "4px 10px", color: "#86EFAC", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%" }} /> EN EMISIÓN
+                </span>
+              )}
+              {anime.genres?.slice(0, 3).map((g) => (
+                <span key={g} style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(139,92,246,0.15)", color: "#C4B5FD", fontSize: 11, fontWeight: 600, border: "1px solid rgba(196,181,253,0.2)" }}>{g}</span>
+              ))}
+            </div>
           <h1 style={{ color: "#fff", fontSize: "clamp(28px, 4.2vw, 46px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: -1, margin: 0, textShadow: "0 2px 24px rgba(0,0,0,0.85), 0 0 14px rgba(139,92,246,0.18)" }}>{title}</h1>
           <p style={{ maxWidth: 520, color: "rgba(255,255,255,0.72)", fontSize: 15, lineHeight: 1.8, margin: "16px 0 0" }}>{anime.description ? anime.description.replace(/<[^>]+>/g, '').slice(0, 140) + '…' : 'Descubre por qué este anime está arrasando entre la comunidad.'}</p>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
