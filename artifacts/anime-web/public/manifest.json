@@ -2,8 +2,8 @@
   "name": "AnimeFlex",
   "short_name": "AnimeFlex",
   "description": "Mira anime en español — streaming gratis",
-  "start_url": "/anime-web/",
-  "scope": "/anime-web/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#090A12",
   "theme_color": "#6C63FF",
@@ -12,18 +12,18 @@
   "categories": ["entertainment", "video"],
   "icons": [
     {
-      "src": "/anime-web/favicon.svg",
+      "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     },
     {
-      "src": "/anime-web/icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/anime-web/icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -33,20 +33,20 @@
     {
       "name": "Tendencias",
       "short_name": "Tendencias",
-      "url": "/anime-web/",
-      "icons": [{ "src": "/anime-web/icon-192.png", "sizes": "192x192" }]
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Buscar",
       "short_name": "Buscar",
-      "url": "/anime-web/search",
-      "icons": [{ "src": "/anime-web/icon-192.png", "sizes": "192x192" }]
+      "url": "/search",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Mi lista",
       "short_name": "Lista",
-      "url": "/anime-web/watchlist",
-      "icons": [{ "src": "/anime-web/icon-192.png", "sizes": "192x192" }]
+      "url": "/watchlist",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
