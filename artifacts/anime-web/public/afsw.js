@@ -2,8 +2,8 @@
 
 const CACHE_NAME = "animeflex-v2";
 const APP_SHELL = [
-  "/anime-web/",
-  "/anime-web/index.html",
+  "/",
+  "/index.html",
 ];
 
 // ── Install: pre-cache app shell ──────────────────────────────────────────
@@ -100,7 +100,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() =>
-        caches.match("/anime-web/index.html").then(
+        caches.match("/index.html").then(
           (cached) =>
             cached ||
             new Response("<h1>Sin conexión</h1>", {
