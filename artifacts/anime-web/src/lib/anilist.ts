@@ -1,4 +1,4 @@
-const JIKAN_BASE = "https://api.jikan.moe/v4";
+const ANILIST_URL = "https://graphql.anilist.co";
 
 export interface AiringEntry {
   airingAt: number;
@@ -28,108 +28,62 @@ export interface SeasonAnime {
   seasonYear: number;
 }
 
-async function jikanFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${JIKAN_BASE}${path}`, {
-    headers: { Accept: "application/json" },
+async function anilistQuery<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  const res = await fetch(ANILIST_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query, variables }),
   });
-  if (!res.ok) throw new Error(`Jikan error ${res.status}`);
-  return res.json() as Promise<T>;
-}
-
-const DAY_NAME_MAP: Record<string, number> = {
-  mondays: 1,
-  tuesdays: 2,
-  wednesdays: 3,
-  thursdays: 4,
-  fridays: 5,
-  saturdays: 6,
-  sundays: 0,
-};
-
-function broadcastToUnix(
-  day: string | undefined,
-  time: string | undefined
-): number {
-  if (!day || !time) return Math.floor(Date.now() / 1000);
-  const dayIdx = DAY_NAME_MAP[day.toLowerCase()];
-  if (dayIdx === undefined) return Math.floor(Date.now() / 1000);
-  const [h, m] = time.split(":").map(Number);
-  const now = new Date();
-  const todayIdx = now.getDay();
-  let diff = dayIdx - todayIdx;
-  if (diff > 0) diff -= 7;
-  const target = new Date(now);
-  target.setDate(now.getDate() + diff);
-  target.setHours(h - 9, m, 0, 0);
-  return Math.floor(target.getTime() / 1000);
-}
-
-function estimateCurrentEpisode(airedFrom: string | undefined | null): number {
-  if (!airedFrom) return 1;
-  try {
-    const start = new Date(airedFrom);
-    const weeks = Math.floor(
-      (Date.now() - start.getTime()) / (7 * 24 * 60 * 60 * 1000)
-    );
-    return Math.max(1, weeks + 1);
-  } catch {
-    return 1;
-  }
+  if (!res.ok) throw new Error(`AniList error ${res.status}`);
+  const json = await res.json();
+  if (json.errors?.length) throw new Error(json.errors[0].message);
+  return json.data as T;
 }
 
 export async function fetchAiringSchedule(): Promise<AiringEntry[]> {
-  const days = [
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-    "sunday",
-  ];
-  const results: AiringEntry[] = [];
-
-  await Promise.allSettled(
-    days.map(async (day) => {
-      const data = await jikanFetch<any>(`/schedules?day=${day}&limit=25`);
-      for (const item of data.data ?? []) {
-        // Only weekly broadcast TV anime have meaningful schedule slots
-        if (item.type !== "TV") continue;
-        const bc = item.broadcast ?? {};
-        const airingAt = broadcastToUnix(bc.day, bc.time);
-        const episode = estimateCurrentEpisode(item.aired?.from);
-        results.push({
-          airingAt,
-          episode,
-          media: {
-            id: item.mal_id,
-            title: {
-              romaji: item.title,
-              english: item.title_english || undefined,
-            },
-            coverImage: {
-              large:
-                item.images?.jpg?.large_image_url ||
-                item.images?.jpg?.image_url ||
-                "",
-            },
-            format: item.type || "TV",
-            episodes: item.episodes || undefined,
-            averageScore: item.score != null ? Math.round(item.score * 10) : undefined,
-            genres: (item.genres || []).map((g: any) => g.name as string),
-            status:
-              item.status === "Currently Airing"
-                ? "RELEASING"
-                : item.status === "Finished Airing"
-                ? "FINISHED"
-                : item.status || "",
-          },
-        });
+  const query = `
+    query ($page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        airingSchedules(notYetAired: false, sort: TIME_DESC) {
+          airingAt
+          episode
+          media {
+            id
+            title { romaji english }
+            coverImage { large }
+            format
+            episodes
+            averageScore
+            genres
+            status
+          }
+        }
       }
-    })
-  );
+    }
+  `;
+  const data = await anilistQuery<{
+    Page: { airingSchedules: Array<{ airingAt: number; episode: number; media: any }> };
+  }>(query, { page: 1, perPage: 50 });
 
-  return results.sort((a, b) => a.airingAt - b.airingAt);
+  return (data.Page.airingSchedules ?? [])
+    .filter((e) => e.media && e.media.format === "TV")
+    .map((e) => ({
+      airingAt: e.airingAt,
+      episode: e.episode,
+      media: {
+        id: e.media.id,
+        title: {
+          romaji: e.media.title?.romaji ?? "",
+          english: e.media.title?.english ?? undefined,
+        },
+        coverImage: { large: e.media.coverImage?.large ?? "" },
+        format: e.media.format ?? "TV",
+        episodes: e.media.episodes ?? undefined,
+        averageScore: e.media.averageScore ?? undefined,
+        genres: e.media.genres ?? [],
+        status: e.media.status ?? "",
+      },
+    }));
 }
 
 export function getCurrentSeason(): { season: string; year: number } {
@@ -154,37 +108,51 @@ export function seasonLabel(s: string): string {
 }
 
 export async function fetchSeasonalAnime(): Promise<SeasonAnime[]> {
-  const data = await jikanFetch<any>("/seasons/now?limit=25");
-  const { year } = getCurrentSeason();
+  const { season, year } = getCurrentSeason();
+  const query = `
+    query ($season: MediaSeason, $seasonYear: Int, $page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        media(
+          season: $season
+          seasonYear: $seasonYear
+          type: ANIME
+          sort: POPULARITY_DESC
+          format_in: [TV, MOVIE, OVA, ONA, SPECIAL]
+        ) {
+          id
+          title { romaji english }
+          coverImage { large }
+          format
+          episodes
+          averageScore
+          genres
+          status
+          season
+          seasonYear
+        }
+      }
+    }
+  `;
+  const data = await anilistQuery<{ Page: { media: any[] } }>(query, {
+    season,
+    seasonYear: year,
+    page: 1,
+    perPage: 30,
+  });
 
-  return (data.data ?? [])
-    .filter((item: any) =>
-      ["TV", "Movie", "OVA", "ONA", "Special"].includes(item.type)
-    )
-    .map((item: any): SeasonAnime => ({
-      id: item.mal_id,
-      title: {
-        romaji: item.title,
-        english: item.title_english || undefined,
-      },
-      coverImage: {
-        large:
-          item.images?.jpg?.large_image_url ||
-          item.images?.jpg?.image_url ||
-          "",
-      },
-      format: item.type || "TV",
-      episodes: item.episodes || undefined,
-      averageScore:
-        item.score != null ? Math.round(item.score * 10) : undefined,
-      genres: (item.genres || []).map((g: any) => g.name as string),
-      status:
-        item.status === "Currently Airing"
-          ? "RELEASING"
-          : item.status === "Finished Airing"
-          ? "FINISHED"
-          : item.status || "",
-      season: (item.season || "spring").toUpperCase(),
-      seasonYear: item.year || year,
-    }));
+  return (data.Page.media ?? []).map((m): SeasonAnime => ({
+    id: m.id,
+    title: {
+      romaji: m.title?.romaji ?? "",
+      english: m.title?.english ?? undefined,
+    },
+    coverImage: { large: m.coverImage?.large ?? "" },
+    format: m.format ?? "TV",
+    episodes: m.episodes ?? undefined,
+    averageScore: m.averageScore ?? undefined,
+    genres: m.genres ?? [],
+    status: m.status ?? "",
+    season: m.season ?? season,
+    seasonYear: m.seasonYear ?? year,
+  }));
 }
