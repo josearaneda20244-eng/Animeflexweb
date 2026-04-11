@@ -531,9 +531,16 @@ function jikanToResult(item: any) {
 
 router.get("/anime/trending", async (req, res) => {
   try {
-    const data = await jikanGet<any>("/top/anime?filter=airing&type=tv&limit=24");
+    const data = await jikanGet<any>("/top/anime?filter=airing&limit=24");
+    const seen = new Set<string>();
     const results = (data.data || [])
-      .filter((item: any) => ANIME_CATALOG_TYPES.includes(item.type))
+      .filter((item: any) => {
+        if (!ANIME_CATALOG_TYPES.includes(item.type)) return false;
+        const key = String(item.mal_id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
       .map(jikanToResult);
     res.json({ currentPage: 1, hasNextPage: false, results });
   } catch (err) {
@@ -544,9 +551,16 @@ router.get("/anime/trending", async (req, res) => {
 
 router.get("/anime/popular", async (req, res) => {
   try {
-    const data = await jikanGet<any>("/top/anime?type=tv&limit=24");
+    const data = await jikanGet<any>("/top/anime?filter=bypopularity&limit=24");
+    const seen = new Set<string>();
     const results = (data.data || [])
-      .filter((item: any) => ANIME_CATALOG_TYPES.includes(item.type))
+      .filter((item: any) => {
+        if (!ANIME_CATALOG_TYPES.includes(item.type)) return false;
+        const key = String(item.mal_id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
       .map(jikanToResult);
     res.json({ currentPage: 1, hasNextPage: false, results });
   } catch (err) {
@@ -557,19 +571,25 @@ router.get("/anime/popular", async (req, res) => {
 
 router.get("/anime/recent", async (req, res) => {
   try {
-    const data = await jikanGet<any>("/seasons/now?limit=25");
+    // Use upcoming anime — genuinely different from trending/popular/seasonal
+    const data = await jikanGet<any>("/top/anime?filter=upcoming&limit=24");
+    const seen = new Set<string>();
     const results = (data.data || [])
-      .filter((item: any) => ANIME_CATALOG_TYPES.includes(item.type))
-      .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
-      .slice(0, 24)
+      .filter((item: any) => {
+        if (!ANIME_CATALOG_TYPES.includes(item.type)) return false;
+        const key = String(item.mal_id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
       .map((item: any) => ({
         ...jikanToResult(item),
-        currentEpisode: item.episodes ?? null,
+        currentEpisode: null,
       }));
     res.json({ currentPage: 1, hasNextPage: false, results });
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch recent episodes from Jikan");
-    res.status(500).json({ error: "Failed to fetch recent episodes" });
+    req.log.error({ err }, "Failed to fetch recent/upcoming anime from Jikan");
+    res.status(500).json({ error: "Failed to fetch recent anime" });
   }
 });
 
@@ -697,17 +717,23 @@ router.get("/anime/anilist-info", async (req, res) => {
         }
       }
     `;
-    const resp = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query, variables: { id: parseInt(id) } }),
-    });
-    if (!resp.ok) throw new Error(`AniList GraphQL error: ${resp.status}`);
-    const json = (await resp.json()) as {
-      data: { Media: Record<string, unknown> };
-      errors?: { message: string }[];
-    };
-    if (json.errors?.length) throw new Error(json.errors[0].message);
+    // Try idMal lookup (Jikan returns MAL IDs); fallback to direct AniList ID
+    const makeQuery = (field: "idMal" | "id") => query.replace("idMal: $id", `${field}: $id`);
+    const gqlFetch = async (field: "idMal" | "id") =>
+      fetch("https://graphql.anilist.co", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: makeQuery(field), variables: { id: parseInt(id) } }),
+      }).then((r) => r.json() as Promise<{ data: { Media: Record<string, unknown> }; errors?: { message: string }[] }>);
+
+    let json = await gqlFetch("idMal");
+    if (json.errors?.length || !json.data?.Media) {
+      // Fallback: maybe this is already an AniList ID (old bookmarks, recommendations)
+      json = await gqlFetch("id");
+    }
+    if (json.errors?.length || !json.data?.Media) {
+      throw new Error(json.errors?.[0]?.message ?? "Anime not found");
+    }
     const media = json.data.Media as any;
 
     const streamingEps: { title?: string; thumbnail?: string; url?: string; site?: string }[] =
