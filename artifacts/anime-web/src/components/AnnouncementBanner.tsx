@@ -10,7 +10,7 @@ interface Announcement {
 }
 
 const TYPE_STYLES: Record<string, { bg: string; border: string; color: string; icon: React.ReactNode }> = {
-  info: { bg: "rgba(6,182,212,0.08)", border: "rgba(6,182,212,0.25)", color: "#06B6D4", icon: <Info size={15} /> },
+  info: { bg: "rgba(139,92,246,0.08)", border: "rgba(139,92,246,0.25)", color: "#8B5CF6", icon: <Info size={15} /> },
   warning: { bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)", color: "#F59E0B", icon: <AlertTriangle size={15} /> },
   success: { bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.25)", color: "#22C55E", icon: <CheckCircle2 size={15} /> },
 };

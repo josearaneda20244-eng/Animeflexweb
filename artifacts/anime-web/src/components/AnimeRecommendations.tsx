@@ -131,7 +131,7 @@
       const arrowStyle = (active: boolean, side: string): React.CSSProperties => ({
         position: 'absolute', top: '50%', transform: 'translateY(-50%)',
         [side]: 6, zIndex: 10,
-        background: 'rgba(7,8,15,0.82)', backdropFilter: 'blur(12px)',
+        background: 'rgba(7,7,20,0.82)', backdropFilter: 'blur(12px)',
         border: '1px solid rgba(139,92,246,0.35)', borderRadius: 22,
         width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: active ? 'pointer' : 'default',
@@ -143,17 +143,17 @@
         <div style={{ position: 'relative' }} onMouseEnter={update}>
           <button onClick={() => scroll(-1)} style={arrowStyle(canLeft, 'left')}
             onMouseEnter={e => { if (canLeft) { e.currentTarget.style.background = 'rgba(139,92,246,0.45)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(7,8,15,0.82)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}>
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(7,7,20,0.82)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#C4B5FD" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
           <button onClick={() => scroll(1)} style={arrowStyle(canRight, 'right')}
             onMouseEnter={e => { if (canRight) { e.currentTarget.style.background = 'rgba(139,92,246,0.45)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(7,8,15,0.82)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}>
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(7,7,20,0.82)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#C4B5FD" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
           <div ref={ref} className="carousel-scroll" onScroll={update}>{children}</div>
-          {canLeft && <div style={{ position: 'absolute', top: 0, left: 0, width: 60, height: '100%', pointerEvents: 'none', background: 'linear-gradient(to right, rgba(7,8,15,0.85), transparent)' }} />}
-          {canRight && <div style={{ position: 'absolute', top: 0, right: 0, width: 60, height: '100%', pointerEvents: 'none', background: 'linear-gradient(to left, rgba(7,8,15,0.85), transparent)' }} />}
+          {canLeft && <div style={{ position: 'absolute', top: 0, left: 0, width: 60, height: '100%', pointerEvents: 'none', background: 'linear-gradient(to right, rgba(7,7,20,0.85), transparent)' }} />}
+          {canRight && <div style={{ position: 'absolute', top: 0, right: 0, width: 60, height: '100%', pointerEvents: 'none', background: 'linear-gradient(to left, rgba(7,7,20,0.85), transparent)' }} />}
         </div>
       );
     }

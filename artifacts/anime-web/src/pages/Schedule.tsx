@@ -31,7 +31,7 @@ export default function Schedule() {
   const dayEntries = grouped[activeDay] ?? [];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#07080F" }}>
+    <div style={{ minHeight: "100vh", background: "#070714" }}>
       <Navbar />
       <div style={{ paddingTop: 56 }}>
         <div style={{ padding: "32px 16px 20px" }}>
@@ -69,7 +69,7 @@ export default function Schedule() {
                   {isToday && (
                     <span style={{
                       position: "absolute", top: -4, right: -4, width: 10, height: 10,
-                      borderRadius: "50%", background: "#22C55E", border: "2px solid #07080F",
+                      borderRadius: "50%", background: "#22C55E", border: "2px solid #070714",
                     }} />
                   )}
                 </button>
@@ -116,12 +116,12 @@ export default function Schedule() {
                     onClick={() => navigate(`/anime/${entry.media.id}`)}
                     style={{
                       display: "flex", alignItems: "center", gap: 16, padding: 16,
-                      background: "#0F0F1A", borderRadius: 16,
+                      background: "#100e22", borderRadius: 16,
                       border: `1px solid ${isPast ? "rgba(255,255,255,0.06)" : "rgba(34,197,94,0.15)"}`,
                       cursor: "pointer", transition: "border-color 0.15s, background 0.15s",
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#161620"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#0F0F1A"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "#100e22"; }}
                   >
                     <img
                       src={entry.media.coverImage.large}
@@ -132,8 +132,8 @@ export default function Schedule() {
                       <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 700, marginBottom: 6 }} className="line-clamp-2">{title}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                         <span style={{
-                          background: "rgba(6,182,212,0.15)", border: "1px solid rgba(6,182,212,0.3)",
-                          borderRadius: 6, padding: "2px 8px", color: "#06B6D4", fontSize: 11, fontWeight: 700,
+                          background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)",
+                          borderRadius: 6, padding: "2px 8px", color: "#8B5CF6", fontSize: 11, fontWeight: 700,
                         }}>
                           EP {entry.episode}
                         </span>

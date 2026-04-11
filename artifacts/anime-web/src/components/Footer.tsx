@@ -11,7 +11,7 @@ const SOCIAL_LINKS = [
 export default function Footer() {
   const [, navigate] = useLocation();
   return (
-    <footer style={{ background: "rgba(7,8,15,0.95)", backdropFilter: "blur(12px)" , borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 48, padding: "40px 24px 24px" }}>
+    <footer style={{ background: "rgba(7,7,20,0.95)", backdropFilter: "blur(12px)" , borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 48, padding: "40px 24px 24px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 32, marginBottom: 40 }}>
           <div>

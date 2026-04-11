@@ -106,20 +106,20 @@ export default function Profile() {
       ];
 
   const cardStyle = {
-    background: "#0F0F1A",
+    background: "#100e22",
     border: "1px solid rgba(255,255,255,0.06)",
     borderRadius: 16,
     padding: "18px 16px",
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#07080F" }}>
+    <div style={{ minHeight: "100vh", background: "#070714" }}>
       <Navbar />
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "72px 16px 48px" }}>
 
         {/* Profile header */}
         <div style={{
-          background: "linear-gradient(135deg,#0F0F1A,#1a1a2e)",
+          background: "linear-gradient(135deg,#100e22,#1a1a2e)",
           border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20,
           padding: "24px", marginBottom: 16,
           display: "flex", alignItems: "center", gap: 18,

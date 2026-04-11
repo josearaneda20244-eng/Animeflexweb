@@ -27,7 +27,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div style={{
-          minHeight: "100vh", background: "#07080F",
+          minHeight: "100vh", background: "#070714",
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           padding: 24, gap: 16, fontFamily: "Inter, sans-serif",

@@ -219,7 +219,7 @@ function RecommendationCard({ anime }: { anime: AnimeResult }) {
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = ""; }}
     >
-      <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "2/3", position: "relative", background: "#0F0F1A" }}>
+      <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "2/3", position: "relative", background: "#100e22" }}>
         <img
           src={anime.image}
           alt={title}
@@ -358,7 +358,7 @@ export default function AnimeDetail() {
 
   if (infoQuery.isLoading) {
     return (
-      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#07080F" }}>
+      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#070714" }}>
         <div className="flex flex-col items-center gap-3 text-[#4A4A6A]">
           <div className="w-8 h-8 border-2 border-[#7C6FFF] border-t-transparent rounded-full animate-spin" />
           <p className="text-sm">Cargando...</p>
@@ -369,7 +369,7 @@ export default function AnimeDetail() {
 
   if (infoQuery.isError) {
     return (
-      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#07080F" }}>
+      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#070714" }}>
         <div className="text-center text-[#4A4A6A]">
           <p className="text-[#F0F0FF] font-medium mb-2">No se pudo cargar el anime</p>
           <button onClick={() => navigate("/")} className="text-sm text-[#7C6FFF] hover:underline">
@@ -381,7 +381,7 @@ export default function AnimeDetail() {
   }
 
   return (
-    <div className="min-h-screen pb-16" style={{ background: "#07080F" }}>
+    <div className="min-h-screen pb-16" style={{ background: "#070714" }}>
       {showTrailer && hasYouTubeTrailer && (
         <TrailerModal trailerId={trailer!.id} onClose={() => setShowTrailer(false)} />
       )}
@@ -532,7 +532,7 @@ export default function AnimeDetail() {
 
         {/* Description */}
         {rawDesc && (
-          <div className="mb-6 p-4 rounded-xl" style={{ background: "#0F0F1A" }}>
+          <div className="mb-6 p-4 rounded-xl" style={{ background: "#100e22" }}>
             <p className={`text-sm text-[#9090B0] leading-relaxed ${!descExpanded ? "line-clamp-3" : ""}`}>
               {rawDesc}
             </p>
@@ -564,7 +564,7 @@ export default function AnimeDetail() {
                   <div style={{
                     width: 64, height: 64, borderRadius: "50%", overflow: "hidden",
                     margin: "0 auto 6px", border: "2px solid rgba(124,111,255,0.3)",
-                    background: "#0F0F1A",
+                    background: "#100e22",
                   }}>
                     <img
                       src={char.image}
@@ -634,7 +634,7 @@ export default function AnimeDetail() {
                     key={ep.id}
                     onClick={() => handleEpisode(ep)}
                     className={`flex items-center gap-3 p-3 rounded-xl text-left transition-colors group w-full ${watched ? "opacity-60" : ""}`}
-                    style={{ background: "#0F0F1A", border: "1px solid #1E1E32" }}
+                    style={{ background: "#100e22", border: "1px solid #1E1E32" }}
                     onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7C6FFF40")}
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1E1E32")}
                   >

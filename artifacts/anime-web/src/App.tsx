@@ -63,12 +63,12 @@ function NotFound() {
       <div style={{ position: "relative", marginBottom: 20 }}>
         <div style={{
           width: 110, height: 110, borderRadius: "50%",
-          background: "linear-gradient(135deg, rgba(124,111,255,0.22), rgba(91,82,245,0.1))",
+          background: "linear-gradient(135deg, rgba(124,111,255,0.22), rgba(109,40,217,0.1))",
           border: "2px solid rgba(124,111,255,0.35)",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52,
           boxShadow: "0 0 40px rgba(124,111,255,0.3)",
         }}>🎌</div>
-        <div style={{ position: "absolute", top: -8, right: -8, background: "linear-gradient(135deg,#EF4444,#DC2626)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid #07080F", boxShadow: "0 0 12px rgba(239,68,68,0.4)" }}>！</div>
+        <div style={{ position: "absolute", top: -8, right: -8, background: "linear-gradient(135deg,#EF4444,#DC2626)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid #070714", boxShadow: "0 0 12px rgba(239,68,68,0.4)" }}>！</div>
       </div>
       <div style={{ color: "transparent", fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: -6, background: "linear-gradient(135deg,#7C6FFF,#B39DFF,#F472B6)", WebkitBackgroundClip: "text", backgroundClip: "text", marginBottom: 12 } as any}>404</div>
       <div style={{ color: "#F0F0FA", fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Página no encontrada</div>

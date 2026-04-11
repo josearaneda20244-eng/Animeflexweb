@@ -50,7 +50,7 @@ export default function Settings() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", background: "#07080F", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#070714", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Debes iniciar sesión para ver esta página.</div>
       </div>
     );
@@ -208,7 +208,7 @@ export default function Settings() {
     : null;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#07080F" }}>
+    <div style={{ minHeight: "100vh", background: "#070714" }}>
       <Navbar />
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "80px 16px 48px" }}>
         {/* Header */}
@@ -227,7 +227,7 @@ export default function Settings() {
 
         {/* Profile card */}
         <div style={{
-          background: "linear-gradient(180deg,#16172A,#111220)",
+          background: "linear-gradient(180deg,#14122a,#111220)",
           border: "1px solid rgba(124,111,255,0.2)",
           borderRadius: 20, overflow: "hidden", marginBottom: 16,
         }}>
@@ -287,7 +287,7 @@ export default function Settings() {
         </div>
 
         {/* Avatar section */}
-        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
+        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Camera size={14} color="#B39DFF" />
@@ -365,7 +365,7 @@ export default function Settings() {
         </div>
 
         {/* Username section */}
-        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
+        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <User size={14} color="#B39DFF" />
@@ -410,7 +410,7 @@ export default function Settings() {
         </div>
 
         {/* Email (read-only) */}
-        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 20 }}>
+        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Mail size={14} color="rgba(255,255,255,0.4)" />
@@ -428,7 +428,7 @@ export default function Settings() {
         </div>
 
         {/* Privacy section */}
-        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginTop: 14 }}>
+        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20, padding: 20, marginTop: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               {isProfilePublic ? <Eye size={14} color="#B39DFF" /> : <EyeOff size={14} color="#B39DFF" />}
@@ -503,7 +503,7 @@ export default function Settings() {
         )}
 
         {/* Change password */}
-        <div style={{ background: "linear-gradient(180deg,#16172A,#111220)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 20, marginTop: 14 }}>
+        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 20, marginTop: 14 }}>
           <button
             onClick={() => { setShowPassFields(v => !v); setPassError(""); setPassSuccess(false); }}
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", padding: 0 }}

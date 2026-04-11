@@ -21,7 +21,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
       <Link href={href} style={{ display: "block", textDecoration: "none" }}>
         <div
           style={{
-            borderRadius: 14, overflow: "hidden", background: "#0F0F1A", cursor: "pointer",
+            borderRadius: 14, overflow: "hidden", background: "#100e22", cursor: "pointer",
             transition: "transform 0.18s ease, box-shadow 0.18s ease",
             transform: hovered ? "translateY(-5px)" : "",
             boxShadow: hovered ? "0 12px 32px rgba(124,111,255,0.35)" : "none",

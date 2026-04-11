@@ -37,7 +37,7 @@ export default function ResetPassword() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#07080F",
+      minHeight: "100vh", background: "#070714",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: 16, position: "relative", overflow: "hidden",
     }}>

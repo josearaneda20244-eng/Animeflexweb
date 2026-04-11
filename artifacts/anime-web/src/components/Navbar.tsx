@@ -131,7 +131,7 @@ export default function Navbar() {
     <>
       <nav
         className="fixed top-0 left-0 right-0 z-50"
-        style={{ background: "rgba(7,8,15,0.82)", backdropFilter: "blur(24px) saturate(1.6)", WebkitBackdropFilter: "blur(24px) saturate(1.6)", borderBottom: "1px solid rgba(139,92,246,0.28)", boxShadow: "0 1px 0 rgba(139,92,246,0.15), 0 4px 30px rgba(0,0,0,0.5)" }}
+        style={{ background: "rgba(7,7,20,0.82)", backdropFilter: "blur(24px) saturate(1.6)", WebkitBackdropFilter: "blur(24px) saturate(1.6)", borderBottom: "1px solid rgba(139,92,246,0.28)", boxShadow: "0 1px 0 rgba(139,92,246,0.15), 0 4px 30px rgba(0,0,0,0.5)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 56 }}>
           {/* Logo */}
@@ -165,7 +165,7 @@ export default function Navbar() {
                 {showSuggestions && suggestions.length > 0 && (
                   <div style={{
                     position: "absolute", top: "100%", left: 0, right: 0, zIndex: 300,
-                    background: "#0F0F1A", border: "1px solid rgba(139,92,246,0.3)", borderTop: "none",
+                    background: "#100e22", border: "1px solid rgba(139,92,246,0.3)", borderTop: "none",
                     borderRadius: "0 0 14px 14px", overflow: "hidden",
                     boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
                   }}>
@@ -240,7 +240,7 @@ export default function Navbar() {
                   {moreOpen && (
                     <div style={{
                       position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 200,
-                      background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
+                      background: "#100e22", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
                       padding: 8, minWidth: 160, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
                     }}>
                       {[
@@ -325,7 +325,7 @@ export default function Navbar() {
                     {showUserMenu && (
                       <div style={{
                         position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
-                        background: "linear-gradient(180deg,#16172A 0%,#111220 100%)",
+                        background: "linear-gradient(180deg,#14122a 0%,#111220 100%)",
                         border: "1px solid rgba(139,92,246,0.2)", borderRadius: 18,
                         overflow: "hidden", minWidth: 280,
                         boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(139,92,246,0.1) inset",
@@ -348,7 +348,7 @@ export default function Navbar() {
                               background: "linear-gradient(135deg,#8B5CF6,#6D28D9)",
                               boxShadow: "0 4px 16px rgba(139,92,246,0.5)",
                               overflow: "hidden", flexShrink: 0, cursor: "pointer",
-                              outline: "3px solid #16172A",
+                              outline: "3px solid #14122a",
                             }}
                           >
                             {resolveAvatarUrl(user.avatar_url)

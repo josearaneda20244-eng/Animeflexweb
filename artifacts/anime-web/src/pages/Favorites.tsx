@@ -14,7 +14,7 @@ function FavCard({ anime }: { anime: AnimeResult }) {
       onClick={() => navigate(`/anime/${anime.id}`)}
       style={{ position: "relative", cursor: "pointer" }}
     >
-      <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#0F0F1A", border: "1px solid rgba(255,255,255,0.07)", aspectRatio: "2/3" }}>
+      <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#100e22", border: "1px solid rgba(255,255,255,0.07)", aspectRatio: "2/3" }}>
         <img src={anime.image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 45%, rgba(9,10,18,0.97) 100%)" }} />
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
@@ -51,7 +51,7 @@ export default function Favorites() {
   const { favorites } = useFavorites();
 
   return (
-    <div style={{ minHeight: "100vh", background: "#07080F" }}>
+    <div style={{ minHeight: "100vh", background: "#070714" }}>
       <Navbar />
 
       <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
