@@ -93,7 +93,8 @@ export async function fetchAiringSchedule(): Promise<AiringEntry[]> {
     days.map(async (day) => {
       const data = await jikanFetch<any>(`/schedules?day=${day}&limit=25`);
       for (const item of data.data ?? []) {
-        if (!["TV", "Movie", "OVA", "ONA", "Special"].includes(item.type)) continue;
+        // Only weekly broadcast TV anime have meaningful schedule slots
+        if (item.type !== "TV") continue;
         const bc = item.broadcast ?? {};
         const airingAt = broadcastToUnix(bc.day, bc.time);
         const episode = estimateCurrentEpisode(item.aired?.from);
