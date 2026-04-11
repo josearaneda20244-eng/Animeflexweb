@@ -68,7 +68,7 @@ function Toast({ msg, type, onClose }: { msg: string; type: "ok" | "err"; onClos
 /* ── Confirm Dialog ── */
 function Confirm({ msg, onOk, onCancel }: { msg: string; onOk: () => void; onCancel: () => void }) {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ background: "#1a1a2e", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 20, padding: 28, maxWidth: 360, width: "90%", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <AlertTriangle size={20} color="#F59E0B" />
@@ -1700,7 +1700,7 @@ export default function Admin() {
       <div style={{ position: "absolute", top: 80, left: -40, width: 260, height: 260, borderRadius: "50%", background: "rgba(124,111,255,0.1)", filter: "blur(80px)", pointerEvents: "none", animation: "glowPulse 8s ease-in-out infinite" }} />
       <div style={{ position: "absolute", bottom: 40, right: -50, width: 260, height: 260, borderRadius: "50%", background: "rgba(14,165,233,0.08)", filter: "blur(100px)", pointerEvents: "none", animation: "glowPulse 7s ease-in-out infinite reverse" }} />
 
-      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40, backdropFilter: "blur(2px)" }} />}
+      {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40 }} />}
 
       {/* Sidebar */}
       <aside className="admin-sidebar" style={{ width: 230, flexShrink: 0, background: "linear-gradient(180deg, #0D0D1A 0%, #07080F 100%)", borderRight: "1px solid rgba(124,111,255,0.08)", boxShadow: "0 24px 70px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50, transition: "transform 0.22s ease, box-shadow 0.22s ease" }}>
@@ -1732,7 +1732,7 @@ export default function Admin() {
       {/* Main */}
       <div className="admin-main" style={{ flex: 1, marginLeft: 230, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         {/* Topbar */}
-        <div style={{ height: 60, background: "rgba(13,13,26,0.96)", borderBottom: "1px solid rgba(124,111,255,0.12)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, backdropFilter: "blur(14px)", boxShadow: "0 18px 40px rgba(0,0,0,0.18)" }}>
+        <div style={{ height: 60, background: "rgba(13,13,26,0.96)", borderBottom: "1px solid rgba(124,111,255,0.12)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, boxShadow: "0 18px 40px rgba(0,0,0,0.18)" }}>
           <button onClick={() => setSidebarOpen(true)} className="sidebar-toggle" style={{ display: "none", background: "none", border: "none", cursor: "pointer", color: "#F1F1F5", padding: 4 }}>
             <Menu size={20} />
           </button>
