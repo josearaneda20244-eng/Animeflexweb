@@ -50,7 +50,7 @@ export default function Settings() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", background: "#070714", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Debes iniciar sesión para ver esta página.</div>
       </div>
     );
@@ -208,7 +208,7 @@ export default function Settings() {
     : null;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#070714" }}>
+    <div style={{ minHeight: "100vh", background: "#000" }}>
       <Navbar />
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "80px 16px 48px" }}>
         {/* Header */}

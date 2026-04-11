@@ -54,8 +54,8 @@ function HistoryItem({ entry, onRemove }: { entry: HistoryEntry; onRemove: () =>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {entry.type && <span style={{ color: "#7C6FFF", fontSize: 10, fontWeight: 700, background: "rgba(124,111,255,0.18)", padding: "1px 5px", borderRadius: 4 }}>{entry.type}</span>}
           {entry.episodeNum && (
-            <span style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(0,0,0,0.75)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: 6, padding: "2px 6px", color: "#8B5CF6", fontSize: 10, fontWeight: 800 }}>
-              <Play size={9} color="#8B5CF6" /> EP {entry.episodeNum}
+            <span style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.005)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 10, fontWeight: 800 }}>
+              <Play size={9} color="#fff" /> EP {entry.episodeNum}
             </span>
           )}
         </div>
@@ -87,7 +87,7 @@ export default function History() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#070714" }}>
+    <div style={{ minHeight: "100vh", background: "#000" }}>
       <Navbar />
 
       <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>

@@ -131,16 +131,16 @@ export default function Navbar() {
     <>
       <nav
         className="fixed top-0 left-0 right-0 z-50"
-        style={{ background: "rgba(7,7,20,0.82)", backdropFilter: "blur(24px) saturate(1.6)", WebkitBackdropFilter: "blur(24px) saturate(1.6)", borderBottom: "1px solid rgba(139,92,246,0.28)", boxShadow: "0 1px 0 rgba(139,92,246,0.15), 0 4px 30px rgba(0,0,0,0.5)" }}
+        style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 1px 0 rgba(255,255,255,0.06)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 56 }}>
           {/* Logo */}
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#8B5CF6,#6D28D9)" }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "#1a365d" }}>
               <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>▶</span>
             </div>
             <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1 }}>
-              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#8B5CF6" }}>FLEX</span>
+              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#fff" }}>FLEX</span>
             </span>
           </Link>
 
@@ -158,14 +158,14 @@ export default function Navbar() {
                   style={{
                     width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
                     borderRadius: showSuggestions && suggestions.length > 0 ? "12px 12px 0 0" : 12,
-                    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(139,92,246,0.4)",
+                    background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
                     color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit",
                   }}
                 />
                 {showSuggestions && suggestions.length > 0 && (
                   <div style={{
                     position: "absolute", top: "100%", left: 0, right: 0, zIndex: 300,
-                    background: "#100e22", border: "1px solid rgba(139,92,246,0.3)", borderTop: "none",
+                    background: "#0a0a0a", border: "1px solid #222", borderTop: "none",
                     borderRadius: "0 0 14px 14px", overflow: "hidden",
                     boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
                   }}>
@@ -181,13 +181,13 @@ export default function Navbar() {
                             cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.04)",
                             transition: "background 0.12s",
                           }}
-                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(139,92,246,0.12)")}
+                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
                           onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                           <img src={anime.image} alt={title} style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }} className="line-clamp-1">{title}</div>
                             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                              {anime.type && <span style={{ color: "#8B5CF6", fontSize: 10, fontWeight: 700 }}>{anime.type}</span>}
+                              {anime.type && <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>{anime.type}</span>}
                               {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{anime.releaseDate}</span>}
                               {anime.rating != null && anime.rating > 0 && (
                                 <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -202,10 +202,10 @@ export default function Navbar() {
                     })}
                     <div onClick={() => { if (query.trim()) { navigate(`/search?q=${encodeURIComponent(query.trim())}`); setSearchOpen(false); setQuery(""); setSuggestions([]); setShowSuggestions(false); } }}
                       style={{
-                        padding: "9px 14px", color: "#8B5CF6", fontSize: 12, fontWeight: 700,
+                        padding: "9px 14px", color: "#fff", fontSize: 12, fontWeight: 700,
                         cursor: "pointer", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)",
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(139,92,246,0.08)")}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                       Ver todos los resultados para "{query}" →
                     </div>
@@ -252,9 +252,9 @@ export default function Navbar() {
                         <button key={href} onClick={() => { navigate(href); setMoreOpen(false); }}
                           style={{
                             display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px",
-                            background: isActive(href) ? "rgba(139,92,246,0.15)" : "none", border: "none",
+                            background: isActive(href) ? "rgba(255,255,255,0.1)" : "none", border: "none",
                             borderRadius: 10, cursor: "pointer",
-                            color: isActive(href) ? "#C4B5FD" : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: 600,
+                            color: isActive(href) ? "#fff" : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: 600,
                           }}
                           onMouseEnter={(e) => { if (!isActive(href)) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
                           onMouseLeave={(e) => { if (!isActive(href)) (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
@@ -278,8 +278,8 @@ export default function Navbar() {
                   title="Anime aleatorio"
                   style={{
                     alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
-                    background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.25)",
-                    color: "#C4B5FD", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+                    color: "#fff", fontSize: 12, fontWeight: 500, cursor: "pointer",
                   }}
                   className="hidden md:flex"
                 >
@@ -302,12 +302,12 @@ export default function Navbar() {
                       onClick={() => setShowUserMenu((v) => !v)}
                       style={{
                         display: "flex", alignItems: "center", gap: 7, padding: "5px 10px 5px 5px",
-                        borderRadius: 10, background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.25)",
+                        borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
                         cursor: "pointer",
                       }}
                     >
                       <div style={{
-                        width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#8B5CF6,#6D28D9)",
+                        width: 28, height: 28, borderRadius: 8, background: "#1a365d",
                         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                       }}>
                         {resolveAvatarUrl(user.avatar_url)
@@ -315,7 +315,7 @@ export default function Navbar() {
                           : <User size={14} color="#fff" />
                         }
                       </div>
-                      <span className="hidden md:flex" style={{ color: "#C4B5FD", fontSize: 12, fontWeight: 700, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", alignItems: "center", gap: 4 }}>
+                      <span className="hidden md:flex" style={{ color: "#fff", fontSize: 12, fontWeight: 500, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", alignItems: "center", gap: 4 }}>
                         {user.username}
                         {isOwner && <span title="Dueño" style={{ fontSize: 11 }}>🔧</span>}
                         {isMegaFan && <Crown size={11} color="#F59E0B" />}
@@ -326,16 +326,16 @@ export default function Navbar() {
                       <div style={{
                         position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
                         background: "linear-gradient(180deg,#14122a 0%,#111220 100%)",
-                        border: "1px solid rgba(139,92,246,0.2)", borderRadius: 18,
+                        border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12,
                         overflow: "hidden", minWidth: 280,
-                        boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(139,92,246,0.1) inset",
+                        boxShadow: "0 24px 60px rgba(0,0,0,0.8)",
                       }}>
                         {/* Banner + Avatar */}
                         <div style={{ position: "relative", height: 72, background: "linear-gradient(135deg,#2D1B69 0%,#1A1A3E 50%,#0D0D1F 100%)", overflow: "hidden" }}>
-                          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 50%,rgba(139,92,246,0.35) 0%,transparent 70%)" }} />
+                          <div style={{ position: "absolute", inset: 0, background: "none" }} />
                           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 50%,rgba(245,158,11,0.12) 0%,transparent 70%)" }} />
                           {/* Decorative dots */}
-                          <div style={{ position: "absolute", top: 10, right: 20, width: 40, height: 40, borderRadius: "50%", background: "rgba(139,92,246,0.15)", filter: "blur(8px)" }} />
+                          <div style={{ position: "absolute", top: 10, right: 20, width: 40, height: 40, borderRadius: "50%", background: "none", filter: "none" }} />
                           <div style={{ position: "absolute", top: 30, right: 50, width: 20, height: 20, borderRadius: "50%", background: "rgba(245,158,11,0.1)", filter: "blur(4px)" }} />
                         </div>
 
@@ -345,8 +345,8 @@ export default function Navbar() {
                             title="Cambiar foto de perfil"
                             style={{
                               position: "relative", width: 56, height: 56, borderRadius: 16, padding: 0, border: "none",
-                              background: "linear-gradient(135deg,#8B5CF6,#6D28D9)",
-                              boxShadow: "0 4px 16px rgba(139,92,246,0.5)",
+                              background: "#1a365d",
+                              boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
                               overflow: "hidden", flexShrink: 0, cursor: "pointer",
                               outline: "3px solid #14122a",
                             }}
@@ -383,7 +383,7 @@ export default function Navbar() {
                             {isMegaFan && (
                               <span style={{
                                 display: "inline-flex", alignItems: "center", gap: 3,
-                                background: "linear-gradient(135deg,rgba(245,158,11,0.3),rgba(139,92,246,0.2))",
+                                background: "rgba(255,255,255,0.06)",
                                 border: "1px solid rgba(245,158,11,0.6)", borderRadius: 100,
                                 padding: "3px 8px", fontSize: 9, fontWeight: 900, color: "#FCD34D",
                                 letterSpacing: 0.5,
@@ -416,8 +416,8 @@ export default function Navbar() {
                           overflow: "hidden",
                         }}>
                           {[
-                            { label: "Favoritos", value: favorites.length, icon: <Bookmark size={13} color="#C4B5FD" />, href: "/favorites" },
-                            { label: "Mi Lista", value: watchList.length, icon: <ListVideo size={13} color="#8B5CF6" />, href: "/watchlist" },
+                            { label: "Favoritos", value: favorites.length, icon: <Bookmark size={13} color="#d1d5db" />, href: "/favorites" },
+                            { label: "Mi Lista", value: watchList.length, icon: <ListVideo size={13} color="#d1d5db" />, href: "/watchlist" },
                             { label: "Historial", value: history.length, icon: <Clock size={13} color="#34D399" />, href: "/history" },
                           ].map(({ label, value, icon, href }, i) => (
                             <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
@@ -427,7 +427,7 @@ export default function Navbar() {
                                 borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
                                 cursor: "pointer", transition: "background 0.15s",
                               }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(139,92,246,0.1)"; }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
                               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
                             >
                               {icon}
@@ -445,9 +445,9 @@ export default function Navbar() {
                               width: "100%", display: "flex", alignItems: "center", gap: 10,
                               padding: "11px 14px",
                               background: isMegaFan
-                                ? "linear-gradient(135deg,rgba(139,92,246,0.2),rgba(245,158,11,0.1))"
-                                : "linear-gradient(135deg,rgba(139,92,246,0.15),rgba(79,70,229,0.08))",
-                              border: isMegaFan ? "1px solid rgba(245,158,11,0.4)" : "1px solid rgba(139,92,246,0.35)",
+                                ? "rgba(255,255,255,0.06)"
+                                : "rgba(255,255,255,0.06)",
+                              border: isMegaFan ? "1px solid rgba(245,158,11,0.4)" : "1px solid rgba(255,255,255,0.1)",
                               borderRadius: 12, cursor: "pointer", transition: "all 0.2s",
                             }}
                             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.8"; }}
@@ -455,14 +455,14 @@ export default function Navbar() {
                           >
                             <div style={{
                               width: 32, height: 32, borderRadius: 9, flexShrink: 0,
-                              background: isMegaFan ? "linear-gradient(135deg,#F59E0B,#D97706)" : "linear-gradient(135deg,#8B5CF6,#6D28D9)",
+                              background: isMegaFan ? "linear-gradient(135deg,#F59E0B,#D97706)" : "#1a365d",
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              boxShadow: isMegaFan ? "0 4px 12px rgba(245,158,11,0.4)" : "0 4px 12px rgba(139,92,246,0.4)",
+                              boxShadow: isMegaFan ? "0 4px 12px rgba(245,158,11,0.4)" : "0 4px 12px rgba(0,0,0,0.4)",
                             }}>
                               {isMegaFan ? <Crown size={16} color="#fff" /> : <Zap size={16} color="#fff" />}
                             </div>
                             <div style={{ flex: 1, textAlign: "left" }}>
-                              <div style={{ color: isMegaFan ? "#FCD34D" : "#C4B5FD", fontSize: 12, fontWeight: 800 }}>
+                              <div style={{ color: isMegaFan ? "#FCD34D" : "#fff", fontSize: 12, fontWeight: 700 }}>
                                 {isMegaFan ? "Membresía MegaFan activa" : "Hazte MegaFan"}
                               </div>
                               <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 1 }}>
@@ -476,7 +476,7 @@ export default function Navbar() {
                         {/* Quick links */}
                         <div style={{ margin: "0 12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
                           {[
-                            ...(isOwner ? [{ icon: <LayoutDashboard size={13} />, label: "Panel de Admin", href: "/admin", color: "#C4B5FD" }] : []),
+                            ...(isOwner ? [{ icon: <LayoutDashboard size={13} />, label: "Panel de Admin", href: "/admin", color: "#d1d5db" }] : []),
                             { icon: <User size={13} />, label: "Mi Perfil", href: "/perfil", color: "rgba(255,255,255,0.55)" },
                             { icon: <Settings size={13} />, label: "Configuración", href: "/settings", color: "rgba(255,255,255,0.55)" },
                           ].map(({ icon, label, href, color }) => (
@@ -519,7 +519,7 @@ export default function Navbar() {
                     onClick={() => setShowAuthModal(true)}
                     style={{
                       display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
-                      borderRadius: 10, background: "linear-gradient(135deg,#8B5CF6,#6D28D9)",
+                      borderRadius: 10, background: "#1a365d",
                       border: "none", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700,
                     }}
                   >
@@ -564,11 +564,11 @@ export default function Navbar() {
             {/* Drawer header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#8B5CF6,#6D28D9)" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "#1a365d" }}>
                   <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>▶</span>
                 </div>
                 <span style={{ fontSize: 16, fontWeight: 900 }}>
-                  <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#8B5CF6" }}>FLEX</span>
+                  <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#fff" }}>FLEX</span>
                 </span>
               </Link>
               <button
@@ -588,10 +588,10 @@ export default function Navbar() {
                   style={{
                     display: "flex", alignItems: "center", gap: 14, padding: "13px 16px",
                     borderRadius: 12, border: "none", cursor: "pointer", textAlign: "left",
-                    background: isActive(href) ? "rgba(139,92,246,0.15)" : "transparent",
-                    color: isActive(href) ? "#C4B5FD" : "rgba(255,255,255,0.75)",
+                    background: isActive(href) ? "rgba(255,255,255,0.08)" : "transparent",
+                    color: isActive(href) ? "#fff" : "rgba(255,255,255,0.75)",
                     fontSize: 15, fontWeight: 600,
-                    borderLeft: isActive(href) ? "3px solid #8B5CF6" : "3px solid transparent",
+                    borderLeft: isActive(href) ? "3px solid #fff" : "3px solid transparent",
                   }}
                 >
                   {icon} {label}
@@ -608,8 +608,8 @@ export default function Navbar() {
                 onClick={() => { handleRandom(); setMobileMenuOpen(false); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", width: "100%",
-                  borderRadius: 12, border: "1px solid rgba(139,92,246,0.3)", cursor: "pointer",
-                  background: "rgba(139,92,246,0.1)", color: "#C4B5FD", fontSize: 15, fontWeight: 600,
+                  borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer",
+                  background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 15, fontWeight: 500,
                 }}
               >
                 <Shuffle size={18} /> Anime Aleatorio
@@ -623,9 +623,9 @@ export default function Navbar() {
             <div style={{ padding: "12px 12px", marginTop: "auto" }}>
               {user ? (
                 <>
-                  <div style={{ background: "rgba(139,92,246,0.08)", borderRadius: 12, marginBottom: 8, overflow: "hidden" }}>
+                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, marginBottom: 8, overflow: "hidden" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#8B5CF6,#6D28D9)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "#1a365d", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         {resolveAvatarUrl(user.avatar_url)
                           ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", borderRadius: 10, objectFit: "cover" }} />
                           : <User size={20} color="#fff" />
@@ -653,10 +653,10 @@ export default function Navbar() {
                       style={{
                         display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 16px",
                         borderTop: "1px solid rgba(255,255,255,0.06)", border: "none", cursor: "pointer",
-                        background: "none", color: isMegaFan ? "#C4B5FD" : "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 600,
+                        background: "none", color: isMegaFan ? "#FCD34D" : "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 500,
                       }}
                     >
-                      <Crown size={15} color={isMegaFan ? "#C4B5FD" : undefined} />
+                      <Crown size={15} color={isMegaFan ? "#FCD34D" : undefined} />
                       {isMegaFan ? "Membresía MegaFan ⚡" : "Hazte MegaFan"}
                     </button>
                   </div>
@@ -677,7 +677,7 @@ export default function Navbar() {
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "center", gap: 12, width: "100%", padding: "14px 16px",
                     borderRadius: 12, border: "none", cursor: "pointer",
-                    background: "linear-gradient(135deg,#8B5CF6,#6D28D9)", color: "#fff", fontSize: 15, fontWeight: 800,
+                    background: "#1a365d", color: "#fff", fontSize: 15, fontWeight: 800,
                   }}
                 >
                   <LogIn size={18} /> Iniciar sesión / Registrarse
@@ -707,8 +707,8 @@ function NavBtn({
         style={{
           display: "flex", alignItems: "center", gap: 5, padding: "6px 10px",
           borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
-          color: active ? "#C4B5FD" : "rgba(255,255,255,0.55)",
-          background: active ? "rgba(139,92,246,0.12)" : "none",
+          color: active ? "#fff" : "rgba(255,255,255,0.55)",
+          background: active ? "rgba(255,255,255,0.08)" : "none",
           transition: "color 0.15s, background 0.15s",
         }}
         onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLDivElement).style.color = "#F1F1F5"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.05)"; } }}

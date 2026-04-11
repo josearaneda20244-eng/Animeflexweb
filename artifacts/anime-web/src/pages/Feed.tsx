@@ -18,7 +18,7 @@ interface FeedActivity {
   activity_at: string;
 }
 
-const AVATAR_COLORS = ["#7C6FFF", "#EC4899", "#22C55E", "#F59E0B", "#8B5CF6", "#EF4444", "#8B5CF6"];
+const AVATAR_COLORS = ["#7C6FFF", "#EC4899", "#22C55E", "#F59E0B", "#fff", "#EF4444", "#fff"];
 function getAvatarColor(name: string) {
   let hash = 0;
   for (const ch of name) hash = ch.charCodeAt(0) + ((hash << 5) - hash);
@@ -61,7 +61,7 @@ export default function Feed() {
   }, [token]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#070714" }}>
+    <div style={{ minHeight: "100vh", background: "#000" }}>
       <Navbar />
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "72px 16px 48px" }}>
 
@@ -72,7 +72,7 @@ export default function Feed() {
         </div>
 
         {!token ? (
-          <div style={{ background: "#100e22", borderRadius: 20, padding: "48px 24px", textAlign: "center", border: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ background: "#0a0a0a", borderRadius: 20, padding: "48px 24px", textAlign: "center", border: "1px solid rgba(255,255,255,0.07)" }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🔐</div>
             <div style={{ color: "#F1F1F5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Inicia sesión para ver el feed</div>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, marginBottom: 24 }}>
@@ -89,7 +89,7 @@ export default function Feed() {
             <Loader2 size={28} color="rgba(124,111,255,0.5)" style={{ margin: "0 auto", animation: "spin 1s linear infinite" }} />
           </div>
         ) : activities.length === 0 ? (
-          <div style={{ background: "#100e22", borderRadius: 20, padding: "48px 24px", textAlign: "center", border: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ background: "#0a0a0a", borderRadius: 20, padding: "48px 24px", textAlign: "center", border: "1px solid rgba(255,255,255,0.07)" }}>
             <UserPlus size={48} color="rgba(124,111,255,0.3)" style={{ margin: "0 auto 16px", display: "block" }} />
             <div style={{ color: "#F1F1F5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Sin actividad reciente</div>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, lineHeight: 1.7 }}>
@@ -102,7 +102,7 @@ export default function Feed() {
               const { text, color, icon } = statusLabel(a.status);
               return (
                 <div key={`${a.user_id}-${a.anime_id}-${i}`}
-                  style={{ background: "#100e22", borderRadius: 14, padding: 14, border: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 12, alignItems: "center", cursor: "pointer" }}
+                  style={{ background: "#0a0a0a", borderRadius: 14, padding: 14, border: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 12, alignItems: "center", cursor: "pointer" }}
                   onClick={() => navigate(`/anime/${a.anime_id}`)}>
 
                   {/* Anime cover */}

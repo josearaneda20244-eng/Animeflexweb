@@ -49,7 +49,7 @@ export default function WatchList() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#070714" }}>
+    <div style={{ minHeight: "100vh", background: "#000" }}>
       <Navbar />
       <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 20, paddingTop: 4 }}>
@@ -72,7 +72,7 @@ export default function WatchList() {
                 style={{
                   display: "flex", alignItems: "center", gap: 6, padding: "9px 16px",
                   borderRadius: 12, border: `1px solid ${isActive ? tab.color + "55" : "rgba(255,255,255,0.1)"}`,
-                  background: isActive ? tab.color + "18" : "#100e22",
+                  background: isActive ? tab.color + "18" : "#0a0a0a",
                   color: isActive ? tab.color : "rgba(255,255,255,0.5)",
                   fontSize: 13, fontWeight: 700, cursor: "pointer",
                 }}

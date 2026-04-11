@@ -17,7 +17,7 @@ interface Comment {
   reply_count: number;
 }
 
-const AVATAR_COLORS = ["#7C6FFF", "#EC4899", "#22C55E", "#F59E0B", "#8B5CF6", "#EF4444", "#8B5CF6"];
+const AVATAR_COLORS = ["#7C6FFF", "#EC4899", "#22C55E", "#F59E0B", "#fff", "#EF4444", "#fff"];
 
 function getAvatarColor(name: string) {
   let hash = 0;
@@ -321,7 +321,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
           </span>
         </div>
         {comments.length > 1 && (
-          <div style={{ display: "flex", background: "#100e22", borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ display: "flex", background: "#0a0a0a", borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
             {(["new", "top"] as const).map((s) => (
               <button key={s} onClick={() => setSortBy(s)}
                 style={{ padding: "6px 14px", background: sortBy === s ? "rgba(124,111,255,0.2)" : "transparent", border: "none", color: sortBy === s ? "#B39DFF" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
@@ -333,7 +333,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
       </div>
 
       {user ? (
-        <form onSubmit={handleSubmit} style={{ background: "#100e22", borderRadius: 16, padding: 16, marginBottom: 20, border: "1px solid rgba(255,255,255,0.07)" }}>
+        <form onSubmit={handleSubmit} style={{ background: "#0a0a0a", borderRadius: 16, padding: 16, marginBottom: 20, border: "1px solid rgba(255,255,255,0.07)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
             <Avatar username={user.username} avatar_url={user.avatar_url} />
             <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{user.username}</span>
@@ -368,7 +368,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
           {error && <div style={{ marginTop: 8, color: "#EF4444", fontSize: 12 }}>{error}</div>}
         </form>
       ) : (
-        <div style={{ background: "#100e22", borderRadius: 16, padding: 16, marginBottom: 20, border: "1px solid rgba(255,255,255,0.07)", textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
+        <div style={{ background: "#0a0a0a", borderRadius: 16, padding: 16, marginBottom: 20, border: "1px solid rgba(255,255,255,0.07)", textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
           Inicia sesión para dejar un comentario
         </div>
       )}
@@ -390,7 +390,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
             const repliesExpanded = expandedReplies.has(c.id);
             const isReplying = replyingTo === c.id;
             return (
-              <div key={c.id} style={{ background: "#100e22", borderRadius: 14, padding: 14, border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div key={c.id} style={{ background: "#0a0a0a", borderRadius: 14, padding: 14, border: "1px solid rgba(255,255,255,0.06)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                   <Avatar username={c.author} avatar_url={c.avatar_url} />
                   <div style={{ flex: 1, minWidth: 0 }}>

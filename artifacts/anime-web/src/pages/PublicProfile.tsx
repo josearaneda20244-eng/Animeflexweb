@@ -97,7 +97,7 @@ export default function PublicProfile() {
   };
 
   const cardStyle = {
-    background: "#100e22",
+    background: "#0a0a0a",
     border: "1px solid rgba(255,255,255,0.06)",
     borderRadius: 16,
     padding: "18px 16px",
@@ -107,7 +107,7 @@ export default function PublicProfile() {
   const maxEpisodes = data ? Math.max(...(data.stats.weeklyActivity?.map((d) => d.episodes) ?? [1]), 1) : 1;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#070714" }}>
+    <div style={{ minHeight: "100vh", background: "#000" }}>
       <Navbar />
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "72px 16px 48px" }}>
 
@@ -136,7 +136,7 @@ export default function PublicProfile() {
           <>
             {/* Profile header */}
             <div style={{
-              background: "linear-gradient(135deg,#100e22,#1a1a2e)",
+              background: "linear-gradient(135deg,#0a0a0a,#1a1a2e)",
               border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20,
               padding: "24px", marginBottom: 16,
               display: "flex", alignItems: "center", gap: 18,
@@ -197,15 +197,15 @@ export default function PublicProfile() {
                 { icon: <CheckCircle2 size={18} color="#22C55E" />, label: "Completados", value: data.stats.completed },
                 { icon: <Flame size={18} color="#F59E0B" />, label: "Racha", value: `${data.stats.streak}d` },
                 { icon: <Clock size={18} color="#EC4899" />, label: "Horas vistas", value: `${data.stats.estimatedHours}h` },
-                { icon: <Clapperboard size={18} color="#8B5CF6" />, label: "Series", value: data.stats.totalAnimes },
+                { icon: <Clapperboard size={18} color="#fff" />, label: "Series", value: data.stats.totalAnimes },
                 {
-                  icon: <Tag size={18} color="#8B5CF6" />,
+                  icon: <Tag size={18} color="#fff" />,
                   label: "Género fav.",
                   value: data.stats.favoriteGenre ?? "—",
                   small: true,
                 },
               ].map(({ icon, label, value, small }) => (
-                <div key={label} style={{ background: "#100e22", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
+                <div key={label} style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
                   <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>{icon}</div>
                   <div style={{ color: "#F1F1F5", fontSize: small ? 13 : 22, fontWeight: 900, wordBreak: "break-word" }}>{value}</div>
                   <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>{label}</div>

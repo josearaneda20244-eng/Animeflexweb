@@ -904,7 +904,7 @@ export default function Player() {
   const hlsCueToRender = subLang !== "off" && activeHlsSubId !== -1 ? hlsCueText : null;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#070714" }}>
+    <div style={{ minHeight: "100vh", background: "#000" }}>
       {/* Top bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(9,10,18,0.98)" }}>
         <button onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
@@ -1293,7 +1293,7 @@ export default function Player() {
                       style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 10, background: i === selectedIdx ? "rgba(124,111,255,0.2)" : "transparent", border: `1px solid ${i === selectedIdx ? "#7C6FFF" : "rgba(255,255,255,0.1)"}`, color: i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                       {parseResolution(src)}
                       {src.isDub && audioLang === "lat" && <span style={{ background: "rgba(245,158,11,0.3)", color: "#F59E0B", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>LAT</span>}
-                      {isDub(src) && audioLang !== "lat" && <span style={{ background: "rgba(139,92,246,0.3)", color: "#6D28D9", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>DUB</span>}
+                      {isDub(src) && audioLang !== "lat" && <span style={{ background: "rgba(255,255,255,0.005)", color: "#1a365d", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>DUB</span>}
                     </button>
                   ))}
                 </div>

@@ -10,13 +10,13 @@ const OVA_TYPES = ["OVA", "ONA", "SPECIAL", "Special", "ONA"];
 function OVACard({ anime }: { anime: AnimeResult }) {
   const [, navigate] = useLocation();
   const title = resolveTitle(anime.title);
-  const typeColor = anime.type === "OVA" ? "#F59E0B" : anime.type === "ONA" ? "#8B5CF6" : "#EC4899";
+  const typeColor = anime.type === "OVA" ? "#F59E0B" : anime.type === "ONA" ? "#fff" : "#EC4899";
   return (
     <div
       onClick={() => navigate(`/anime/${anime.id}`)}
       style={{
         position: "relative", borderRadius: 14, overflow: "hidden",
-        background: "#100e22", border: "1px solid rgba(255,255,255,0.07)",
+        background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.07)",
         cursor: "pointer", aspectRatio: "2/3", transition: "transform 0.18s, box-shadow 0.18s",
       }}
       onMouseEnter={(e) => {
@@ -106,7 +106,7 @@ export default function OVAs() {
   const isLoading = popularQuery.isLoading && trendingQuery.isLoading;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#070714" }}>
+    <div style={{ minHeight: "100vh", background: "#000" }}>
       <Navbar />
       <div style={{ paddingTop: 56 }}>
         <div style={{ padding: "32px 16px 20px" }}>

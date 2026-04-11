@@ -7,7 +7,7 @@ export default function NotFound() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#070714",
+        background: "#000",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -69,7 +69,7 @@ export default function NotFound() {
         {/* Mouth */}
         <path d="M82 56 Q90 62 98 56" stroke="#F0F0FF" strokeWidth="1.5" strokeLinecap="round" fill="none" />
         {/* Sweat drop */}
-        <path d="M122 22 Q125 18 128 22 Q128 27 125 27 Q122 27 122 22Z" fill="#8B5CF6" opacity="0.7" />
+        <path d="M122 22 Q125 18 128 22 Q128 27 125 27 Q122 27 122 22Z" fill="#fff" opacity="0.7" />
         {/* Stars around */}
         <text x="145" y="50" fontSize="12" fill="#F59E0B" opacity="0.6">★</text>
         <text x="28" y="60" fontSize="10" fill="#B39DFF" opacity="0.5">✦</text>
