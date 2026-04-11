@@ -653,157 +653,195 @@ router.get("/anime/episodes", async (req, res) => {
   }
 });
 
+// ── Shared GraphQL fields for AniList anilist-info ───────────────────────────
+const ANILIST_MEDIA_FIELDS = `
+  id
+  title { romaji english native userPreferred }
+  description(asHtml: false)
+  coverImage { extraLarge large medium color }
+  bannerImage
+  genres
+  status
+  format
+  episodes
+  duration
+  season
+  seasonYear
+  averageScore
+  popularity
+  studios(isMain: true) { nodes { name } }
+  streamingEpisodes { title thumbnail url site }
+  trailer { id site }
+  characters(sort: [ROLE, RELEVANCE], perPage: 16) {
+    edges {
+      role
+      node { id name { full } image { medium } }
+    }
+  }
+  recommendations(sort: RATING_DESC, perPage: 10) {
+    nodes {
+      mediaRecommendation {
+        id
+        title { userPreferred english romaji }
+        coverImage { large medium }
+        averageScore format episodes
+      }
+    }
+  }
+  relations {
+    edges {
+      relationType
+      node { id title { userPreferred } coverImage { medium } format episodes }
+    }
+  }
+`;
+
+async function fetchAnilistMedia(field: "idMal" | "id", numId: number): Promise<any | null> {
+  const gqlQuery = `query ($id: Int) { Media(${field}: $id, type: ANIME) { ${ANILIST_MEDIA_FIELDS} } }`;
+  try {
+    const resp = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query: gqlQuery, variables: { id: numId } }),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json() as { data?: { Media?: any }; errors?: { message: string }[] };
+    if (json.errors?.length || !json.data?.Media) return null;
+    return json.data.Media;
+  } catch {
+    return null;
+  }
+}
+
+function buildResultFromAnilist(id: string, media: any) {
+  const streamingEps: { title?: string; thumbnail?: string; url?: string; site?: string }[] =
+    media.streamingEpisodes ?? [];
+  const episodeCount: number = media.episodes ?? streamingEps.length ?? 0;
+  const episodes = Array.from({ length: episodeCount }, (_, i) => {
+    const num = i + 1;
+    const meta = streamingEps.find((e) => {
+      const m = e.title?.match(/Episode\s+(\d+)/i);
+      return m ? parseInt(m[1]) === num : false;
+    });
+    return {
+      id: `${id}-episode-${num}`,
+      number: num,
+      title: meta?.title ?? `Episodio ${num}`,
+      image: meta?.thumbnail ?? null,
+      url: meta?.url ?? null,
+    };
+  });
+  const characters = (media.characters?.edges ?? []).map((e: any) => ({
+    id: String(e.node?.id),
+    name: e.node?.name?.full ?? "",
+    image: e.node?.image?.medium ?? "",
+    role: e.role ?? "SUPPORTING",
+  }));
+  const recommendations = (media.recommendations?.nodes ?? [])
+    .filter((n: any) => n.mediaRecommendation)
+    .map((n: any) => {
+      const m = n.mediaRecommendation;
+      return {
+        id: String(m.id),
+        title: m.title?.english || m.title?.userPreferred || m.title?.romaji || "",
+        image: m.coverImage?.large ?? m.coverImage?.medium ?? "",
+        rating: m.averageScore,
+        type: m.format,
+        totalEpisodes: m.episodes,
+      };
+    });
+  const trailer = media.trailer?.id
+    ? { id: media.trailer.id as string, site: (media.trailer.site ?? "") as string }
+    : null;
+  return {
+    id: String(media.id),
+    title: media.title,
+    image: media.coverImage?.extraLarge ?? media.coverImage?.large ?? "",
+    cover: media.bannerImage ?? "",
+    description: media.description ?? "",
+    genres: media.genres ?? [],
+    status: media.status,
+    type: media.format,
+    totalEpisodes: episodeCount,
+    duration: media.duration,
+    rating: media.averageScore,
+    color: media.coverImage?.color,
+    studios: (media.studios?.nodes ?? []).map((s: any) => s.name),
+    trailer,
+    characters,
+    recommendations,
+    episodes,
+  };
+}
+
+function buildResultFromJikan(item: any) {
+  const episodeCount: number = item.episodes ?? 0;
+  const episodes = Array.from({ length: episodeCount }, (_, i) => ({
+    id: `${item.mal_id}-episode-${i + 1}`,
+    number: i + 1,
+    title: `Episodio ${i + 1}`,
+    image: null,
+    url: null,
+  }));
+  return {
+    id: null, // no AniList ID; episode fetching via AnimeKai won't fire
+    title: {
+      romaji: item.title,
+      english: item.title_english || null,
+      native: item.title_japanese || null,
+      userPreferred: item.title_english || item.title,
+    },
+    image: item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || "",
+    cover: item.trailer?.images?.maximum_image_url ?? "",
+    description: item.synopsis ?? "",
+    genres: (item.genres ?? []).map((g: any) => g.name as string),
+    status:
+      item.status === "Currently Airing" ? "RELEASING"
+      : item.status === "Finished Airing" ? "FINISHED"
+      : item.status ?? "",
+    type: item.type ?? "TV",
+    totalEpisodes: episodeCount,
+    duration: item.duration ? parseInt(item.duration) || null : null,
+    rating: item.score != null ? Math.round(item.score * 10) : null,
+    color: null,
+    studios: (item.studios ?? []).map((s: any) => s.name as string),
+    trailer: item.trailer?.youtube_id
+      ? { id: item.trailer.youtube_id as string, site: "youtube" }
+      : null,
+    characters: [],
+    recommendations: [],
+    episodes,
+  };
+}
+
 router.get("/anime/anilist-info", async (req, res) => {
   const id = req.query.id as string;
   if (!id) {
     res.status(400).json({ error: "Query param 'id' is required" });
     return;
   }
+  const numId = parseInt(id, 10);
   try {
-    const query = `
-      query ($id: Int) {
-        Media(idMal: $id, type: ANIME) {
-          id
-          title { romaji english native userPreferred }
-          description(asHtml: false)
-          coverImage { extraLarge large medium color }
-          bannerImage
-          genres
-          status
-          format
-          episodes
-          duration
-          season
-          seasonYear
-          averageScore
-          popularity
-          studios(isMain: true) { nodes { name } }
-          streamingEpisodes { title thumbnail url site }
-          trailer { id site }
-          characters(sort: [ROLE, RELEVANCE], perPage: 16) {
-            edges {
-              role
-              node {
-                id
-                name { full }
-                image { medium }
-              }
-            }
-          }
-          recommendations(sort: RATING_DESC, perPage: 10) {
-            nodes {
-              mediaRecommendation {
-                id
-                title { userPreferred english romaji }
-                coverImage { large medium }
-                averageScore
-                format
-                episodes
-              }
-            }
-          }
-          relations {
-            edges {
-              relationType
-              node {
-                id
-                title { userPreferred }
-                coverImage { medium }
-                format
-                episodes
-              }
-            }
-          }
-        }
-      }
-    `;
-    // Try idMal lookup (Jikan returns MAL IDs); fallback to direct AniList ID
-    const makeQuery = (field: "idMal" | "id") => query.replace("idMal: $id", `${field}: $id`);
-    const gqlFetch = async (field: "idMal" | "id") =>
-      fetch("https://graphql.anilist.co", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ query: makeQuery(field), variables: { id: parseInt(id) } }),
-      }).then((r) => r.json() as Promise<{ data: { Media: Record<string, unknown> }; errors?: { message: string }[] }>);
+    // ── 1. AniList by idMal (Jikan catalog returns MAL IDs) ──────────────────
+    let media = await fetchAnilistMedia("idMal", numId);
 
-    let json = await gqlFetch("idMal");
-    if (json.errors?.length || !json.data?.Media) {
-      // Fallback: maybe this is already an AniList ID (old bookmarks, recommendations)
-      json = await gqlFetch("id");
+    // ── 2. AniList by id (recommendations & bookmarks use AniList native IDs) ─
+    if (!media) media = await fetchAnilistMedia("id", numId);
+
+    if (media) {
+      return res.json(buildResultFromAnilist(id, media));
     }
-    if (json.errors?.length || !json.data?.Media) {
-      throw new Error(json.errors?.[0]?.message ?? "Anime not found");
+
+    // ── 3. Jikan fallback — page loads even when AniList can't find the anime ─
+    req.log.warn({ id }, "AniList lookup failed; falling back to Jikan");
+    const jikanResp = await jikanGet<any>(`/anime/${numId}`);
+    if (jikanResp?.data) {
+      return res.json(buildResultFromJikan(jikanResp.data));
     }
-    const media = json.data.Media as any;
 
-    const streamingEps: { title?: string; thumbnail?: string; url?: string; site?: string }[] =
-      media.streamingEpisodes ?? [];
-
-    const episodeCount: number = media.episodes ?? streamingEps.length ?? 0;
-
-    const episodes = Array.from({ length: episodeCount }, (_, i) => {
-      const num = i + 1;
-      const meta = streamingEps.find((e) => {
-        const m = e.title?.match(/Episode\s+(\d+)/i);
-        return m ? parseInt(m[1]) === num : false;
-      });
-      return {
-        id: `${id}-episode-${num}`,
-        number: num,
-        title: meta?.title ?? `Episodio ${num}`,
-        image: meta?.thumbnail ?? null,
-        url: meta?.url ?? null,
-      };
-    });
-
-    const characters = (media.characters?.edges ?? []).map((e: any) => ({
-      id: String(e.node?.id),
-      name: e.node?.name?.full ?? "",
-      image: e.node?.image?.medium ?? "",
-      role: e.role ?? "SUPPORTING",
-    }));
-
-    const recommendations = (media.recommendations?.nodes ?? [])
-      .filter((n: any) => n.mediaRecommendation)
-      .map((n: any) => {
-        const m = n.mediaRecommendation;
-        return {
-          id: String(m.id),
-          title: m.title?.english || m.title?.userPreferred || m.title?.romaji || "",
-          image: m.coverImage?.large ?? m.coverImage?.medium ?? "",
-          rating: m.averageScore,
-          type: m.format,
-          totalEpisodes: m.episodes,
-        };
-      });
-
-    const trailer = media.trailer?.id
-      ? { id: media.trailer.id as string, site: (media.trailer.site ?? "") as string }
-      : null;
-
-    const result = {
-      id: String(media.id),
-      title: media.title,
-      image: media.coverImage?.extraLarge ?? media.coverImage?.large ?? "",
-      cover: media.bannerImage ?? "",
-      description: media.description ?? "",
-      genres: media.genres ?? [],
-      status: media.status,
-      type: media.format,
-      totalEpisodes: episodeCount,
-      duration: media.duration,
-      rating: media.averageScore,
-      color: media.coverImage?.color,
-      studios: (media.studios?.nodes ?? []).map((s: any) => s.name),
-      trailer,
-      characters,
-      recommendations,
-      episodes,
-    };
-
-    res.json(result);
+    res.status(404).json({ error: "Anime not found" });
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch anilist anime info");
+    req.log.error({ err }, "Failed to fetch anime info");
     res.status(500).json({ error: "Failed to fetch anime info" });
   }
 });
