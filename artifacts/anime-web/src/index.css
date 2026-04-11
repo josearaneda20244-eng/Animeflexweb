@@ -251,6 +251,30 @@
   }
   .carousel-scroll::-webkit-scrollbar { display: none; }
   .carousel-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ── MOBILE PERFORMANCE ── */
+    @media (max-width: 768px) {
+      /* Hide carousel arrows on touch devices */
+      .carousel-arrow { display: none !important; }
+
+      /* Reduce heavy hover animations on mobile */
+      .cw-card:hover,
+      .portrait-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+      }
+
+      /* Faster, lighter transitions on mobile */
+      .cw-card,
+      .cw-card img {
+        transition-duration: 0.1s !important;
+      }
+    }
+
+    @media (hover: none) {
+      /* Touch-only devices: disable hover effects */
+      .carousel-arrow { display: none !important; }
+    }
   .carousel-scroll > * { scroll-snap-align: start; flex-shrink: 0; }
 
   /* ═══════════════════════════════════════

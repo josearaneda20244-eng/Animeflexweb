@@ -11,7 +11,34 @@ import { useQuery } from "@tanstack/react-query";
   import Footer from "@/components/Footer";
   import AdBanner from "@/components/AdBanner";
 
-  function nav(navigate: (to: string) => void, id: string | number) {
+
+  /* ── LAZY SECTION (only mount when near viewport) ── */
+  function useLazySection(rootMargin = "350px") {
+    const ref = useRef<HTMLDivElement>(null);
+    const [inView, setInView] = useState(false);
+    useEffect(() => {
+      const el = ref.current;
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { setInView(true); obs.disconnect(); } },
+        { rootMargin }
+      );
+      obs.observe(el);
+      return () => obs.disconnect();
+    }, [rootMargin]);
+    return { ref, inView };
+  }
+
+  function LazySection({ children, minHeight = 280 }: { children: React.ReactNode; minHeight?: number }) {
+    const { ref, inView } = useLazySection();
+    return (
+      <div ref={ref} style={{ minHeight: inView ? undefined : minHeight }}>
+        {inView ? children : null}
+      </div>
+    );
+  }
+
+    function nav(navigate: (to: string) => void, id: string | number) {
     navigate(`/anime/${id}`);
   }
 
@@ -40,7 +67,6 @@ import { useQuery } from "@tanstack/react-query";
       [side]: side === "left" ? 6 : 6,
       zIndex: 10,
       background: "rgba(7,8,15,0.82)",
-      backdropFilter: "blur(12px)",
       border: "1px solid rgba(139,92,246,0.35)",
       borderRadius: 22,
       width: 38, height: 38,
@@ -59,6 +85,7 @@ import { useQuery } from "@tanstack/react-query";
         {/* Left arrow */}
         <button
           onClick={() => scroll(-1)}
+          className="carousel-arrow"
           style={ARROW_STYLE(canLeft, "left")}
           onMouseEnter={e => { if (canLeft) { e.currentTarget.style.background = "rgba(139,92,246,0.45)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(139,92,246,0.5)"; e.currentTarget.style.transform = "translateY(-50%) scale(1.1)"; }}}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.82)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.5), 0 0 14px rgba(139,92,246,0.25)"; e.currentTarget.style.transform = "translateY(-50%) scale(1)"; }}>
@@ -68,6 +95,7 @@ import { useQuery } from "@tanstack/react-query";
         {/* Right arrow */}
         <button
           onClick={() => scroll(1)}
+          className="carousel-arrow"
           style={ARROW_STYLE(canRight, "right")}
           onMouseEnter={e => { if (canRight) { e.currentTarget.style.background = "rgba(139,92,246,0.45)"; e.currentTarget.style.boxShadow = "0 4px 24px rgba(139,92,246,0.5)"; e.currentTarget.style.transform = "translateY(-50%) scale(1.1)"; }}}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.82)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.5), 0 0 14px rgba(139,92,246,0.25)"; e.currentTarget.style.transform = "translateY(-50%) scale(1)"; }}>
@@ -132,7 +160,7 @@ import { useQuery } from "@tanstack/react-query";
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 0 30px rgba(139,92,246,0.55), 0 10px 30px rgba(0,0,0,0.28)"; }}>
               <Play size={18} fill="#fff" color="#fff" /> Ver Ahora
             </button>
-            <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.12)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 14, padding: "14px 22px", color: "#F4F4F8", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}
+            <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 14, padding: "14px 22px", color: "#F4F4F8", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.18)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.35)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"; }}>
               <Info size={16} /> Detalles
@@ -146,12 +174,12 @@ import { useQuery } from "@tanstack/react-query";
           ))}
         </div>
 
-        <button onClick={onPrev} style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", background: "rgba(7,8,15,0.7)", backdropFilter: "blur(10px)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 24, padding: "12px 13px", cursor: "pointer", display: "flex", transition: "all 0.18s" }}
+        <button onClick={onPrev} style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", background: "rgba(7,8,15,0.7)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 24, padding: "12px 13px", cursor: "pointer", display: "flex", transition: "all 0.18s" }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.25)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.55)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.7)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)"; }}>
           <ChevronLeft size={24} color="rgba(255,255,255,0.9)" />
         </button>
-        <button onClick={onNext} style={{ position: "absolute", top: "50%", right: 16, transform: "translateY(-50%)", background: "rgba(7,8,15,0.7)", backdropFilter: "blur(10px)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 24, padding: "12px 13px", cursor: "pointer", display: "flex", transition: "all 0.18s" }}
+        <button onClick={onNext} style={{ position: "absolute", top: "50%", right: 16, transform: "translateY(-50%)", background: "rgba(7,8,15,0.7)", border: "1px solid rgba(139,92,246,0.25)", borderRadius: 24, padding: "12px 13px", cursor: "pointer", display: "flex", transition: "all 0.18s" }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.25)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.55)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "rgba(7,8,15,0.7)"; e.currentTarget.style.borderColor = "rgba(139,92,246,0.25)"; }}>
           <ChevronRight size={24} color="rgba(255,255,255,0.9)" />
@@ -182,7 +210,7 @@ import { useQuery } from "@tanstack/react-query";
 
   function SectionSurface({ children }: { children: React.ReactNode }) {
     return (
-      <div style={{ margin: "24px 18px", padding: "22px 0 26px", borderRadius: 32, background: "rgba(7,8,15,0.78)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 30px 80px rgba(0,0,0,0.24)", backdropFilter: "blur(18px)" }}>
+      <div style={{ margin: "24px 18px", padding: "22px 0 26px", borderRadius: 32, background: "rgba(7,8,15,0.78)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 30px 80px rgba(0,0,0,0.24)" }}>
         {children}
       </div>
     );
@@ -352,7 +380,7 @@ import { useQuery } from "@tanstack/react-query";
                   style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#0D0D1C", border: "1px solid rgba(139,92,246,0.12)", cursor: "pointer", width: 130, height: 197, flexShrink: 0, transition: "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-6px) scale(1.02)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 12px 32px rgba(139,92,246,0.3)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}>
-                  <img src={entry.media.coverImage.large} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
+                  <img src={entry.media.coverImage.large} alt={title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 42%, rgba(7,8,15,0.97) 100%)" }} />
                   <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.8)", borderRadius: 6, padding: "3px 7px", color: "#06B6D4", fontSize: 9, fontWeight: 800, border: "1px solid rgba(6,182,212,0.3)" }}>EP {entry.episode}</div>
                   <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.8)", borderRadius: 6, padding: "3px 7px", color: "#F59E0B", fontSize: 9, fontWeight: 800 }}>{time}</div>
@@ -400,7 +428,7 @@ import { useQuery } from "@tanstack/react-query";
     };
     return (
       <div className="cw-card" onClick={handleClick}>
-        <img src={entry.animeImage} alt={entry.animeTitle} />
+        <img src={entry.animeImage} alt={entry.animeTitle} loading="lazy" decoding="async" />
         <div className="cw-card-grad" />
         <div className="cw-card-info">
           <div style={{ color: "#fff", fontSize: 12, fontWeight: 700 }} className="line-clamp-1">{entry.animeTitle}</div>
@@ -480,12 +508,15 @@ import { useQuery } from "@tanstack/react-query";
           </SectionSurface>
 
           {/* Seasonal */}
+          <LazySection>
           <SectionSurface>
             <SectionHeader title={`🌸 Temporada — ${seasonLabel(season)} ${year}`} />
             <ScrollableCarousel>
               {seasonal.isLoading ? Array.from({ length: 8 }).map((_, i) => <SkeletonP key={i} />) : seasonalList.map((a) => <SeasonalCard key={`s-${a.id}`} anime={a} />)}
             </ScrollableCarousel>
           </SectionSurface>
+
+          </LazySection>
 
           {/* Ad banner */}
           <div style={{ padding: "0 18px", marginTop: 20 }}>
@@ -494,6 +525,7 @@ import { useQuery } from "@tanstack/react-query";
 
           <SectionDivider />
 
+          <LazySection>
           {/* Latest episodes */}
           <SectionSurface>
             <SectionHeader title="⚡ Últimos Episodios" />
@@ -502,8 +534,11 @@ import { useQuery } from "@tanstack/react-query";
             </ScrollableCarousel>
           </SectionSurface>
 
+          </LazySection>
+
           <SectionDivider />
 
+          <LazySection>
           {/* Most popular */}
           <SectionSurface>
             <SectionHeader title="⭐ Más Populares" />
@@ -512,6 +547,9 @@ import { useQuery } from "@tanstack/react-query";
             </ScrollableCarousel>
           </SectionSurface>
 
+          </LazySection>
+
+          <LazySection minHeight={200}>
           {/* Recommendations */}
           {user ? (
             <div style={{ marginTop: 28 }}>
@@ -529,6 +567,9 @@ import { useQuery } from "@tanstack/react-query";
 
           <SectionDivider />
 
+          </LazySection>
+
+          <LazySection>
           {/* Top 10 */}
           <SectionSurface>
             <SectionHeader title="🏆 Top Anime" />
@@ -539,15 +580,19 @@ import { useQuery } from "@tanstack/react-query";
             </div>
           </SectionSurface>
 
+          </LazySection>
+
           <SectionDivider />
 
+          <LazySection minHeight={120}>
           {/* Genres */}
           <SectionSurface>
             <SectionHeader title="🎭 Géneros" />
             <GenresSection />
           </SectionSurface>
 
-          <div style={{ marginBottom: 24 }} />
+          <div style={{ marginBottom: 24 }} />          </LazySection>
+
         </div>
         <Footer />
       </div>
