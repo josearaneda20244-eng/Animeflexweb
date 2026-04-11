@@ -271,10 +271,14 @@ export default function AnimeDetail() {
     staleTime: 1000 * 60 * 10,
   });
 
+  // anilist-info resolves MAL ID → AniList ID internally; use the resolved
+  // AniList ID for AnimeKai episode mapping (AnimeKai requires AniList IDs).
+  const resolvedAnilistId = infoQuery.data?.id;
+
   const paheQuery = useQuery({
-    queryKey: ["animeEpisodesById", id],
-    queryFn: () => consumet.episodesById(id!),
-    enabled: !!id,
+    queryKey: ["animeEpisodesById", resolvedAnilistId],
+    queryFn: () => consumet.episodesById(resolvedAnilistId!),
+    enabled: !!resolvedAnilistId,
     retry: 2,
     staleTime: 1000 * 60 * 10,
   });
