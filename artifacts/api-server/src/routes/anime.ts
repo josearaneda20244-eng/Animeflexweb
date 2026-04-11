@@ -481,35 +481,94 @@ router.get("/anime/player-embed", (req, res) => {
 </html>`);
 });
 
+// ── Jikan API (MyAnimeList) ─────────────────────────────────────────────────
+const JIKAN_BASE = "https://api.jikan.moe/v4";
+const jikanCache = new Map<string, { data: unknown; ts: number }>();
+const JIKAN_TTL = 5 * 60 * 1000;
+const ANIME_CATALOG_TYPES = ["TV", "Movie", "OVA", "ONA", "Special", "Music"];
+
+async function jikanGet<T>(path: string): Promise<T> {
+  const now = Date.now();
+  const cached = jikanCache.get(path);
+  if (cached && now - cached.ts < JIKAN_TTL) return cached.data as T;
+  const res = await fetch(`${JIKAN_BASE}${path}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Jikan error ${res.status} for ${path}`);
+  const json = await res.json();
+  jikanCache.set(path, { data: json, ts: now });
+  if (jikanCache.size > 120) {
+    const firstKey = jikanCache.keys().next().value;
+    if (firstKey) jikanCache.delete(firstKey);
+  }
+  return json as T;
+}
+
+function jikanToResult(item: any) {
+  return {
+    id: String(item.mal_id),
+    title: item.title_english || item.title,
+    image: item.images?.jpg?.image_url || item.images?.webp?.image_url || "",
+    cover: item.images?.jpg?.large_image_url || item.images?.webp?.large_image_url || "",
+    description: item.synopsis || "",
+    genres: (item.genres || []).map((g: any) => g.name as string),
+    type: item.type || "TV",
+    status:
+      item.status === "Currently Airing"
+        ? "Ongoing"
+        : item.status === "Finished Airing"
+        ? "Completed"
+        : item.status || "",
+    totalEpisodes: item.episodes || null,
+    rating: item.score != null ? Math.round(item.score * 10) : null,
+    releaseDate: item.year || (item.aired?.prop?.from?.year ?? null),
+    duration: item.duration || null,
+    color: null,
+    subOrDub: "sub",
+    currentEpisode: null,
+  };
+}
+
 router.get("/anime/trending", async (req, res) => {
   try {
-    const data = await getAnilist().fetchTrendingAnime(1, 24);
-    res.json(data);
+    const data = await jikanGet<any>("/top/anime?filter=airing&type=tv&limit=24");
+    const results = (data.data || [])
+      .filter((item: any) => ANIME_CATALOG_TYPES.includes(item.type))
+      .map(jikanToResult);
+    res.json({ currentPage: 1, hasNextPage: false, results });
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch trending anime");
+    req.log.error({ err }, "Failed to fetch trending anime from Jikan");
     res.status(500).json({ error: "Failed to fetch trending anime" });
   }
 });
 
 router.get("/anime/popular", async (req, res) => {
   try {
-    const data = await getAnilist().fetchPopularAnime(1, 24);
-    res.json(data);
+    const data = await jikanGet<any>("/top/anime?type=tv&limit=24");
+    const results = (data.data || [])
+      .filter((item: any) => ANIME_CATALOG_TYPES.includes(item.type))
+      .map(jikanToResult);
+    res.json({ currentPage: 1, hasNextPage: false, results });
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch popular anime");
+    req.log.error({ err }, "Failed to fetch popular anime from Jikan");
     res.status(500).json({ error: "Failed to fetch popular anime" });
   }
 });
 
 router.get("/anime/recent", async (req, res) => {
   try {
-    const now = new Date();
-    const weekStart = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
-    const weekEnd = Math.floor(now.getTime() / 1000) + 24 * 60 * 60;
-    const data = await getAnilist().fetchAiringSchedule(1, 24, weekStart, weekEnd, false);
-    res.json(data);
+    const data = await jikanGet<any>("/seasons/now?limit=25");
+    const results = (data.data || [])
+      .filter((item: any) => ANIME_CATALOG_TYPES.includes(item.type))
+      .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
+      .slice(0, 24)
+      .map((item: any) => ({
+        ...jikanToResult(item),
+        currentEpisode: item.episodes ?? null,
+      }));
+    res.json({ currentPage: 1, hasNextPage: false, results });
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch recent episodes");
+    req.log.error({ err }, "Failed to fetch recent episodes from Jikan");
     res.status(500).json({ error: "Failed to fetch recent episodes" });
   }
 });
@@ -522,10 +581,19 @@ router.get("/anime/search", async (req, res) => {
     return;
   }
   try {
-    const data = await getAnilist().search(query, page, 24);
-    res.json(data);
+    const data = await jikanGet<any>(
+      `/anime?q=${encodeURIComponent(query)}&page=${page}&limit=24`
+    );
+    const results = (data.data || [])
+      .filter((item: any) => ANIME_CATALOG_TYPES.includes(item.type))
+      .map(jikanToResult);
+    res.json({
+      currentPage: page,
+      hasNextPage: data.pagination?.has_next_page || false,
+      results,
+    });
   } catch (err) {
-    req.log.error({ err }, "Failed to search anime");
+    req.log.error({ err }, "Failed to search anime on Jikan");
     res.status(500).json({ error: "Failed to search anime" });
   }
 });
@@ -574,7 +642,7 @@ router.get("/anime/anilist-info", async (req, res) => {
   try {
     const query = `
       query ($id: Int) {
-        Media(id: $id, type: ANIME) {
+        Media(idMal: $id, type: ANIME) {
           id
           title { romaji english native userPreferred }
           description(asHtml: false)
