@@ -589,6 +589,7 @@ router.get("/anime/anilist-info", async (req, res) => {
     coverImage { extraLarge large medium color }
     bannerImage genres status format episodes duration season seasonYear
     averageScore popularity
+    nextAiringEpisode { episode airingAt }
     studios(isMain: true) { nodes { name } }
     streamingEpisodes { title thumbnail url site }
     trailer { id site }
@@ -638,7 +639,16 @@ router.get("/anime/anilist-info", async (req, res) => {
     }
 
     const streamingEps: { title?: string; thumbnail?: string }[] = media.streamingEpisodes ?? [];
-    const episodeCount: number = media.episodes ?? streamingEps.length ?? 0;
+
+    // For airing anime, media.episodes may be null (total not yet known).
+    // Use nextAiringEpisode.episode - 1 to count how many have already aired.
+    // Fall back to streamingEpisodes length, then 0.
+    const airedCount: number | null =
+      media.nextAiringEpisode?.episode != null
+        ? Math.max(0, media.nextAiringEpisode.episode - 1)
+        : null;
+    const episodeCount: number =
+      media.episodes ?? airedCount ?? streamingEps.length ?? 0;
     const episodes = Array.from({ length: episodeCount }, (_, i) => {
       const num = i + 1;
       const meta = streamingEps.find((e) => {
