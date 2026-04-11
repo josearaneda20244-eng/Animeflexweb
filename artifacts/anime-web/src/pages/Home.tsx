@@ -463,9 +463,9 @@ import { useQuery } from "@tanstack/react-query";
           {cwItems.length > 0 && (
             <SectionSurface>
               <SectionHeader title="▶ Continuar viendo" onSeeAll={() => navigate("/history")} />
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, padding: "0 18px" }}>
-                {cwItems.map((e) => <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} />)}
-              </div>
+              <ScrollableCarousel scrollAmount={460}>
+                  {cwItems.map((e) => <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} />)}
+                </ScrollableCarousel>
             </SectionSurface>
           )}
 
