@@ -454,7 +454,7 @@ function EpisodePanel({
   const totalPages = Math.ceil(episodes.length / PAGE_SIZE);
   const safePage = totalPages > 0 ? Math.min(page, totalPages - 1) : 0;
   const pageEps = episodes.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
-  const rangeButtons = useMemo(() => {
+  const rangeOptions = useMemo(() => {
     if (episodes.length <= PAGE_SIZE) return [];
     const ranges: Array<{ label: string; page: number }> = [];
     const step = episodes.length > 500 ? 100 : 50;
@@ -462,11 +462,10 @@ function EpisodePanel({
       const end = Math.min(start + step - 1, episodes.length);
       const firstIndex = episodes.findIndex((ep) => ep.number >= start);
       const targetPage = Math.max(0, Math.floor((firstIndex === -1 ? start - 1 : firstIndex) / PAGE_SIZE));
-      ranges.push({ label: `${start}-${end}`, page: targetPage });
+      ranges.push({ label: `Ep. ${start}-${end}`, page: targetPage });
     }
     return ranges;
   }, [episodes]);
-
   useEffect(() => {
     if (currentIndex >= 0) setPage(Math.floor(currentIndex / PAGE_SIZE));
   }, [currentIndex]);
@@ -502,33 +501,39 @@ function EpisodePanel({
       </div>
 
       {episodes.length > PAGE_SIZE && (
-        <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "linear-gradient(180deg,rgba(124,111,255,0.08),rgba(14,14,26,0))" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 8 }}>
             <input
               value={jumpEpisode}
               onChange={(e) => setJumpEpisode(e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => { if (e.key === "Enter") jumpToEpisode(); }}
-              placeholder="Ir al episodio"
+              placeholder="Número de episodio"
               inputMode="numeric"
-              style={{ flex: 1, minWidth: 0, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 11px", color: "#F1F1F5", fontSize: 12, outline: "none" }}
+              style={{ minWidth: 0, background: "rgba(5,5,12,0.7)", border: "1px solid rgba(124,111,255,0.22)", borderRadius: 12, padding: "10px 12px", color: "#F1F1F5", fontSize: 12, outline: "none" }}
             />
             <button
               onClick={jumpToEpisode}
-              style={{ background: "rgba(124,111,255,0.18)", border: "1px solid rgba(124,111,255,0.35)", color: "#B39DFF", borderRadius: 10, padding: "0 13px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+              style={{ background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", border: "none", color: "#fff", borderRadius: 12, padding: "0 15px", fontSize: 12, fontWeight: 900, cursor: "pointer", boxShadow: "0 8px 20px rgba(124,111,255,0.22)" }}
             >
               Ir
             </button>
           </div>
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
-            {rangeButtons.map((range) => (
-              <button
-                key={range.label}
-                onClick={() => setPage(range.page)}
-                style={{ flexShrink: 0, background: range.page === safePage ? "#7C6FFF" : "rgba(255,255,255,0.06)", color: range.page === safePage ? "#fff" : "rgba(255,255,255,0.65)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 999, padding: "6px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}
-              >
-                {range.label}
-              </button>
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <select
+              value={safePage}
+              onChange={(e) => setPage(Number(e.target.value))}
+              style={{ minWidth: 0, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "9px 10px", color: "#E8E7FF", fontSize: 12, fontWeight: 800, outline: "none" }}
+            >
+              {rangeOptions.map((range) => (
+                <option key={range.label} value={range.page}>{range.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => setPage(Math.max(0, totalPages - 1))}
+              style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.22)", color: "#86EFAC", borderRadius: 12, padding: "9px 10px", fontSize: 12, fontWeight: 900, cursor: "pointer" }}
+            >
+              Últimos episodios
+            </button>
           </div>
         </div>
       )}
@@ -724,8 +729,11 @@ export default function Player() {
   });
 
   const hasPrimarySources = !!query.data?.sources?.length;
+  const isRecentEpisode = currentEpIdx >= 0 && allEpisodes.length > 0 && currentEpIdx >= allEpisodes.length - 3;
   const shouldFetchAnimeFlv = !!animeTitle && !!episodeNum && (
     audioLang === "lat" ||
+    isRecentEpisode ||
+    query.failureCount > 0 ||
     (!query.isLoading && (query.isError || !hasPrimarySources))
   );
 
@@ -747,7 +755,7 @@ export default function Player() {
   }, [query.error]);
 
   const subSources = query.data ? sortSources(query.data.sources ?? []) : [];
-  const animeflvSources = animeflvQuery.data ? (animeflvQuery.data.sources ?? []).map(s => ({ ...s, isDub: true })) : [];
+  const animeflvSources = animeflvQuery.data ? (animeflvQuery.data.sources ?? []).map(s => ({ ...s, isDub: true, provider: "backup" })) : [];
   const hasAnimeflvSources = animeflvSources.length > 0;
   const sources = audioLang === "lat"
     ? animeflvSources
@@ -755,6 +763,7 @@ export default function Player() {
   const streamingHeaders = query.data?.headers ?? {};
   const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
+  const selectedIsBackup = !!selected && (selected as any).provider === "backup";
   const showMainError = query.isError && !hasAnimeflvSources;
 
   const streamSubtitles = query.data?.subtitles ?? [];
@@ -1009,7 +1018,7 @@ export default function Player() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
           <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9" }}>
-            {query.isLoading && (
+            {query.isLoading && !selectedIsBackup && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <Loader2 size={36} className="animate-spin" style={{ color: "#7C6FFF" }} />
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
@@ -1064,7 +1073,7 @@ export default function Player() {
                 <AlertCircle size={36} color="#EF4444" />
                 <p style={{ color: "#F1F1F5", fontSize: 14 }}>
                   {audioLang === "lat"
-                    ? "No se encontró en JKAnime — prueba con otro anime o episodio"
+                    ? "No se encontró una fuente alternativa para este episodio"
                     : "No se pudo cargar el episodio"}
                 </p>
                 <button
@@ -1077,22 +1086,24 @@ export default function Player() {
             {audioLang === "lat" && animeflvQuery.isLoading && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <Loader2 size={36} color="#F59E0B" className="animate-spin" />
-                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando episodio en JKAnime...</p>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando fuentes alternativas...</p>
               </div>
             )}
             {!selected && !showLimitModal &&
               (audioLang === "lat"
                 ? !animeflvQuery.isLoading && !animeflvQuery.isError
-                : !query.isLoading && !showMainError) && (
+                : !query.isLoading && !animeflvQuery.isLoading && !showMainError) && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="rgba(255,255,255,0.2)" />
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
               </div>
             )}
             {!showLimitModal && selected &&
-              (audioLang === "lat"
+              (selectedIsBackup
                 ? !animeflvQuery.isLoading && !animeflvQuery.isError
-                : !query.isLoading && !query.isError) && (
+                : audioLang === "lat"
+                  ? !animeflvQuery.isLoading && !animeflvQuery.isError
+                  : !query.isLoading && !query.isError) && (
               selected.isM3U8 === false ? (
                 <iframe
                   key={`embed-${episodeId}-${selectedIdx}`}

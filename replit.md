@@ -94,5 +94,6 @@ UPDATE users SET role='owner' WHERE email='josearaneda20244@gmail.com';
 
 - La ficha del anime ahora prioriza la lista completa de episodios de AnimeKai cuando supera la lista parcial de AniList.
 - El detalle del anime incluye búsqueda rápida por número o título de episodio para series largas.
-- El reproductor abre el panel de episodios en el rango del episodio actual e incluye salto directo por número y rangos rápidos.
-- La ruta de reproducción intenta re-resolver episodios recientes con una búsqueda fresca en AnimeKai y luego usa Hianime como respaldo antes de fallar.
+- El reproductor abre el panel de episodios en el rango del episodio actual e incluye salto directo por número, selector compacto de rangos y botón de últimos episodios.
+- La ruta de reproducción intenta re-resolver episodios recientes con AnimeKai fresco, JKAnime, AnimeFLV y Hianime antes de fallar.
+- El frontend inicia fuentes alternativas automáticamente en los últimos episodios o cuando AnimeKai empieza a reintentar, para reducir el bloqueo en capítulos recién publicados.

@@ -1049,6 +1049,30 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
   }
 
   if (animeTitle && episodeNum) {
+    const epNumber = parseInt(episodeNum, 10);
+    if (!Number.isNaN(epNumber)) {
+      try {
+        const data = await getJkAnimeWatch(animeTitle, epNumber);
+        req.log.info({ provider: "jkanime", animeTitle, episodeNum }, "JKAnime fallback succeeded");
+        res.json(data);
+        return;
+      } catch (err) {
+        lastPlaybackErr = err;
+        req.log.warn({ err, animeTitle, episodeNum }, "JKAnime fallback failed");
+      }
+
+      try {
+        const data = await getAnimeFLVWatch(animeTitle, epNumber);
+        req.log.info({ provider: "animeflv", animeTitle, episodeNum }, "AnimeFLV fallback succeeded");
+        res.json(data);
+        return;
+      } catch (err) {
+        lastPlaybackErr = err;
+        req.log.warn({ err, animeTitle, episodeNum }, "AnimeFLV fallback failed");
+      }
+    }
+  }
+  if (animeTitle && episodeNum) {
     req.log.warn({ animeTitle, episodeNum }, "Trying Hianime as secondary provider");
     try {
       const titleVariantList = titleVariants(animeTitle);
@@ -1345,7 +1369,7 @@ router.get("/anime/download-proxy", async (req, res) => {
 /**
  * AnimeFLV — Spanish dubbed/subtitled anime streaming
  * GET /api/anime/animeflv-watch?title=...&episode=N
- * (mantenemos la ruta para compatibilidad, internamente usa JKAnime)
+ * (mantenemos la ruta para compatibilidad, prueba JKAnime y luego AnimeFLV)
  */
 router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
   const title = (req.query.title as string | undefined)?.trim();
@@ -1357,9 +1381,17 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
   try {
     const data = await getJkAnimeWatch(title, episode);
     res.json(data);
-  } catch (err) {
-    req.log.warn({ err, title, episode }, "JKAnime watch failed");
-    res.status(404).json({ error: "No se encontró el episodio en JKAnime" });
+    return;
+  } catch (jkErr) {
+    req.log.warn({ err: jkErr, title, episode }, "JKAnime watch failed, trying AnimeFLV");
+  }
+
+  try {
+    const data = await getAnimeFLVWatch(title, episode);
+    res.json(data);
+  } catch (flvErr) {
+    req.log.warn({ err: flvErr, title, episode }, "AnimeFLV watch failed");
+    res.status(404).json({ error: "No se encontró el episodio en fuentes alternativas" });
   }
 });
 
