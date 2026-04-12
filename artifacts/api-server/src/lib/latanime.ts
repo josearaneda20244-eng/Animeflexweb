@@ -121,6 +121,7 @@ export interface LatanimeStreamData {
     quality: string;
     isM3U8: boolean;
     lang: "LAT";
+    referer?: string;
   }[];
   slug: string;
   headers?: Record<string, string>;
@@ -196,7 +197,8 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number):
   const resolveResults = await Promise.allSettled(
     embedUrls.slice(0, 5).map(async (embedUrl) => {
       const html = await fetchPage(embedUrl, episodePageUrl, 7000);
-      return extractStreamUrl(html);
+      const streamUrl = extractStreamUrl(html);
+      return streamUrl ? { streamUrl, embedUrl } : null;
     })
   );
 
@@ -205,12 +207,13 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number):
 
   for (const result of resolveResults) {
     if (result.status === "fulfilled" && result.value) {
-      const url = result.value;
+      const { streamUrl, embedUrl } = result.value;
       sources.push({
-        url,
+        url: streamUrl,
         quality: `Servidor ${serverNum} (Latino)`,
-        isM3U8: isM3U8(url),
+        isM3U8: isM3U8(streamUrl),
         lang: "LAT",
+        referer: embedUrl,
       });
       serverNum++;
     }
