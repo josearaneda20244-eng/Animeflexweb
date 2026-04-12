@@ -1,12 +1,21 @@
 const BASE = "https://jkanime.net";
 
-const HEADERS: Record<string, string> = {
+const PAGE_HEADERS: Record<string, string> = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
   "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
   "Sec-Fetch-Dest": "document",
   "Sec-Fetch-Mode": "navigate",
   "Sec-Fetch-Site": "none",
+};
+
+const IFRAME_HEADERS: Record<string, string> = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+  "Sec-Fetch-Dest": "iframe",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "same-origin",
 };
 
 function slugify(title: string): string {
@@ -35,40 +44,45 @@ function makeSlugs(title: string): string[] {
   const noColon = title.split(":")[0].trim();
   if (noColon !== title) variants.push(slugify(noColon));
 
-  // Short first word(s) fallback
   const firstWords = title.split(" ").slice(0, 3).join(" ");
-  if (!variants.includes(slugify(firstWords)) && firstWords.length > 3) {
-    variants.push(slugify(firstWords));
+  const firstSlug = slugify(firstWords);
+  if (!variants.includes(firstSlug) && firstWords.length > 3) {
+    variants.push(firstSlug);
   }
 
   return [...new Set(variants)];
 }
 
-async function fetchHtml(url: string, referer?: string): Promise<string> {
-  const headers: Record<string, string> = { ...HEADERS };
-  if (referer) {
-    headers["Referer"] = referer;
-    headers["Sec-Fetch-Site"] = "same-origin";
-  }
+async function fetchPage(url: string): Promise<string> {
+  const res = await fetch(url, { headers: PAGE_HEADERS, redirect: "follow" });
+  if (!res.ok) throw new Error(`JKAnime page HTTP ${res.status}: ${url}`);
+  return res.text();
+}
+
+async function fetchIframe(url: string, referer: string): Promise<string> {
+  const headers = { ...IFRAME_HEADERS, "Referer": referer };
   const res = await fetch(url, { headers, redirect: "follow" });
-  if (!res.ok) throw new Error(`Jkanime HTTP ${res.status}: ${url}`);
+  if (!res.ok) throw new Error(`JKAnime iframe HTTP ${res.status}: ${url}`);
   return res.text();
 }
 
 /**
  * Search JKAnime to find the correct anime slug by title.
- * Returns the slug from the first search result.
  */
 async function searchJkAnimeSlug(title: string): Promise<string | null> {
   try {
     const url = `${BASE}/search/anime/?q=${encodeURIComponent(title)}`;
-    const html = await fetchHtml(url, BASE);
-    // Match href="/anime-slug/" links in search results
-    const m = html.match(/href="\/([a-z0-9][a-z0-9-]+)\/"\s+title=/);
-    if (m?.[1]) return m[1];
-    // Alternative pattern
-    const m2 = html.match(/class="[^"]*title[^"]*"[^>]*>[\s\S]*?href="\/([a-z0-9][a-z0-9-]+)\//);
-    if (m2?.[1]) return m2[1];
+    const html = await fetchPage(url);
+    // Match anime card links: href="/slug/"
+    const re = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      const candidate = m[1];
+      // Skip known non-anime paths
+      if (!["search", "api", "cdn", "assets", "static"].includes(candidate)) {
+        return candidate;
+      }
+    }
     return null;
   } catch {
     return null;
@@ -76,64 +90,50 @@ async function searchJkAnimeSlug(title: string): Promise<string | null> {
 }
 
 /**
- * Resolve a JKAnime player iframe to an m3u8 URL.
- * Looks in HTML body, script tags, and JSON data attributes.
+ * Extract all m3u8 URLs from a player iframe page.
  */
-async function resolveJkplayer(iframeUrl: string, referer: string): Promise<string | null> {
-  try {
-    const html = await fetchHtml(iframeUrl, referer);
+function extractM3u8(html: string): string | null {
+  // Pattern 1: url: '...m3u8...' or url: "...m3u8..."
+  const p1 = html.match(/(?:url|file|source|src)\s*:\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/);
+  if (p1?.[1]) return p1[1];
 
-    // 1. Direct m3u8 URL in HTML
-    const m3u8Direct = html.match(/["'`](https?:\/\/[^\s"'`<>]+\.m3u8[^\s"'`<>]*?)["'`]/);
-    if (m3u8Direct?.[1]) return m3u8Direct[1];
+  // Pattern 2: hls.loadSource('...m3u8...') or loadSource("...m3u8...")
+  const p2 = html.match(/loadSource\s*\(\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/);
+  if (p2?.[1]) return p2[1];
 
-    // 2. Look in script tags for file/src/source fields
-    const scriptMatches = html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi);
-    for (const sm of scriptMatches) {
-      const scriptContent = sm[1];
-      // "file":"URL" or 'file':'URL' patterns (NinoCloud, JWPlayer, etc.)
-      const fileMatch = scriptContent.match(/["'](?:file|src|source)["']\s*:\s*["'](https?:\/\/[^\s"'<>]+\.m3u8[^\s"'<>]*?)["']/);
-      if (fileMatch?.[1]) return fileMatch[1];
-      // Array of sources like [{file:"..."}]
-      const arrMatch = scriptContent.match(/["']file["']\s*:\s*["'](https?:\/\/[^\s"'<>]+)["']/);
-      if (arrMatch?.[1] && (arrMatch[1].includes(".m3u8") || arrMatch[1].includes("stream"))) return arrMatch[1];
-    }
+  // Pattern 3: Any quoted m3u8 URL in the page
+  const p3 = html.match(/['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/);
+  if (p3?.[1]) return p3[1];
 
-    // 3. Look for blob of video URL in data attributes
-    const dataMatch = html.match(/data-(?:file|src|stream)=["'](https?:\/\/[^\s"'<>]+\.m3u8[^\s"'<>]*?)["']/);
-    if (dataMatch?.[1]) return dataMatch[1];
-
-    return null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 /**
  * Extract all player iframe URLs from an episode page HTML.
- * Broadened to catch all known JKAnime player patterns.
  */
-function extractIframeUrls(html: string): string[] {
+function extractIframeUrls(html: string, episodePageUrl: string): string[] {
   const urls: string[] = [];
+  const seen = new Set<string>();
 
-  // Pattern 1: jkplayer iframes (um, umv, jk, etc.)
-  const re1 = /src=["'](https?:\/\/jkanime\.net\/jkplayer\/[^"'<>\s]+)["']/g;
+  const addUrl = (u: string) => {
+    if (!seen.has(u) && !u.includes("'+val.") && !u.includes("undefined")) {
+      seen.add(u);
+      urls.push(u);
+    }
+  };
+
+  // Pattern 1: Standard jkplayer iframes (um, umv, jk, c1, etc.) with double quotes
+  const re1 = /src="(https?:\/\/jkanime\.net\/jkplayer\/[^"]+)"/g;
   let m: RegExpExecArray | null;
-  while ((m = re1.exec(html)) !== null) {
-    if (!m[1].includes("'+val.") && !m[1].includes("undefined")) urls.push(m[1]);
-  }
+  while ((m = re1.exec(html)) !== null) addUrl(m[1]);
 
-  // Pattern 2: Any iframe on the page pointing to a known video host
-  const re2 = /src=["'](https?:\/\/(?:www\.)?(?:streamtape|doodstream|filemoon|ninocloud|ok\.ru|mp4upload|jkanime\.net\/jkplayer)[^"'<>\s]+)["']/g;
-  while ((m = re2.exec(html)) !== null) {
-    if (!urls.includes(m[1]) && !m[1].includes("undefined")) urls.push(m[1]);
-  }
+  // Pattern 2: Single quotes
+  const re2 = /src='(https?:\/\/jkanime\.net\/jkplayer\/[^']+)'/g;
+  while ((m = re2.exec(html)) !== null) addUrl(m[1]);
 
-  // Pattern 3: server variable assignments like servers[0] = "URL"
-  const re3 = /(?:servers|sources|players)\s*\[?\d*\]?\s*=\s*["'](https?:\/\/[^"'<>\s]+)["']/g;
-  while ((m = re3.exec(html)) !== null) {
-    if (!urls.includes(m[1])) urls.push(m[1]);
-  }
+  // Pattern 3: data-src attributes
+  const re3 = /data-src=["'](https?:\/\/jkanime\.net\/jkplayer\/[^"']+)["']/g;
+  while ((m = re3.exec(html)) !== null) addUrl(m[1]);
 
   return urls;
 }
@@ -155,8 +155,8 @@ export async function getJkAnimeWatch(
   for (const candidate of slugVariants) {
     try {
       const url = `${BASE}/${candidate}/${episodeNum}/`;
-      const html = await fetchHtml(url, BASE);
-      if (html.length > 5000 && !html.includes("404") && !html.includes("no encontrado")) {
+      const html = await fetchPage(url);
+      if (html.length > 5000 && !html.toLowerCase().includes("404") && html.includes("jkplayer")) {
         slug = candidate;
         episodeHtml = html;
         break;
@@ -167,11 +167,11 @@ export async function getJkAnimeWatch(
   // If direct slug failed, try JKAnime search
   if (!slug) {
     const searchSlug = await searchJkAnimeSlug(animeTitle);
-    if (searchSlug) {
+    if (searchSlug && !slugVariants.includes(searchSlug)) {
       try {
         const url = `${BASE}/${searchSlug}/${episodeNum}/`;
-        const html = await fetchHtml(url, BASE);
-        if (html.length > 5000) {
+        const html = await fetchPage(url);
+        if (html.length > 5000 && html.includes("jkplayer")) {
           slug = searchSlug;
           episodeHtml = html;
         }
@@ -181,34 +181,23 @@ export async function getJkAnimeWatch(
 
   if (!slug) throw new Error(`Anime not found on Jkanime: "${animeTitle}" ep ${episodeNum}`);
 
-  const iframeUrls = extractIframeUrls(episodeHtml);
-
-  // Also look for m3u8 directly in the episode page itself (some pages embed it)
-  const directM3u8 = episodeHtml.match(/["'`](https?:\/\/[^\s"'`<>]+\.m3u8[^\s"'`<>]*?)["'`]/);
-  if (directM3u8?.[1]) {
-    return {
-      sources: [{
-        url: directM3u8[1],
-        quality: "Servidor 1 (Latino)",
-        isM3U8: true,
-        lang: "LAT",
-      }],
-      slug,
-    };
-  }
+  const episodePageUrl = `${BASE}/${slug}/${episodeNum}/`;
+  const iframeUrls = extractIframeUrls(episodeHtml, episodePageUrl);
 
   if (iframeUrls.length === 0) {
     throw new Error(`No players found for ${slug} ep ${episodeNum}`);
   }
 
-  const referer = `${BASE}/${slug}/${episodeNum}/`;
+  // Resolve each iframe in parallel
+  const resolveResults = await Promise.allSettled(
+    iframeUrls.slice(0, 4).map(async (iframeUrl) => {
+      const html = await fetchIframe(iframeUrl, episodePageUrl);
+      return extractM3u8(html);
+    })
+  );
+
   const sources: JkAnimeStreamData["sources"] = [];
   let serverNum = 1;
-
-  // Resolve each iframe in parallel (up to 4 at a time)
-  const resolveResults = await Promise.allSettled(
-    iframeUrls.slice(0, 4).map(url => resolveJkplayer(url, referer))
-  );
 
   for (const result of resolveResults) {
     if (result.status === "fulfilled" && result.value) {
@@ -224,7 +213,7 @@ export async function getJkAnimeWatch(
   }
 
   if (sources.length === 0) {
-    throw new Error(`No se pudieron resolver fuentes para ${slug} ep ${episodeNum}`);
+    throw new Error(`No se pudieron resolver fuentes m3u8 para ${slug} ep ${episodeNum}`);
   }
 
   return { sources, slug };
