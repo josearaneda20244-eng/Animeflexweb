@@ -1024,40 +1024,50 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
 
   let lastPlaybackErr: unknown;
 
-  try {
-    const data = await fetchAnimeKaiSources(id);
-    res.json(data);
-    return;
-  } catch (err) {
-    lastPlaybackErr = err;
-    req.log.warn({ err, episodeId: id }, "AnimeKai direct episode source failed");
-  }
+  // Detect short/incomplete AnimeKai tokens (< 12 chars) — these always fail.
+  // Skip AnimeKai entirely and go straight to fallback providers for speed.
+  const animeKaiTokenMatch = id.match(/\$token=([^$&]+)/);
+  const animeKaiToken = animeKaiTokenMatch?.[1] ?? "";
+  const hasValidToken = animeKaiToken.length >= 12;
 
-  if (animeTitle && episodeNum) {
-    const titleVariantList = titleVariants(animeTitle);
-    req.log.warn({ animeTitle, episodeNum, titleVariantList }, "Trying fresh AnimeKai lookup for episode");
-    for (const variant of titleVariantList) {
-      try {
-        const searchData = await retryFetch(() => getAnimeKai().search(variant), 2, 400) as any;
-        const candidates = (searchData.results ?? []).slice(0, 4);
-        for (const candidate of candidates) {
-          if (!candidate?.id) continue;
-          try {
-            const info = await retryFetch(() => getAnimeKai().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
-            const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
-            if (!ep?.id) continue;
-            const data = await fetchAnimeKaiSources(ep.id as string);
-            req.log.info({ provider: "AnimeKai", variant, animeId: candidate.id, episodeNum }, "Fresh AnimeKai episode lookup succeeded");
-            res.json(data);
-            return;
-          } catch (err) {
-            lastPlaybackErr = err;
+  if (hasValidToken) {
+    try {
+      const data = await fetchAnimeKaiSources(id);
+      res.json(data);
+      return;
+    } catch (err) {
+      lastPlaybackErr = err;
+      req.log.warn({ err, episodeId: id }, "AnimeKai direct episode source failed");
+    }
+
+    if (animeTitle && episodeNum) {
+      const titleVariantList = titleVariants(animeTitle);
+      req.log.warn({ animeTitle, episodeNum, titleVariantList }, "Trying fresh AnimeKai lookup for episode");
+      for (const variant of titleVariantList) {
+        try {
+          const searchData = await retryFetch(() => getAnimeKai().search(variant), 2, 400) as any;
+          const candidates = (searchData.results ?? []).slice(0, 4);
+          for (const candidate of candidates) {
+            if (!candidate?.id) continue;
+            try {
+              const info = await retryFetch(() => getAnimeKai().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
+              const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
+              if (!ep?.id) continue;
+              const data = await fetchAnimeKaiSources(ep.id as string);
+              req.log.info({ provider: "AnimeKai", variant, animeId: candidate.id, episodeNum }, "Fresh AnimeKai episode lookup succeeded");
+              res.json(data);
+              return;
+            } catch (err) {
+              lastPlaybackErr = err;
+            }
           }
+        } catch (err) {
+          lastPlaybackErr = err;
         }
-      } catch (err) {
-        lastPlaybackErr = err;
       }
     }
+  } else {
+    req.log.warn({ episodeId: id, token: animeKaiToken }, "AnimeKai token too short — skipping AnimeKai, going straight to fallbacks");
   }
 
   if (animeTitle && episodeNum) {
