@@ -805,7 +805,7 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
            AND view_date >= date_trunc('week', CURRENT_DATE)`,
         [uid]
       ),
-      pool.query<{ genre: string }>(
+      pool.query<{ genre: string; cnt: string }>(
         `SELECT genre, COUNT(*) AS cnt
          FROM (
            SELECT unnest(genres) AS genre FROM user_history WHERE user_id = $1
@@ -815,7 +815,7 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
          WHERE genre IS NOT NULL AND genre <> ''
          GROUP BY genre
          ORDER BY cnt DESC
-         LIMIT 1`,
+         LIMIT 5`,
         [uid]
       ),
     ]);
@@ -827,6 +827,7 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
     const episodesThisWeek = parseInt(weekTotalResult.rows[0]?.episodes_this_week ?? "0", 10);
     const estimatedHours   = Math.round((totalEpisodes * 24) / 60 * 10) / 10;
     const favoriteGenre: string | null = genreResult.rows[0]?.genre ?? null;
+    const topGenres = genreResult.rows.map(r => ({ genre: r.genre, count: parseInt(r.cnt, 10) }));
 
     const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
     const weekMap: Record<string, number> = {};
@@ -849,6 +850,7 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
       episodesThisWeek,
       estimatedHours,
       favoriteGenre,
+      topGenres,
       weeklyActivity,
       topAnime: topResult.rows,
     });
