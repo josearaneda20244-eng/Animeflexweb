@@ -1,8 +1,7 @@
 const BASE = "https://jkanime.net";
 
-// Cache de slugs para evitar búsquedas repetidas (acelera carga)
 const slugCache = new Map<string, string>();
-const SLUG_CACHE_TTL = 1000 * 60 * 60 * 2; // 2 horas
+const SLUG_CACHE_TTL = 1000 * 60 * 60 * 2;
 const slugCacheTime = new Map<string, number>();
 
 const PAGE_HEADERS: Record<string, string> = {
@@ -40,6 +39,10 @@ function makeSlugs(title: string): string[] {
   const noSeason = title.replace(/\s*:?\s*Season\s+\d+\s*$/i, "").trim();
   if (noSeason !== title) variants.push(slugify(noSeason));
 
+  const noOrdinalSeason = title.replace(/\s*:?\s*\d+(st|nd|rd|th)\s+Season\s*$/i, "").trim();
+  if (noOrdinalSeason !== title && !variants.includes(slugify(noOrdinalSeason)))
+    variants.push(slugify(noOrdinalSeason));
+
   const noPart = title.replace(/\s*:?\s*Part\s+\d+\s*$/i, "").trim();
   if (noPart !== title) variants.push(slugify(noPart));
 
@@ -49,10 +52,21 @@ function makeSlugs(title: string): string[] {
   const noColon = title.split(":")[0].trim();
   if (noColon !== title) variants.push(slugify(noColon));
 
+  // Season number suffix variants (e.g. "2", "ii", "2nd-season" → just base)
+  const noTrailingNum = title.replace(/\s+\d+\s*$/, "").trim();
+  if (noTrailingNum !== title && !variants.includes(slugify(noTrailingNum)))
+    variants.push(slugify(noTrailingNum));
+
   const firstWords = title.split(" ").slice(0, 3).join(" ");
   const firstSlug = slugify(firstWords);
   if (!variants.includes(firstSlug) && firstWords.length > 3) {
     variants.push(firstSlug);
+  }
+
+  const firstWord = title.split(/[\s:]/)[0].trim();
+  const firstWordSlug = slugify(firstWord);
+  if (firstWordSlug.length >= 4 && !variants.includes(firstWordSlug)) {
+    variants.push(firstWordSlug);
   }
 
   return [...new Set(variants)];
@@ -88,50 +102,39 @@ async function fetchIframe(url: string, referer: string, timeoutMs = 6000): Prom
 }
 
 /**
- * Search JKAnime to find the correct anime slug by title.
+ * Search JKAnime and return ALL candidate slugs found (not just first).
  */
-async function searchJkAnimeSlug(title: string): Promise<string | null> {
+async function searchJkAnimeSlugs(query: string): Promise<string[]> {
   try {
-    const url = `${BASE}/search/anime/?q=${encodeURIComponent(title)}`;
+    const url = `${BASE}/search/anime/?q=${encodeURIComponent(query)}`;
     const html = await fetchPage(url);
-    // Match anime card links: href="/slug/"
     const re = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
+    const slugs: string[] = [];
+    const seen = new Set<string>();
     let m: RegExpExecArray | null;
     while ((m = re.exec(html)) !== null) {
       const candidate = m[1];
-      // Skip known non-anime paths
-      if (!["search", "api", "cdn", "assets", "static"].includes(candidate)) {
-        return candidate;
+      if (!["search", "api", "cdn", "assets", "static"].includes(candidate) && !seen.has(candidate)) {
+        seen.add(candidate);
+        slugs.push(candidate);
       }
     }
-    return null;
+    return slugs;
   } catch {
-    return null;
+    return [];
   }
 }
 
-/**
- * Extract all m3u8 URLs from a player iframe page.
- */
 function extractM3u8(html: string): string | null {
-  // Pattern 1: url: '...m3u8...' or url: "...m3u8..."
   const p1 = html.match(/(?:url|file|source|src)\s*:\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/);
   if (p1?.[1]) return p1[1];
-
-  // Pattern 2: hls.loadSource('...m3u8...') or loadSource("...m3u8...")
   const p2 = html.match(/loadSource\s*\(\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/);
   if (p2?.[1]) return p2[1];
-
-  // Pattern 3: Any quoted m3u8 URL in the page
   const p3 = html.match(/['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/);
   if (p3?.[1]) return p3[1];
-
   return null;
 }
 
-/**
- * Extract all player iframe URLs from an episode page HTML.
- */
 function extractIframeUrls(html: string, episodePageUrl: string): string[] {
   const urls: string[] = [];
   const seen = new Set<string>();
@@ -143,20 +146,28 @@ function extractIframeUrls(html: string, episodePageUrl: string): string[] {
     }
   };
 
-  // Pattern 1: Standard jkplayer iframes (um, umv, jk, c1, etc.) with double quotes
   const re1 = /src="(https?:\/\/jkanime\.net\/jkplayer\/[^"]+)"/g;
   let m: RegExpExecArray | null;
   while ((m = re1.exec(html)) !== null) addUrl(m[1]);
-
-  // Pattern 2: Single quotes
   const re2 = /src='(https?:\/\/jkanime\.net\/jkplayer\/[^']+)'/g;
   while ((m = re2.exec(html)) !== null) addUrl(m[1]);
-
-  // Pattern 3: data-src attributes
   const re3 = /data-src=["'](https?:\/\/jkanime\.net\/jkplayer\/[^"']+)["']/g;
   while ((m = re3.exec(html)) !== null) addUrl(m[1]);
 
   return urls;
+}
+
+async function trySlug(slug: string, episodeNum: number): Promise<string | null> {
+  try {
+    const url = `${BASE}/${slug}/${episodeNum}/`;
+    const html = await fetchPage(url);
+    if (html.length > 5000 && !html.toLowerCase().includes("404") && html.includes("jkplayer")) {
+      return html;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export interface JkAnimeStreamData {
@@ -165,60 +176,81 @@ export interface JkAnimeStreamData {
   headers?: Record<string, string>;
 }
 
+/**
+ * Find anime on JKAnime using all provided title variants (English, Romaji, etc.)
+ * and return streaming sources.
+ */
 export async function getJkAnimeWatch(
   animeTitle: string,
   episodeNum: number,
+  extraTitles: string[] = [],
 ): Promise<JkAnimeStreamData> {
-  const slugVariants = makeSlugs(animeTitle);
+  const allTitles = [animeTitle, ...extraTitles].filter(Boolean);
+  const cacheKey = animeTitle.toLowerCase().trim();
+
   let slug: string | null = null;
   let episodeHtml = "";
 
-  // Check cache first for speed
-  const cacheKey = animeTitle.toLowerCase().trim();
+  // 1. Check slug cache first
   const cachedSlug = slugCache.get(cacheKey);
   const cacheAge = slugCacheTime.get(cacheKey) ?? 0;
   if (cachedSlug && (Date.now() - cacheAge) < SLUG_CACHE_TTL) {
-    try {
-      const url = `${BASE}/${cachedSlug}/${episodeNum}/`;
-      const html = await fetchPage(url);
-      if (html.length > 5000 && !html.toLowerCase().includes("404") && html.includes("jkplayer")) {
-        slug = cachedSlug;
-        episodeHtml = html;
-      }
-    } catch { /* cache hit but episode fetch failed, continue */ }
+    const html = await trySlug(cachedSlug, episodeNum);
+    if (html) { slug = cachedSlug; episodeHtml = html; }
   }
 
-  // Try each slug variant directly
+  // 2. Try all slug variants from all titles (direct URL guessing)
   if (!slug) {
-    for (const candidate of slugVariants) {
-      try {
-        const url = `${BASE}/${candidate}/${episodeNum}/`;
-        const html = await fetchPage(url);
-        if (html.length > 5000 && !html.toLowerCase().includes("404") && html.includes("jkplayer")) {
-          slug = candidate;
-          episodeHtml = html;
-          slugCache.set(cacheKey, candidate);
-          slugCacheTime.set(cacheKey, Date.now());
-          break;
-        }
-      } catch { /* try next variant */ }
+    const allSlugs: string[] = [];
+    const seenSlugs = new Set<string>();
+    for (const title of allTitles) {
+      for (const s of makeSlugs(title)) {
+        if (!seenSlugs.has(s)) { seenSlugs.add(s); allSlugs.push(s); }
+      }
+    }
+    for (const candidate of allSlugs) {
+      const html = await trySlug(candidate, episodeNum);
+      if (html) {
+        slug = candidate;
+        episodeHtml = html;
+        slugCache.set(cacheKey, candidate);
+        slugCacheTime.set(cacheKey, Date.now());
+        break;
+      }
     }
   }
 
-  // If direct slug failed, try JKAnime search
+  // 3. Search JKAnime with each title variant and try all returned slugs
   if (!slug) {
-    const searchSlug = await searchJkAnimeSlug(animeTitle);
-    if (searchSlug && !slugVariants.includes(searchSlug)) {
-      try {
-        const url = `${BASE}/${searchSlug}/${episodeNum}/`;
-        const html = await fetchPage(url);
-        if (html.length > 5000 && html.includes("jkplayer")) {
-          slug = searchSlug;
-          episodeHtml = html;
-          slugCache.set(cacheKey, searchSlug);
-          slugCacheTime.set(cacheKey, Date.now());
+    const triedSlugs = new Set<string>(
+      allTitles.flatMap(t => makeSlugs(t))
+    );
+
+    for (const searchTitle of allTitles) {
+      // Try the full title and the first word(s) as search queries
+      const searchQueries = [
+        searchTitle,
+        searchTitle.split(":")[0].trim(),
+        searchTitle.split(" ").slice(0, 2).join(" "),
+      ].filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
+
+      for (const query of searchQueries) {
+        const foundSlugs = await searchJkAnimeSlugs(query);
+        for (const candidate of foundSlugs) {
+          if (triedSlugs.has(candidate)) continue;
+          triedSlugs.add(candidate);
+          const html = await trySlug(candidate, episodeNum);
+          if (html) {
+            slug = candidate;
+            episodeHtml = html;
+            slugCache.set(cacheKey, candidate);
+            slugCacheTime.set(cacheKey, Date.now());
+            break;
+          }
         }
-      } catch { /* search also failed */ }
+        if (slug) break;
+      }
+      if (slug) break;
     }
   }
 
@@ -231,7 +263,6 @@ export async function getJkAnimeWatch(
     throw new Error(`No players found for ${slug} ep ${episodeNum}`);
   }
 
-  // Resolve each iframe in parallel
   const resolveResults = await Promise.allSettled(
     iframeUrls.slice(0, 4).map(async (iframeUrl) => {
       const html = await fetchIframe(iframeUrl, episodePageUrl);
