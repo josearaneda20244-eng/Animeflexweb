@@ -1010,8 +1010,8 @@ export default function Player() {
 
   const hasSubtitles = !!activeSubUrl || activeHlsSubId !== -1;
   // HLS cue text takes priority; VTT parsed cue is handled inside SubtitleOverlay
-  const vttSubUrl = subLang !== "off" && !hlsCueText && activeSubUrl ? activeSubUrl : null;
-  const hlsCueToRender = subLang !== "off" && activeHlsSubId !== -1 ? hlsCueText : null;
+  const vttSubUrl = audioLang === "sub" && subLang !== "off" && !hlsCueText && activeSubUrl ? activeSubUrl : null;
+  const hlsCueToRender = audioLang === "sub" && subLang !== "off" && activeHlsSubId !== -1 ? hlsCueText : null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000" }}>
@@ -1156,7 +1156,7 @@ export default function Player() {
               ) : (
                 proxyM3u8 ? (
                   <PlyrPlayer
-                    key={`${episodeId}-${selectedIdx}`}
+                    key={`${episodeId}-${audioLang}-${selectedIdx}`}
                     m3u8Url={proxyM3u8}
                     playbackRate={playbackRate}
                     startAt={startAt}
@@ -1164,7 +1164,7 @@ export default function Player() {
                     onTimeUpdate={handleTimeUpdate}
                     onEnded={handleEnded}
                     onSubtitleTracks={handleSubtitleTracks}
-                    activeHlsSubId={subLang !== "off" ? activeHlsSubId : -1}
+                    activeHlsSubId={audioLang === "sub" && subLang !== "off" ? activeHlsSubId : -1}
                     onSubtitleCue={handleSubtitleCue}
                     controlsRef={playerControlsRef}
                     onPlaybackError={handlePlaybackError}
