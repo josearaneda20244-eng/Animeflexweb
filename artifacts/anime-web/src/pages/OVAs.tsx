@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Star, Play, Shuffle, Tv2 } from "lucide-react";
-import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
+import { byFormatDirect, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -77,11 +77,11 @@ function OVACard({ anime }: { anime: AnimeResult }) {
 export default function OVAs() {
   const [, navigate] = useLocation();
 
-  const ovaP1 = useQuery({ queryKey: ["ovas-ova-1"], queryFn: () => consumet.byFormat("OVA", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
-  const ovaP2 = useQuery({ queryKey: ["ovas-ova-2"], queryFn: () => consumet.byFormat("OVA", 2), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
-  const onaP1 = useQuery({ queryKey: ["ovas-ona-1"], queryFn: () => consumet.byFormat("ONA", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
-  const onaP2 = useQuery({ queryKey: ["ovas-ona-2"], queryFn: () => consumet.byFormat("ONA", 2), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
-  const spP1  = useQuery({ queryKey: ["ovas-sp-1"],  queryFn: () => consumet.byFormat("SPECIAL", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const ovaP1 = useQuery({ queryKey: ["ovas-direct-ova-1"], queryFn: () => byFormatDirect("OVA", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const ovaP2 = useQuery({ queryKey: ["ovas-direct-ova-2"], queryFn: () => byFormatDirect("OVA", 2), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const onaP1 = useQuery({ queryKey: ["ovas-direct-ona-1"], queryFn: () => byFormatDirect("ONA", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const onaP2 = useQuery({ queryKey: ["ovas-direct-ona-2"], queryFn: () => byFormatDirect("ONA", 2), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const spP1  = useQuery({ queryKey: ["ovas-direct-sp-1"],  queryFn: () => byFormatDirect("SPECIAL", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
 
   const all = [
     ...(ovaP1.data?.results ?? []),
