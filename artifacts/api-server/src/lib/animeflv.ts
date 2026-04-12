@@ -1,17 +1,47 @@
-const ANIMEFLV_BASE = "https://www3.animeflv.net";
+const ANIMEFLV_MIRRORS = [
+  "https://www3.animeflv.net",
+  "https://www.animeflv.net",
+  "https://animeflv.net",
+];
+let ANIMEFLV_BASE = ANIMEFLV_MIRRORS[0];
 
 const FETCH_HEADERS: Record<string, string> = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-  "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+  "Accept-Language": "es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7",
+  "Accept-Encoding": "gzip, deflate, br",
+  "Cache-Control": "no-cache",
+  "Pragma": "no-cache",
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  "Upgrade-Insecure-Requests": "1",
 };
 
 async function fetchHtml(url: string, referer?: string): Promise<string> {
   const headers: Record<string, string> = { ...FETCH_HEADERS };
-  if (referer) headers["Referer"] = referer;
+  if (referer) {
+    headers["Referer"] = referer;
+    headers["Sec-Fetch-Site"] = "same-origin";
+  }
   const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`AnimeFLV HTTP ${res.status}: ${url}`);
   return res.text();
+}
+
+async function fetchHtmlWithMirrorFallback(path: string, referer?: string): Promise<{ html: string; base: string }> {
+  for (const mirror of ANIMEFLV_MIRRORS) {
+    try {
+      const url = mirror + path;
+      const html = await fetchHtml(url, referer);
+      if (html.length > 500 && !html.includes("cf-browser-verification") && !html.includes("Just a moment")) {
+        ANIMEFLV_BASE = mirror;
+        return { html, base: mirror };
+      }
+    } catch { /* try next mirror */ }
+  }
+  throw new Error(`All AnimeFLV mirrors failed for: ${path}`);
 }
 
 export interface AnimeFLVResult {
@@ -32,8 +62,7 @@ export interface AnimeFLVStreamData {
 }
 
 export async function searchAnimeFLV(query: string): Promise<AnimeFLVResult[]> {
-  const url = `${ANIMEFLV_BASE}/browse?q=${encodeURIComponent(query)}`;
-  const html = await fetchHtml(url);
+  const { html } = await fetchHtmlWithMirrorFallback(`/browse?q=${encodeURIComponent(query)}`);
   const results: AnimeFLVResult[] = [];
 
   const articleRegex = /<article[^>]*class="[^"]*Anime[^"]*"[^>]*>([\s\S]*?)<\/article>/gi;
@@ -57,8 +86,7 @@ export async function searchAnimeFLV(query: string): Promise<AnimeFLVResult[]> {
 }
 
 export async function getAnimeFLVEpisodeSources(slug: string, episodeNum: number): Promise<AnimeFLVSource[]> {
-  const url = `${ANIMEFLV_BASE}/ver/${slug}-${episodeNum}`;
-  const html = await fetchHtml(url, ANIMEFLV_BASE);
+  const { html } = await fetchHtmlWithMirrorFallback(`/ver/${slug}-${episodeNum}`, ANIMEFLV_BASE);
 
   const videosMatch =
     html.match(/var\s+videos\s*=\s*(\{[\s\S]*?\})\s*;/) ??
