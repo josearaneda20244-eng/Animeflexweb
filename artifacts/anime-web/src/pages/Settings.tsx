@@ -193,7 +193,10 @@ export default function Settings() {
     setSendingVerif(true);
     setVerifError("");
     try {
-      await apiClient.post("/auth/send-verification", {});
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Tiempo de espera agotado. Revisa la configuración SMTP en Railway.")), 20000)
+      );
+      await Promise.race([apiClient.post("/auth/send-verification", {}), timeout]);
       setVerifSent(true);
     } catch (err: unknown) {
       setVerifError(err instanceof Error ? err.message : "Error al enviar verificación");
@@ -229,51 +232,48 @@ export default function Settings() {
         <div style={{
           background: "linear-gradient(180deg,#14122a,#111220)",
           border: "1px solid rgba(124,111,255,0.2)",
-          borderRadius: 20, overflow: "hidden", marginBottom: 16,
+          borderRadius: 20, marginBottom: 16,
+          position: "relative",
         }}>
-          {/* Banner */}
-          <div style={{ height: 80, background: "linear-gradient(135deg,#2D1B69,#1A1A3E,#0D0D1F)", position: "relative", overflow: "hidden" }}>
+          {/* Banner — overflow only on banner, NOT on outer card */}
+          <div style={{ height: 80, borderRadius: "18px 18px 0 0", background: "linear-gradient(135deg,#2D1B69,#1A1A3E,#0D0D1F)", position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 60%,rgba(124,111,255,0.4),transparent 65%)" }} />
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 40%,rgba(245,158,11,0.15),transparent 65%)" }} />
           </div>
 
-          <div style={{ padding: "0 20px 20px" }}>
-            {/* Avatar overlapping */}
-            <div style={{ marginTop: -36, marginBottom: 12, display: "flex", alignItems: "flex-end", gap: 12 }}>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <div style={{
-                  width: 72, height: 72, borderRadius: 20,
-                  background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
-                  border: "4px solid #111220",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  overflow: "hidden",
-                  boxShadow: "0 4px 20px rgba(124,111,255,0.5)",
-                }}>
-                  {avatarPreview
-                    ? <img src={avatarPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setAvatarPreview("")} />
-                    : <span style={{ color: "#fff", fontSize: 28, fontWeight: 900 }}>{initials}</span>
-                  }
-                </div>
-              </div>
-              <div style={{ paddingBottom: 4 }}>
-                <div style={{ color: "#F1F1F5", fontSize: 17, fontWeight: 900 }}>{user.username}</div>
-                <div style={{ display: "flex", gap: 5, marginTop: 4 }}>
-                  {isOwner && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.5)", borderRadius: 100, padding: "2px 8px", fontSize: 9, fontWeight: 900, color: "#FCA5A5" }}>
-                      <Shield size={8} /> DUEÑO
-                    </span>
-                  )}
-                  {isMegaFan && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.2)", border: "1px solid rgba(245,158,11,0.5)", borderRadius: 100, padding: "2px 8px", fontSize: 9, fontWeight: 900, color: "#FCD34D" }}>
-                      <Crown size={8} /> MEGAFAN
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+          {/* Avatar — absolutely positioned, never clipped */}
+          <div style={{
+            position: "absolute", top: 44, left: 20, zIndex: 2,
+            width: 72, height: 72, borderRadius: 20,
+            background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
+            border: "4px solid #111220",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            overflow: "hidden",
+            boxShadow: "0 4px 20px rgba(124,111,255,0.5)",
+          }}>
+            {avatarPreview
+              ? <img src={avatarPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setAvatarPreview("")} />
+              : <span style={{ color: "#fff", fontSize: 28, fontWeight: 900 }}>{initials}</span>
+            }
+          </div>
 
+          {/* Content — paddingTop clears avatar (banner 80 + avatar overflow 36 = 116, minus 80 = 36 + buffer) */}
+          <div style={{ padding: "40px 20px 18px" }}>
+            <div style={{ color: "#F1F1F5", fontSize: 17, fontWeight: 900, marginBottom: 6 }}>{user.username}</div>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
+              {isOwner && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.5)", borderRadius: 100, padding: "2px 8px", fontSize: 9, fontWeight: 900, color: "#FCA5A5" }}>
+                  <Shield size={8} /> DUEÑO
+                </span>
+              )}
+              {isMegaFan && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.2)", border: "1px solid rgba(245,158,11,0.5)", borderRadius: 100, padding: "2px 8px", fontSize: 9, fontWeight: 900, color: "#FCD34D" }}>
+                  <Crown size={8} /> MEGAFAN
+                </span>
+              )}
+            </div>
             {/* Info chips */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "5px 10px", fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
                 <Mail size={11} /> {user.email}
               </span>
