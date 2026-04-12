@@ -38,6 +38,8 @@ const allowedOrigins = [
   /localhost/,
   /animeflex\.eu$/,
   /\.animeflex\.eu$/,
+  /animeflex\.lat$/,
+  /\.animeflex\.lat$/,
   /\.vercel\.app$/,
   /\.railway\.app$/,
 ];
