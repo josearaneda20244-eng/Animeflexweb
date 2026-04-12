@@ -76,18 +76,24 @@ export default function Movies() {
     queryKey: ["movies-by-format-1"],
     queryFn: () => consumet.byFormat("MOVIE", 1),
     staleTime: 1000 * 60 * 15,
+    retry: 3,
+    retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000),
   });
 
   const page2 = useQuery({
     queryKey: ["movies-by-format-2"],
     queryFn: () => consumet.byFormat("MOVIE", 2),
     staleTime: 1000 * 60 * 15,
+    retry: 3,
+    retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000),
   });
 
   const page3 = useQuery({
     queryKey: ["movies-by-format-3"],
     queryFn: () => consumet.byFormat("MOVIE", 3),
     staleTime: 1000 * 60 * 15,
+    retry: 3,
+    retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000),
   });
 
   const allMovies = [
@@ -106,6 +112,7 @@ export default function Movies() {
   };
 
   const isLoading = page1.isLoading;
+  const isError = page1.isError && page2.isError;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000" }}>
@@ -141,7 +148,20 @@ export default function Movies() {
             </div>
           )}
 
-          {!isLoading && uniqueMovies.length === 0 && (
+          {!isLoading && isError && uniqueMovies.length === 0 && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80, gap: 12 }}>
+              <Film size={56} color="rgba(255,255,255,0.15)" />
+              <div style={{ color: "#F1F1F5", fontWeight: 600 }}>Error al cargar películas</div>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>Hubo un problema al conectarse. Intenta de nuevo.</div>
+              <button
+                onClick={() => { page1.refetch(); page2.refetch(); page3.refetch(); }}
+                style={{ marginTop: 8, padding: "10px 24px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+          {!isLoading && !isError && uniqueMovies.length === 0 && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80, gap: 12 }}>
               <Film size={56} color="rgba(255,255,255,0.1)" />
               <div style={{ color: "#F1F1F5", fontWeight: 600 }}>No se encontraron películas</div>
