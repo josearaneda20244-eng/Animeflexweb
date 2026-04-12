@@ -1,6 +1,7 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
 import { getAnimeFLVWatch } from "../lib/animeflv.js";
+import { getJkAnimeWatch } from "../lib/jkanime.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -543,12 +544,21 @@ router.get("/anime/search", async (req, res) => {
  * Fetch anime by Anilist format (MOVIE, OVA, ONA, SPECIAL), sorted by popularity.
  * GET /api/anime/by-format?format=MOVIE&page=1
  */
+// In-memory cache for by-format results (15 min TTL)
+const byFormatCache = new Map<string, { data: unknown; expires: number }>();
+
 router.get("/anime/by-format", async (req, res) => {
   const ALLOWED = ["MOVIE", "OVA", "ONA", "SPECIAL"];
   const format = ((req.query.format as string) || "MOVIE").toUpperCase();
   const page = Math.max(1, Number(req.query.page) || 1);
   if (!ALLOWED.includes(format)) {
     res.status(400).json({ error: `Invalid format. Use: ${ALLOWED.join(", ")}` });
+    return;
+  }
+  const cacheKey = `${format}-${page}`;
+  const cached = byFormatCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) {
+    res.json(cached.data);
     return;
   }
   try {
@@ -570,11 +580,13 @@ router.get("/anime/by-format", async (req, res) => {
       status: m.status,
       genres: m.genres ?? [],
     }));
-    res.json({
+    const payload = {
       results,
       currentPage: data.currentPage ?? page,
       hasNextPage: data.hasNextPage ?? false,
-    });
+    };
+    byFormatCache.set(cacheKey, { data: payload, expires: Date.now() + 15 * 60 * 1000 });
+    res.json(payload);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch anime by format");
     res.status(500).json({ error: "Failed to fetch anime" });
@@ -1116,11 +1128,11 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
     return;
   }
   try {
-    const data = await getAnimeFLVWatch(title, episode);
+    const data = await getJkAnimeWatch(title, episode);
     res.json(data);
   } catch (err) {
-    req.log.warn({ err, title, episode }, "AnimeFLV watch failed");
-    res.status(404).json({ error: "No se encontró el episodio en AnimeFLV" });
+    req.log.warn({ err, title, episode }, "Jkanime watch failed");
+    res.status(404).json({ error: "No se encontró el episodio en Jkanime" });
   }
 });
 
