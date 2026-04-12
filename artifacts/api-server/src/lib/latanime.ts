@@ -123,6 +123,7 @@ export interface LatanimeStreamData {
     lang: "LAT";
   }[];
   slug: string;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -220,5 +221,9 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number):
     throw new Error(`No stream URLs could be resolved for "${animeTitle}" ep ${episodeNum} on Latanime`);
   }
 
-  return { sources, slug };
+  return {
+    sources,
+    slug,
+    headers: { "Referer": episodePageUrl },
+  };
 }
