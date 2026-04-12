@@ -1023,6 +1023,23 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
 
   let lastPlaybackErr: unknown;
 
+  // Prioridad 1: JKAnime (sub español) cuando animeTitle y episodeNum están disponibles
+  // Este es el proveedor principal para contenido subtitulado en español
+  if (animeTitle && episodeNum) {
+    const epNumber = parseInt(episodeNum, 10);
+    if (!Number.isNaN(epNumber)) {
+      try {
+        const data = await getJkAnimeWatch(animeTitle, epNumber);
+        req.log.info({ provider: "jkanime", animeTitle, episodeNum }, "JKAnime primary source succeeded");
+        res.json(data);
+        return;
+      } catch (err) {
+        lastPlaybackErr = err;
+        req.log.warn({ err, animeTitle, episodeNum }, "JKAnime primary source failed, falling back to AnimeKai");
+      }
+    }
+  }
+
   // Detect short/incomplete AnimeKai tokens (< 12 chars) — these always fail.
   // Skip AnimeKai entirely and go straight to fallback providers for speed.
   const animeKaiTokenMatch = id.match(/\$token=([^$&]+)/);
@@ -1069,21 +1086,6 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
     req.log.warn({ episodeId: id, token: animeKaiToken }, "AnimeKai token too short — skipping AnimeKai, going straight to fallbacks");
   }
 
-  if (animeTitle && episodeNum) {
-    const epNumber = parseInt(episodeNum, 10);
-    if (!Number.isNaN(epNumber)) {
-      try {
-        const data = await getJkAnimeWatch(animeTitle, epNumber);
-        req.log.info({ provider: "jkanime", animeTitle, episodeNum }, "JKAnime fallback succeeded");
-        res.json(data);
-        return;
-      } catch (err) {
-        lastPlaybackErr = err;
-        req.log.warn({ err, animeTitle, episodeNum }, "JKAnime fallback failed");
-      }
-
-    }
-  }
   if (animeTitle && episodeNum) {
     req.log.warn({ animeTitle, episodeNum }, "Trying AnimePahe as fallback provider");
     try {
