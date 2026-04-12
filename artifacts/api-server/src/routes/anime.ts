@@ -176,9 +176,13 @@ router.get("/anime/hls-proxy", async (req, res) => {
   const proxyReferer = rawReferer ? decodeURIComponent(rawReferer) : undefined;
   const proxyHeaders = buildProxyHeaders(proxyReferer);
 
+  // Forward Range header so MP4 seeking works (browser sends Range for partial content)
+  const rangeHeader = req.headers["range"];
+  if (rangeHeader) proxyHeaders["Range"] = rangeHeader;
+
   try {
     const upstream = await fetch(targetUrl, { headers: proxyHeaders });
-    if (!upstream.ok) {
+    if (!upstream.ok && upstream.status !== 206) {
       res.status(upstream.status).send(`Upstream error: ${upstream.status}`);
       return;
     }
@@ -279,8 +283,13 @@ router.get("/anime/hls-proxy", async (req, res) => {
       }
     } else {
       const cl = upstream.headers.get("content-length");
+      const cr = upstream.headers.get("content-range");
+      const ar = upstream.headers.get("accept-ranges");
       if (cl) res.set("Content-Length", cl);
+      if (cr) res.set("Content-Range", cr);
+      res.set("Accept-Ranges", ar ?? "bytes");
       res.set("Content-Type", contentType || "application/octet-stream");
+      res.status(upstream.status); // preserve 206 Partial Content for range requests
       const nodeStream = Readable.fromWeb(upstream.body as any);
       nodeStream.pipe(res);
     }
