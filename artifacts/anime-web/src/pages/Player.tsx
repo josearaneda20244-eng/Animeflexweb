@@ -190,9 +190,10 @@ interface PlyrPlayerProps {
   activeHlsSubId?: number;
   onSubtitleCue?: (text: string | null) => void;
   controlsRef?: React.MutableRefObject<PlyrControls | null>;
+  onPlaybackError?: () => void;
 }
 
-function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef }: PlyrPlayerProps) {
+function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef, onPlaybackError }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const plyrRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -204,12 +205,14 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
   const onEndedRef = useRef(onEnded);
   const onSubtitleTracksRef = useRef(onSubtitleTracks);
   const onSubtitleCueRef = useRef(onSubtitleCue);
+  const onPlaybackErrorRef = useRef(onPlaybackError);
 
   useEffect(() => { onTimeUpdateRef.current = onTimeUpdate; }, [onTimeUpdate]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
   useEffect(() => { startAtRef.current = startAt; }, [startAt]);
   useEffect(() => { onSubtitleTracksRef.current = onSubtitleTracks; }, [onSubtitleTracks]);
   useEffect(() => { onSubtitleCueRef.current = onSubtitleCue; }, [onSubtitleCue]);
+  useEffect(() => { onPlaybackErrorRef.current = onPlaybackError; }, [onPlaybackError]);
 
   // Switch active HLS subtitle track when prop changes
   useEffect(() => {
@@ -293,6 +296,12 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     video.textTracks.addEventListener("addtrack", handleAddTrack as EventListener);
 
     let loadTimeout: ReturnType<typeof setTimeout> | null = null;
+    let playbackErrorSent = false;
+    const notifyPlaybackError = () => {
+      if (playbackErrorSent) return;
+      playbackErrorSent = true;
+      onPlaybackErrorRef.current?.();
+    };
 
     if (Hls.isSupported()) {
       const hls = new Hls({
@@ -300,8 +309,8 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         maxBufferLength: 60,
         maxMaxBufferLength: 240,
         startLevel: -1,
-        fragLoadingTimeOut: 30000,
-        manifestLoadingTimeOut: 30000,
+        fragLoadingTimeOut: 15000,
+        manifestLoadingTimeOut: 15000,
         maxBufferHole: 1,
       });
       hlsRef.current = hls;
@@ -320,9 +329,10 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       let networkErrCount = 0;
       let mediaErrCount = 0;
       loadTimeout = setTimeout(() => {
-        setError("Tiempo de carga agotado. Intenta de nuevo.");
+        setError("Tiempo de carga agotado. Probando otra fuente...");
         setLoading(false);
-      }, 60000);
+        notifyPlaybackError();
+      }, 22000);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
@@ -340,10 +350,11 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         if (data.fatal) {
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
             networkErrCount++;
-            if (networkErrCount > 8) {
+            if (networkErrCount > 2) {
               if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-              setError("Error de red al cargar el episodio. Intenta de nuevo.");
+              setError("Error de red al cargar la fuente. Probando otra...");
               setLoading(false);
+              notifyPlaybackError();
             } else {
               setTimeout(() => hls.startLoad(), 1000);
             }
@@ -351,8 +362,9 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
             mediaErrCount++;
             if (mediaErrCount > 3) {
               if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-              setError("Error de medios al reproducir el episodio.");
+              setError("Error de medios en esta fuente. Probando otra...");
               setLoading(false);
+              notifyPlaybackError();
               return;
             }
             const savedTime = video.currentTime;
@@ -368,8 +380,9 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
             }
           } else {
             if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-            setError("Error al reproducir el episodio.");
+            setError("Error al reproducir esta fuente. Probando otra...");
             setLoading(false);
+            notifyPlaybackError();
           }
         }
       });
@@ -383,15 +396,24 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     } else {
       setError("Tu navegador no soporta reproducción HLS.");
       setLoading(false);
+      notifyPlaybackError();
     }
+
+    const onNativeError = () => {
+      setError("Esta fuente no cargó. Probando otra...");
+      setLoading(false);
+      notifyPlaybackError();
+    };
 
     video.addEventListener("loadedmetadata", onLoadedMetadata);
     video.addEventListener("timeupdate", onTimeUpd);
     video.addEventListener("ended", onEnd);
+    video.addEventListener("error", onNativeError);
     return () => {
       video.removeEventListener("loadedmetadata", onLoadedMetadata);
       video.removeEventListener("timeupdate", onTimeUpd);
       video.removeEventListener("ended", onEnd);
+      video.removeEventListener("error", onNativeError);
       video.textTracks.removeEventListener("addtrack", handleAddTrack as EventListener);
       if (loadTimeout) clearTimeout(loadTimeout);
       if (controlsRef) controlsRef.current = null;
@@ -454,18 +476,15 @@ function EpisodePanel({
   const totalPages = Math.ceil(episodes.length / PAGE_SIZE);
   const safePage = totalPages > 0 ? Math.min(page, totalPages - 1) : 0;
   const pageEps = episodes.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
-  const rangeOptions = useMemo(() => {
+  const pageOptions = useMemo(() => {
     if (episodes.length <= PAGE_SIZE) return [];
-    const ranges: Array<{ label: string; page: number }> = [];
-    const step = episodes.length > 500 ? 100 : 50;
-    for (let start = 1; start <= episodes.length; start += step) {
-      const end = Math.min(start + step - 1, episodes.length);
-      const firstIndex = episodes.findIndex((ep) => ep.number >= start);
-      const targetPage = Math.max(0, Math.floor((firstIndex === -1 ? start - 1 : firstIndex) / PAGE_SIZE));
-      ranges.push({ label: `Ep. ${start}-${end}`, page: targetPage });
-    }
-    return ranges;
-  }, [episodes]);
+    return Array.from({ length: totalPages }, (_, pageIndex) => {
+      const pageEpisodes = episodes.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
+      const first = pageEpisodes[0]?.number ?? pageIndex * PAGE_SIZE + 1;
+      const last = pageEpisodes[pageEpisodes.length - 1]?.number ?? first;
+      return { label: first === last ? `Ep. ${first}` : `Ep. ${first}-${last}`, page: pageIndex };
+    });
+  }, [episodes, totalPages]);
   useEffect(() => {
     if (currentIndex >= 0) setPage(Math.floor(currentIndex / PAGE_SIZE));
   }, [currentIndex]);
@@ -524,7 +543,7 @@ function EpisodePanel({
               onChange={(e) => setPage(Number(e.target.value))}
               style={{ minWidth: 0, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "9px 10px", color: "#E8E7FF", fontSize: 12, fontWeight: 800, outline: "none" }}
             >
-              {rangeOptions.map((range) => (
+              {pageOptions.map((range) => (
                 <option key={range.label} value={range.page}>{range.label}</option>
               ))}
             </select>
@@ -638,6 +657,7 @@ export default function Player() {
   const nextEpisodeNum = nextEp ? String(nextEp.number) : "";
 
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [playbackFailureCount, setPlaybackFailureCount] = useState(0);
   const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
   const [subLang, setSubLang] = useState<"es" | "en" | "off">("es");
   const [audioLang, setAudioLang] = useState<"sub" | "lat">("sub");
@@ -733,6 +753,7 @@ export default function Player() {
   const shouldFetchAnimeFlv = !!animeTitle && !!episodeNum && (
     audioLang === "lat" ||
     isRecentEpisode ||
+    playbackFailureCount > 0 ||
     query.failureCount > 0 ||
     (!query.isLoading && (query.isError || !hasPrimarySources))
   );
@@ -759,7 +780,10 @@ export default function Player() {
   const hasAnimeflvSources = animeflvSources.length > 0;
   const sources = audioLang === "lat"
     ? animeflvSources
-    : (subSources.length > 0 ? subSources : animeflvSources);
+    : [
+        ...subSources,
+        ...((!hasPrimarySources || isRecentEpisode || query.isError || playbackFailureCount > 0) ? animeflvSources : []),
+      ];
   const streamingHeaders = query.data?.headers ?? {};
   const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
@@ -778,6 +802,7 @@ export default function Player() {
 
   useEffect(() => {
     setSelectedIdx(0);
+    setPlaybackFailureCount(0);
     setActiveSubUrl(null);
     setHlsSubTracks([]);
     setActiveHlsSubId(-1);
@@ -822,6 +847,21 @@ export default function Player() {
   }, []);
 
   const proxyM3u8 = selected ? proxyStreamUrl(selected.url, referer) : null;
+
+  useEffect(() => {
+    if (sources.length > 0 && selectedIdx >= sources.length) setSelectedIdx(0);
+  }, [selectedIdx, sources.length]);
+
+  useEffect(() => {
+    if (playbackFailureCount > 0 && audioLang === "sub" && subSources.length > 0 && animeflvSources.length > 0 && selectedIdx < subSources.length) {
+      setSelectedIdx(subSources.length);
+    }
+  }, [playbackFailureCount, audioLang, subSources.length, animeflvSources.length, selectedIdx]);
+
+  const handlePlaybackError = useCallback(() => {
+    setPlaybackFailureCount((count) => count + 1);
+    setSelectedIdx((idx) => (idx + 1 < sources.length ? idx + 1 : idx));
+  }, [sources.length]);
 
   const handleTimeUpdate = useCallback((ct: number, duration: number) => {
     currentTimeRef.current = ct;
@@ -1127,6 +1167,7 @@ export default function Player() {
                     activeHlsSubId={subLang !== "off" ? activeHlsSubId : -1}
                     onSubtitleCue={handleSubtitleCue}
                     controlsRef={playerControlsRef}
+                    onPlaybackError={handlePlaybackError}
                   />
                 ) : null
               )
