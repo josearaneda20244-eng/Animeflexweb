@@ -48,6 +48,7 @@ function getAccess() {
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
 function isDub(src: StreamingSource) { return /eng|dub/i.test(src.quality ?? ""); }
+function isEnglishSubtitleLabel(value: string) { return /english|eng|\ben\b/i.test(value); }
 function parseResolution(src: StreamingSource) {
   const m = (src.quality ?? "").match(/(\d{3,4})p/i);
   if (m) return m[1] + "p";
@@ -797,6 +798,27 @@ export default function Player() {
     streamSubtitles.find((s) => /english.*us|english/i.test(s.lang)) ??
     streamSubtitles.find((s) => /eng|^en$/i.test(s.lang)) ??
     null;
+  const hasEnglishHlsTracks = hlsSubTracks.some(t => isEnglishSubtitleLabel(`${t.lang} ${t.name}`));
+
+  const externalEnglishSubtitleQuery = useQuery({
+    queryKey: ["externalEnglishSubtitle", animeTitle, episodeNum],
+    queryFn: async () => {
+      const episode = Number(episodeNum);
+      const results = await consumet.searchSubtitles(animeTitle, Number.isFinite(episode) ? episode : undefined, "en");
+      const candidate = results.data?.find((item) => item.fileId);
+      if (!candidate?.fileId) return null;
+      const downloaded = await consumet.downloadSubtitle(candidate.fileId);
+      if (!downloaded.url) return null;
+      return { url: downloaded.url, lang: candidate.release ? `English — ${candidate.release}` : "English" };
+    },
+    enabled: audioLang === "sub" && !!animeTitle && !!episodeNum && !streamEnglishSub && !hasEnglishHlsTracks,
+    retry: false,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const externalEnglishSub = externalEnglishSubtitleQuery.data ?? null;
+  const activeEnglishSub = streamEnglishSub ?? externalEnglishSub;
+  const activeEnglishSubReferer = streamEnglishSub ? subReferer : undefined;
 
   useEffect(() => {
     setSelectedIdx(0);
@@ -820,24 +842,21 @@ export default function Player() {
   // Auto-load VTT subtitle based on selected language
   useEffect(() => {
     if (subLang === "off") { setActiveSubUrl(null); return; }
-    const target = streamEnglishSub;
+    const target = activeEnglishSub;
     if (target) {
-      setActiveSubUrl(proxySubtitleUrl(target.url, subReferer));
+      setActiveSubUrl(proxySubtitleUrl(target.url, activeEnglishSubReferer));
     } else {
       setActiveSubUrl(null);
     }
-  }, [subLang, streamEnglishSub?.url, subReferer]);
+  }, [subLang, activeEnglishSub?.url, activeEnglishSubReferer]);
 
   // Auto-select HLS embedded subtitle track based on subLang
   const handleSubtitleTracks = useCallback((tracks: HlsSubTrack[]) => {
     setHlsSubTracks(tracks);
     if (activeSubUrl) return; // VTT already loaded, skip HLS
     if (subLang === "off") { setActiveHlsSubId(-1); return; }
-    const isEn = subLang === "en";
-    const match = isEn
-      ? (tracks.find(t => /english.*us|english/i.test(t.lang + " " + t.name)) ?? tracks.find(t => /eng|^en$/i.test(t.lang + " " + t.name)))
-      : (tracks.find(t => /español.*españa|spanish.*esp/i.test(t.lang + " " + t.name)) ?? tracks.find(t => /español|spanish|spa|es$/i.test(t.lang + " " + t.name)));
-    if (match) setActiveHlsSubId(match.id);
+    const match = tracks.find(t => isEnglishSubtitleLabel(`${t.lang} ${t.name}`));
+    setActiveHlsSubId(match?.id ?? -1);
   }, [activeSubUrl, subLang]);
 
   const handleSubtitleCue = useCallback((text: string | null) => {
@@ -1360,13 +1379,13 @@ export default function Player() {
                   })}
                 </div>
                 {/* Subtitle language selector */}
-                {audioLang === "sub" && (streamEnglishSub || hlsSubTracks.some(t => /english|eng|^en$/i.test(t.lang + t.name))) && (
+                {audioLang === "sub" && (activeEnglishSub || hasEnglishHlsTracks) && (
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <Captions size={14} style={{ color: subLang !== "off" ? "#22C55E" : "rgba(255,255,255,0.35)", flexShrink: 0 }} />
                     {(["en", "off"] as const).map((lang) => {
                       const active = subLang === lang;
                       const hasLang = lang === "en"
-                        ? (!!streamEnglishSub || hlsSubTracks.some(t => /english|eng|^en$/i.test(t.lang + t.name)))
+                        ? (!!activeEnglishSub || hasEnglishHlsTracks)
                         : true;
                       if (!hasLang && lang !== "off") return null;
                       return (
@@ -1489,11 +1508,11 @@ export default function Player() {
             <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                 <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Subtítulos</div>
-                {(streamEnglishSub || hlsSubTracks.some(t => /english|eng|^en$/i.test(t.lang + t.name))) && (
+                {(activeEnglishSub || hasEnglishHlsTracks) && (
                   <div style={{ display: "flex", gap: 4 }}>
                     {(["en", "off"] as const).map((lang) => {
                       const hasLang = lang === "en"
-                        ? (!!streamEnglishSub || hlsSubTracks.some(t => /english|eng|^en$/i.test(t.lang + t.name)))
+                        ? (!!activeEnglishSub || hasEnglishHlsTracks)
                         : true;
                       if (!hasLang && lang !== "off") return null;
                       const active = subLang === lang;
@@ -1510,26 +1529,26 @@ export default function Player() {
                   </div>
                 )}
               </div>
-              {query.isLoading && (
+              {(query.isLoading || externalEnglishSubtitleQuery.isLoading) && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
                   <Loader2 size={12} className="animate-spin" /> Buscando subtítulos en inglés...
                 </div>
               )}
-              {!query.isLoading && streamEnglishSub && (
+              {!query.isLoading && activeEnglishSub && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: subLang === "en" ? "#22C55E" : "rgba(255,255,255,0.3)", fontSize: 12 }}>
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: subLang === "en" ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                    {streamEnglishSub.lang} — disponible
+                    {activeEnglishSub.lang} — disponible
                   </div>
                 </div>
               )}
-              {!query.isLoading && !streamEnglishSub && hlsSubTracks.some(t => /english|eng|^en$/i.test(t.lang + t.name)) && (
+              {!query.isLoading && !activeEnglishSub && hasEnglishHlsTracks && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
                   Pistas HLS — disponibles
                 </div>
               )}
-              {!query.isLoading && !streamEnglishSub && !hlsSubTracks.some(t => /english|eng|^en$/i.test(t.lang + t.name)) && (
+              {!query.isLoading && !activeEnglishSub && !hasEnglishHlsTracks && (
                 <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos en inglés para este episodio.</p>
               )}
             </div>
@@ -1621,14 +1640,14 @@ export default function Player() {
                   </div>
 
                   {/* Subtitle downloads */}
-                  {streamEnglishSub && (
+                  {activeEnglishSub && (
                     <div>
                       <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
                         Subtítulos (.vtt)
                       </div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         <a
-                            href={downloadProxyUrl(streamEnglishSub.url, `${animeTitle}-ep${episodeNum}-en.vtt`)}
+                            href={downloadProxyUrl(activeEnglishSub.url, `${animeTitle}-ep${episodeNum}-en.vtt`, activeEnglishSubReferer)}
                             download={`${animeTitle}-ep${episodeNum}-en.vtt`}
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 5,

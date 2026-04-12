@@ -174,7 +174,7 @@ export const consumet = {
     if (animeId) url += `&animeId=${encodeURIComponent(animeId)}`;
     return get<StreamingData>(url, true);
   },
-  searchSubtitles: (title: string, episode?: number, lang = "es"): Promise<{ data: SubtitleResult[] }> =>
+  searchSubtitles: (title: string, episode?: number, lang = "en"): Promise<{ data: SubtitleResult[] }> =>
     get<{ data: SubtitleResult[] }>(
       `/anime/subtitles?title=${encodeURIComponent(title)}` +
         (episode ? `&episode=${episode}` : "") +

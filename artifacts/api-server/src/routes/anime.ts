@@ -1202,12 +1202,12 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
 
 /**
  * OpenSubtitles subtitle search
- * GET /api/anime/subtitles?title=...&episode=...&lang=es
+ * GET /api/anime/subtitles?title=...&episode=...&lang=en
  */
 router.get("/anime/subtitles", async (req, res) => {
   const title = (req.query.title as string | undefined)?.trim();
   const episode = (req.query.episode as string | undefined)?.trim();
-  const lang = (req.query.lang as string | undefined)?.trim() ?? "es";
+  const lang = (req.query.lang as string | undefined)?.trim() ?? "en";
 
   if (!title) {
     res.status(400).json({ error: "Query param 'title' is required" });
