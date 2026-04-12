@@ -285,6 +285,16 @@ export default function AnimeDetail() {
 
   const anime = infoQuery.data;
 
+  // Normalize AnimeKai episodes so they can serve as a fallback list
+  // when AniList doesn't know the episode count (airing / unknown total).
+  const paheEpisodesList: Episode[] = (paheQuery.data?.episodes ?? []).map((ep: any) => ({
+    id: ep.id ?? `pahe-${ep.number}`,
+    number: ep.number ?? 0,
+    title: ep.title ?? `Episodio ${ep.number}`,
+    image: ep.image ?? null,
+    url: ep.url ?? null,
+  }));
+
   /* ── T006: Dynamic SEO — must be before conditional returns ── */
   useEffect(() => {
     if (!anime) return;
@@ -312,7 +322,9 @@ export default function AnimeDetail() {
   const cover = anime?.cover ?? "";
   const rawDesc = (anime?.description ?? "").replace(/<[^>]+>/g, "");
   const genres = anime?.genres ?? [];
-  const episodes = anime?.episodes ?? [];
+  // Prefer AniList placeholder list; if AniList has no count, fall back to AnimeKai episodes.
+  const anilistEpisodes = anime?.episodes ?? [];
+  const episodes: Episode[] = anilistEpisodes.length > 0 ? anilistEpisodes : paheEpisodesList;
   const characters = anime?.characters ?? [];
   const recommendations = (anime?.recommendations ?? []).filter((r) => r.image);
   const trailer = anime?.trailer;
