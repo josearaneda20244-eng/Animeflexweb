@@ -581,6 +581,7 @@ export default function Player() {
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
+  const [dlCopied, setDlCopied] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -1388,6 +1389,17 @@ export default function Player() {
                   <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Descargar</div>
                 </div>
                 <div style={{ background: "rgba(124,111,255,0.06)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+
+                  {/* dlCopied toast */}
+                  {dlCopied && (
+                    <div style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ color: "#22C55E", fontSize: 12, fontWeight: 700, marginBottom: 3 }}>✓ Enlace copiado</div>
+                      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, lineHeight: 1.5 }}>
+                        Abre <span style={{ color: "#7C6FFF", fontWeight: 700 }}>1DM</span> o <span style={{ color: "#7C6FFF", fontWeight: 700 }}>ADM</span>, pega el enlace y descarga el episodio completo.
+                      </div>
+                    </div>
+                  )}
+
                   {/* Video sources */}
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
@@ -1397,43 +1409,62 @@ export default function Player() {
                       {sources.map((src, i) => {
                         const label = parseResolution(src);
                         const isDirectMp4 = src.isM3U8 === false;
-                        const ext = isDirectMp4 ? "mp4" : "m3u8";
-                        const filename = `${animeTitle}-ep${episodeNum}-${label}.${ext}`;
+                        const filename = `${animeTitle}-ep${episodeNum}-${label}.${isDirectMp4 ? "mp4" : "m3u8"}`;
                         const proxyHref = downloadProxyUrl(src.url, filename, "https://animekai.to/");
+
+                        if (isDirectMp4) {
+                          // MP4: descarga directa via proxy
+                          return (
+                            <a
+                              key={i}
+                              href={proxyHref}
+                              download={filename}
+                              style={{
+                                display: "inline-flex", alignItems: "center", gap: 5,
+                                padding: "6px 13px", borderRadius: 9,
+                                background: "rgba(124,111,255,0.22)", border: "1px solid rgba(124,111,255,0.45)",
+                                color: "#B39DFF", fontSize: 12, fontWeight: 700, textDecoration: "none",
+                              }}
+                            >
+                              <Download size={11} /> {label} MP4
+                            </a>
+                          );
+                        }
+
+                        // HLS: copia enlace para usar con 1DM/ADM
+                        const isCopied = dlCopied === src.url;
                         return (
-                          <a
+                          <button
                             key={i}
-                            href={proxyHref}
-                            download={filename}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              fetch(proxyHref, { method: "HEAD" })
-                                .then((r) => {
-                                  if (r.ok || r.status === 405) {
-                                    window.location.href = proxyHref;
-                                  } else {
-                                    window.open(src.url, "_blank");
-                                  }
-                                })
-                                .catch(() => window.open(src.url, "_blank"));
+                            onClick={() => {
+                              navigator.clipboard.writeText(src.url).then(() => {
+                                setDlCopied(src.url);
+                                setTimeout(() => setDlCopied(null), 5000);
+                              }).catch(() => {
+                                // Fallback: abrir en nueva pestaña
+                                window.open(src.url, "_blank");
+                              });
                             }}
-                            title={`Descargar ${label}`}
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 5,
                               padding: "6px 13px", borderRadius: 9,
-                              background: i === selectedIdx ? "rgba(124,111,255,0.22)" : "rgba(255,255,255,0.07)",
-                              border: `1px solid ${i === selectedIdx ? "rgba(124,111,255,0.45)" : "rgba(255,255,255,0.1)"}`,
-                              color: i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.55)",
-                              fontSize: 12, fontWeight: 700, textDecoration: "none",
-                              transition: "background 0.15s", cursor: "pointer",
+                              background: isCopied ? "rgba(34,197,94,0.15)" : (i === selectedIdx ? "rgba(124,111,255,0.22)" : "rgba(255,255,255,0.07)"),
+                              border: `1px solid ${isCopied ? "rgba(34,197,94,0.4)" : (i === selectedIdx ? "rgba(124,111,255,0.45)" : "rgba(255,255,255,0.1)")}`,
+                              color: isCopied ? "#22C55E" : (i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.55)"),
+                              fontSize: 12, fontWeight: 700, cursor: "pointer",
                             }}
                           >
-                            <Download size={11} />
-                            {label}
-                          </a>
+                            {isCopied ? <CheckIcon size={11} /> : <Copy size={11} />}
+                            {isCopied ? "¡Copiado!" : label}
+                          </button>
                         );
                       })}
                     </div>
+                    {sources.every(s => s.isM3U8 !== false) && !dlCopied && (
+                      <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, marginTop: 6, lineHeight: 1.5 }}>
+                        Toca una calidad para copiar el enlace → ábrelo en <span style={{ color: "#7C6FFF" }}>1DM</span> o <span style={{ color: "#7C6FFF" }}>ADM</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Subtitle downloads */}
@@ -1454,8 +1485,7 @@ export default function Player() {
                               color: "#22C55E", fontSize: 12, fontWeight: 700, textDecoration: "none",
                             }}
                           >
-                            <Download size={11} />
-                            ES · Español
+                            <Download size={11} /> ES · Español
                           </a>
                         )}
                         {streamEnglishSub && (
@@ -1469,8 +1499,7 @@ export default function Player() {
                               color: "#60A5FA", fontSize: 12, fontWeight: 700, textDecoration: "none",
                             }}
                           >
-                            <Download size={11} />
-                            EN · English
+                            <Download size={11} /> EN · English
                           </a>
                         )}
                       </div>
