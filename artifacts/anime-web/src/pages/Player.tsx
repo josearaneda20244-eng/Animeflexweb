@@ -755,8 +755,8 @@ export default function Player() {
   const shouldFetchAnimeFlv = !!animeTitle && !!episodeNum;
 
   const animeflvQuery = useQuery({
-    queryKey: ["animeflv", animeTitle, episodeNum],
-    queryFn: () => consumet.animeflvWatch(animeTitle, parseInt(episodeNum || "1")),
+    queryKey: ["animeflv", animeTitle, episodeNum, animeId],
+    queryFn: () => consumet.animeflvWatch(animeTitle, parseInt(episodeNum || "1"), animeId || undefined),
     enabled: shouldFetchAnimeFlv,
     retry: 1,
     staleTime: 1000 * 60 * 15,
