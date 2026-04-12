@@ -189,3 +189,57 @@ export const consumet = {
   byFormat: (format: "MOVIE" | "OVA" | "ONA" | "SPECIAL", page = 1): Promise<SearchResult> =>
     get<SearchResult>(`/anime/by-format?format=${format}&page=${page}`),
 };
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Direct AniList GraphQL call — bypasses the backend, works from the browser.
+// Used for Películas / OVAs pages so they don't depend on Railway being up.
+// ──────────────────────────────────────────────────────────────────────────────
+const ANILIST_GQL_URL = "https://graphql.anilist.co";
+
+const BY_FORMAT_QUERY = `
+  query ($format: MediaFormat, $page: Int, $perPage: Int) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo { currentPage hasNextPage }
+      media(type: ANIME, format: $format, sort: POPULARITY_DESC, isAdult: false) {
+        id
+        title { romaji english native userPreferred }
+        coverImage { extraLarge large }
+        averageScore
+        format
+        episodes
+        status
+        genres
+      }
+    }
+  }
+`;
+
+export async function byFormatDirect(
+  format: "MOVIE" | "OVA" | "ONA" | "SPECIAL",
+  page = 1,
+  perPage = 24,
+): Promise<SearchResult> {
+  const resp = await fetch(ANILIST_GQL_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query: BY_FORMAT_QUERY, variables: { format, page, perPage } }),
+  });
+  if (!resp.ok) throw new Error(`AniList error ${resp.status}`);
+  const json: any = await resp.json();
+  if (json.errors?.length) throw new Error(json.errors[0].message);
+  const raw: any[] = json.data.Page.media ?? [];
+  return {
+    currentPage: json.data.Page.pageInfo.currentPage,
+    hasNextPage: json.data.Page.pageInfo.hasNextPage,
+    results: raw.map((m: any) => ({
+      id: String(m.id),
+      title: m.title,
+      image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
+      rating: m.averageScore ?? 0,
+      type: m.format ?? format,
+      totalEpisodes: m.episodes ?? 0,
+      status: m.status ?? "",
+      genres: m.genres ?? [],
+    })),
+  };
+}
