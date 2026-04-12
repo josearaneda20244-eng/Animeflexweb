@@ -1144,14 +1144,26 @@ export default function Player() {
                   ? !animeflvQuery.isLoading && !animeflvQuery.isError
                   : !query.isLoading && !query.isError) && (
               selected.isM3U8 === false ? (
-                <video
-                  key={`mp4-${episodeId}-${selectedIdx}`}
-                  src={proxyStreamUrl(selected.url, activeReferer)}
-                  autoPlay
-                  controls
-                  playsInline
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "#000" }}
-                />
+                (selected as any).isEmbed ? (
+                  <iframe
+                    key={`embed-${episodeId}-${selectedIdx}`}
+                    src={selected.url}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", background: "#000" }}
+                    allowFullScreen
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    referrerPolicy="origin"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+                  />
+                ) : (
+                  <video
+                    key={`mp4-${episodeId}-${selectedIdx}`}
+                    src={proxyStreamUrl(selected.url, activeReferer)}
+                    autoPlay
+                    controls
+                    playsInline
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "#000" }}
+                  />
+                )
               ) : (
                 proxyM3u8 ? (
                   <PlyrPlayer
