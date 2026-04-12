@@ -8,6 +8,7 @@ import {
   ArrowLeft, SkipForward, AlertCircle, Loader2, Play, X,
   Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2,
   Share2, Copy, Check as CheckIcon, HelpCircle, FastForward, Rewind,
+  Download,
 } from "lucide-react";
 import {
   consumet,
@@ -1377,6 +1378,106 @@ export default function Player() {
                 <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos para este episodio.</p>
               )}
             </div>
+
+            {/* Download section */}
+            {!query.isLoading && sources.length > 0 && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <Download size={14} color="#7C6FFF" />
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Descargar</div>
+                </div>
+                <div style={{ background: "rgba(124,111,255,0.06)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {/* Video sources */}
+                  <div>
+                    <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
+                      Video {audioLang === "lat" ? "· Latino" : "· Subtitulado"}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {sources.map((src, i) => {
+                        const label = parseResolution(src);
+                        const isDirectMp4 = src.isM3U8 === false;
+                        return (
+                          <a
+                            key={i}
+                            href={isDirectMp4 ? src.url : src.url}
+                            download={isDirectMp4 ? `${animeTitle}-ep${episodeNum}-${label}.mp4` : undefined}
+                            target={isDirectMp4 ? undefined : "_blank"}
+                            rel="noopener noreferrer"
+                            title={isDirectMp4 ? `Descargar ${label}` : `Abrir stream ${label} (requiere descargador de HLS)`}
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              padding: "6px 13px", borderRadius: 9,
+                              background: i === selectedIdx ? "rgba(124,111,255,0.22)" : "rgba(255,255,255,0.07)",
+                              border: `1px solid ${i === selectedIdx ? "rgba(124,111,255,0.45)" : "rgba(255,255,255,0.1)"}`,
+                              color: i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.55)",
+                              fontSize: 12, fontWeight: 700, textDecoration: "none",
+                              transition: "background 0.15s",
+                            }}
+                          >
+                            <Download size={11} />
+                            {label}
+                            {!isDirectMp4 && (
+                              <span style={{ fontSize: 9, opacity: 0.6, fontWeight: 600 }}>HLS</span>
+                            )}
+                          </a>
+                        );
+                      })}
+                    </div>
+                    {sources.every(s => s.isM3U8 !== false) && (
+                      <div style={{ color: "rgba(255,255,255,0.22)", fontSize: 10, marginTop: 6, lineHeight: 1.5 }}>
+                        Este anime usa streams HLS. Para descargar abre el enlace con una app como
+                        {" "}<span style={{ color: "#7C6FFF", fontWeight: 700 }}>IDM, 1DM, ADM</span> o similar.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Subtitle downloads */}
+                  {(streamSpanishSub || streamEnglishSub) && (
+                    <div>
+                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
+                        Subtítulos (.vtt)
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {streamSpanishSub && (
+                          <a
+                            href={streamSpanishSub.url}
+                            download={`${animeTitle}-ep${episodeNum}-es.vtt`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              padding: "6px 13px", borderRadius: 9,
+                              background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)",
+                              color: "#22C55E", fontSize: 12, fontWeight: 700, textDecoration: "none",
+                            }}
+                          >
+                            <Download size={11} />
+                            ES · Español
+                          </a>
+                        )}
+                        {streamEnglishSub && (
+                          <a
+                            href={streamEnglishSub.url}
+                            download={`${animeTitle}-ep${episodeNum}-en.vtt`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: 5,
+                              padding: "6px 13px", borderRadius: 9,
+                              background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)",
+                              color: "#60A5FA", fontSize: 12, fontWeight: 700, textDecoration: "none",
+                            }}
+                          >
+                            <Download size={11} />
+                            EN · English
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
