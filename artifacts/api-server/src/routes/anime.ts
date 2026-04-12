@@ -542,10 +542,41 @@ router.get("/anime/search", async (req, res) => {
 
 /**
  * Fetch anime by Anilist format (MOVIE, OVA, ONA, SPECIAL), sorted by popularity.
+ * Uses AniList GraphQL API directly for reliability.
  * GET /api/anime/by-format?format=MOVIE&page=1
  */
-// In-memory cache for by-format results (15 min TTL)
 const byFormatCache = new Map<string, { data: unknown; expires: number }>();
+
+const ANILIST_GQL = "https://graphql.anilist.co";
+
+async function anilistByFormat(format: string, page: number, perPage = 24) {
+  const query = `
+    query ($format: MediaFormat, $page: Int, $perPage: Int) {
+      Page(page: $page, perPage: $perPage) {
+        pageInfo { currentPage hasNextPage }
+        media(type: ANIME, format: $format, sort: POPULARITY_DESC, isAdult: false) {
+          id
+          title { romaji english native userPreferred }
+          coverImage { extraLarge large }
+          averageScore
+          format
+          episodes
+          status
+          genres
+        }
+      }
+    }
+  `;
+  const resp = await fetch(ANILIST_GQL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query, variables: { format, page, perPage } }),
+  });
+  if (!resp.ok) throw new Error(`AniList GQL error ${resp.status}`);
+  const json: any = await resp.json();
+  if (json.errors?.length) throw new Error(json.errors[0].message);
+  return json.data.Page;
+}
 
 router.get("/anime/by-format", async (req, res) => {
   const ALLOWED = ["MOVIE", "OVA", "ONA", "SPECIAL"];
@@ -562,36 +593,26 @@ router.get("/anime/by-format", async (req, res) => {
     return;
   }
   try {
-    const data = await getAnilist().advancedSearch(
-      undefined,
-      "ANIME",
-      page,
-      24,
-      undefined,
-      ["POPULARITY_DESC"],
-      undefined,
-      undefined,
-      format,
-    );
-    const results = (data.results || []).map((m: any) => ({
+    const page_data = await anilistByFormat(format, page);
+    const results = (page_data.media || []).map((m: any) => ({
       id: String(m.id),
       title: m.title,
-      image: m.image ?? "",
-      rating: m.rating ?? 0,
-      type: m.type ?? format,
-      totalEpisodes: m.totalEpisodes ?? 0,
+      image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
+      rating: m.averageScore ?? 0,
+      type: m.format ?? format,
+      totalEpisodes: m.episodes ?? 0,
       status: m.status,
       genres: m.genres ?? [],
     }));
     const payload = {
       results,
-      currentPage: data.currentPage ?? page,
-      hasNextPage: data.hasNextPage ?? false,
+      currentPage: page_data.pageInfo?.currentPage ?? page,
+      hasNextPage: page_data.pageInfo?.hasNextPage ?? false,
     };
     byFormatCache.set(cacheKey, { data: payload, expires: Date.now() + 15 * 60 * 1000 });
     res.json(payload);
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch anime by format");
+    req.log.error({ err }, "Failed to fetch anime by format from AniList");
     res.status(500).json({ error: "Failed to fetch anime" });
   }
 });
