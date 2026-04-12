@@ -270,8 +270,13 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
     });
 
     res.json({ ok: true });
-  } catch {
-    res.status(500).json({ error: "Error al enviar email de verificación" });
+  } catch (err: any) {
+    if (err?.message === "SMTP_NOT_CONFIGURED") {
+      res.status(503).json({ error: "El servidor de correo no está configurado. Contacta al administrador." });
+    } else {
+      console.error("send-verification error:", err);
+      res.status(500).json({ error: "No se pudo enviar el correo. Intenta de nuevo más tarde." });
+    }
   }
 });
 
