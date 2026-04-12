@@ -333,7 +333,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         setError("Tiempo de carga agotado. Probando otra fuente...");
         setLoading(false);
         notifyPlaybackError();
-      }, 22000);
+      }, 12000);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
@@ -1140,14 +1140,19 @@ export default function Player() {
                         : "No se encontró este episodio en AnimeKai (Inglés). Prueba con LAT."}
                   </p>
                 </div>
-                <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
                   <button
-                    onClick={() => audioLang === "lat" ? animeflvQuery.refetch() : query.refetch()}
+                    onClick={() => {
+                      setPlaybackFailureCount(0);
+                      setSelectedIdx(0);
+                      if (audioLang === "lat") animeflvQuery.refetch();
+                      else query.refetch();
+                    }}
                     style={{ padding: "10px 20px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     Reintentar
                   </button>
                   <button
-                    onClick={() => { setAudioLang(audioLang === "lat" ? "sub" : "lat"); setSelectedIdx(0); }}
+                    onClick={() => { setAudioLang(audioLang === "lat" ? "sub" : "lat"); setSelectedIdx(0); setPlaybackFailureCount(0); }}
                     style={{ padding: "10px 20px", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#F1F1F5", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     Cambiar a {audioLang === "lat" ? "SUB 🇬🇧" : "LAT 🇪🇸"}
                   </button>
