@@ -1003,7 +1003,7 @@ export default function Player() {
                 <AlertCircle size={36} color="#EF4444" />
                 <p style={{ color: "#F1F1F5", fontSize: 14 }}>
                   {audioLang === "lat"
-                    ? "No se encontró en AnimeFLV — prueba con otro anime o episodio"
+                    ? "No se encontró en JKAnime — prueba con otro anime o episodio"
                     : "No se pudo cargar el episodio"}
                 </p>
                 <button
@@ -1016,7 +1016,7 @@ export default function Player() {
             {audioLang === "lat" && animeflvQuery.isLoading && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <Loader2 size={36} color="#F59E0B" className="animate-spin" />
-                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando episodio en AnimeFLV...</p>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando episodio en JKAnime...</p>
               </div>
             )}
             {!selected && !showLimitModal &&
@@ -1194,7 +1194,7 @@ export default function Player() {
                     const active = audioLang === lang;
                     return (
                       <button key={lang} onClick={() => { setAudioLang(lang); setSelectedIdx(0); }}
-                        title={lang === "lat" ? "Latino (AnimeFLV)" : "Subtitulado (original)"}
+                        title={lang === "lat" ? "Latino (JKAnime)" : "Subtitulado (original)"}
                         style={{
                           padding: "5px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, cursor: "pointer",
                           background: active ? (lang === "lat" ? "rgba(245,158,11,0.2)" : "rgba(124,111,255,0.2)") : "transparent",
