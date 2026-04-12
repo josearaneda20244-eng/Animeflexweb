@@ -1122,7 +1122,12 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
           if (!ep?.id) continue;
           try {
             const data = await sourcesFetcher(String(ep.id));
-            req.log.info({ provider: name, variant, episodeNum }, `${name} parallel fallback succeeded`);
+            // Only accept this result if it has actual playable M3U8 sources
+            const playableSources = (data?.sources ?? []).filter(
+              (s: any) => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8"))
+            );
+            if (playableSources.length === 0) continue;
+            req.log.info({ provider: name, variant, episodeNum, sourceCount: playableSources.length }, `${name} parallel fallback succeeded`);
             return data;
           } catch { continue; }
         }
