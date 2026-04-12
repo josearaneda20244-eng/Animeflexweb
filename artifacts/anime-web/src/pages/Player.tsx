@@ -782,7 +782,9 @@ export default function Player() {
   const latReferer = animeflvHeaders["Referer"] ?? animeflvHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
   const selectedIsBackup = !!selected && (selected as any).provider === "backup";
-  const showMainError = query.isError && !hasAnimeflvSources;
+  // SUB error: query failed, OR query succeeded but returned 0 sources
+  const showSubError = audioLang === "sub" && (query.isError || (!query.isLoading && !!query.data && subSources.length === 0));
+  const showMainError = audioLang === "sub" ? showSubError : (query.isError && !hasAnimeflvSources);
 
   const streamSubtitles = query.data?.subtitles ?? [];
   const streamSpanishSub =
@@ -1054,12 +1056,17 @@ export default function Player() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
           <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9" }}>
-            {query.isLoading && !selectedIsBackup && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
-                <Loader2 size={36} className="animate-spin" style={{ color: "#7C6FFF" }} />
-                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>
-                  {query.failureCount > 0 ? `Reconectando... (intento ${query.failureCount + 1})` : "Cargando episodio..."}
-                </p>
+            {query.isLoading && audioLang === "sub" && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 14, position: "absolute", inset: 0, background: "rgba(5,5,12,0.8)", backdropFilter: "blur(4px)" }}>
+                <div style={{ position: "relative" }}>
+                  <Loader2 size={44} className="animate-spin" style={{ color: "#7C6FFF" }} />
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
+                    {query.failureCount > 0 ? `Buscando servidor alternativo... (${query.failureCount + 1}/3)` : "Cargando episodio subtitulado..."}
+                  </p>
+                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>SUB · Subtítulos en inglés · AnimeKai</p>
+                </div>
               </div>
             )}
             {/* ── Límite de episodios — Modal premium ── */}
@@ -1105,18 +1112,32 @@ export default function Player() {
             )}
 
           {(audioLang === "lat" ? animeflvQuery.isError : showMainError) && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
-                <AlertCircle size={36} color="#EF4444" />
-                <p style={{ color: "#F1F1F5", fontSize: 14 }}>
-                  {audioLang === "lat"
-                    ? "No se encontró el episodio en JKAnime. Prueba con Subtitulado."
-                    : "No se pudo cargar el episodio"}
-                </p>
-                <button
-                  onClick={() => audioLang === "lat" ? animeflvQuery.refetch() : query.refetch()}
-                  style={{ padding: "8px 16px", borderRadius: 10, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, cursor: "pointer" }}>
-                  Reintentar
-                </button>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 16, position: "absolute", inset: 0, background: "rgba(5,5,12,0.85)", backdropFilter: "blur(6px)" }}>
+                <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <AlertCircle size={28} color="#EF4444" />
+                </div>
+                <div style={{ textAlign: "center", maxWidth: 300, padding: "0 16px" }}>
+                  <p style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800, marginBottom: 6 }}>
+                    {audioLang === "lat" ? "No disponible en LAT" : "No disponible en SUB"}
+                  </p>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>
+                    {audioLang === "lat"
+                      ? "No se encontró este episodio en JKAnime (Español). Prueba con SUB."
+                      : "No se encontró este episodio en AnimeKai (Inglés). Prueba con LAT."}
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={() => audioLang === "lat" ? animeflvQuery.refetch() : query.refetch()}
+                    style={{ padding: "10px 20px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    Reintentar
+                  </button>
+                  <button
+                    onClick={() => { setAudioLang(audioLang === "lat" ? "sub" : "lat"); setSelectedIdx(0); }}
+                    style={{ padding: "10px 20px", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#F1F1F5", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    Cambiar a {audioLang === "lat" ? "SUB 🇬🇧" : "LAT 🇪🇸"}
+                  </button>
+                </div>
               </div>
             )}
             {audioLang === "lat" && animeflvQuery.isLoading && (
@@ -1271,12 +1292,14 @@ export default function Player() {
           </div>
 
           {/* Controls below video — hidden when fullscreen + mouse inactive */}
-          <div style={{ padding: "14px 16px", display: isFullscreen && !fullscreenControlsVisible ? "none" : "flex", flexDirection: "column", gap: 18, transition: "opacity 0.3s", opacity: isFullscreen && !fullscreenControlsVisible ? 0 : 1 }}>
+          <div style={{ padding: "16px 16px 20px", display: isFullscreen && !fullscreenControlsVisible ? "none" : "flex", flexDirection: "column", gap: 14, transition: "opacity 0.3s", opacity: isFullscreen && !fullscreenControlsVisible ? 0 : 1, background: "linear-gradient(180deg,#090A12 0%,#0A0B16 100%)" }}>
             {/* Episode title row */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, padding: "10px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14 }}>
               <div>
-                <div style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>{animeTitle}</div>
-                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 2 }}>Episodio {episodeNum}</div>
+                <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>{animeTitle}</div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 3 }}>
+                  Episodio {episodeNum} · {audioLang === "sub" ? "🇬🇧 Subtitulado en inglés" : "🇪🇸 Subtitulado en español"}
+                </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 {/* Keyboard shortcuts help */}
@@ -1309,22 +1332,28 @@ export default function Player() {
                   <span className="hidden md:inline">{theaterMode ? "Normal" : "Modo Teatro"}</span>
                 </button>
                 {/* Audio language toggle: Sub / Latino */}
-                <div style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "2px 4px" }}>
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 700, paddingLeft: 4 }}>Audio:</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 12, padding: "3px" }}>
                   {(["sub", "lat"] as const).map((lang) => {
                     const active = audioLang === lang;
                     return (
                       <button key={lang} onClick={() => { setAudioLang(lang); setSelectedIdx(0); }}
-                        title={lang === "lat" ? "Español Latino - audio doblado (JKAnime)" : "Subtítulos en Español"}
+                        title={lang === "lat" ? "Subtítulos en Español Latino (JKAnime)" : "Subtítulos en Inglés (AnimeKai)"}
                         style={{
-                          padding: "5px 10px", borderRadius: 7, fontSize: 11, fontWeight: 800, cursor: "pointer",
-                          background: active ? (lang === "lat" ? "rgba(245,158,11,0.2)" : "rgba(124,111,255,0.2)") : "transparent",
-                          border: `1px solid ${active ? (lang === "lat" ? "rgba(245,158,11,0.5)" : "rgba(124,111,255,0.5)") : "transparent"}`,
-                          color: active ? (lang === "lat" ? "#F59E0B" : "#B39DFF") : "rgba(255,255,255,0.35)",
-                          display: "flex", alignItems: "center", gap: 4,
+                          padding: "7px 13px", borderRadius: 9, fontSize: 12, fontWeight: 800, cursor: "pointer",
+                          background: active
+                            ? lang === "lat"
+                              ? "linear-gradient(135deg,rgba(245,158,11,0.25),rgba(234,88,12,0.15))"
+                              : "linear-gradient(135deg,rgba(124,111,255,0.3),rgba(91,82,245,0.2))"
+                            : "transparent",
+                          border: `1px solid ${active ? (lang === "lat" ? "rgba(245,158,11,0.5)" : "rgba(124,111,255,0.55)") : "transparent"}`,
+                          color: active ? (lang === "lat" ? "#F59E0B" : "#B39DFF") : "rgba(255,255,255,0.4)",
+                          display: "flex", alignItems: "center", gap: 5,
+                          boxShadow: active ? `0 0 10px ${lang === "lat" ? "rgba(245,158,11,0.15)" : "rgba(124,111,255,0.2)"}` : "none",
+                          transition: "all 0.15s ease",
                         }}>
-                        {lang === "lat" ? "🌎 LAT" : "🎌 SUB"}
-                        {lang === "lat" && animeflvQuery.isLoading && <span style={{ fontSize: 9 }}>···</span>}
+                        {lang === "lat" ? "🇪🇸 LAT" : "🇬🇧 SUB"}
+                        {lang === "sub" && query.isLoading && audioLang === "sub" && <span style={{ fontSize: 9, opacity: 0.6 }}>···</span>}
+                        {lang === "lat" && animeflvQuery.isLoading && <span style={{ fontSize: 9, opacity: 0.6 }}>···</span>}
                       </button>
                     );
                   })}
@@ -1404,12 +1433,22 @@ export default function Player() {
             </div>
 
             {/* Speed */}
-            <div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>Velocidad</div>
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Velocidad</div>
+                <span style={{ color: "#B39DFF", fontSize: 12, fontWeight: 800 }}>{playbackRate}x</span>
+              </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {SPEEDS.map((s) => (
                   <button key={s} onClick={() => setPlaybackRate(s)}
-                    style={{ padding: "6px 14px", borderRadius: 10, background: playbackRate === s ? "rgba(124,111,255,0.2)" : "transparent", border: `1px solid ${playbackRate === s ? "#7C6FFF" : "rgba(255,255,255,0.1)"}`, color: playbackRate === s ? "#B39DFF" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    style={{
+                      padding: "7px 16px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      background: playbackRate === s ? "linear-gradient(135deg,rgba(124,111,255,0.3),rgba(91,82,245,0.2))" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${playbackRate === s ? "rgba(124,111,255,0.6)" : "rgba(255,255,255,0.08)"}`,
+                      color: playbackRate === s ? "#B39DFF" : "rgba(255,255,255,0.35)",
+                      boxShadow: playbackRate === s ? "0 0 12px rgba(124,111,255,0.2)" : "none",
+                      transition: "all 0.15s ease",
+                    }}>
                     {s}x
                   </button>
                 ))}
@@ -1418,22 +1457,29 @@ export default function Player() {
 
             {/* Quality */}
             {sources.length > 0 && (
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Calidad</div>
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Calidad</div>
                   {selected && (
-                    <span style={{ background: "rgba(124,111,255,0.2)", color: "#B39DFF", borderRadius: 6, padding: "1px 7px", fontSize: 10, fontWeight: 800 }}>
-                      {parseResolution(selected)}
+                    <span style={{ background: "linear-gradient(135deg,rgba(124,111,255,0.25),rgba(91,82,245,0.15))", color: "#B39DFF", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid rgba(124,111,255,0.3)" }}>
+                      {parseResolution(selected)} activo
                     </span>
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {sources.map((src, i) => (
                     <button key={i} onClick={() => setSelectedIdx(i)}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 10, background: i === selectedIdx ? "rgba(124,111,255,0.2)" : "transparent", border: `1px solid ${i === selectedIdx ? "#7C6FFF" : "rgba(255,255,255,0.1)"}`, color: i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                      style={{
+                        display: "flex", alignItems: "center", gap: 5, padding: "7px 16px", borderRadius: 10, cursor: "pointer",
+                        background: i === selectedIdx ? "linear-gradient(135deg,rgba(124,111,255,0.3),rgba(91,82,245,0.2))" : "rgba(255,255,255,0.04)",
+                        border: `1px solid ${i === selectedIdx ? "rgba(124,111,255,0.6)" : "rgba(255,255,255,0.08)"}`,
+                        color: i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.35)",
+                        fontSize: 12, fontWeight: 700,
+                        boxShadow: i === selectedIdx ? "0 0 12px rgba(124,111,255,0.2)" : "none",
+                        transition: "all 0.15s ease",
+                      }}>
                       {parseResolution(src)}
-                      {src.isDub && audioLang === "lat" && <span style={{ background: "rgba(245,158,11,0.3)", color: "#F59E0B", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>LAT</span>}
-                      {isDub(src) && audioLang !== "lat" && <span style={{ background: "rgba(255,255,255,0.005)", color: "#1a365d", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 4px" }}>DUB</span>}
+                      {src.isDub && audioLang === "lat" && <span style={{ background: "rgba(245,158,11,0.2)", color: "#F59E0B", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 5px", border: "1px solid rgba(245,158,11,0.3)" }}>ESP</span>}
                     </button>
                   ))}
                 </div>
@@ -1441,9 +1487,9 @@ export default function Player() {
             )}
 
             {/* Subtitles section */}
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Subtítulos</div>
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Subtítulos</div>
                 {(streamSpanishSub || streamEnglishSub || hlsSubTracks.length > 0) && (
                   <div style={{ display: "flex", gap: 4 }}>
                     {(["es", "en", "off"] as const).map((lang) => {
@@ -1469,7 +1515,7 @@ export default function Player() {
               </div>
               {query.isLoading && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-                  <Loader2 size={12} className="animate-spin" /> Cargando episodio...
+                  <Loader2 size={12} className="animate-spin" /> Buscando subtítulos en inglés...
                 </div>
               )}
               {!query.isLoading && (streamSpanishSub || streamEnglishSub) && (
