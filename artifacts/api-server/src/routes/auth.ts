@@ -165,7 +165,7 @@ router.post("/auth/forgot-password", async (req, res) => {
     );
 
     const proto  = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
-    const host   = req.get("host") ?? "animeflex.replit.app";
+    const host   = req.get("host") ?? "animeflex.lat";
     const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
     const frontendBase = process.env["APP_URL"] ?? `${proto}://${host}${basePath}`;
     const resetUrl = `${frontendBase}/reset-password?token=${token}`;
@@ -247,7 +247,7 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
     );
 
     const vProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
-    const vHost  = req.get("host") ?? "animeflex.replit.app";
+    const vHost  = req.get("host") ?? "animeflex.lat";
     /* Link goes to the API endpoint which verifies and then redirects to the SPA */
     const verifyUrl = `${vProto}://${vHost}/api/auth/verify-email?token=${token}`;
 
@@ -286,7 +286,7 @@ router.get("/auth/verify-email", async (req, res) => {
 
   /* Derive frontend base URL from the incoming request host */
   const rProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
-  const rHost  = req.get("host") ?? "animeflex.replit.app";
+  const rHost  = req.get("host") ?? "animeflex.lat";
   const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
   const frontendBase = process.env["APP_URL"] ?? `${rProto}://${rHost}${basePath}`;
 
