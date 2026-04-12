@@ -197,7 +197,7 @@ export default function Profile() {
           background: "linear-gradient(180deg,#13112b,#0d0b1e)",
           position: "relative",
         }}>
-          {/* Banner — overflow:hidden only here so avatar is NOT clipped */}
+          {/* Banner */}
           <div style={{ height: 90, borderRadius: "20px 20px 0 0", position: "relative", overflow: "hidden", background: "linear-gradient(135deg,#1a1250,#2d1569,#130f2e)" }}>
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 25% 60%,rgba(124,111,255,0.5),transparent 60%)" }} />
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 30%,rgba(236,72,153,0.25),transparent 55%)" }} />
@@ -206,88 +206,86 @@ export default function Profile() {
             <div style={{ position: "absolute", top: 28, right: 95, width: 18, height: 18, borderRadius: "50%", background: "rgba(236,72,153,0.1)", border: "1px solid rgba(236,72,153,0.2)" }} />
           </div>
 
-          <div style={{ padding: "0 18px 20px" }}>
-            {/* Avatar + action buttons — separate areas so they never overlap */}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginTop: -34 }}>
-              {/* Avatar */}
-              <div style={{
-                width: 72, height: 72, borderRadius: 20, flexShrink: 0,
-                background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
-                border: "4px solid #13112b",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
-                boxShadow: "0 0 24px rgba(124,111,255,0.5)",
-              }}>
-                {resolveAvatarUrl(user?.avatar_url)
-                  ? <img src={resolveAvatarUrl(user?.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : (user?.username?.charAt(0)?.toUpperCase() ?? "?")}
+          {/* Avatar — absolutely positioned so it always overlaps the banner correctly */}
+          <div style={{
+            position: "absolute", top: 52, left: 18,
+            width: 72, height: 72, borderRadius: 20,
+            background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
+            border: "4px solid #13112b",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
+            boxShadow: "0 0 24px rgba(124,111,255,0.5)",
+            zIndex: 2,
+          }}>
+            {resolveAvatarUrl(user?.avatar_url)
+              ? <img src={resolveAvatarUrl(user?.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : (user?.username?.charAt(0)?.toUpperCase() ?? "?")}
+          </div>
+
+          {/* Content — paddingTop clears the avatar (90px banner + 34px overflow = 124px total, minus 90 = 34 + buffer) */}
+          <div style={{ padding: "42px 18px 20px" }}>
+            {/* Name + badges + action buttons */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+              {/* Left: name + badges */}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900, letterSpacing: -0.3, lineHeight: 1.2, marginBottom: 7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user?.username ?? "Invitado"}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                  {isOwner && (
+                    <button onClick={() => navigate("/admin")} style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)",
+                      borderRadius: 20, padding: "3px 8px", color: "#FCA5A5",
+                      fontSize: 10, fontWeight: 900, cursor: "pointer",
+                    }}>
+                      <Shield size={9} /> DUEÑO
+                    </button>
+                  )}
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(124,111,255,0.1)",
+                    border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.4)" : "rgba(124,111,255,0.3)"}`,
+                    borderRadius: 20, padding: "3px 8px",
+                    color: isMegaFan ? "#FCD34D" : "#B39DFF", fontSize: 10, fontWeight: 800,
+                  }}>
+                    {isMegaFan ? <><Crown size={9} /> MegaFan</> : "✦ Gratuito"}
+                  </span>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    background: "rgba(124,111,255,0.12)", border: "1px solid rgba(124,111,255,0.25)",
+                    borderRadius: 20, padding: "3px 8px", color: "#9D8FFF", fontSize: 10, fontWeight: 700,
+                  }}>
+                    <Zap size={9} /> Nv. {levelInfo.level}
+                  </span>
+                </div>
               </div>
-              {/* Action buttons — top-right, aligned to banner bottom */}
+              {/* Right: action buttons */}
               {user && (
-                <div style={{ display: "flex", gap: 6, paddingTop: 6 }}>
-                  <button
-                    onClick={handleCopyLink}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 5,
-                      background: copied ? "rgba(34,197,94,0.15)" : "rgba(124,111,255,0.1)",
-                      border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(124,111,255,0.3)"}`,
-                      borderRadius: 10, padding: "6px 11px", color: copied ? "#22C55E" : "#B39DFF",
-                      cursor: "pointer", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
-                    }}
-                  >
-                    <Share2 size={12} /> {copied ? "Copiado" : "Compartir"}
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, paddingTop: 2 }}>
+                  <button onClick={handleCopyLink} style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    background: copied ? "rgba(34,197,94,0.15)" : "rgba(124,111,255,0.1)",
+                    border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(124,111,255,0.3)"}`,
+                    borderRadius: 10, padding: "6px 10px",
+                    color: copied ? "#22C55E" : "#B39DFF",
+                    cursor: "pointer", fontSize: 11, fontWeight: 700,
+                  }}>
+                    <Share2 size={11} /> {copied ? "✓" : ""}
                   </button>
-                  <button
-                    onClick={() => navigate("/settings")}
-                    style={{
-                      display: "flex", alignItems: "center",
-                      background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)",
-                      borderRadius: 10, padding: "6px 11px", color: "rgba(255,255,255,0.55)",
-                      cursor: "pointer", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
-                    }}
-                  >
+                  <button onClick={() => navigate("/settings")} style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: 10, padding: "6px 10px",
+                    color: "rgba(255,255,255,0.55)",
+                    cursor: "pointer", fontSize: 11, fontWeight: 700,
+                  }}>
                     Editar
                   </button>
                 </div>
               )}
             </div>
-
-            {/* Name — own row, below avatar, never overlaps */}
-            <div style={{ marginTop: 10, marginBottom: 12 }}>
-              <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900, letterSpacing: -0.3, marginBottom: 6, lineHeight: 1.2 }}>
-                {user?.username ?? "Invitado"}
-              </div>
-              {/* Badges row */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 5 }}>
-                {isOwner && (
-                  <button onClick={() => navigate("/admin")} style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)",
-                    borderRadius: 20, padding: "3px 9px", color: "#FCA5A5",
-                    fontSize: 10, fontWeight: 900, cursor: "pointer",
-                  }}>
-                    <Shield size={9} /> DUEÑO
-                  </button>
-                )}
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(124,111,255,0.1)",
-                  border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.4)" : "rgba(124,111,255,0.3)"}`,
-                  borderRadius: 20, padding: "3px 9px",
-                  color: isMegaFan ? "#FCD34D" : "#B39DFF", fontSize: 11, fontWeight: 800,
-                }}>
-                  {isMegaFan ? <><Crown size={10} /> MegaFan</> : "✦ Gratuito"}
-                </span>
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  background: "rgba(124,111,255,0.12)", border: "1px solid rgba(124,111,255,0.25)",
-                  borderRadius: 20, padding: "3px 9px", color: "#9D8FFF", fontSize: 11, fontWeight: 700,
-                }}>
-                  <Zap size={9} /> Nv. {levelInfo.level}
-                </span>
-              </div>
-              <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 11 }}>{user?.email}</div>
-            </div>
+            <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 11, marginBottom: 14 }}>{user?.email}</div>
 
             {/* Level progress */}
             <div style={{ marginBottom: 14 }}>
