@@ -588,19 +588,21 @@ async function anilistByFormat(format: string, page: number, perPage = 24) {
 }
 
 async function anilistByFormatFallback(format: string, page: number, perPage = 24) {
-  // Fallback: use consumet's Anilist META provider with format search
+  // Fallback A: consumet's Anilist advancedSearch with format as 5th param
   const anilistMeta = getAnilist();
   const data: any = await (anilistMeta as any).advancedSearch(
-    undefined, "ANIME", page, perPage,
-    undefined, undefined, undefined, undefined,
-    undefined, undefined, format
+    undefined,  // query
+    "ANIME",    // type
+    page,       // page
+    perPage,    // perPage
+    format      // format — 5th parameter
   );
   const results = ((data?.results) || []).map((m: any) => ({
     id: String(m.id),
-    title: m.title ?? { romaji: m.title, english: m.title },
+    title: m.title ?? { romaji: String(m.title), english: String(m.title) },
     image: m.image ?? "",
-    rating: (m.rating ?? 0),
-    type: format,
+    rating: m.rating ?? 0,
+    type: m.type ?? format,
     totalEpisodes: m.totalEpisodes ?? 0,
     status: m.status ?? "",
     genres: m.genres ?? [],
@@ -610,6 +612,37 @@ async function anilistByFormatFallback(format: string, page: number, perPage = 2
     pageInfo: { currentPage: page, hasNextPage: data?.hasNextPage ?? false },
     _fromFallback: true,
   };
+}
+
+async function anilistByFormatDirect(format: string, page: number, perPage = 24) {
+  // Fallback B: public Consumet REST API as last resort
+  const url = `https://api.consumet.org/meta/anilist/advanced-search?type=ANIME&format=${format}&page=${page}&perPage=${perPage}&sort=%5B%22POPULARITY_DESC%22%5D`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const resp = await fetch(url, { signal: controller.signal, headers: { Accept: "application/json" } });
+    clearTimeout(timer);
+    if (!resp.ok) throw new Error(`consumet.org API error ${resp.status}`);
+    const json: any = await resp.json();
+    const results = ((json?.results) || []).map((m: any) => ({
+      id: String(m.id),
+      title: m.title ?? {},
+      image: m.image ?? "",
+      rating: m.rating ?? 0,
+      type: m.type ?? format,
+      totalEpisodes: m.totalEpisodes ?? 0,
+      status: m.status ?? "",
+      genres: m.genres ?? [],
+    }));
+    return {
+      media: results,
+      pageInfo: { currentPage: page, hasNextPage: json?.hasNextPage ?? false },
+      _fromFallback: true,
+    };
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
 }
 
 router.get("/anime/by-format", async (req, res) => {
@@ -629,21 +662,32 @@ router.get("/anime/by-format", async (req, res) => {
   try {
     let page_data: any;
     let usedFallback = false;
+
+    // Attempt 1: direct AniList GraphQL
     try {
       page_data = await anilistByFormat(format, page);
-    } catch (primaryErr) {
-      req.log.warn({ primaryErr }, "AniList direct GQL failed, trying consumet fallback");
+    } catch (err1) {
+      req.log.warn({ err1 }, "AniList GQL failed, trying consumet advancedSearch");
+      // Attempt 2: consumet Anilist advancedSearch
       try {
         page_data = await anilistByFormatFallback(format, page);
         usedFallback = true;
-      } catch (fallbackErr) {
-        req.log.error({ fallbackErr }, "Both AniList direct and fallback failed");
-        throw primaryErr;
+      } catch (err2) {
+        req.log.warn({ err2 }, "consumet advancedSearch failed, trying consumet.org REST API");
+        // Attempt 3: public consumet.org REST API
+        try {
+          page_data = await anilistByFormatDirect(format, page);
+          usedFallback = true;
+        } catch (err3) {
+          req.log.error({ err1, err2, err3 }, "All three methods failed for by-format");
+          throw err1;
+        }
       }
     }
-    const rawItems = usedFallback ? (page_data.media || []) : (page_data.media || []);
+
+    const rawItems: any[] = page_data.media || [];
     const results = usedFallback
-      ? rawItems
+      ? rawItems  // already normalized in fallback functions
       : rawItems.map((m: any) => ({
           id: String(m.id),
           title: m.title,
@@ -654,6 +698,7 @@ router.get("/anime/by-format", async (req, res) => {
           status: m.status,
           genres: m.genres ?? [],
         }));
+
     const payload = {
       results,
       currentPage: page_data.pageInfo?.currentPage ?? page,
@@ -662,7 +707,7 @@ router.get("/anime/by-format", async (req, res) => {
     byFormatCache.set(cacheKey, { data: payload, expires: Date.now() + 15 * 60 * 1000 });
     res.json(payload);
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch anime by format from AniList");
+    req.log.error({ err }, "Failed to fetch anime by format");
     res.status(500).json({ error: "Failed to fetch anime" });
   }
 });
