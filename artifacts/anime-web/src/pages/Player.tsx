@@ -1405,7 +1405,19 @@ export default function Player() {
                             key={i}
                             href={proxyHref}
                             download={filename}
-                            title={`Descargar ${label} (${ext.toUpperCase()})`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              fetch(proxyHref, { method: "HEAD" })
+                                .then((r) => {
+                                  if (r.ok || r.status === 405) {
+                                    window.location.href = proxyHref;
+                                  } else {
+                                    window.open(src.url, "_blank");
+                                  }
+                                })
+                                .catch(() => window.open(src.url, "_blank"));
+                            }}
+                            title={`Descargar ${label}`}
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 5,
                               padding: "6px 13px", borderRadius: 9,
@@ -1413,7 +1425,7 @@ export default function Player() {
                               border: `1px solid ${i === selectedIdx ? "rgba(124,111,255,0.45)" : "rgba(255,255,255,0.1)"}`,
                               color: i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.55)",
                               fontSize: 12, fontWeight: 700, textDecoration: "none",
-                              transition: "background 0.15s",
+                              transition: "background 0.15s", cursor: "pointer",
                             }}
                           >
                             <Download size={11} />
