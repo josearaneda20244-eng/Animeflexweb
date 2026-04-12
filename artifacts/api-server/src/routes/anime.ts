@@ -288,7 +288,9 @@ router.get("/anime/hls-proxy", async (req, res) => {
       if (cl) res.set("Content-Length", cl);
       if (cr) res.set("Content-Range", cr);
       res.set("Accept-Ranges", ar ?? "bytes");
-      res.set("Content-Type", contentType || "application/octet-stream");
+      // Force video/MP2T: CDNs disguise HLS segments with fake extensions (.gif, .png, etc.)
+      // HLS.js rejects segments with wrong MIME types, causing silent playback failure
+      res.set("Content-Type", "video/MP2T");
       res.status(upstream.status); // preserve 206 Partial Content for range requests
       const nodeStream = Readable.fromWeb(upstream.body as any);
       nodeStream.pipe(res);
