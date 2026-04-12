@@ -1236,6 +1236,81 @@ router.get("/anime/subtitle-proxy", async (req, res) => {
 });
 
 /**
+ * Download proxy — fetches any video/subtitle URL server-side to bypass CORS
+ * GET /api/anime/download-proxy?url=...&filename=...&referer=...
+ */
+router.get("/anime/download-proxy", async (req, res) => {
+  const rawUrl      = req.query.url      as string | undefined;
+  const rawFilename = req.query.filename as string | undefined;
+  const rawReferer  = req.query.referer  as string | undefined;
+
+  if (!rawUrl) {
+    res.status(400).send("url param required");
+    return;
+  }
+
+  let targetUrl: string;
+  let filename: string;
+  let referer: string | undefined;
+  try {
+    targetUrl = decodeURIComponent(rawUrl);
+    filename  = rawFilename ? decodeURIComponent(rawFilename) : "episode.mp4";
+    referer   = rawReferer  ? decodeURIComponent(rawReferer)  : undefined;
+  } catch {
+    res.status(400).send("Invalid params");
+    return;
+  }
+
+  try {
+    const fetchHeaders: Record<string, string> = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "*/*",
+    };
+    if (referer) {
+      fetchHeaders["Referer"]        = referer;
+      fetchHeaders["Origin"]         = new URL(referer).origin;
+    }
+
+    const upstream = await fetch(targetUrl, { headers: fetchHeaders });
+    if (!upstream.ok) {
+      res.status(upstream.status).send(`Upstream error ${upstream.status}`);
+      return;
+    }
+
+    const contentType = upstream.headers.get("content-type") ?? "application/octet-stream";
+    const contentLength = upstream.headers.get("content-length");
+
+    res.set("Content-Disposition", `attachment; filename="${filename}"`);
+    res.set("Content-Type", contentType);
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Cache-Control", "no-store");
+    if (contentLength) res.set("Content-Length", contentLength);
+
+    // Stream the body directly to the client
+    if (!upstream.body) {
+      res.status(502).send("No body from upstream");
+      return;
+    }
+    const reader = upstream.body.getReader();
+    const pump = async () => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+      res.end();
+    };
+    pump().catch((err) => {
+      req.log.warn({ err }, "Download proxy stream error");
+      res.end();
+    });
+  } catch (err) {
+    req.log.error({ err }, "Download proxy failed");
+    res.status(500).send("Download proxy failed");
+  }
+});
+
+/**
  * AnimeFLV — Spanish dubbed/subtitled anime streaming
  * GET /api/anime/animeflv-watch?title=...&episode=N
  * (mantenemos la ruta para compatibilidad, internamente usa JKAnime)
