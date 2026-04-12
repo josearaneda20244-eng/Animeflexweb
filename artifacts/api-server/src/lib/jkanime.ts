@@ -1,5 +1,10 @@
 const BASE = "https://jkanime.net";
 
+// Cache de slugs para evitar búsquedas repetidas (acelera carga)
+const slugCache = new Map<string, string>();
+const SLUG_CACHE_TTL = 1000 * 60 * 60 * 2; // 2 horas
+const slugCacheTime = new Map<string, number>();
+
 const PAGE_HEADERS: Record<string, string> = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -53,17 +58,33 @@ function makeSlugs(title: string): string[] {
   return [...new Set(variants)];
 }
 
-async function fetchPage(url: string): Promise<string> {
-  const res = await fetch(url, { headers: PAGE_HEADERS, redirect: "follow" });
-  if (!res.ok) throw new Error(`JKAnime page HTTP ${res.status}: ${url}`);
-  return res.text();
+async function fetchPage(url: string, timeoutMs = 8000): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { headers: PAGE_HEADERS, redirect: "follow", signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`JKAnime page HTTP ${res.status}: ${url}`);
+    return res.text();
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
 }
 
-async function fetchIframe(url: string, referer: string): Promise<string> {
+async function fetchIframe(url: string, referer: string, timeoutMs = 6000): Promise<string> {
   const headers = { ...IFRAME_HEADERS, "Referer": referer };
-  const res = await fetch(url, { headers, redirect: "follow" });
-  if (!res.ok) throw new Error(`JKAnime iframe HTTP ${res.status}: ${url}`);
-  return res.text();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { headers, redirect: "follow", signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`JKAnime iframe HTTP ${res.status}: ${url}`);
+    return res.text();
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
 }
 
 /**
@@ -151,17 +172,36 @@ export async function getJkAnimeWatch(
   let slug: string | null = null;
   let episodeHtml = "";
 
-  // Try each slug variant directly
-  for (const candidate of slugVariants) {
+  // Check cache first for speed
+  const cacheKey = animeTitle.toLowerCase().trim();
+  const cachedSlug = slugCache.get(cacheKey);
+  const cacheAge = slugCacheTime.get(cacheKey) ?? 0;
+  if (cachedSlug && (Date.now() - cacheAge) < SLUG_CACHE_TTL) {
     try {
-      const url = `${BASE}/${candidate}/${episodeNum}/`;
+      const url = `${BASE}/${cachedSlug}/${episodeNum}/`;
       const html = await fetchPage(url);
       if (html.length > 5000 && !html.toLowerCase().includes("404") && html.includes("jkplayer")) {
-        slug = candidate;
+        slug = cachedSlug;
         episodeHtml = html;
-        break;
       }
-    } catch { /* try next variant */ }
+    } catch { /* cache hit but episode fetch failed, continue */ }
+  }
+
+  // Try each slug variant directly
+  if (!slug) {
+    for (const candidate of slugVariants) {
+      try {
+        const url = `${BASE}/${candidate}/${episodeNum}/`;
+        const html = await fetchPage(url);
+        if (html.length > 5000 && !html.toLowerCase().includes("404") && html.includes("jkplayer")) {
+          slug = candidate;
+          episodeHtml = html;
+          slugCache.set(cacheKey, candidate);
+          slugCacheTime.set(cacheKey, Date.now());
+          break;
+        }
+      } catch { /* try next variant */ }
+    }
   }
 
   // If direct slug failed, try JKAnime search
@@ -174,6 +214,8 @@ export async function getJkAnimeWatch(
         if (html.length > 5000 && html.includes("jkplayer")) {
           slug = searchSlug;
           episodeHtml = html;
+          slugCache.set(cacheKey, searchSlug);
+          slugCacheTime.set(cacheKey, Date.now());
         }
       } catch { /* search also failed */ }
     }
