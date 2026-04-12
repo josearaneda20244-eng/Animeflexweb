@@ -771,7 +771,11 @@ export default function Player() {
   }, [query.error]);
 
   const subSources = query.data ? sortSources(query.data.sources ?? []) : [];
-  const animeflvSources = animeflvQuery.data ? (animeflvQuery.data.sources ?? []).map(s => ({ ...s, isDub: true, provider: "backup" })) : [];
+  const animeflvSources = animeflvQuery.data
+    ? (animeflvQuery.data.sources ?? [])
+        .map(s => ({ ...s, isDub: true, provider: "backup", isEmbed: !s.isM3U8 && (s.quality ?? "").includes("[embed]") }))
+        .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
+    : [];
   const hasAnimeflvSources = animeflvSources.length > 0;
   const sources = audioLang === "lat"
     ? animeflvSources   // LAT = español (jkanime)
