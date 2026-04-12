@@ -567,8 +567,11 @@ router.get("/anime/by-format", async (req, res) => {
       "ANIME",
       page,
       24,
-      format,
+      undefined,
       ["POPULARITY_DESC"],
+      undefined,
+      undefined,
+      format,
     );
     const results = (data.results || []).map((m: any) => ({
       id: String(m.id),
@@ -1119,6 +1122,7 @@ router.get("/anime/subtitle-proxy", async (req, res) => {
 /**
  * AnimeFLV — Spanish dubbed/subtitled anime streaming
  * GET /api/anime/animeflv-watch?title=...&episode=N
+ * (mantenemos la ruta para compatibilidad, internamente usa JKAnime)
  */
 router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
   const title = (req.query.title as string | undefined)?.trim();
@@ -1131,8 +1135,8 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
     const data = await getJkAnimeWatch(title, episode);
     res.json(data);
   } catch (err) {
-    req.log.warn({ err, title, episode }, "Jkanime watch failed");
-    res.status(404).json({ error: "No se encontró el episodio en Jkanime" });
+    req.log.warn({ err, title, episode }, "JKAnime watch failed");
+    res.status(404).json({ error: "No se encontró el episodio en JKAnime" });
   }
 });
 
