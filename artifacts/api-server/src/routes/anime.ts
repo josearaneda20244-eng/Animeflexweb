@@ -552,39 +552,29 @@ router.get("/anime/by-format", async (req, res) => {
     return;
   }
   try {
-    const gql = `
-      query ($page: Int, $perPage: Int, $format: MediaFormat) {
-        Page(page: $page, perPage: $perPage) {
-          pageInfo { currentPage hasNextPage }
-          media(type: ANIME, format: $format, sort: POPULARITY_DESC, isAdult: false) {
-            id idMal
-            title { romaji english userPreferred }
-            coverImage { large medium }
-            averageScore format episodes status genres
-          }
-        }
-      }
-    `;
-    const resp = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: gql, variables: { page, perPage: 24, format } }),
-    });
-    if (!resp.ok) throw new Error(`Anilist ${resp.status}`);
-    const json = (await resp.json()) as { data?: { Page?: any }; errors?: unknown[] };
-    if (json.errors?.length || !json.data?.Page) throw new Error("Anilist query failed");
-    const results = (json.data.Page.media ?? []).map((m: any) => ({
+    const data = await getAnilist().advancedSearch(
+      undefined,
+      "ANIME",
+      page,
+      24,
+      format,
+      ["POPULARITY_DESC"],
+    );
+    const results = (data.results || []).map((m: any) => ({
       id: String(m.id),
-      malId: m.idMal ? String(m.idMal) : undefined,
-      title: { romaji: m.title.romaji, english: m.title.english, userPreferred: m.title.userPreferred },
-      image: m.coverImage?.large ?? m.coverImage?.medium ?? "",
-      rating: m.averageScore ?? 0,
-      type: m.format,
-      totalEpisodes: m.episodes ?? 0,
+      title: m.title,
+      image: m.image ?? "",
+      rating: m.rating ?? 0,
+      type: m.type ?? format,
+      totalEpisodes: m.totalEpisodes ?? 0,
       status: m.status,
       genres: m.genres ?? [],
     }));
-    res.json({ results, currentPage: json.data.Page.pageInfo.currentPage, hasNextPage: json.data.Page.pageInfo.hasNextPage });
+    res.json({
+      results,
+      currentPage: data.currentPage ?? page,
+      hasNextPage: data.hasNextPage ?? false,
+    });
   } catch (err) {
     req.log.error({ err }, "Failed to fetch anime by format");
     res.status(500).json({ error: "Failed to fetch anime" });
