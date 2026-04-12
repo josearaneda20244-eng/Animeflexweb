@@ -65,35 +65,46 @@ function isM3U8(url: string): boolean {
 
 /**
  * Search latanime.org for the "-latino" slug of an anime by title.
+ * Uses a scoring system that heavily prefers slugs that exactly match the title
+ * (fewer extra words = better score), avoiding films/specials with same title prefix.
  */
 async function searchLatanimeSlug(title: string): Promise<string | null> {
   try {
     const searchUrl = `${BASE}/buscar?q=${encodeURIComponent(title)}`;
     const html = await fetchPage(searchUrl);
 
-    // Extract all hrefs that end in -latino from search results
+    // Extract all hrefs ending in -latino
     const re = /href="https?:\/\/latanime\.org\/anime\/([a-z0-9][a-z0-9-]+-latino)"/g;
     const candidates: string[] = [];
     let m: RegExpExecArray | null;
     while ((m = re.exec(html)) !== null) {
-      candidates.push(m[1]);
+      if (!candidates.includes(m[1])) candidates.push(m[1]);
     }
 
     if (candidates.length === 0) return null;
 
-    // Find the best match: slug that shares the most characters with the title slug
     const titleSlug = slugify(title);
+    const titleWords = titleSlug.split("-").filter(w => w.length > 0);
+
+    // Priority 1: exact match (base slug === titleSlug)
+    for (const c of candidates) {
+      if (c.replace(/-latino$/, "") === titleSlug) return c;
+    }
+
+    // Priority 2: score by match quality
+    // score = (matching title words * 10) - (extra base words * 5) - (base length * 0.1)
+    // This strongly penalizes slugs with extra words (films, specials, etc.)
     let best = candidates[0];
-    let bestScore = 0;
+    let bestScore = -Infinity;
 
     for (const c of candidates) {
       const base = c.replace(/-latino$/, "");
-      // Count matching chars/words between base slug and title slug
-      const titleWords = titleSlug.split("-");
-      const baseWords = base.split("-");
-      const common = titleWords.filter(w => baseWords.includes(w) && w.length > 2).length;
-      if (common > bestScore) {
-        bestScore = common;
+      const baseWords = base.split("-").filter(w => w.length > 0);
+      const matchCount = titleWords.filter(w => baseWords.includes(w)).length;
+      const extraWords = Math.max(0, baseWords.length - titleWords.length);
+      const score = matchCount * 10 - extraWords * 5 - base.length * 0.1;
+      if (score > bestScore) {
+        bestScore = score;
         best = c;
       }
     }
@@ -150,7 +161,11 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number):
     if (!slug) throw new Error(`Anime not found on Latanime: "${animeTitle}"`);
 
     const url = `${BASE}/ver/${slug}-episodio-${episodeNum}`;
-    episodeHtml = await fetchPage(url);
+    try {
+      episodeHtml = await fetchPage(url);
+    } catch {
+      throw new Error(`Episode ${episodeNum} not found on Latanime for "${animeTitle}" (slug: ${slug})`);
+    }
 
     if (!episodeHtml.includes("data-player")) {
       throw new Error(`Episode ${episodeNum} not found on Latanime for "${animeTitle}" (slug: ${slug})`);
