@@ -18,6 +18,12 @@ export function proxySubtitleUrl(directUrl: string, referer?: string): string {
   return url;
 }
 
+export function downloadProxyUrl(directUrl: string, filename: string, referer?: string): string {
+  let url = `${BASE_URL}/anime/download-proxy?url=${encodeURIComponent(directUrl)}&filename=${encodeURIComponent(filename)}`;
+  if (referer) url += `&referer=${encodeURIComponent(referer)}`;
+  return url;
+}
+
 export function resolveTitle(
   title:
     | string
