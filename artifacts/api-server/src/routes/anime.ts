@@ -1097,105 +1097,50 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
     }
   }
 
-  // ── Fallback 1: HiAnime (largest library, embedded HLS subtitles) ─────────
+  // ── Fallbacks: HiAnime, AnimePahe, KickAssAnime corriendo EN PARALELO ────────
+  // Ejecutar los 3 proveedores al mismo tiempo y usar el primero que responda.
+  // Esto es mucho más rápido que el modo secuencial anterior (que podía tardar >60s).
   if (animeTitle && episodeNum) {
-    req.log.warn({ animeTitle, episodeNum }, "Trying HiAnime as first fallback provider");
-    try {
-      const titleVariantList = titleVariants(animeTitle);
-      for (const variant of titleVariantList) {
-        try {
-          const searchData = await retryFetch(() => getHianime().search(variant), 2, 400) as any;
-          const candidates = (searchData.results ?? []).slice(0, 5);
-          for (const candidate of candidates) {
-            if (!candidate?.id) continue;
-            try {
-              const info = await retryFetch(() => getHianime().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
-              const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
-              if (!ep?.id) continue;
-              const data = await retryFetch(() => getHianime().fetchEpisodeSources(ep.id as string), 3, 500);
-              req.log.info({ provider: "hianime", variant, animeId: candidate.id, episodeNum }, "HiAnime fallback succeeded");
-              res.json(data);
-              return;
-            } catch (err) {
-              lastPlaybackErr = err;
-            }
-          }
-        } catch (err) {
-          lastPlaybackErr = err;
-        }
-      }
-      req.log.warn({ animeTitle, episodeNum }, "HiAnime fallback exhausted all title variants");
-    } catch (err) {
-      lastPlaybackErr = err;
-      req.log.error({ err }, "HiAnime fallback failed");
-    }
-  }
+    req.log.warn({ animeTitle, episodeNum }, "AnimeKai failed — running fallback providers in parallel");
 
-  // ── Fallback 2: AnimePahe ──────────────────────────────────────────────────
-  if (animeTitle && episodeNum) {
-    req.log.warn({ animeTitle, episodeNum }, "Trying AnimePahe as fallback provider");
-    try {
-      const titleVariantList = titleVariants(animeTitle);
-      for (const variant of titleVariantList) {
-        try {
-          const searchData = await retryFetch(() => getAnimePahe().search(variant), 2, 400) as any;
-          const candidates = (searchData.results ?? []).slice(0, 5);
-          for (const candidate of candidates) {
-            if (!candidate?.id) continue;
-            try {
-              const info = await retryFetch(() => getAnimePahe().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
-              const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
-              if (!ep?.id) continue;
-              const data = await retryFetch(() => getAnimePahe().fetchEpisodeSources(ep.id as string), 3, 500);
-              req.log.info({ provider: "animepahe", variant, animeId: candidate.id, episodeNum }, "AnimePahe fallback succeeded");
-              res.json(data);
-              return;
-            } catch (err) {
-              lastPlaybackErr = err;
-            }
-          }
-        } catch (err) {
-          lastPlaybackErr = err;
+    const tryProvider = async (
+      name: string,
+      searcher: (q: string) => Promise<any>,
+      infoFetcher: (id: string) => Promise<any>,
+      sourcesFetcher: (id: string) => Promise<any>,
+    ): Promise<any> => {
+      const variants = titleVariants(animeTitle).slice(0, 3);
+      for (const variant of variants) {
+        let searchData: any;
+        try { searchData = await searcher(variant); } catch { continue; }
+        const candidates = (searchData?.results ?? []).slice(0, 3);
+        for (const candidate of candidates) {
+          if (!candidate?.id) continue;
+          let info: any;
+          try { info = await infoFetcher(String(candidate.id)); } catch { continue; }
+          const ep = (info?.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
+          if (!ep?.id) continue;
+          try {
+            const data = await sourcesFetcher(String(ep.id));
+            req.log.info({ provider: name, variant, episodeNum }, `${name} parallel fallback succeeded`);
+            return data;
+          } catch { continue; }
         }
       }
-      req.log.warn({ animeTitle, episodeNum }, "AnimePahe fallback exhausted all title variants");
-    } catch (err) {
-      lastPlaybackErr = err;
-      req.log.error({ err }, "AnimePahe fallback failed");
-    }
-  }
+      throw new Error(`${name} exhausted`);
+    };
 
-  // ── Fallback 3: KickAssAnime ───────────────────────────────────────────────
-  if (animeTitle && episodeNum) {
-    req.log.warn({ animeTitle, episodeNum }, "Trying KickAssAnime as fallback provider");
     try {
-      const titleVariantList = titleVariants(animeTitle);
-      for (const variant of titleVariantList) {
-        try {
-          const searchData = await retryFetch(() => getKickAssAnime().search(variant), 2, 400) as any;
-          const candidates = (searchData.results ?? []).slice(0, 5);
-          for (const candidate of candidates) {
-            if (!candidate?.id) continue;
-            try {
-              const info = await retryFetch(() => getKickAssAnime().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
-              const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
-              if (!ep?.id) continue;
-              const data = await retryFetch(() => getKickAssAnime().fetchEpisodeSources(ep.id as string), 3, 500);
-              req.log.info({ provider: "kickassanime", variant, animeId: candidate.id, episodeNum }, "KickAssAnime fallback succeeded");
-              res.json(data);
-              return;
-            } catch (err) {
-              lastPlaybackErr = err;
-            }
-          }
-        } catch (err) {
-          lastPlaybackErr = err;
-        }
-      }
-      req.log.warn({ animeTitle, episodeNum }, "KickAssAnime fallback exhausted all title variants");
+      const result = await Promise.any([
+        tryProvider("hianime",      q => getHianime().search(q),      id => getHianime().fetchAnimeInfo(id),      id => getHianime().fetchEpisodeSources(id)),
+        tryProvider("animepahe",    q => getAnimePahe().search(q),    id => getAnimePahe().fetchAnimeInfo(id),    id => getAnimePahe().fetchEpisodeSources(id)),
+        tryProvider("kickassanime", q => getKickAssAnime().search(q), id => getKickAssAnime().fetchAnimeInfo(id), id => getKickAssAnime().fetchEpisodeSources(id)),
+      ]);
+      res.json(result);
+      return;
     } catch (err) {
       lastPlaybackErr = err;
-      req.log.error({ err }, "KickAssAnime fallback failed");
+      req.log.error({ err, animeTitle, episodeNum }, "All parallel fallback providers failed");
     }
   }
 
