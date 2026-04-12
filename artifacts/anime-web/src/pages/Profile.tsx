@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import {
   Tv2, Heart, TrendingUp, Crown, Shield, Clock,
   Flame, CheckCircle2, BarChart2, BookOpen, Share2,
+  Star, Trophy, Zap, Lock, ChevronRight, Mail, AlertCircle,
+  List, Users, Sparkles,
 } from "lucide-react";
 import { getEpisodesWatchedToday } from "@/lib/accessControl";
 import { apiClient } from "@/lib/apiClient";
@@ -15,18 +17,14 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 
-// Función auxiliar para obtener el acceso diario (extraída de accessControl.ts)
 function getAccess() {
   const STORAGE_KEY = "af_daily_access";
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { count: 0, date: new Date().toISOString().slice(0, 10), watchedIds: [] };
     const parsed = JSON.parse(raw);
-    // Reinicio automático cada nuevo día
     const today = new Date().toISOString().slice(0, 10);
-    if (parsed.date !== today) {
-      return { count: 0, date: today, watchedIds: [] };
-    }
+    if (parsed.date !== today) return { count: 0, date: today, watchedIds: [] };
     return { ...parsed, watchedIds: parsed.watchedIds ?? [] };
   } catch {
     return { count: 0, date: new Date().toISOString().slice(0, 10), watchedIds: [] };
@@ -41,6 +39,7 @@ interface UserStats {
   episodesThisWeek: number;
   estimatedHours: number;
   favoriteGenre: string | null;
+  topGenres?: { genre: string; count: number }[];
   weeklyActivity: { date: string; day: string; episodes: number }[];
   topAnime: { anime_id: string; anime_title: string; anime_image: string; ep_count: number }[];
 }
@@ -54,10 +53,51 @@ interface AnimeItem {
 }
 
 const DAY_ES: Record<string, string> = {
-  Sun: "Do", Mon: "Lu", Tue: "Ma", Wed: "Mi", Thu: "Ju", Fri: "Vi", Sat: "Sá",
+  Dom: "Do", Lun: "Lu", Mar: "Ma", "Mié": "Mi", Jue: "Ju", Vie: "Vi", "Sáb": "Sá",
 };
 
 const COLORS_BAR = ["#7C6FFF", "#7C73FF", "#8C83FF", "#9C93FF", "#B39DFF", "#B7A3FB", "#C7B3FC"];
+
+const GENRE_COLORS = [
+  "#7C6FFF", "#EC4899", "#22C55E", "#F59E0B", "#3B82F6",
+];
+
+function getLevelInfo(episodes: number) {
+  const level = Math.min(50, Math.floor(Math.sqrt(episodes / 5)) + 1);
+  const xpForLevel = (l: number) => (l - 1) * (l - 1) * 5;
+  const currentXp = episodes - xpForLevel(level);
+  const neededXp = xpForLevel(level + 1) - xpForLevel(level);
+  const progress = Math.min(100, Math.round((currentXp / Math.max(1, neededXp)) * 100));
+  return { level, currentXp, neededXp, progress };
+}
+
+type Achievement = {
+  id: string;
+  icon: string;
+  label: string;
+  desc: string;
+  color: string;
+  unlocked: boolean;
+};
+
+function getAchievements(stats: UserStats | null, isMegaFan: boolean): Achievement[] {
+  const eps = stats?.totalEpisodes ?? 0;
+  const animes = stats?.totalAnimes ?? 0;
+  const streak = stats?.streak ?? 0;
+  const completed = stats?.completed ?? 0;
+  return [
+    { id: "inicio", icon: "🎌", label: "Primer episodio", desc: "Viste tu primer episodio", color: "#7C6FFF", unlocked: eps >= 1 },
+    { id: "dedicado", icon: "📺", label: "Dedicado", desc: "50 episodios vistos", color: "#22C55E", unlocked: eps >= 50 },
+    { id: "maraton", icon: "🏃", label: "Maratonista", desc: "200 episodios vistos", color: "#F59E0B", unlocked: eps >= 200 },
+    { id: "legend", icon: "⚡", label: "Leyenda", desc: "500 episodios vistos", color: "#EC4899", unlocked: eps >= 500 },
+    { id: "colec", icon: "🗂️", label: "Coleccionista", desc: "10 animes distintos", color: "#3B82F6", unlocked: animes >= 10 },
+    { id: "racha", icon: "🔥", label: "Racha semanal", desc: "7 días consecutivos", color: "#EF4444", unlocked: streak >= 7 },
+    { id: "finish", icon: "✅", label: "Completista", desc: "5 animes completados", color: "#10B981", unlocked: completed >= 5 },
+    { id: "mega", icon: "👑", label: "MegaFan", desc: "Plan premium activo", color: "#F59E0B", unlocked: isMegaFan },
+  ];
+}
+
+type Tab = "resumen" | "favoritos" | "lista";
 
 export default function Profile() {
   const { user, isMegaFan, isOwner } = useAuth();
@@ -68,9 +108,10 @@ export default function Profile() {
   const [favorites, setFavorites] = useState<AnimeItem[]>([]);
   const [watchlist, setWatchlist] = useState<AnimeItem[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [tab, setTab] = useState<Tab>("resumen");
+  const [copied, setCopied] = useState(false);
 
   const watchedToday = getEpisodesWatchedToday();
-  // Calcular remaining usando la configuración actual del hook
   const access = getAccess();
   const remaining = isMegaFan ? Infinity : Math.max(0, limitsConfig.dailyLimit - access.count);
 
@@ -84,271 +125,474 @@ export default function Profile() {
     ])
       .then(([s, f, w]) => {
         setStats(s);
-        setFavorites(f.slice(0, 12));
-        setWatchlist(w.filter(i => i.status === "watching" || i.status === "completed").slice(0, 12));
+        setFavorites(f.slice(0, 24));
+        setWatchlist(w.slice(0, 24));
       })
       .catch(() => {})
       .finally(() => setLoadingStats(false));
   }, [user]);
 
-  const STAT_CARDS = stats
-    ? [
-        { icon: <Tv2 size={20} color="#7C6FFF" />, label: "Episodios vistos", value: stats.totalEpisodes, sub: `${stats.episodesThisWeek} esta semana` },
-        { icon: <Clock size={20} color="#22C55E" />, label: "Horas de anime", value: `${stats.estimatedHours}h`, sub: `${stats.totalAnimes} animes distintos` },
-        { icon: <CheckCircle2 size={20} color="#EC4899" />, label: "Completados", value: stats.completed, sub: "animes terminados" },
-        { icon: <Flame size={20} color="#F59E0B" />, label: "Racha activa", value: `${stats.streak}d`, sub: stats.streak === 1 ? "día seguido" : "días seguidos" },
-      ]
-    : [
-        { icon: <Tv2 size={20} color="#7C6FFF" />, label: "Episodios vistos", value: "–", sub: "cargando..." },
-        { icon: <Clock size={20} color="#22C55E" />, label: "Horas de anime", value: "–", sub: "" },
-        { icon: <CheckCircle2 size={20} color="#EC4899" />, label: "Completados", value: "–", sub: "" },
-        { icon: <Flame size={20} color="#F59E0B" />, label: "Racha activa", value: "–", sub: "" },
-      ];
+  const levelInfo = getLevelInfo(stats?.totalEpisodes ?? 0);
+  const achievements = getAchievements(stats, isMegaFan);
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
 
-  const cardStyle = {
-    background: "#0a0a0a",
-    border: "1px solid rgba(255,255,255,0.06)",
-    borderRadius: 16,
-    padding: "18px 16px",
+  const topGenres = stats?.topGenres ?? [];
+  const maxGenreCount = topGenres[0]?.count ?? 1;
+
+  const handleCopyLink = () => {
+    if (!user) return;
+    const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/perfil/${user.id}`;
+    navigator.clipboard?.writeText(url).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <div style={{ minHeight: "100vh", background: "#000" }}>
-      <Navbar />
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "72px 16px 48px" }}>
+  const card = {
+    background: "#0d0b1e",
+    border: "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 20,
+    padding: "20px",
+  };
 
-        {/* Profile header */}
-        <div style={{
-          background: "linear-gradient(135deg,#0a0a0a,#1a1a2e)",
-          border: "1px solid rgba(124,111,255,0.15)", borderRadius: 20,
-          padding: "24px", marginBottom: 16,
-          display: "flex", alignItems: "center", gap: 18,
-        }}>
+  const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    { key: "resumen", label: "Resumen", icon: <BarChart2 size={14} /> },
+    { key: "favoritos", label: "Favoritos", icon: <Heart size={14} /> },
+    { key: "lista", label: "Mi lista", icon: <List size={14} /> },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#060611" }}>
+      <Navbar />
+      <div style={{ maxWidth: 740, margin: "0 auto", padding: "68px 14px 56px" }}>
+
+        {/* ── Email verification banner ── */}
+        {user && !user.email_verified && (
           <div style={{
-            width: 70, height: 70, borderRadius: 18, flexShrink: 0,
-            background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
-            boxShadow: "0 4px 20px rgba(124,111,255,0.4)",
+            display: "flex", alignItems: "center", gap: 12, marginBottom: 14,
+            background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)",
+            borderRadius: 14, padding: "12px 16px",
           }}>
-            {resolveAvatarUrl(user?.avatar_url)
-              ? <img src={resolveAvatarUrl(user?.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : (user?.username?.charAt(0)?.toUpperCase() ?? "?")}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900 }}>{user?.username ?? "Invitado"}</div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, margin: "3px 0 8px" }}>{user?.email ?? "No has iniciado sesión"}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <div style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(124,111,255,0.1)",
-                border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.35)" : "rgba(124,111,255,0.25)"}`,
-                borderRadius: 20, padding: "4px 12px",
-                color: isMegaFan ? "#F59E0B" : "#B39DFF", fontSize: 12, fontWeight: 800,
-              }}>
-                {isMegaFan ? <><Crown size={11} /> MegaFan</> : "✦ Gratuito"}
-              </div>
-              {isOwner && (
-                <button
-                  onClick={() => navigate("/admin")}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 7,
-                    background: "linear-gradient(135deg,rgba(124,111,255,0.2),rgba(79,70,229,0.1))",
-                    border: "1px solid rgba(124,111,255,0.35)", borderRadius: 10,
-                    padding: "5px 12px", color: "#B39DFF", cursor: "pointer",
-                    fontSize: 12, fontWeight: 800,
-                  }}
-                >
-                  <Shield size={12} /> Admin
-                </button>
-              )}
-              {user && (
-                <>
-                  <button
-                    onClick={() => navigate("/settings")}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 10, padding: "5px 12px", color: "rgba(255,255,255,0.5)",
-                      cursor: "pointer", fontSize: 12, fontWeight: 700,
-                    }}
-                  >
-                    Editar perfil
-                  </button>
-                  <button
-                    onClick={() => {
-                      const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}/perfil/${user.id}`;
-                      navigator.clipboard?.writeText(url).catch(() => {});
-                    }}
-                    title="Copiar enlace de perfil público"
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      background: "rgba(124,111,255,0.1)", border: "1px solid rgba(124,111,255,0.25)",
-                      borderRadius: 10, padding: "5px 10px", color: "#B39DFF",
-                      cursor: "pointer", fontSize: 12, fontWeight: 700,
-                    }}
-                  >
-                    <Share2 size={12} />
-                  </button>
-                </>
-              )}
+            <AlertCircle size={16} color="#F59E0B" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ color: "#FCD34D", fontSize: 13, fontWeight: 700 }}>Correo sin verificar</span>
+              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}> · Verifica tu cuenta para acceso completo</span>
             </div>
-          </div>
-          {!isMegaFan && user && (
-            <button onClick={() => navigate("/membership")} style={{
-              background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", border: "none",
-              borderRadius: 12, padding: "9px 16px", color: "#fff",
-              fontSize: 12, fontWeight: 800, cursor: "pointer", flexShrink: 0,
-            }}>
-              Hazte MegaFan
+            <button
+              onClick={() => navigate("/settings")}
+              style={{
+                flexShrink: 0, background: "rgba(245,158,11,0.2)", border: "1px solid rgba(245,158,11,0.4)",
+                borderRadius: 9, padding: "6px 12px", color: "#FCD34D", fontSize: 12,
+                fontWeight: 700, cursor: "pointer",
+              }}
+            >
+              Verificar →
             </button>
-          )}
+          </div>
+        )}
+
+        {/* ── Hero card ── */}
+        <div style={{
+          borderRadius: 22, overflow: "hidden", marginBottom: 14,
+          border: "1px solid rgba(124,111,255,0.2)",
+          background: "linear-gradient(180deg,#13112b,#0d0b1e)",
+        }}>
+          {/* Banner */}
+          <div style={{ height: 100, position: "relative", overflow: "hidden", background: "linear-gradient(135deg,#1a1250,#2d1569,#130f2e)" }}>
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 25% 60%,rgba(124,111,255,0.5),transparent 60%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 30%,rgba(236,72,153,0.25),transparent 55%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 55% 90%,rgba(59,130,246,0.15),transparent 50%)" }} />
+            {/* Floating orbs */}
+            <div style={{ position: "absolute", top: 14, right: 60, width: 40, height: 40, borderRadius: "50%", background: "rgba(124,111,255,0.12)", border: "1px solid rgba(124,111,255,0.2)" }} />
+            <div style={{ position: "absolute", top: 30, right: 100, width: 20, height: 20, borderRadius: "50%", background: "rgba(236,72,153,0.1)", border: "1px solid rgba(236,72,153,0.2)" }} />
+          </div>
+
+          <div style={{ padding: "0 22px 22px" }}>
+            {/* Avatar row */}
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: -40, marginBottom: 14 }}>
+              <div style={{
+                width: 78, height: 78, borderRadius: 22, flexShrink: 0,
+                background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
+                border: "4px solid #0d0b1e",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 30, fontWeight: 900, color: "#fff", overflow: "hidden",
+                boxShadow: "0 0 30px rgba(124,111,255,0.5)",
+              }}>
+                {resolveAvatarUrl(user?.avatar_url)
+                  ? <img src={resolveAvatarUrl(user?.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : (user?.username?.charAt(0)?.toUpperCase() ?? "?")}
+              </div>
+              {/* Action buttons top-right */}
+              <div style={{ display: "flex", gap: 8, paddingBottom: 4 }}>
+                {user && (
+                  <>
+                    <button
+                      onClick={handleCopyLink}
+                      title="Copiar enlace de perfil"
+                      style={{
+                        display: "flex", alignItems: "center", gap: 5,
+                        background: copied ? "rgba(34,197,94,0.15)" : "rgba(124,111,255,0.1)",
+                        border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(124,111,255,0.3)"}`,
+                        borderRadius: 10, padding: "6px 12px", color: copied ? "#22C55E" : "#B39DFF",
+                        cursor: "pointer", fontSize: 12, fontWeight: 700,
+                      }}
+                    >
+                      <Share2 size={12} /> {copied ? "¡Copiado!" : "Compartir"}
+                    </button>
+                    <button
+                      onClick={() => navigate("/settings")}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 5,
+                        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 10, padding: "6px 12px", color: "rgba(255,255,255,0.55)",
+                        cursor: "pointer", fontSize: 12, fontWeight: 700,
+                      }}
+                    >
+                      Editar perfil
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Name + badges */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+                <span style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, letterSpacing: -0.5 }}>
+                  {user?.username ?? "Invitado"}
+                </span>
+                {isOwner && (
+                  <button onClick={() => navigate("/admin")} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)",
+                    borderRadius: 20, padding: "3px 10px", color: "#FCA5A5",
+                    fontSize: 10, fontWeight: 900, cursor: "pointer",
+                  }}>
+                    <Shield size={9} /> DUEÑO
+                  </button>
+                )}
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(124,111,255,0.1)",
+                  border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.4)" : "rgba(124,111,255,0.3)"}`,
+                  borderRadius: 20, padding: "3px 10px",
+                  color: isMegaFan ? "#FCD34D" : "#B39DFF", fontSize: 11, fontWeight: 800,
+                }}>
+                  {isMegaFan ? <><Crown size={10} /> MegaFan</> : "✦ Gratuito"}
+                </div>
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  background: "rgba(124,111,255,0.12)", border: "1px solid rgba(124,111,255,0.25)",
+                  borderRadius: 20, padding: "3px 10px", color: "#9D8FFF", fontSize: 11, fontWeight: 700,
+                }}>
+                  <Zap size={9} /> Nv. {levelInfo.level}
+                </div>
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{user?.email}</div>
+            </div>
+
+            {/* Level progress */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600 }}>
+                  Nivel {levelInfo.level} · {levelInfo.currentXp}/{levelInfo.neededXp} ep.
+                </span>
+                <span style={{ color: "#B39DFF", fontSize: 11, fontWeight: 700 }}>{levelInfo.progress}%</span>
+              </div>
+              <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", borderRadius: 99,
+                  width: `${levelInfo.progress}%`,
+                  background: "linear-gradient(90deg,#5B52F5,#7C6FFF,#B39DFF)",
+                  transition: "width 0.6s ease",
+                  boxShadow: "0 0 8px rgba(124,111,255,0.5)",
+                }} />
+              </div>
+            </div>
+
+            {/* Quick stats row */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+              {[
+                { label: "Episodios", value: loadingStats ? "–" : stats?.totalEpisodes ?? 0, color: "#7C6FFF" },
+                { label: "Horas", value: loadingStats ? "–" : `${stats?.estimatedHours ?? 0}h`, color: "#22C55E" },
+                { label: "Completados", value: loadingStats ? "–" : stats?.completed ?? 0, color: "#EC4899" },
+                { label: "Racha", value: loadingStats ? "–" : `${stats?.streak ?? 0}d`, color: "#F59E0B" },
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ textAlign: "center", background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "10px 6px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div style={{ color, fontSize: 18, fontWeight: 900, lineHeight: 1 }}>{value}</div>
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, marginTop: 3, fontWeight: 600 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* MegaFan CTA */}
+            {!isMegaFan && user && (
+              <button onClick={() => navigate("/membership")} style={{
+                marginTop: 14, width: "100%",
+                background: "linear-gradient(135deg,rgba(124,111,255,0.2),rgba(236,72,153,0.12))",
+                border: "1px solid rgba(124,111,255,0.3)",
+                borderRadius: 12, padding: "10px 16px",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                cursor: "pointer",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Crown size={14} color="#F59E0B" />
+                  <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 800 }}>Hazte MegaFan · Sin límites</span>
+                </div>
+                <ChevronRight size={14} color="#B39DFF" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Stats grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-          {STAT_CARDS.map(({ icon, label, value, sub }) => (
-            <div key={label} style={cardStyle}>
-              <div style={{ marginBottom: 10 }}>{icon}</div>
-              <div style={{ color: loadingStats ? "rgba(255,255,255,0.25)" : "#F1F1F5", fontSize: 26, fontWeight: 900, lineHeight: 1 }}>{value}</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 4 }}>{label}</div>
-              <div style={{ color: "rgba(255,255,255,0.22)", fontSize: 11, marginTop: 2 }}>{sub}</div>
-            </div>
+        {/* ── Tabs ── */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 14, background: "rgba(255,255,255,0.04)", padding: 4, borderRadius: 16, border: "1px solid rgba(255,255,255,0.07)" }}>
+          {TABS.map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              style={{
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                padding: "9px 10px", borderRadius: 12, border: "none", cursor: "pointer",
+                fontSize: 13, fontWeight: 700, transition: "all 0.15s",
+                background: tab === key ? "rgba(124,111,255,0.25)" : "transparent",
+                color: tab === key ? "#B39DFF" : "rgba(255,255,255,0.35)",
+                boxShadow: tab === key ? "0 0 0 1px rgba(124,111,255,0.3)" : "none",
+              }}
+            >
+              {icon} {label}
+            </button>
           ))}
         </div>
 
-        {/* Weekly activity chart */}
-        {stats && (
-          <div style={{ ...cardStyle, marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <BarChart2 size={15} color="#7C6FFF" />
-              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Actividad esta semana</span>
-              <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 11 }}>últimos 7 días</span>
+        {/* ══ TAB: RESUMEN ══ */}
+        {tab === "resumen" && (
+          <div>
+            {/* Achievements */}
+            <div style={{ ...card, marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Trophy size={14} color="#F59E0B" />
+                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Logros</span>
+                </div>
+                <span style={{ color: "#B39DFF", fontSize: 12, fontWeight: 700 }}>{unlockedCount}/{achievements.length}</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+                {achievements.map((a) => (
+                  <div key={a.id} style={{
+                    position: "relative", textAlign: "center",
+                    background: a.unlocked ? `rgba(${hexToRgb(a.color)},0.1)` : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${a.unlocked ? `rgba(${hexToRgb(a.color)},0.3)` : "rgba(255,255,255,0.06)"}`,
+                    borderRadius: 14, padding: "12px 8px",
+                    opacity: a.unlocked ? 1 : 0.45,
+                    transition: "opacity 0.2s",
+                  }}>
+                    <div style={{ fontSize: 22, marginBottom: 4, filter: a.unlocked ? "none" : "grayscale(1)" }}>{a.icon}</div>
+                    <div style={{ color: a.unlocked ? "#F1F1F5" : "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, lineHeight: 1.3 }}>{a.label}</div>
+                    {!a.unlocked && (
+                      <div style={{ position: "absolute", top: 6, right: 6 }}>
+                        <Lock size={9} color="rgba(255,255,255,0.2)" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={120}>
-              <BarChart data={stats.weeklyActivity} margin={{ top: 0, right: 0, left: -30, bottom: 0 }} barCategoryGap="25%">
-                <XAxis
-                  dataKey="day"
-                  tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 11 }}
-                  tickLine={false} axisLine={false}
-                  tickFormatter={(v) => DAY_ES[v] ?? v}
-                />
-                <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 10, fontSize: 12 }}
-                  labelStyle={{ color: "#B39DFF", fontWeight: 700 }}
-                  itemStyle={{ color: "#F1F1F5" }}
-                  formatter={(v: number) => [`${v} ep.`, "Episodios"]}
-                  labelFormatter={(label: string) => DAY_ES[label] ?? label}
-                />
-                <Bar dataKey="episodes" radius={[6, 6, 0, 0]}>
-                  {stats.weeklyActivity.map((_, i) => (
-                    <Cell key={i} fill={COLORS_BAR[i % COLORS_BAR.length]} fillOpacity={stats.weeklyActivity[i].episodes > 0 ? 1 : 0.25} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
 
-        {/* Daily usage bar (free users) */}
-        {!isMegaFan && user && (
-          <div style={{
-            background: "rgba(124,111,255,0.07)", border: "1px solid rgba(124,111,255,0.18)",
-            borderRadius: 16, padding: "16px 20px", marginBottom: 16,
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>Episodios gratis hoy</div>
-              <div style={{ color: "#B39DFF", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{limitsConfig.dailyLimit}</div>
-            </div>
-            <div style={{ height: 7, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
-              <div style={{
-                height: "100%", borderRadius: 99,
-                width: `${Math.min(100, (watchedToday / limitsConfig.dailyLimit) * 100)}%`,
-                background: watchedToday >= limitsConfig.dailyLimit
-                  ? "linear-gradient(90deg,#EF4444,#F87171)"
-                  : "linear-gradient(90deg,#7C6FFF,#B39DFF)",
-                transition: "width 0.4s",
-              }} />
-            </div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 6 }}>
-              {remaining > 0 ? `${remaining} episodios restantes hoy` : "Límite diario alcanzado — se reinicia mañana"}
-            </div>
-          </div>
-        )}
+            {/* Weekly activity */}
+            {stats && (
+              <div style={{ ...card, marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                  <BarChart2 size={14} color="#7C6FFF" />
+                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Actividad esta semana</span>
+                  <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 11 }}>últimos 7 días</span>
+                </div>
+                <ResponsiveContainer width="100%" height={110}>
+                  <BarChart data={stats.weeklyActivity} margin={{ top: 0, right: 0, left: -32, bottom: 0 }} barCategoryGap="30%">
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 11 }}
+                      tickLine={false} axisLine={false}
+                      tickFormatter={(v) => DAY_ES[v] ?? v}
+                    />
+                    <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 10, fontSize: 12 }}
+                      labelStyle={{ color: "#B39DFF", fontWeight: 700 }}
+                      itemStyle={{ color: "#F1F1F5" }}
+                      formatter={(v: number) => [`${v} ep.`, "Episodios"]}
+                      labelFormatter={(label: string) => DAY_ES[label] ?? label}
+                    />
+                    <Bar dataKey="episodes" radius={[5, 5, 0, 0]}>
+                      {stats.weeklyActivity.map((_, i) => (
+                        <Cell key={i} fill={COLORS_BAR[i % COLORS_BAR.length]} fillOpacity={stats.weeklyActivity[i].episodes > 0 ? 1 : 0.2} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
-        {/* Top anime */}
-        {stats && stats.topAnime.length > 0 && (
-          <div style={{ ...cardStyle, marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <TrendingUp size={15} color="#7C6FFF" />
-              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Top animes vistos</span>
-            </div>
-            {stats.topAnime.map((a, i) => (
-              <div key={a.anime_id} onClick={() => navigate(`/anime/${a.anime_id}`)} style={{
-                display: "flex", alignItems: "center", gap: 12,
-                padding: "9px 0", cursor: "pointer",
-                borderBottom: i < stats.topAnime.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-              }}>
-                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, fontWeight: 900, width: 18, textAlign: "center", flexShrink: 0 }}>{i + 1}</span>
-                {a.anime_image && <img src={a.anime_image} alt={a.anime_title} style={{ width: 34, height: 48, borderRadius: 7, objectFit: "cover", flexShrink: 0 }} />}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.anime_title}</div>
-                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{a.ep_count} {Number(a.ep_count) !== 1 ? "episodios" : "episodio"}</div>
+            {/* Top genres */}
+            {topGenres.length > 0 && (
+              <div style={{ ...card, marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                  <Sparkles size={14} color="#EC4899" />
+                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Géneros favoritos</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {topGenres.map(({ genre, count }, i) => {
+                    const pct = Math.round((count / maxGenreCount) * 100);
+                    return (
+                      <div key={genre}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <span style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700 }}>{genre}</span>
+                          <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>{count} interacciones</span>
+                        </div>
+                        <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 99, overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%", borderRadius: 99,
+                            width: `${pct}%`,
+                            background: GENRE_COLORS[i % GENRE_COLORS.length],
+                            opacity: 0.85,
+                            transition: "width 0.5s ease",
+                          }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* Watchlist section */}
-        {watchlist.length > 0 && (
-          <div style={{ ...cardStyle, marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <BookOpen size={15} color="#7C6FFF" />
-              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Viendo / Completados</span>
-              <button
-                onClick={() => navigate("/watchlist")}
-                style={{ marginLeft: "auto", background: "none", border: "none", color: "#7C6FFF", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-              >
-                Ver lista →
-              </button>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: 8 }}>
-              {watchlist.map((a) => (
-                <div key={a.anime_id} onClick={() => navigate(`/anime/${a.anime_id}`)} style={{ cursor: "pointer", position: "relative" }}>
-                  <img src={a.anime_image} alt={a.anime_title} style={{ width: "100%", aspectRatio: "2/3", objectFit: "cover", borderRadius: 8, display: "block" }} />
-                  {a.status === "completed" && (
-                    <div style={{ position: "absolute", top: 3, right: 3, background: "rgba(34,197,94,0.9)", borderRadius: "50%", width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <CheckCircle2 size={10} color="#fff" />
+            {/* Top anime */}
+            {stats && stats.topAnime.length > 0 && (
+              <div style={{ ...card, marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                  <TrendingUp size={14} color="#7C6FFF" />
+                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Más vistos</span>
+                </div>
+                {stats.topAnime.map((a, i) => (
+                  <div key={a.anime_id} onClick={() => navigate(`/anime/${a.anime_id}`)} style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "9px 0", cursor: "pointer",
+                    borderBottom: i < stats.topAnime.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                  }}>
+                    <span style={{ color: i === 0 ? "#F59E0B" : i === 1 ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.25)", fontSize: 13, fontWeight: 900, width: 18, textAlign: "center", flexShrink: 0 }}>
+                      {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"}
+                    </span>
+                    {a.anime_image && <img src={a.anime_image} alt={a.anime_title} style={{ width: 34, height: 48, borderRadius: 7, objectFit: "cover", flexShrink: 0 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.anime_title}</div>
+                      <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{a.ep_count} {Number(a.ep_count) !== 1 ? "episodios" : "episodio"}</div>
                     </div>
-                  )}
+                    <ChevronRight size={13} color="rgba(255,255,255,0.2)" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Daily limit for free users */}
+            {!isMegaFan && user && (
+              <div style={{
+                background: "rgba(124,111,255,0.07)", border: "1px solid rgba(124,111,255,0.18)",
+                borderRadius: 16, padding: "16px 18px", marginBottom: 14,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>Episodios gratis hoy</div>
+                  <div style={{ color: "#B39DFF", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{limitsConfig.dailyLimit}</div>
                 </div>
-              ))}
-            </div>
+                <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", borderRadius: 99,
+                    width: `${Math.min(100, (watchedToday / limitsConfig.dailyLimit) * 100)}%`,
+                    background: watchedToday >= limitsConfig.dailyLimit
+                      ? "linear-gradient(90deg,#EF4444,#F87171)"
+                      : "linear-gradient(90deg,#7C6FFF,#B39DFF)",
+                    transition: "width 0.4s",
+                  }} />
+                </div>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 6 }}>
+                  {remaining > 0 ? `${remaining} episodios restantes hoy` : "Límite diario alcanzado — se reinicia mañana"}
+                </div>
+              </div>
+            )}
+
+            {user && !loadingStats && !stats && (
+              <div style={{ textAlign: "center", padding: "32px 0", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>
+                Empieza a ver anime para que aparezcan tus estadísticas aquí
+              </div>
+            )}
           </div>
         )}
 
-        {/* Favorites section */}
-        {favorites.length > 0 && (
-          <div style={cardStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <Heart size={15} color="#EC4899" />
+        {/* ══ TAB: FAVORITOS ══ */}
+        {tab === "favoritos" && (
+          <div style={card}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <Heart size={14} color="#EC4899" />
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Favoritos</span>
-              <button
-                onClick={() => navigate("/favorites")}
-                style={{ marginLeft: "auto", background: "none", border: "none", color: "#7C6FFF", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-              >
-                Ver todos →
+              <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{favorites.length} animes</span>
+            </div>
+            {favorites.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>
+                {loadingStats ? "Cargando..." : "Aún no tienes favoritos"}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(80px,1fr))", gap: 8 }}>
+                {favorites.map((a) => (
+                  <div key={a.anime_id} onClick={() => navigate(`/anime/${a.anime_id}`)} style={{ cursor: "pointer", position: "relative" }}>
+                    <img src={a.anime_image} alt={a.anime_title} style={{ width: "100%", aspectRatio: "2/3", objectFit: "cover", borderRadius: 10, display: "block" }} />
+                    <div style={{
+                      position: "absolute", inset: 0, borderRadius: 10,
+                      background: "linear-gradient(to top,rgba(0,0,0,0.8) 0%,transparent 50%)",
+                      opacity: 0, transition: "opacity 0.2s",
+                    }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "1"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "0"; }}
+                    >
+                      <div style={{ position: "absolute", bottom: 5, left: 5, right: 5, color: "#fff", fontSize: 9, fontWeight: 700, lineHeight: 1.2, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as any }}>
+                        {a.anime_title}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ TAB: MI LISTA ══ */}
+        {tab === "lista" && (
+          <div style={card}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <List size={14} color="#7C6FFF" />
+              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Mi lista</span>
+              <button onClick={() => navigate("/watchlist")} style={{ marginLeft: "auto", background: "none", border: "none", color: "#7C6FFF", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                Ver lista completa →
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: 8 }}>
-              {favorites.map((a) => (
-                <div key={a.anime_id} onClick={() => navigate(`/anime/${a.anime_id}`)} style={{ cursor: "pointer" }}>
-                  <img src={a.anime_image} alt={a.anime_title} style={{ width: "100%", aspectRatio: "2/3", objectFit: "cover", borderRadius: 8, display: "block" }} />
-                </div>
-              ))}
-            </div>
+            {watchlist.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>
+                {loadingStats ? "Cargando..." : "Tu lista está vacía"}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(80px,1fr))", gap: 8 }}>
+                {watchlist.map((a) => (
+                  <div key={a.anime_id} onClick={() => navigate(`/anime/${a.anime_id}`)} style={{ cursor: "pointer", position: "relative" }}>
+                    <img src={a.anime_image} alt={a.anime_title} style={{ width: "100%", aspectRatio: "2/3", objectFit: "cover", borderRadius: 10, display: "block" }} />
+                    {a.status === "completed" && (
+                      <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(34,197,94,0.9)", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <CheckCircle2 size={11} color="#fff" />
+                      </div>
+                    )}
+                    {a.status === "watching" && (
+                      <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(124,111,255,0.9)", borderRadius: 5, padding: "2px 5px" }}>
+                        <span style={{ color: "#fff", fontSize: 8, fontWeight: 700 }}>▶</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -357,13 +601,15 @@ export default function Profile() {
             Inicia sesión para ver tus estadísticas
           </div>
         )}
-        {user && !loadingStats && !stats && (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.25)", fontSize: 14 }}>
-            Empieza a ver anime para que aparezcan tus estadísticas aquí
-          </div>
-        )}
       </div>
       <Footer />
     </div>
   );
+}
+
+/* Helper: convert hex color to RGB string for rgba() */
+function hexToRgb(hex: string): string {
+  const clean = hex.replace("#", "");
+  const n = parseInt(clean, 16);
+  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
 }
