@@ -77,11 +77,11 @@ function OVACard({ anime }: { anime: AnimeResult }) {
 export default function OVAs() {
   const [, navigate] = useLocation();
 
-  const ovaP1 = useQuery({ queryKey: ["ovas-ova-1"], queryFn: () => consumet.byFormat("OVA", 1), staleTime: 1000 * 60 * 15 });
-  const ovaP2 = useQuery({ queryKey: ["ovas-ova-2"], queryFn: () => consumet.byFormat("OVA", 2), staleTime: 1000 * 60 * 15 });
-  const onaP1 = useQuery({ queryKey: ["ovas-ona-1"], queryFn: () => consumet.byFormat("ONA", 1), staleTime: 1000 * 60 * 15 });
-  const onaP2 = useQuery({ queryKey: ["ovas-ona-2"], queryFn: () => consumet.byFormat("ONA", 2), staleTime: 1000 * 60 * 15 });
-  const spP1  = useQuery({ queryKey: ["ovas-sp-1"],  queryFn: () => consumet.byFormat("SPECIAL", 1), staleTime: 1000 * 60 * 15 });
+  const ovaP1 = useQuery({ queryKey: ["ovas-ova-1"], queryFn: () => consumet.byFormat("OVA", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const ovaP2 = useQuery({ queryKey: ["ovas-ova-2"], queryFn: () => consumet.byFormat("OVA", 2), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const onaP1 = useQuery({ queryKey: ["ovas-ona-1"], queryFn: () => consumet.byFormat("ONA", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const onaP2 = useQuery({ queryKey: ["ovas-ona-2"], queryFn: () => consumet.byFormat("ONA", 2), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
+  const spP1  = useQuery({ queryKey: ["ovas-sp-1"],  queryFn: () => consumet.byFormat("SPECIAL", 1), staleTime: 1000 * 60 * 15, retry: 3, retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000) });
 
   const all = [
     ...(ovaP1.data?.results ?? []),
@@ -100,7 +100,8 @@ export default function OVAs() {
     }
   };
 
-  const isLoading = ovaP1.isLoading && onaP1.isLoading;
+  const isLoading = ovaP1.isLoading || onaP1.isLoading || ovaP2.isLoading || onaP2.isLoading || spP1.isLoading;
+  const isError = ovaP1.isError && onaP1.isError && ovaP2.isError && onaP2.isError && spP1.isError;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000" }}>
@@ -136,7 +137,20 @@ export default function OVAs() {
             </div>
           )}
 
-          {!isLoading && unique.length === 0 && (
+          {!isLoading && isError && unique.length === 0 && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80, gap: 12 }}>
+              <Tv2 size={56} color="rgba(255,255,255,0.15)" />
+              <div style={{ color: "#F1F1F5", fontWeight: 600 }}>Error al cargar OVAs/ONAs</div>
+              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>Hubo un problema al conectarse. Intenta de nuevo.</div>
+              <button
+                onClick={() => { ovaP1.refetch(); ovaP2.refetch(); onaP1.refetch(); onaP2.refetch(); spP1.refetch(); }}
+                style={{ marginTop: 8, padding: "10px 24px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+          {!isLoading && !isError && unique.length === 0 && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 80, gap: 12 }}>
               <Tv2 size={56} color="rgba(255,255,255,0.1)" />
               <div style={{ color: "#F1F1F5", fontWeight: 600 }}>No se encontraron OVAs/ONAs</div>
