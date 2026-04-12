@@ -1445,7 +1445,7 @@ router.get("/anime/download-proxy", async (req, res) => {
 });
 
 /**
- * JKAnime — Spanish Latino streaming
+ * Latanime (doblaje latino real) con fallback a JKAnime (sub español)
  * GET /api/anime/animeflv-watch?title=...&episode=N
  * (ruta mantenida para compatibilidad con el frontend)
  */
@@ -1456,13 +1456,23 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
     res.status(400).json({ error: "Query params 'title' and 'episode' are required" });
     return;
   }
+  // Intento 1: Latanime.org — doblaje latino real (audio español latino)
+  try {
+    const { getLatanimeStream } = await import("../lib/latanime.js");
+    const data = await getLatanimeStream(title, episode);
+    res.json(data);
+    return;
+  } catch (latErr) {
+    req.log.warn({ err: latErr, title, episode }, "Latanime watch failed, trying JKAnime");
+  }
+  // Intento 2: JKAnime — sub español (audio japonés con subtítulos en español)
   try {
     const data = await getJkAnimeWatch(title, episode);
     res.json(data);
     return;
   } catch (jkErr) {
-    req.log.warn({ err: jkErr, title, episode }, "JKAnime watch failed");
-    res.status(404).json({ error: "No se encontró el episodio en JKAnime" });
+    req.log.warn({ err: jkErr, title, episode }, "JKAnime watch also failed");
+    res.status(404).json({ error: "No se encontró el episodio en ninguna fuente disponible" });
   }
 });
 
