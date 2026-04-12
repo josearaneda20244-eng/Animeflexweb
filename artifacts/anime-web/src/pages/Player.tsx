@@ -780,7 +780,9 @@ export default function Player() {
         ...((!hasPrimarySources || isRecentEpisode || query.isError || playbackFailureCount > 0) ? animeflvSources : []),
       ];
   const streamingHeaders = query.data?.headers ?? {};
-  const referer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
+  const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
+  const subReferer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
+  const latReferer = animeflvHeaders["Referer"] ?? animeflvHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
   const selectedIsBackup = !!selected && (selected as any).provider === "backup";
   const showMainError = query.isError && !hasAnimeflvSources;
@@ -819,11 +821,11 @@ export default function Player() {
     if (subLang === "off") { setActiveSubUrl(null); return; }
     const target = subLang === "en" ? streamEnglishSub : streamSpanishSub;
     if (target) {
-      setActiveSubUrl(proxySubtitleUrl(target.url, referer));
+      setActiveSubUrl(proxySubtitleUrl(target.url, subReferer));
     } else {
       setActiveSubUrl(null);
     }
-  }, [subLang, streamSpanishSub?.url, streamEnglishSub?.url, referer]);
+  }, [subLang, streamSpanishSub?.url, streamEnglishSub?.url, subReferer]);
 
   // Auto-select HLS embedded subtitle track based on subLang
   const handleSubtitleTracks = useCallback((tracks: HlsSubTrack[]) => {
@@ -841,7 +843,8 @@ export default function Player() {
     setHlsCueText(text);
   }, []);
 
-  const proxyM3u8 = selected ? proxyStreamUrl(selected.url, referer) : null;
+  const activeReferer = (audioLang === "lat" || selectedIsBackup) ? latReferer : subReferer;
+  const proxyM3u8 = selected ? proxyStreamUrl(selected.url, activeReferer) : null;
 
   useEffect(() => {
     if (sources.length > 0 && selectedIdx >= sources.length) setSelectedIdx(0);
