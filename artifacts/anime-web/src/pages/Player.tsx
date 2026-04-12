@@ -843,7 +843,8 @@ export default function Player() {
     setHlsCueText(text);
   }, []);
 
-  const activeReferer = (audioLang === "lat" || selectedIsBackup) ? latReferer : subReferer;
+  const fallbackReferer = (audioLang === "lat" || selectedIsBackup) ? latReferer : subReferer;
+  const activeReferer = (selected as any)?.referer ?? fallbackReferer;
   const proxyM3u8 = selected ? proxyStreamUrl(selected.url, activeReferer) : null;
 
   useEffect(() => {
