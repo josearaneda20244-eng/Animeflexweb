@@ -14,6 +14,7 @@ import {
   consumet,
   proxyStreamUrl,
   proxySubtitleUrl,
+  downloadProxyUrl,
   type StreamingSource,
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
@@ -1396,14 +1397,15 @@ export default function Player() {
                       {sources.map((src, i) => {
                         const label = parseResolution(src);
                         const isDirectMp4 = src.isM3U8 === false;
+                        const ext = isDirectMp4 ? "mp4" : "m3u8";
+                        const filename = `${animeTitle}-ep${episodeNum}-${label}.${ext}`;
+                        const proxyHref = downloadProxyUrl(src.url, filename, "https://animekai.to/");
                         return (
                           <a
                             key={i}
-                            href={isDirectMp4 ? src.url : src.url}
-                            download={isDirectMp4 ? `${animeTitle}-ep${episodeNum}-${label}.mp4` : undefined}
-                            target={isDirectMp4 ? undefined : "_blank"}
-                            rel="noopener noreferrer"
-                            title={isDirectMp4 ? `Descargar ${label}` : `Abrir stream ${label} (requiere descargador de HLS)`}
+                            href={proxyHref}
+                            download={filename}
+                            title={`Descargar ${label} (${ext.toUpperCase()})`}
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 5,
                               padding: "6px 13px", borderRadius: 9,
@@ -1416,19 +1418,10 @@ export default function Player() {
                           >
                             <Download size={11} />
                             {label}
-                            {!isDirectMp4 && (
-                              <span style={{ fontSize: 9, opacity: 0.6, fontWeight: 600 }}>HLS</span>
-                            )}
                           </a>
                         );
                       })}
                     </div>
-                    {sources.every(s => s.isM3U8 !== false) && (
-                      <div style={{ color: "rgba(255,255,255,0.22)", fontSize: 10, marginTop: 6, lineHeight: 1.5 }}>
-                        Este anime usa streams HLS. Para descargar abre el enlace con una app como
-                        {" "}<span style={{ color: "#7C6FFF", fontWeight: 700 }}>IDM, 1DM, ADM</span> o similar.
-                      </div>
-                    )}
                   </div>
 
                   {/* Subtitle downloads */}
@@ -1440,10 +1433,8 @@ export default function Player() {
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {streamSpanishSub && (
                           <a
-                            href={streamSpanishSub.url}
+                            href={downloadProxyUrl(streamSpanishSub.url, `${animeTitle}-ep${episodeNum}-es.vtt`)}
                             download={`${animeTitle}-ep${episodeNum}-es.vtt`}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 5,
                               padding: "6px 13px", borderRadius: 9,
@@ -1457,10 +1448,8 @@ export default function Player() {
                         )}
                         {streamEnglishSub && (
                           <a
-                            href={streamEnglishSub.url}
+                            href={downloadProxyUrl(streamEnglishSub.url, `${animeTitle}-ep${episodeNum}-en.vtt`)}
                             download={`${animeTitle}-ep${episodeNum}-en.vtt`}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 5,
                               padding: "6px 13px", borderRadius: 9,
