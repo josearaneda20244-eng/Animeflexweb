@@ -162,6 +162,7 @@ function extractIframeUrls(html: string, episodePageUrl: string): string[] {
 export interface JkAnimeStreamData {
   sources: Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB" }>;
   slug: string;
+  headers?: Record<string, string>;
 }
 
 export async function getJkAnimeWatch(
@@ -245,9 +246,9 @@ export async function getJkAnimeWatch(
     if (result.status === "fulfilled" && result.value) {
       sources.push({
         url: result.value,
-        quality: `Servidor ${serverNum} (Latino)`,
+        quality: `Servidor ${serverNum} (Sub español)`,
         isM3U8: true,
-        lang: "LAT",
+        lang: "SUB",
       });
       serverNum++;
     }
@@ -258,5 +259,9 @@ export async function getJkAnimeWatch(
     throw new Error(`No se pudieron resolver fuentes m3u8 para ${slug} ep ${episodeNum}`);
   }
 
-  return { sources, slug };
+  return {
+    sources,
+    slug,
+    headers: { "Referer": episodePageUrl },
+  };
 }
