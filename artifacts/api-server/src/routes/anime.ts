@@ -990,67 +990,99 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
       }
     } catch { /* no bloquear por error DB */ }
   }
-  try {
-    const data = await retryFetch(() => getAnimeKai().fetchEpisodeSources(id), 4, 600);
-    res.json(data);
-    return;
-  } catch (firstErr: any) {
-    const msg = (firstErr?.message ?? "").toLowerCase();
-    if (!msg.includes("not found") && !msg.includes("server")) {
-      req.log.error({ err: firstErr }, "Failed to fetch episode sources");
-      res.status(500).json({ error: "Failed to fetch episode sources" });
-      return;
-    }
-    req.log.warn({ episodeId: id }, "Direct fetch failed after retries, trying fallback via fetchEpisodeServers");
+  const fetchAnimeKaiSources = async (sourceId: string) => {
     try {
-      const servers = await retryFetch(() => getAnimeKai().fetchEpisodeServers(id), 3, 500);
-      if (!servers || servers.length === 0) {
-        res.status(503).json({ error: "No streaming servers available for this episode" });
-        return;
-      }
+      return await retryFetch(() => getAnimeKai().fetchEpisodeSources(sourceId), 4, 600);
+    } catch (directErr) {
+      const servers = await retryFetch(() => getAnimeKai().fetchEpisodeServers(sourceId), 3, 500);
+      if (!servers || servers.length === 0) throw directErr;
+      let lastServerErr: unknown = directErr;
       for (const server of servers) {
         try {
           const data = await retryFetch(() => getAnimeKai().fetchEpisodeSources(server.url), 3, 500);
-          req.log.info({ server: server.name }, "Fallback server succeeded");
-          res.json(data);
-          return;
-        } catch { /* try next server */ }
+          req.log.info({ server: server.name }, "AnimeKai fallback server succeeded");
+          return data;
+        } catch (err) {
+          lastServerErr = err;
+        }
       }
-      res.status(503).json({ error: "All streaming servers failed for this episode" });
-    } catch (fallbackErr) {
-      req.log.error({ err: fallbackErr }, "Fallback server fetch also failed");
-      res.status(500).json({ error: "Failed to fetch episode sources" });
+      throw lastServerErr;
+    }
+  };
+
+  let lastPlaybackErr: unknown;
+
+  try {
+    const data = await fetchAnimeKaiSources(id);
+    res.json(data);
+    return;
+  } catch (err) {
+    lastPlaybackErr = err;
+    req.log.warn({ err, episodeId: id }, "AnimeKai direct episode source failed");
+  }
+
+  if (animeTitle && episodeNum) {
+    const titleVariantList = titleVariants(animeTitle);
+    req.log.warn({ animeTitle, episodeNum, titleVariantList }, "Trying fresh AnimeKai lookup for episode");
+    for (const variant of titleVariantList) {
+      try {
+        const searchData = await retryFetch(() => getAnimeKai().search(variant), 2, 400) as any;
+        const candidates = (searchData.results ?? []).slice(0, 4);
+        for (const candidate of candidates) {
+          if (!candidate?.id) continue;
+          try {
+            const info = await retryFetch(() => getAnimeKai().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
+            const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
+            if (!ep?.id) continue;
+            const data = await fetchAnimeKaiSources(ep.id as string);
+            req.log.info({ provider: "AnimeKai", variant, animeId: candidate.id, episodeNum }, "Fresh AnimeKai episode lookup succeeded");
+            res.json(data);
+            return;
+          } catch (err) {
+            lastPlaybackErr = err;
+          }
+        }
+      } catch (err) {
+        lastPlaybackErr = err;
+      }
     }
   }
 
-  /* ── Gogoanime fallback (only reached if AnimeKai completely failed above) ── */
-  if (!res.headersSent && animeTitle && episodeNum) {
-    req.log.warn({ animeTitle, episodeNum }, "Trying Gogoanime as secondary provider");
+  if (animeTitle && episodeNum) {
+    req.log.warn({ animeTitle, episodeNum }, "Trying Hianime as secondary provider");
     try {
       const titleVariantList = titleVariants(animeTitle);
       for (const variant of titleVariantList) {
         try {
           const searchData = await retryFetch(() => getGogoanime().search(variant), 2, 400) as any;
-          const firstResult = (searchData.results ?? [])[0];
-          if (!firstResult) continue;
-          const info = await retryFetch(() => getGogoanime().fetchAnimeInfo(firstResult.id as string), 2, 400) as any;
-          const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
-          if (!ep) continue;
-          const data = await retryFetch(() => getGogoanime().fetchEpisodeSources(ep.id as string), 3, 500);
-          req.log.info({ provider: "gogoanime", variant }, "Gogoanime fallback succeeded");
-          res.json(data);
-          return;
-        } catch { /* try next variant */ }
+          const candidates = (searchData.results ?? []).slice(0, 4);
+          for (const candidate of candidates) {
+            if (!candidate?.id) continue;
+            try {
+              const info = await retryFetch(() => getGogoanime().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
+              const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
+              if (!ep?.id) continue;
+              const data = await retryFetch(() => getGogoanime().fetchEpisodeSources(ep.id as string), 3, 500);
+              req.log.info({ provider: "hianime", variant, animeId: candidate.id, episodeNum }, "Hianime fallback succeeded");
+              res.json(data);
+              return;
+            } catch (err) {
+              lastPlaybackErr = err;
+            }
+          }
+        } catch (err) {
+          lastPlaybackErr = err;
+        }
       }
-      req.log.warn({ animeTitle, episodeNum }, "Gogoanime fallback exhausted all title variants");
-    } catch (gogoErr) {
-      req.log.error({ err: gogoErr }, "Gogoanime fallback failed");
+      req.log.warn({ animeTitle, episodeNum }, "Hianime fallback exhausted all title variants");
+    } catch (err) {
+      lastPlaybackErr = err;
+      req.log.error({ err }, "Hianime fallback failed");
     }
   }
 
-  if (!res.headersSent) {
-    res.status(503).json({ error: "All streaming providers failed for this episode" });
-  }
+  req.log.error({ err: lastPlaybackErr, episodeId: id, animeTitle, episodeNum }, "All streaming providers failed for this episode");
+  res.status(503).json({ error: "All streaming providers failed for this episode" });
 });
 
 /**

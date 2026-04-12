@@ -259,6 +259,7 @@ export default function AnimeDetail() {
   const [descExpanded, setDescExpanded] = useState(false);
   const [watchedEps, setWatchedEps] = useState<Set<string>>(new Set());
   const [epFilter, setEpFilter] = useState<"all" | "unwatched">("all");
+  const [epSearch, setEpSearch] = useState("");
   const [shareToast, setShareToast] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
 
@@ -322,9 +323,11 @@ export default function AnimeDetail() {
   const cover = anime?.cover ?? "";
   const rawDesc = (anime?.description ?? "").replace(/<[^>]+>/g, "");
   const genres = anime?.genres ?? [];
-  // Prefer AniList placeholder list; if AniList has no count, fall back to AnimeKai episodes.
   const anilistEpisodes = anime?.episodes ?? [];
-  const episodes: Episode[] = anilistEpisodes.length > 0 ? anilistEpisodes : paheEpisodesList;
+  const episodes: Episode[] =
+    paheEpisodesList.length > 0 && paheEpisodesList.length >= anilistEpisodes.length
+      ? paheEpisodesList
+      : anilistEpisodes;
   const characters = anime?.characters ?? [];
   const recommendations = (anime?.recommendations ?? []).filter((r) => r.image);
   const trailer = anime?.trailer;
@@ -368,9 +371,12 @@ export default function AnimeDetail() {
     navigate(`/watch?${params.toString()}`);
   };
 
-  const filteredEps = epFilter === "unwatched"
-    ? episodes.filter((ep) => !watchedEps.has(ep.id))
-    : episodes;
+  const normalizedEpSearch = epSearch.trim().toLowerCase();
+  const filteredEps = episodes.filter((ep) => {
+    if (epFilter === "unwatched" && watchedEps.has(ep.id)) return false;
+    if (!normalizedEpSearch) return true;
+    return String(ep.number).includes(normalizedEpSearch) || (ep.title ?? "").toLowerCase().includes(normalizedEpSearch);
+  });
 
   if (infoQuery.isLoading) {
     return (
@@ -628,6 +634,26 @@ export default function AnimeDetail() {
               </div>
             )}
           </div>
+
+          {episodes.length > 24 && (
+            <div className="mb-3 flex gap-2">
+              <input
+                value={epSearch}
+                onChange={(e) => setEpSearch(e.target.value)}
+                placeholder="Buscar episodio o número"
+                inputMode="numeric"
+                className="flex-1 min-w-0 rounded-xl border border-[#1E1E32] bg-[#100e22] px-3 py-2.5 text-sm text-[#F0F0FF] outline-none placeholder:text-[#4A4A6A] focus:border-[#7C6FFF80]"
+              />
+              {epSearch && (
+                <button
+                  onClick={() => setEpSearch("")}
+                  className="rounded-xl border border-[#1E1E32] px-3 text-[#9090B0]"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+          )}
 
           {paheQuery.isLoading && (
             <div className="flex items-center gap-2 text-xs text-[#4A4A6A] mb-3">

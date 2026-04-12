@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearch, useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Hls from "hls.js";
@@ -438,6 +438,7 @@ function EpisodePanel({
   const [, navigate] = useLocation();
   const { getProgress } = useWatchProgress();
   const [page, setPage] = useState(0);
+  const [jumpEpisode, setJumpEpisode] = useState("");
   const PAGE_SIZE = 24;
 
   const episodesQuery = useQuery({
@@ -449,8 +450,33 @@ function EpisodePanel({
   });
 
   const episodes = episodesQuery.data?.episodes ?? [];
+  const currentIndex = episodes.findIndex((e) => e.id === currentEpisodeId);
   const totalPages = Math.ceil(episodes.length / PAGE_SIZE);
-  const pageEps = episodes.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const safePage = totalPages > 0 ? Math.min(page, totalPages - 1) : 0;
+  const pageEps = episodes.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+  const rangeButtons = useMemo(() => {
+    if (episodes.length <= PAGE_SIZE) return [];
+    const ranges: Array<{ label: string; page: number }> = [];
+    const step = episodes.length > 500 ? 100 : 50;
+    for (let start = 1; start <= episodes.length; start += step) {
+      const end = Math.min(start + step - 1, episodes.length);
+      const firstIndex = episodes.findIndex((ep) => ep.number >= start);
+      const targetPage = Math.max(0, Math.floor((firstIndex === -1 ? start - 1 : firstIndex) / PAGE_SIZE));
+      ranges.push({ label: `${start}-${end}`, page: targetPage });
+    }
+    return ranges;
+  }, [episodes]);
+
+  useEffect(() => {
+    if (currentIndex >= 0) setPage(Math.floor(currentIndex / PAGE_SIZE));
+  }, [currentIndex]);
+
+  const jumpToEpisode = () => {
+    const target = parseInt(jumpEpisode, 10);
+    if (!target || Number.isNaN(target)) return;
+    const idx = episodes.findIndex((ep) => ep.number === target);
+    if (idx >= 0) setPage(Math.floor(idx / PAGE_SIZE));
+  };
 
   return (
     <div style={{ background: "#0E0E1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
@@ -466,7 +492,7 @@ function EpisodePanel({
               style={{ padding: 5, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "none", cursor: page === 0 ? "default" : "pointer", opacity: page === 0 ? 0.3 : 1 }}>
               <ChevronLeft size={14} color="#fff" />
             </button>
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>{page + 1}/{totalPages}</span>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>{safePage + 1}/{totalPages}</span>
             <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1}
               style={{ padding: 5, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "none", cursor: page === totalPages - 1 ? "default" : "pointer", opacity: page === totalPages - 1 ? 0.3 : 1 }}>
               <ChevronRight size={14} color="#fff" />
@@ -474,6 +500,38 @@ function EpisodePanel({
           </div>
         )}
       </div>
+
+      {episodes.length > PAGE_SIZE && (
+        <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={jumpEpisode}
+              onChange={(e) => setJumpEpisode(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => { if (e.key === "Enter") jumpToEpisode(); }}
+              placeholder="Ir al episodio"
+              inputMode="numeric"
+              style={{ flex: 1, minWidth: 0, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 11px", color: "#F1F1F5", fontSize: 12, outline: "none" }}
+            />
+            <button
+              onClick={jumpToEpisode}
+              style={{ background: "rgba(124,111,255,0.18)", border: "1px solid rgba(124,111,255,0.35)", color: "#B39DFF", borderRadius: 10, padding: "0 13px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+            >
+              Ir
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
+            {rangeButtons.map((range) => (
+              <button
+                key={range.label}
+                onClick={() => setPage(range.page)}
+                style={{ flexShrink: 0, background: range.page === safePage ? "#7C6FFF" : "rgba(255,255,255,0.06)", color: range.page === safePage ? "#fff" : "rgba(255,255,255,0.65)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 999, padding: "6px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ maxHeight: 380, overflowY: "auto", padding: "8px 10px" }}>
         {episodesQuery.isLoading && (
@@ -486,7 +544,7 @@ function EpisodePanel({
         )}
         {pageEps.map((ep, idx) => {
           const isCurrent = ep.id === currentEpisodeId;
-          const globalIdx = page * PAGE_SIZE + idx;
+          const globalIdx = safePage * PAGE_SIZE + idx;
           const nextEp = episodes[globalIdx + 1];
           const progress = getProgress(ep.id);
           const pct = progress ? Math.min(1, progress.currentTime / Math.max(progress.duration, 1)) : 0;

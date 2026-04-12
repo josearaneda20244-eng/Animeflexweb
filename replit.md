@@ -88,3 +88,11 @@ UPDATE users SET role='owner' WHERE email='josearaneda20244@gmail.com';
 - `@consumet/extensions` está externalizado en esbuild (no bundleado)
 - Las migraciones usan `safeQuery` para ser resilientes si las tablas ya existen
 - CORS está configurado con `origin: true` para funcionar con el proxy de Replit
+
+
+## Cambios Recientes
+
+- La ficha del anime ahora prioriza la lista completa de episodios de AnimeKai cuando supera la lista parcial de AniList.
+- El detalle del anime incluye búsqueda rápida por número o título de episodio para series largas.
+- El reproductor abre el panel de episodios en el rango del episodio actual e incluye salto directo por número y rangos rápidos.
+- La ruta de reproducción intenta re-resolver episodios recientes con una búsqueda fresca en AnimeKai y luego usa Hianime como respaldo antes de fallar.
