@@ -43,7 +43,7 @@ export function emailTemplate(content: string): string {
       </div>
       ${content}
       <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:24px 0 16px"/>
-      <p style="color:rgba(255,255,255,0.15);font-size:11px;text-align:center;margin:0">AnimeFlex — animeflex.replit.app</p>
+      <p style="color:rgba(255,255,255,0.15);font-size:11px;text-align:center;margin:0">AnimeFlex — animeflex.lat</p>
     </div>
   `;
 }
