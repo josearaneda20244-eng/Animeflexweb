@@ -740,9 +740,9 @@ export default function Player() {
     enabled: !!episodeId,
     retry: (failCount, error: any) => {
       if (error?.status === 403) return false;
-      return failCount < 3;
+      return failCount < 2;
     },
-    retryDelay: (i) => Math.min(600 * Math.pow(2, i), 6000),
+    retryDelay: (i) => Math.min(400 * Math.pow(2, i), 2500),
     staleTime: 1000 * 60 * 3,
     gcTime: 1000 * 60 * 8,
     refetchOnWindowFocus: false,
@@ -750,21 +750,16 @@ export default function Player() {
 
   const hasPrimarySources = !!query.data?.sources?.length;
   const isRecentEpisode = currentEpIdx >= 0 && allEpisodes.length > 0 && currentEpIdx >= allEpisodes.length - 3;
-  const shouldFetchAnimeFlv = !!animeTitle && !!episodeNum && (
-    audioLang === "lat" ||
-    isRecentEpisode ||
-    playbackFailureCount > 0 ||
-    query.failureCount > 0 ||
-    (!query.isLoading && (query.isError || !hasPrimarySources))
-  );
+  // Pre-cargar JKAnime siempre en paralelo: así al hacer clic en LAT ya está listo
+  const shouldFetchAnimeFlv = !!animeTitle && !!episodeNum;
 
   const animeflvQuery = useQuery({
     queryKey: ["animeflv", animeTitle, episodeNum],
     queryFn: () => consumet.animeflvWatch(animeTitle, parseInt(episodeNum || "1")),
     enabled: shouldFetchAnimeFlv,
     retry: 1,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,
   });
 
