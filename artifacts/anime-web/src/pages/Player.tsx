@@ -783,7 +783,9 @@ export default function Player() {
   const selected = sources[selectedIdx] ?? null;
   const selectedIsBackup = !!selected && (selected as any).provider === "backup";
   // SUB error: query failed, OR query succeeded but returned 0 sources
-  const showSubError = audioLang === "sub" && (query.isError || (!query.isLoading && !!query.data && subSources.length === 0));
+  // Tracks when all SUB playback sources have been tried and failed
+  const allSubPlaybackFailed = audioLang === "sub" && subSources.length > 0 && playbackFailureCount >= subSources.length;
+  const showSubError = audioLang === "sub" && (query.isError || (!query.isLoading && !!query.data && subSources.length === 0) || allSubPlaybackFailed);
   const showMainError = audioLang === "sub" ? showSubError : (query.isError && !hasAnimeflvSources);
 
   const streamSubtitles = query.data?.subtitles ?? [];
@@ -850,11 +852,8 @@ export default function Player() {
     if (sources.length > 0 && selectedIdx >= sources.length) setSelectedIdx(0);
   }, [selectedIdx, sources.length]);
 
-  useEffect(() => {
-    if (playbackFailureCount > 0 && audioLang === "sub" && subSources.length > 0 && animeflvSources.length > 0 && selectedIdx < subSources.length) {
-      setSelectedIdx(subSources.length);
-    }
-  }, [playbackFailureCount, audioLang, subSources.length, animeflvSources.length, selectedIdx]);
+  // Note: when all SUB sources fail, showSubError handles the UI via allSubPlaybackFailed.
+  // handlePlaybackError already cycles through available sources naturally.
 
   const handlePlaybackError = useCallback(() => {
     setPlaybackFailureCount((count) => count + 1);
@@ -1123,7 +1122,9 @@ export default function Player() {
                   <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>
                     {audioLang === "lat"
                       ? "No se encontró este episodio en JKAnime (Español). Prueba con SUB."
-                      : "No se encontró este episodio en AnimeKai (Inglés). Prueba con LAT."}
+                      : allSubPlaybackFailed
+                        ? "El stream no pudo reproducirse. Prueba con LAT o reintenta."
+                        : "No se encontró este episodio en AnimeKai (Inglés). Prueba con LAT."}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
