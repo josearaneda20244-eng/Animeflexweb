@@ -567,15 +567,49 @@ async function anilistByFormat(format: string, page: number, perPage = 24) {
       }
     }
   `;
-  const resp = await fetch(ANILIST_GQL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query, variables: { format, page, perPage } }),
-  });
-  if (!resp.ok) throw new Error(`AniList GQL error ${resp.status}`);
-  const json: any = await resp.json();
-  if (json.errors?.length) throw new Error(json.errors[0].message);
-  return json.data.Page;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const resp = await fetch(ANILIST_GQL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query, variables: { format, page, perPage } }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!resp.ok) throw new Error(`AniList GQL error ${resp.status}`);
+    const json: any = await resp.json();
+    if (json.errors?.length) throw new Error(json.errors[0].message);
+    return json.data.Page;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
+async function anilistByFormatFallback(format: string, page: number, perPage = 24) {
+  // Fallback: use consumet's Anilist META provider with format search
+  const anilistMeta = getAnilist();
+  const data: any = await (anilistMeta as any).advancedSearch(
+    undefined, "ANIME", page, perPage,
+    undefined, undefined, undefined, undefined,
+    undefined, undefined, format
+  );
+  const results = ((data?.results) || []).map((m: any) => ({
+    id: String(m.id),
+    title: m.title ?? { romaji: m.title, english: m.title },
+    image: m.image ?? "",
+    rating: (m.rating ?? 0),
+    type: format,
+    totalEpisodes: m.totalEpisodes ?? 0,
+    status: m.status ?? "",
+    genres: m.genres ?? [],
+  }));
+  return {
+    media: results,
+    pageInfo: { currentPage: page, hasNextPage: data?.hasNextPage ?? false },
+    _fromFallback: true,
+  };
 }
 
 router.get("/anime/by-format", async (req, res) => {
@@ -593,17 +627,33 @@ router.get("/anime/by-format", async (req, res) => {
     return;
   }
   try {
-    const page_data = await anilistByFormat(format, page);
-    const results = (page_data.media || []).map((m: any) => ({
-      id: String(m.id),
-      title: m.title,
-      image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
-      rating: m.averageScore ?? 0,
-      type: m.format ?? format,
-      totalEpisodes: m.episodes ?? 0,
-      status: m.status,
-      genres: m.genres ?? [],
-    }));
+    let page_data: any;
+    let usedFallback = false;
+    try {
+      page_data = await anilistByFormat(format, page);
+    } catch (primaryErr) {
+      req.log.warn({ primaryErr }, "AniList direct GQL failed, trying consumet fallback");
+      try {
+        page_data = await anilistByFormatFallback(format, page);
+        usedFallback = true;
+      } catch (fallbackErr) {
+        req.log.error({ fallbackErr }, "Both AniList direct and fallback failed");
+        throw primaryErr;
+      }
+    }
+    const rawItems = usedFallback ? (page_data.media || []) : (page_data.media || []);
+    const results = usedFallback
+      ? rawItems
+      : rawItems.map((m: any) => ({
+          id: String(m.id),
+          title: m.title,
+          image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
+          rating: m.averageScore ?? 0,
+          type: m.format ?? format,
+          totalEpisodes: m.episodes ?? 0,
+          status: m.status,
+          genres: m.genres ?? [],
+        }));
     const payload = {
       results,
       currentPage: page_data.pageInfo?.currentPage ?? page,
