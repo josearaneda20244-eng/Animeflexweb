@@ -109,13 +109,15 @@ async function tryResolveM3U8(embedUrl: string, referer?: string): Promise<strin
 async function resolveStreamtape(url: string): Promise<string | null> {
   try {
     const html = await fetchHtml(url, ANIMEFLV_BASE);
-    const m = html.match(/getElementById\('robotlink'\)[^;]*?=\s*["']([^"']+)["']\s*\+\s*["']([^"']+)["']/);
-    if (m) {
-      const combined = m[1] + m[2].slice(2);
+    // Most reliable: look for the complete get_video URL in the page (anti-scrape div leaks it)
+    const direct = html.match(/streamtape\.com\/get_video\?[^"'\s<>\\]+/);
+    if (direct) return "https://" + direct[0];
+    // JS-based obfuscation: innerHTML = 'XX' + ('YYYY...') → skip 4 chars of part2
+    const js = html.match(/innerHTML\s*=\s*["']([^"']+)["']\s*\+\s*\(?["']([^"']+)["']\)?/);
+    if (js) {
+      const combined = js[1] + js[2].slice(4);
       return combined.startsWith("//") ? "https:" + combined : combined;
     }
-    const alt = html.match(/\/\/streamtape\.com\/get_video\?[^"'\s<>]+/);
-    if (alt) return "https:" + alt[0];
     return null;
   } catch {
     return null;
@@ -125,8 +127,10 @@ async function resolveStreamtape(url: string): Promise<string | null> {
 async function resolveOkRu(url: string): Promise<string | null> {
   try {
     const html = await fetchHtml(url, ANIMEFLV_BASE);
-    const m3u8 = html.match(/"hls"\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i)
-      ?? html.match(/["']([^"']+\.m3u8[^"']*)["']/i);
+    const decoded = html.replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&#39;/g, "'");
+    const m3u8 = decoded.match(/"hls"\s*:\s*"([^"]+\.m3u8[^"]*)"/i)
+      ?? decoded.match(/"url"\s*:\s*"(https?:\/\/[^"]+\.m3u8[^"]*)"/i)
+      ?? decoded.match(/"(https?:\/\/[^"]+\.m3u8[^"]*)"/i);
     if (m3u8?.[1]) return decodeURIComponent(m3u8[1]);
     return null;
   } catch {
