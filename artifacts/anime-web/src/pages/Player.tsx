@@ -1019,26 +1019,45 @@ export default function Player() {
                 <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando episodio en AnimeFLV...</p>
               </div>
             )}
-            {!query.isLoading && !showMainError && !(audioLang === "lat" && animeflvQuery.isLoading) && !selected && (
+            {!selected && !showLimitModal &&
+              (audioLang === "lat"
+                ? !animeflvQuery.isLoading && !animeflvQuery.isError
+                : !query.isLoading && !showMainError) && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="rgba(255,255,255,0.2)" />
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
               </div>
             )}
-            {!showLimitModal && !query.isLoading && !query.isError && !(audioLang === "lat" && animeflvQuery.isLoading) && selected && proxyM3u8 && (
-              <PlyrPlayer
-                key={`${episodeId}-${selectedIdx}`}
-                m3u8Url={proxyM3u8}
-                playbackRate={playbackRate}
-                startAt={startAt}
-                fullscreenContainer="#plyr-fullscreen-container"
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={handleEnded}
-                onSubtitleTracks={handleSubtitleTracks}
-                activeHlsSubId={subLang !== "off" ? activeHlsSubId : -1}
-                onSubtitleCue={handleSubtitleCue}
-                controlsRef={playerControlsRef}
-              />
+            {!showLimitModal && selected &&
+              (audioLang === "lat"
+                ? !animeflvQuery.isLoading && !animeflvQuery.isError
+                : !query.isLoading && !query.isError) && (
+              selected.isM3U8 === false ? (
+                <iframe
+                  key={`embed-${episodeId}-${selectedIdx}`}
+                  src={selected.url}
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", background: "#000" }}
+                  allowFullScreen
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                proxyM3u8 ? (
+                  <PlyrPlayer
+                    key={`${episodeId}-${selectedIdx}`}
+                    m3u8Url={proxyM3u8}
+                    playbackRate={playbackRate}
+                    startAt={startAt}
+                    fullscreenContainer="#plyr-fullscreen-container"
+                    onTimeUpdate={handleTimeUpdate}
+                    onEnded={handleEnded}
+                    onSubtitleTracks={handleSubtitleTracks}
+                    activeHlsSubId={subLang !== "off" ? activeHlsSubId : -1}
+                    onSubtitleCue={handleSubtitleCue}
+                    controlsRef={playerControlsRef}
+                  />
+                ) : null
+              )
             )}
             {/* Custom subtitle overlay — VTT primary, HLS cue fallback */}
             <SubtitleOverlay

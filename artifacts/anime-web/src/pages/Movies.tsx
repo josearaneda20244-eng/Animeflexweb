@@ -72,22 +72,29 @@ function MovieCard({ anime }: { anime: AnimeResult }) {
 export default function Movies() {
   const [, navigate] = useLocation();
 
-  const popularQuery = useQuery({
-    queryKey: ["movies-popular"],
-    queryFn: () => consumet.popular(),
-    staleTime: 1000 * 60 * 10,
+  const page1 = useQuery({
+    queryKey: ["movies-by-format-1"],
+    queryFn: () => consumet.byFormat("MOVIE", 1),
+    staleTime: 1000 * 60 * 15,
   });
 
-  const trendingQuery = useQuery({
-    queryKey: ["movies-trending"],
-    queryFn: () => consumet.trending(),
-    staleTime: 1000 * 60 * 10,
+  const page2 = useQuery({
+    queryKey: ["movies-by-format-2"],
+    queryFn: () => consumet.byFormat("MOVIE", 2),
+    staleTime: 1000 * 60 * 15,
+  });
+
+  const page3 = useQuery({
+    queryKey: ["movies-by-format-3"],
+    queryFn: () => consumet.byFormat("MOVIE", 3),
+    staleTime: 1000 * 60 * 15,
   });
 
   const allMovies = [
-    ...(popularQuery.data?.results ?? []),
-    ...(trendingQuery.data?.results ?? []),
-  ].filter((a) => a.type === "MOVIE" || a.type === "Movie");
+    ...(page1.data?.results ?? []),
+    ...(page2.data?.results ?? []),
+    ...(page3.data?.results ?? []),
+  ];
 
   const uniqueMovies = Array.from(new Map(allMovies.map((m) => [m.id, m])).values());
 
@@ -98,7 +105,7 @@ export default function Movies() {
     }
   };
 
-  const isLoading = popularQuery.isLoading && trendingQuery.isLoading;
+  const isLoading = page1.isLoading;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000" }}>

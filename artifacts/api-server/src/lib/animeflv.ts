@@ -88,12 +88,13 @@ async function tryResolveM3U8(embedUrl: string, referer?: string): Promise<strin
   try {
     const html = await fetchHtml(embedUrl, referer ?? ANIMEFLV_BASE);
     const patterns = [
+      /sources\s*:\s*\[[\s\S]{0,200}?file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i,
       /["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i,
       /file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i,
-      /sources\s*:\s*\[[\s\S]*?["']([^"']+\.m3u8[^"']*)["']/i,
       /source\s+src=["']([^"']+\.m3u8[^"']*)["']/i,
       /"hls"\s*:\s*"([^"]+)"/i,
       /var\s+url\s*=\s*["']([^"']+\.m3u8[^"']*)["']/i,
+      /["']([^"']+\.m3u8(?:\?[^"']*)?)["']/i,
     ];
     for (const pattern of patterns) {
       const found = html.match(pattern);
@@ -105,16 +106,48 @@ async function tryResolveM3U8(embedUrl: string, referer?: string): Promise<strin
   }
 }
 
+async function resolveStreamtape(url: string): Promise<string | null> {
+  try {
+    const html = await fetchHtml(url, ANIMEFLV_BASE);
+    const m = html.match(/getElementById\('robotlink'\)[^;]*?=\s*["']([^"']+)["']\s*\+\s*["']([^"']+)["']/);
+    if (m) {
+      const combined = m[1] + m[2].slice(2);
+      return combined.startsWith("//") ? "https:" + combined : combined;
+    }
+    const alt = html.match(/\/\/streamtape\.com\/get_video\?[^"'\s<>]+/);
+    if (alt) return "https:" + alt[0];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveOkRu(url: string): Promise<string | null> {
+  try {
+    const html = await fetchHtml(url, ANIMEFLV_BASE);
+    const m3u8 = html.match(/"hls"\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i)
+      ?? html.match(/["']([^"']+\.m3u8[^"']*)["']/i);
+    if (m3u8?.[1]) return decodeURIComponent(m3u8[1]);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveAnimeFLVSource(source: AnimeFLVSource): Promise<string | null> {
   const sl = source.server.toLowerCase();
   const ul = source.url.toLowerCase();
-  if (
-    sl.includes("yourupload") || sl.includes("your upload") || ul.includes("yourupload")
-  ) return tryResolveM3U8(source.url);
-  if (sl.includes("filemoon") || sl.includes("moon") || ul.includes("filemoon")) return tryResolveM3U8(source.url);
-  if (sl.includes("fembed") || ul.includes("fembed")) return tryResolveM3U8(source.url);
-  if (sl.includes("streamsb") || sl.includes("sbplay") || ul.includes("sbplay") || ul.includes("streamsb")) return tryResolveM3U8(source.url);
-  if (sl.includes("doodstream") || sl.includes("dood") || ul.includes("dood")) return tryResolveM3U8(source.url);
+  if (sl === "stape" || ul.includes("streamtape")) return resolveStreamtape(source.url);
+  if (sl === "okru" || ul.includes("ok.ru")) return resolveOkRu(source.url);
+  if (sl === "sw" || ul.includes("streamwish") || ul.includes("wish")) return tryResolveM3U8(source.url);
+  if (sl.includes("fembed") || ul.includes("fembed") || ul.includes("embedsito")) return tryResolveM3U8(source.url);
+  if (sl.includes("yourupload") || ul.includes("yourupload")) return tryResolveM3U8(source.url);
+  if (sl.includes("filemoon") || ul.includes("filemoon")) return tryResolveM3U8(source.url);
+  if (sl.includes("streamsb") || ul.includes("streamsb") || ul.includes("sbplay")) return tryResolveM3U8(source.url);
+  if (sl.includes("dood") || ul.includes("dood")) return tryResolveM3U8(source.url);
+  if (sl === "netu" || ul.includes("hqq.tv")) return tryResolveM3U8(source.url);
+  if (sl === "maru" || ul.includes("mail.ru")) return tryResolveM3U8(source.url);
+  if (sl === "mega" || ul.includes("mega.nz")) return null;
   return tryResolveM3U8(source.url);
 }
 

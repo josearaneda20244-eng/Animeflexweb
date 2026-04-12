@@ -539,6 +539,58 @@ router.get("/anime/search", async (req, res) => {
   }
 });
 
+/**
+ * Fetch anime by Anilist format (MOVIE, OVA, ONA, SPECIAL), sorted by popularity.
+ * GET /api/anime/by-format?format=MOVIE&page=1
+ */
+router.get("/anime/by-format", async (req, res) => {
+  const ALLOWED = ["MOVIE", "OVA", "ONA", "SPECIAL"];
+  const format = ((req.query.format as string) || "MOVIE").toUpperCase();
+  const page = Math.max(1, Number(req.query.page) || 1);
+  if (!ALLOWED.includes(format)) {
+    res.status(400).json({ error: `Invalid format. Use: ${ALLOWED.join(", ")}` });
+    return;
+  }
+  try {
+    const gql = `
+      query ($page: Int, $perPage: Int, $format: MediaFormat) {
+        Page(page: $page, perPage: $perPage) {
+          pageInfo { currentPage hasNextPage }
+          media(type: ANIME, format: $format, sort: POPULARITY_DESC, isAdult: false) {
+            id idMal
+            title { romaji english userPreferred }
+            coverImage { large medium }
+            averageScore format episodes status genres
+          }
+        }
+      }
+    `;
+    const resp = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query: gql, variables: { page, perPage: 24, format } }),
+    });
+    if (!resp.ok) throw new Error(`Anilist ${resp.status}`);
+    const json = (await resp.json()) as { data?: { Page?: any }; errors?: unknown[] };
+    if (json.errors?.length || !json.data?.Page) throw new Error("Anilist query failed");
+    const results = (json.data.Page.media ?? []).map((m: any) => ({
+      id: String(m.id),
+      malId: m.idMal ? String(m.idMal) : undefined,
+      title: { romaji: m.title.romaji, english: m.title.english, userPreferred: m.title.userPreferred },
+      image: m.coverImage?.large ?? m.coverImage?.medium ?? "",
+      rating: m.averageScore ?? 0,
+      type: m.format,
+      totalEpisodes: m.episodes ?? 0,
+      status: m.status,
+      genres: m.genres ?? [],
+    }));
+    res.json({ results, currentPage: json.data.Page.pageInfo.currentPage, hasNextPage: json.data.Page.pageInfo.hasNextPage });
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch anime by format");
+    res.status(500).json({ error: "Failed to fetch anime" });
+  }
+});
+
 router.get("/anime/info", async (req, res) => {
   const id = req.query.id as string;
   if (!id) {

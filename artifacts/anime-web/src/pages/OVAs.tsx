@@ -77,22 +77,19 @@ function OVACard({ anime }: { anime: AnimeResult }) {
 export default function OVAs() {
   const [, navigate] = useLocation();
 
-  const popularQuery = useQuery({
-    queryKey: ["ovas-popular"],
-    queryFn: () => consumet.popular(),
-    staleTime: 1000 * 60 * 10,
-  });
-
-  const trendingQuery = useQuery({
-    queryKey: ["ovas-trending"],
-    queryFn: () => consumet.trending(),
-    staleTime: 1000 * 60 * 10,
-  });
+  const ovaP1 = useQuery({ queryKey: ["ovas-ova-1"], queryFn: () => consumet.byFormat("OVA", 1), staleTime: 1000 * 60 * 15 });
+  const ovaP2 = useQuery({ queryKey: ["ovas-ova-2"], queryFn: () => consumet.byFormat("OVA", 2), staleTime: 1000 * 60 * 15 });
+  const onaP1 = useQuery({ queryKey: ["ovas-ona-1"], queryFn: () => consumet.byFormat("ONA", 1), staleTime: 1000 * 60 * 15 });
+  const onaP2 = useQuery({ queryKey: ["ovas-ona-2"], queryFn: () => consumet.byFormat("ONA", 2), staleTime: 1000 * 60 * 15 });
+  const spP1  = useQuery({ queryKey: ["ovas-sp-1"],  queryFn: () => consumet.byFormat("SPECIAL", 1), staleTime: 1000 * 60 * 15 });
 
   const all = [
-    ...(popularQuery.data?.results ?? []),
-    ...(trendingQuery.data?.results ?? []),
-  ].filter((a) => OVA_TYPES.includes(a.type ?? ""));
+    ...(ovaP1.data?.results ?? []),
+    ...(ovaP2.data?.results ?? []),
+    ...(onaP1.data?.results ?? []),
+    ...(onaP2.data?.results ?? []),
+    ...(spP1.data?.results ?? []),
+  ];
 
   const unique = Array.from(new Map(all.map((m) => [m.id, m])).values());
 
@@ -103,7 +100,7 @@ export default function OVAs() {
     }
   };
 
-  const isLoading = popularQuery.isLoading && trendingQuery.isLoading;
+  const isLoading = ovaP1.isLoading && onaP1.isLoading;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000" }}>
