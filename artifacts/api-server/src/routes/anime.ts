@@ -1461,21 +1461,53 @@ router.get("/anime/download-proxy", async (req, res) => {
 });
 
 /**
+ * Fetch all title variants for an AniList anime ID (romaji, english, native).
+ * Used to improve JKAnime search coverage.
+ */
+async function fetchAnilistTitles(anilistId: string): Promise<string[]> {
+  try {
+    const resp = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        query: `query ($id: Int) { Media(id: $id, type: ANIME) { title { romaji english native } } }`,
+        variables: { id: parseInt(anilistId, 10) },
+      }),
+    });
+    if (!resp.ok) return [];
+    const json = await resp.json() as any;
+    const t = json?.data?.Media?.title;
+    if (!t) return [];
+    return [t.romaji, t.english, t.native].filter((s): s is string => !!s && typeof s === "string");
+  } catch {
+    return [];
+  }
+}
+
+/**
  * JKAnime — subtítulos en español (modo LAT del frontend)
- * GET /api/anime/animeflv-watch?title=...&episode=N
+ * GET /api/anime/animeflv-watch?title=...&episode=N&animeId=ANILIST_ID
  */
 router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
   const title = (req.query.title as string | undefined)?.trim();
   const episode = parseInt(req.query.episode as string);
+  const animeId = (req.query.animeId as string | undefined)?.trim();
   if (!title || !episode || isNaN(episode)) {
     res.status(400).json({ error: "Query params 'title' and 'episode' are required" });
     return;
   }
   try {
-    const data = await getJkAnimeWatch(title, episode);
+    // Fetch romaji/native titles from AniList to improve JKAnime slug matching
+    let extraTitles: string[] = [];
+    if (animeId && /^\d+$/.test(animeId)) {
+      const anilistTitles = await fetchAnilistTitles(animeId);
+      // Exclude the already-provided title to avoid duplicates
+      extraTitles = anilistTitles.filter(t => t.toLowerCase().trim() !== title.toLowerCase().trim());
+    }
+    const data = await getJkAnimeWatch(title, episode, extraTitles);
     res.json(data);
   } catch (err) {
-    req.log.warn({ err, title, episode }, "JKAnime (LAT/español) watch failed");
+    req.log.warn({ err, title, episode, animeId }, "JKAnime (LAT/español) watch failed");
     res.status(404).json({ error: "No se encontró el episodio subtitulado en español" });
   }
 });
