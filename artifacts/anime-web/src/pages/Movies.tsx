@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Film, Star, Play, Shuffle } from "lucide-react";
-import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
+import { byFormatDirect, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -73,24 +73,24 @@ export default function Movies() {
   const [, navigate] = useLocation();
 
   const page1 = useQuery({
-    queryKey: ["movies-by-format-1"],
-    queryFn: () => consumet.byFormat("MOVIE", 1),
+    queryKey: ["movies-direct-1"],
+    queryFn: () => byFormatDirect("MOVIE", 1),
     staleTime: 1000 * 60 * 15,
     retry: 3,
     retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000),
   });
 
   const page2 = useQuery({
-    queryKey: ["movies-by-format-2"],
-    queryFn: () => consumet.byFormat("MOVIE", 2),
+    queryKey: ["movies-direct-2"],
+    queryFn: () => byFormatDirect("MOVIE", 2),
     staleTime: 1000 * 60 * 15,
     retry: 3,
     retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000),
   });
 
   const page3 = useQuery({
-    queryKey: ["movies-by-format-3"],
-    queryFn: () => consumet.byFormat("MOVIE", 3),
+    queryKey: ["movies-direct-3"],
+    queryFn: () => byFormatDirect("MOVIE", 3),
     staleTime: 1000 * 60 * 15,
     retry: 3,
     retryDelay: (i: number) => Math.min(1000 * Math.pow(2, i), 8000),
