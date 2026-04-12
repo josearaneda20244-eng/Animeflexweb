@@ -1,6 +1,5 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
-import { getAnimeFLVWatch } from "../lib/animeflv.js";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
@@ -1083,15 +1082,6 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
         req.log.warn({ err, animeTitle, episodeNum }, "JKAnime fallback failed");
       }
 
-      try {
-        const data = await getAnimeFLVWatch(animeTitle, epNumber);
-        req.log.info({ provider: "animeflv", animeTitle, episodeNum }, "AnimeFLV fallback succeeded");
-        res.json(data);
-        return;
-      } catch (err) {
-        lastPlaybackErr = err;
-        req.log.warn({ err, animeTitle, episodeNum }, "AnimeFLV fallback failed");
-      }
     }
   }
   if (animeTitle && episodeNum) {
@@ -1455,9 +1445,9 @@ router.get("/anime/download-proxy", async (req, res) => {
 });
 
 /**
- * AnimeFLV — Spanish dubbed/subtitled anime streaming
+ * JKAnime — Spanish Latino streaming
  * GET /api/anime/animeflv-watch?title=...&episode=N
- * (mantenemos la ruta para compatibilidad, prueba JKAnime y luego AnimeFLV)
+ * (ruta mantenida para compatibilidad con el frontend)
  */
 router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
   const title = (req.query.title as string | undefined)?.trim();
@@ -1471,15 +1461,8 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
     res.json(data);
     return;
   } catch (jkErr) {
-    req.log.warn({ err: jkErr, title, episode }, "JKAnime watch failed, trying AnimeFLV");
-  }
-
-  try {
-    const data = await getAnimeFLVWatch(title, episode);
-    res.json(data);
-  } catch (flvErr) {
-    req.log.warn({ err: flvErr, title, episode }, "AnimeFLV watch failed");
-    res.status(404).json({ error: "No se encontró el episodio en fuentes alternativas" });
+    req.log.warn({ err: jkErr, title, episode }, "JKAnime watch failed");
+    res.status(404).json({ error: "No se encontró el episodio en JKAnime" });
   }
 });
 
