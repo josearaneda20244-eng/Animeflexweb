@@ -72,7 +72,7 @@ function makeSlugs(title: string): string[] {
   return [...new Set(variants)];
 }
 
-async function fetchPage(url: string, timeoutMs = 8000): Promise<string> {
+async function fetchPage(url: string, timeoutMs = 4000): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -199,7 +199,7 @@ export async function getJkAnimeWatch(
     if (html) { slug = cachedSlug; episodeHtml = html; }
   }
 
-  // 2. Try all slug variants from all titles (direct URL guessing)
+  // 2. Try all slug variants in parallel batches (much faster than sequential)
   if (!slug) {
     const allSlugs: string[] = [];
     const seenSlugs = new Set<string>();
@@ -208,49 +208,57 @@ export async function getJkAnimeWatch(
         if (!seenSlugs.has(s)) { seenSlugs.add(s); allSlugs.push(s); }
       }
     }
-    for (const candidate of allSlugs) {
-      const html = await trySlug(candidate, episodeNum);
-      if (html) {
-        slug = candidate;
-        episodeHtml = html;
-        slugCache.set(cacheKey, candidate);
+    const BATCH = 4;
+    for (let i = 0; i < allSlugs.length && !slug; i += BATCH) {
+      const batch = allSlugs.slice(i, i + BATCH);
+      const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
+      const hit = results.find(r => r !== null);
+      if (hit) {
+        slug = hit.s;
+        episodeHtml = hit.h!;
+        slugCache.set(cacheKey, slug);
         slugCacheTime.set(cacheKey, Date.now());
-        break;
       }
     }
   }
 
-  // 3. Search JKAnime with each title variant and try all returned slugs
+  // 3. Search JKAnime — run all search queries in parallel, then check returned slugs
   if (!slug) {
-    const triedSlugs = new Set<string>(
-      allTitles.flatMap(t => makeSlugs(t))
-    );
+    const triedSlugs = new Set<string>(allTitles.flatMap(t => makeSlugs(t)));
 
-    for (const searchTitle of allTitles) {
-      // Try the full title and the first word(s) as search queries
-      const searchQueries = [
-        searchTitle,
-        searchTitle.split(":")[0].trim(),
-        searchTitle.split(" ").slice(0, 2).join(" "),
-      ].filter((q, i, arr) => q.length >= 3 && arr.indexOf(q) === i);
-
-      for (const query of searchQueries) {
-        const foundSlugs = await searchJkAnimeSlugs(query);
-        for (const candidate of foundSlugs) {
-          if (triedSlugs.has(candidate)) continue;
-          triedSlugs.add(candidate);
-          const html = await trySlug(candidate, episodeNum);
-          if (html) {
-            slug = candidate;
-            episodeHtml = html;
-            slugCache.set(cacheKey, candidate);
-            slugCacheTime.set(cacheKey, Date.now());
-            break;
-          }
-        }
-        if (slug) break;
+    // Build all unique search queries from all title variants
+    const allSearchQueries: string[] = [];
+    const seenQ = new Set<string>();
+    for (const t of allTitles) {
+      for (const q of [t, t.split(":")[0].trim(), t.split(" ").slice(0, 2).join(" ")]) {
+        if (q.length >= 3 && !seenQ.has(q)) { seenQ.add(q); allSearchQueries.push(q); }
       }
-      if (slug) break;
+    }
+
+    // Fire all search requests in parallel
+    const searchResults = await Promise.allSettled(allSearchQueries.map(q => searchJkAnimeSlugs(q)));
+    const candidateSlugs: string[] = [];
+    const seenCand = new Set<string>();
+    for (const r of searchResults) {
+      if (r.status === "fulfilled") {
+        for (const s of r.value) {
+          if (!triedSlugs.has(s) && !seenCand.has(s)) { seenCand.add(s); candidateSlugs.push(s); }
+        }
+      }
+    }
+
+    // Check each found slug in parallel batches
+    const BATCH = 4;
+    for (let i = 0; i < candidateSlugs.length && !slug; i += BATCH) {
+      const batch = candidateSlugs.slice(i, i + BATCH);
+      const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
+      const hit = results.find(r => r !== null);
+      if (hit) {
+        slug = hit.s;
+        episodeHtml = hit.h!;
+        slugCache.set(cacheKey, slug);
+        slugCacheTime.set(cacheKey, Date.now());
+      }
     }
   }
 
