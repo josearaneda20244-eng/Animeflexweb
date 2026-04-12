@@ -735,8 +735,8 @@ export default function Player() {
   }, [episodeId, isMegaFan, user]);
 
   const query = useQuery({
-    queryKey: ["streaming", episodeId],
-    queryFn: () => consumet.streaming(episodeId, animeTitle || undefined, episodeNum || undefined),
+    queryKey: ["streaming", episodeId, animeId],
+    queryFn: () => consumet.streaming(episodeId, animeTitle || undefined, episodeNum || undefined, animeId || undefined),
     enabled: !!episodeId,
     retry: (failCount, error: any) => {
       if (error?.status === 403) return false;

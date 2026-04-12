@@ -167,10 +167,11 @@ export const consumet = {
   anilistInfo: (id: string): Promise<AnimeInfo> => get<AnimeInfo>(`/anime/anilist-info?id=${encodeURIComponent(id)}`),
   episodesById: (anilistId: string): Promise<AnimeInfo> =>
     get<AnimeInfo>(`/anime/episodes?anilistId=${encodeURIComponent(anilistId)}`),
-  streaming: (episodeId: string, animeTitle?: string, episodeNum?: string): Promise<StreamingData> => {
+  streaming: (episodeId: string, animeTitle?: string, episodeNum?: string, animeId?: string): Promise<StreamingData> => {
     let url = `/anime/watch?episodeId=${encodeURIComponent(episodeId)}`;
     if (animeTitle) url += `&animeTitle=${encodeURIComponent(animeTitle)}`;
     if (episodeNum)  url += `&episodeNum=${encodeURIComponent(episodeNum)}`;
+    if (animeId) url += `&animeId=${encodeURIComponent(animeId)}`;
     return get<StreamingData>(url, true);
   },
   searchSubtitles: (title: string, episode?: number, lang = "es"): Promise<{ data: SubtitleResult[] }> =>
