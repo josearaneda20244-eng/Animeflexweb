@@ -122,6 +122,7 @@ export interface LatanimeStreamData {
     isM3U8: boolean;
     lang: "LAT";
     referer?: string;
+    isEmbed?: boolean;
   }[];
   slug: string;
   headers?: Record<string, string>;
@@ -192,13 +193,22 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number):
     throw new Error(`No player URLs found on Latanime for "${animeTitle}" ep ${episodeNum}`);
   }
 
-  // Try each embed URL to extract a streamable URL (mp4 or m3u8)
+  // Return embed pages directly — the browser will load each embed player in an iframe.
+  // This avoids server-side extraction of signed CDN URLs which expire or require cookies.
   const episodePageUrl = `${BASE}/ver/${slug}-episodio-${episodeNum}`;
+
+  // First try to find m3u8 URLs (work best with proxy), fall back to embed iframes
   const resolveResults = await Promise.allSettled(
     embedUrls.slice(0, 5).map(async (embedUrl) => {
-      const html = await fetchPage(embedUrl, episodePageUrl, 7000);
-      const streamUrl = extractStreamUrl(html);
-      return streamUrl ? { streamUrl, embedUrl } : null;
+      try {
+        const html = await fetchPage(embedUrl, episodePageUrl, 7000);
+        const streamUrl = extractStreamUrl(html);
+        if (streamUrl && isM3U8(streamUrl)) {
+          return { type: "m3u8" as const, url: streamUrl, embedUrl };
+        }
+      } catch { /* ignore */ }
+      // Fall back: return the embed page URL itself for iframe loading
+      return { type: "embed" as const, url: embedUrl, embedUrl };
     })
   );
 
@@ -207,14 +217,25 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number):
 
   for (const result of resolveResults) {
     if (result.status === "fulfilled" && result.value) {
-      const { streamUrl, embedUrl } = result.value;
-      sources.push({
-        url: streamUrl,
-        quality: `Servidor ${serverNum} (Latino)`,
-        isM3U8: isM3U8(streamUrl),
-        lang: "LAT",
-        referer: embedUrl,
-      });
+      const item = result.value;
+      if (item.type === "m3u8") {
+        sources.push({
+          url: item.url,
+          quality: `Servidor ${serverNum} (Latino)`,
+          isM3U8: true,
+          lang: "LAT",
+          referer: item.embedUrl,
+        });
+      } else {
+        sources.push({
+          url: item.url,
+          quality: `Servidor ${serverNum} (Latino)`,
+          isM3U8: false,
+          isEmbed: true,
+          lang: "LAT",
+          referer: episodePageUrl,
+        });
+      }
       serverNum++;
     }
     if (sources.length >= 3) break;
