@@ -128,7 +128,7 @@ function SubtitleOverlay({
   if (!display) return null;
   return (
     <div style={{
-      position: "absolute", bottom: "8%", left: 0, right: 0, zIndex: 20,
+      position: "absolute", bottom: "64px", left: 0, right: 0, zIndex: 20,
       display: "flex", justifyContent: "center", pointerEvents: "none", padding: "0 24px",
     }}>
       <div style={{
@@ -836,18 +836,26 @@ export default function Player() {
     }
   }, [subLang, activeSubtitle?.url, subReferer]);
 
-  // Auto-select HLS embedded subtitle track based on subLang
+  // Auto-select HLS embedded subtitle track based on subLang / audioLang
   useEffect(() => {
     if (activeSubUrl || hlsSubTracks.length === 0) {
       if (activeSubUrl) setActiveHlsSubId(-1);
       return;
     }
-    if (subLang === "off") { setActiveHlsSubId(-1); return; }
-    const match = subLang === "en"
-      ? hlsSubTracks.find(t => isEnglishSubtitleLabel(`${t.lang} ${t.name}`))
-      : hlsSubTracks.find(t => /español|spanish|spa|\bes\b/i.test(`${t.lang} ${t.name}`));
+    if (subLang === "off" && audioLang !== "lat") { setActiveHlsSubId(-1); return; }
+    let match: HlsSubTrack | undefined;
+    if (audioLang === "lat") {
+      // For LAT, prefer Spanish track; fall back to any available track
+      match =
+        hlsSubTracks.find(t => /español|spanish|spa|\bes\b/i.test(`${t.lang} ${t.name}`)) ??
+        hlsSubTracks[0];
+    } else {
+      match = subLang === "en"
+        ? hlsSubTracks.find(t => isEnglishSubtitleLabel(`${t.lang} ${t.name}`))
+        : hlsSubTracks.find(t => /español|spanish|spa|\bes\b/i.test(`${t.lang} ${t.name}`));
+    }
     setActiveHlsSubId(match?.id ?? -1);
-  }, [activeSubUrl, hlsSubTracks, subLang]);
+  }, [activeSubUrl, hlsSubTracks, subLang, audioLang]);
 
   const handleSubtitleTracks = useCallback((tracks: HlsSubTrack[]) => {
     setHlsSubTracks(tracks);
@@ -1021,7 +1029,7 @@ export default function Player() {
   const hasSubtitles = !!activeSubUrl || activeHlsSubId !== -1;
   // HLS cue text takes priority; VTT parsed cue is handled inside SubtitleOverlay
   const vttSubUrl = audioLang === "sub" && subLang !== "off" && !hlsCueText && activeSubUrl ? activeSubUrl : null;
-  const hlsCueToRender = audioLang === "sub" && subLang !== "off" && activeHlsSubId !== -1 ? hlsCueText : null;
+  const hlsCueToRender = subLang !== "off" && hlsCueText ? hlsCueText : null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000" }}>
@@ -1212,7 +1220,7 @@ export default function Player() {
                     onTimeUpdate={handleTimeUpdate}
                     onEnded={handleEnded}
                     onSubtitleTracks={handleSubtitleTracks}
-                    activeHlsSubId={audioLang === "sub" && subLang !== "off" ? activeHlsSubId : -1}
+                    activeHlsSubId={subLang !== "off" || audioLang === "lat" ? activeHlsSubId : -1}
                     onSubtitleCue={handleSubtitleCue}
                     controlsRef={playerControlsRef}
                     onPlaybackError={handlePlaybackError}
