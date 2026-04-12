@@ -160,7 +160,7 @@ function extractIframeUrls(html: string, episodePageUrl: string): string[] {
 }
 
 export interface JkAnimeStreamData {
-  sources: Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB" }>;
+  sources: Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB"; referer?: string }>;
   slug: string;
   headers?: Record<string, string>;
 }
@@ -235,7 +235,8 @@ export async function getJkAnimeWatch(
   const resolveResults = await Promise.allSettled(
     iframeUrls.slice(0, 4).map(async (iframeUrl) => {
       const html = await fetchIframe(iframeUrl, episodePageUrl);
-      return extractM3u8(html);
+      const m3u8 = extractM3u8(html);
+      return m3u8 ? { m3u8, iframeUrl } : null;
     })
   );
 
@@ -244,11 +245,13 @@ export async function getJkAnimeWatch(
 
   for (const result of resolveResults) {
     if (result.status === "fulfilled" && result.value) {
+      const { m3u8, iframeUrl } = result.value;
       sources.push({
-        url: result.value,
+        url: m3u8,
         quality: `Servidor ${serverNum} (Sub español)`,
         isM3U8: true,
         lang: "SUB",
+        referer: iframeUrl,
       });
       serverNum++;
     }
