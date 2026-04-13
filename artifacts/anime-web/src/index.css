@@ -463,3 +463,18 @@
   .p-card:hover { transform: none !important; border-color: #222 !important; }
   .r-card:hover { transform: none !important; border-color: #222 !important; }
 }
+
+/* Fullscreen: fill entire screen without distortion on 18:9 / 20:9 phones */
+#plyr-fullscreen-container:fullscreen,
+#plyr-fullscreen-container:-webkit-full-screen,
+#plyr-fullscreen-container:-moz-full-screen,
+#plyr-fullscreen-container:-ms-fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  aspect-ratio: unset !important;
+}
+
+/* Plyr CSS-fallback fullscreen (.plyr--fullscreen-fallback) */
+#plyr-fullscreen-container.plyr--fullscreen-fallback {
+  aspect-ratio: unset !important;
+}
