@@ -623,7 +623,7 @@ function EpisodePanel({
         </div>
       )}
 
-      <div style={{ maxHeight: 380, overflowY: "auto", padding: "8px 10px" }}>
+      <div style={{ padding: "8px 10px" }}>
         {episodesQuery.isLoading && (
           <div style={{ display: "flex", justifyContent: "center", padding: 24 }}>
             <Loader2 size={20} className="animate-spin" style={{ color: "#7C6FFF" }} />
@@ -1014,7 +1014,7 @@ export default function Player() {
   const hlsCueToRender = hlsCueText ?? null;
 
   return (
-    <div style={{ background: "#090A12" }}>
+    <div style={{ background: "#090A12", minHeight: "100vh" }}>
       {/* Top bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(9,10,18,0.98)" }}>
         <button onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
