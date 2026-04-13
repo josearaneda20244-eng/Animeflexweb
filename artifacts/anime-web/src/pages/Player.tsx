@@ -11,7 +11,6 @@ import {
 import {
   consumet,
   proxyStreamUrl,
-  proxySubtitleUrl,
   downloadProxyUrl,
   type StreamingSource,
 } from "@/lib/consumet";
@@ -45,23 +44,12 @@ function getAccess() {
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
-function isDub(src: StreamingSource) { return /eng|dub/i.test(src.quality ?? ""); }
-function isEnglishSubtitleLabel(value: string) { return /english|eng|\ben\b/i.test(value); }
 function parseResolution(src: StreamingSource) {
   const m = (src.quality ?? "").match(/(\d{3,4})p/i);
   if (m) return m[1] + "p";
   const m2 = (src.quality ?? "").match(/\b(\d{3,4})\b/);
   if (m2) return m2[1] + "p";
   return (src.quality ?? "").trim() || "Auto";
-}
-function sortSources(sources: StreamingSource[]) {
-  return [...sources].sort((a, b) => {
-    const subA = isDub(a) ? 1 : 0;
-    const subB = isDub(b) ? 1 : 0;
-    if (subA !== subB) return subA - subB;
-    const res = (s: StreamingSource) => { const m = (s.quality ?? "").match(/(\d{3,4})/); return m ? parseInt(m[1]) : 0; };
-    return res(b) - res(a);
-  });
 }
 
 /* ── VTT PARSER ── */
@@ -726,9 +714,6 @@ export default function Player() {
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [playbackFailureCount, setPlaybackFailureCount] = useState(0);
-  const [activeSubUrl, setActiveSubUrl] = useState<string | null>(null);
-  const [subLang, setSubLang] = useState<"es" | "en" | "off">("en");
-  const [audioLang, setAudioLang] = useState<"sub" | "lat">("sub");
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
@@ -802,23 +787,6 @@ export default function Player() {
       });
   }, [episodeId, isMegaFan, user]);
 
-  const query = useQuery({
-    queryKey: ["streaming", episodeId, animeId],
-    queryFn: () => consumet.streaming(episodeId, animeTitle || undefined, episodeNum || undefined, animeId || undefined),
-    enabled: !!episodeId,
-    retry: (failCount, error: any) => {
-      if (error?.status === 403) return false;
-      return failCount < 2;
-    },
-    retryDelay: (i) => Math.min(400 * Math.pow(2, i), 2500),
-    staleTime: 1000 * 60 * 3,
-    gcTime: 1000 * 60 * 8,
-    refetchOnWindowFocus: false,
-  });
-
-  const hasPrimarySources = !!query.data?.sources?.length;
-  const isRecentEpisode = currentEpIdx >= 0 && allEpisodes.length > 0 && currentEpIdx >= allEpisodes.length - 3;
-  // Pre-cargar JKAnime siempre en paralelo: así al hacer clic en LAT ya está listo
   const shouldFetchAnimeFlv = !!animeTitle && !!episodeNum;
 
   const animeflvQuery = useQuery({
@@ -831,52 +799,20 @@ export default function Player() {
     refetchOnWindowFocus: false,
   });
 
-  useEffect(() => {
-    const err: any = query.error;
-    if (err?.status === 403 && err?.limitReached) {
-      setShowLimitModal(true);
-    }
-  }, [query.error]);
-
-  const subSources = query.data ? sortSources(query.data.sources ?? []) : [];
   const animeflvSources = animeflvQuery.data
     ? (animeflvQuery.data.sources ?? [])
         .map(s => ({ ...s, isDub: true, provider: "backup", isEmbed: !s.isM3U8 && (s.quality ?? "").includes("[embed]") }))
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
-  const hasAnimeflvSources = animeflvSources.length > 0;
-  const sources = audioLang === "lat"
-    ? animeflvSources   // LAT = español (jkanime)
-    : subSources;       // SUB = inglés (AnimeKai/HiAnime)
-  const streamingHeaders = query.data?.headers ?? {};
+  const sources = animeflvSources;
   const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
-  const subReferer = streamingHeaders["Referer"] ?? streamingHeaders["referer"];
   const latReferer = animeflvHeaders["Referer"] ?? animeflvHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
   const selectedIsBackup = !!selected && (selected as any).provider === "backup";
-  // SUB error: query failed, OR query succeeded but returned 0 sources
-  // Tracks when all SUB playback sources have been tried and failed
-  const allSubPlaybackFailed = audioLang === "sub" && subSources.length > 0 && playbackFailureCount >= subSources.length;
-  const showSubError = audioLang === "sub" && (query.isError || (!query.isLoading && !!query.data && subSources.length === 0) || allSubPlaybackFailed);
-  const showMainError = audioLang === "sub" ? showSubError : (query.isError && !hasAnimeflvSources);
-
-  const streamSubtitles = query.data?.subtitles ?? [];
-  const streamSpanishSub =
-    streamSubtitles.find((s) => /español.*españa|spanish.*esp/i.test(s.lang)) ??
-    streamSubtitles.find((s) => /español|spanish|spa/i.test(s.lang)) ??
-    null;
-  const streamEnglishSub =
-    streamSubtitles.find((s) => /english.*us|english/i.test(s.lang)) ??
-    streamSubtitles.find((s) => /eng|^en$/i.test(s.lang)) ??
-    null;
-  const hasSpanishHlsTracks = hlsSubTracks.some(t => /español|spanish|spa|\bes\b/i.test(`${t.lang} ${t.name}`));
-  const hasEnglishHlsTracks = hlsSubTracks.some(t => isEnglishSubtitleLabel(`${t.lang} ${t.name}`));
-  const activeSubtitle = subLang === "en" ? streamEnglishSub : subLang === "es" ? streamSpanishSub : null;
 
   useEffect(() => {
     setSelectedIdx(0);
     setPlaybackFailureCount(0);
-    setActiveSubUrl(null);
     setHlsSubTracks([]);
     setActiveHlsSubId(-1);
     setHlsCueText(null);
@@ -886,43 +822,18 @@ export default function Player() {
     durationRef.current = 0;
     setShowAutoNext(false);
     setServerRemaining(null);
-    setSubLang("en");
-    setAudioLang("sub");
     episodeRegisteredRef.current = false;
     // El modal de límite lo gestiona el useEffect de /user/daily-access arriba
   }, [episodeId]);
 
-  // Auto-load VTT subtitle based on selected language
+  // Auto-select HLS embedded subtitle track (prefer Spanish for LAT)
   useEffect(() => {
-    if (subLang === "off") { setActiveSubUrl(null); return; }
-    const target = activeSubtitle;
-    if (target) {
-      setActiveSubUrl(proxySubtitleUrl(target.url, subReferer));
-    } else {
-      setActiveSubUrl(null);
-    }
-  }, [subLang, activeSubtitle?.url, subReferer]);
-
-  // Auto-select HLS embedded subtitle track based on subLang / audioLang
-  useEffect(() => {
-    if (activeSubUrl || hlsSubTracks.length === 0) {
-      if (activeSubUrl) setActiveHlsSubId(-1);
-      return;
-    }
-    if (subLang === "off" && audioLang !== "lat") { setActiveHlsSubId(-1); return; }
-    let match: HlsSubTrack | undefined;
-    if (audioLang === "lat") {
-      // For LAT, prefer Spanish track; fall back to any available track
-      match =
-        hlsSubTracks.find(t => /español|spanish|spa|\bes\b/i.test(`${t.lang} ${t.name}`)) ??
-        hlsSubTracks[0];
-    } else {
-      match = subLang === "en"
-        ? hlsSubTracks.find(t => isEnglishSubtitleLabel(`${t.lang} ${t.name}`))
-        : hlsSubTracks.find(t => /español|spanish|spa|\bes\b/i.test(`${t.lang} ${t.name}`));
-    }
+    if (hlsSubTracks.length === 0) return;
+    const match =
+      hlsSubTracks.find(t => /español|spanish|spa|\bes\b/i.test(`${t.lang} ${t.name}`)) ??
+      hlsSubTracks[0];
     setActiveHlsSubId(match?.id ?? -1);
-  }, [activeSubUrl, hlsSubTracks, subLang, audioLang]);
+  }, [hlsSubTracks]);
 
   const handleSubtitleTracks = useCallback((tracks: HlsSubTrack[]) => {
     setHlsSubTracks(tracks);
@@ -932,16 +843,12 @@ export default function Player() {
     setHlsCueText(text);
   }, []);
 
-  const fallbackReferer = (audioLang === "lat" || selectedIsBackup) ? latReferer : subReferer;
-  const activeReferer = (selected as any)?.referer ?? fallbackReferer;
+  const activeReferer = (selected as any)?.referer ?? latReferer;
   const proxyM3u8 = selected ? proxyStreamUrl(selected.url, activeReferer) : null;
 
   useEffect(() => {
     if (sources.length > 0 && selectedIdx >= sources.length) setSelectedIdx(0);
   }, [selectedIdx, sources.length]);
-
-  // Note: when all SUB sources fail, showSubError handles the UI via allSubPlaybackFailed.
-  // handlePlaybackError already cycles through available sources naturally.
 
   const handlePlaybackError = useCallback(() => {
     setPlaybackFailureCount((count) => count + 1);
@@ -1093,10 +1000,8 @@ export default function Player() {
     }
   }, [triggerSeekFeedback, triggerVolumeFeedback]);
 
-  const hasSubtitles = !!activeSubUrl || activeHlsSubId !== -1;
-  // HLS cue text takes priority; VTT parsed cue is handled inside SubtitleOverlay
-  const vttSubUrl = audioLang === "sub" && subLang !== "off" && !hlsCueText && activeSubUrl ? activeSubUrl : null;
-  const hlsCueToRender = subLang !== "off" && hlsCueText ? hlsCueText : null;
+  // HLS cue text takes priority over external subtitles
+  const hlsCueToRender = hlsCueText ?? null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#000" }}>
@@ -1143,19 +1048,7 @@ export default function Player() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
           <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9" }}>
-            {query.isLoading && audioLang === "sub" && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 14, position: "absolute", inset: 0, background: "rgba(5,5,12,0.8)", backdropFilter: "blur(4px)" }}>
-                <div style={{ position: "relative" }}>
-                  <Loader2 size={44} className="animate-spin" style={{ color: "#7C6FFF" }} />
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <p style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
-                    {query.failureCount > 0 ? `Buscando servidor alternativo... (${query.failureCount + 1}/3)` : "Cargando episodio subtitulado..."}
-                  </p>
-                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>SUB · Subtítulos en inglés · AnimeKai</p>
-                </div>
-              </div>
-            )}
+
             {/* ── Límite de episodios — Modal premium ── */}
             {showLimitModal && (
               <div style={{
@@ -1198,63 +1091,35 @@ export default function Player() {
               </div>
             )}
 
-          {(audioLang === "lat" ? animeflvQuery.isError : showMainError) && (
+          {animeflvQuery.isError && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 16, position: "absolute", inset: 0, background: "rgba(5,5,12,0.85)", backdropFilter: "blur(6px)" }}>
                 <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <AlertCircle size={28} color="#EF4444" />
                 </div>
                 <div style={{ textAlign: "center", maxWidth: 300, padding: "0 16px" }}>
-                  <p style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800, marginBottom: 6 }}>
-                    {audioLang === "lat" ? "No disponible en LAT" : "No disponible en SUB"}
-                  </p>
-                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>
-                    {audioLang === "lat"
-                      ? "No se encontró este episodio en JKAnime (Español). Prueba con SUB."
-                      : allSubPlaybackFailed
-                        ? "El stream no pudo reproducirse. Prueba con LAT o reintenta."
-                        : "No se encontró este episodio en AnimeKai (Inglés). Prueba con LAT."}
-                  </p>
+                  <p style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800, marginBottom: 6 }}>No disponible</p>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>No se encontró este episodio en JKAnime (Español).</p>
                 </div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                  <button
-                    onClick={() => {
-                      setPlaybackFailureCount(0);
-                      setSelectedIdx(0);
-                      if (audioLang === "lat") animeflvQuery.refetch();
-                      else query.refetch();
-                    }}
-                    style={{ padding: "10px 20px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    Reintentar
-                  </button>
-                  <button
-                    onClick={() => { setAudioLang(audioLang === "lat" ? "sub" : "lat"); setSelectedIdx(0); setPlaybackFailureCount(0); }}
-                    style={{ padding: "10px 20px", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#F1F1F5", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    Cambiar a {audioLang === "lat" ? "SUB 🇬🇧" : "LAT 🇪🇸"}
-                  </button>
-                </div>
+                <button
+                  onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); }}
+                  style={{ padding: "10px 20px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  Reintentar
+                </button>
               </div>
             )}
-            {audioLang === "lat" && animeflvQuery.isLoading && (
+            {animeflvQuery.isLoading && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <Loader2 size={36} color="#F59E0B" className="animate-spin" />
                 <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando episodio en JKAnime (Español Latino)...</p>
               </div>
             )}
-            {!selected && !showLimitModal &&
-              (audioLang === "lat"
-                ? !animeflvQuery.isLoading && !animeflvQuery.isError
-                : !query.isLoading && !animeflvQuery.isLoading && !showMainError) && (
+            {!selected && !showLimitModal && !animeflvQuery.isLoading && !animeflvQuery.isError && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="rgba(255,255,255,0.2)" />
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
               </div>
             )}
-            {!showLimitModal && selected &&
-              (selectedIsBackup
-                ? !animeflvQuery.isLoading && !animeflvQuery.isError
-                : audioLang === "lat"
-                  ? !animeflvQuery.isLoading && !animeflvQuery.isError
-                  : !query.isLoading && !query.isError) && (
+            {!showLimitModal && selected && !animeflvQuery.isLoading && !animeflvQuery.isError && (
               selected.isM3U8 === false ? (
                 (selected as any).isEmbed ? (
                   <iframe
@@ -1279,7 +1144,7 @@ export default function Player() {
               ) : (
                 proxyM3u8 ? (
                   <PlyrPlayer
-                    key={`${episodeId}-${audioLang}-${selectedIdx}`}
+                    key={`${episodeId}-lat-${selectedIdx}`}
                     m3u8Url={proxyM3u8}
                     playbackRate={playbackRate}
                     startAt={startAt}
@@ -1287,7 +1152,7 @@ export default function Player() {
                     onTimeUpdate={handleTimeUpdate}
                     onEnded={handleEnded}
                     onSubtitleTracks={handleSubtitleTracks}
-                    activeHlsSubId={subLang !== "off" || audioLang === "lat" ? activeHlsSubId : -1}
+                    activeHlsSubId={activeHlsSubId}
                     onSubtitleCue={handleSubtitleCue}
                     controlsRef={playerControlsRef}
                     onPlaybackError={handlePlaybackError}
@@ -1299,7 +1164,7 @@ export default function Player() {
             {/* Custom subtitle overlay — VTT primary, HLS cue fallback */}
             <SubtitleOverlay
               text={hlsCueToRender}
-              subtitleUrl={vttSubUrl}
+              subtitleUrl={null}
               currentTime={currentTime}
               isFullscreen={isFullscreen}
             />
@@ -1394,7 +1259,7 @@ export default function Player() {
               <div>
                 <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>{animeTitle}</div>
                 <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 3 }}>
-                  Episodio {episodeNum} · {audioLang === "sub" ? "🇬🇧 Subtitulado en inglés" : "🇪🇸 Subtitulado en español"}
+                  Episodio {episodeNum} · 🇪🇸 Subtitulado en español
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1427,59 +1292,12 @@ export default function Player() {
                   {theaterMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                   <span className="hidden md:inline">{theaterMode ? "Normal" : "Modo Teatro"}</span>
                 </button>
-                {/* Audio language toggle: Sub / Latino */}
-                <div style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 12, padding: "3px" }}>
-                  {(["sub", "lat"] as const).map((lang) => {
-                    const active = audioLang === lang;
-                    return (
-                      <button key={lang} onClick={() => { setAudioLang(lang); setSelectedIdx(0); }}
-                        title={lang === "lat" ? "Subtítulos en Español Latino (JKAnime)" : "Subtítulos en Inglés (AnimeKai)"}
-                        style={{
-                          padding: "7px 13px", borderRadius: 9, fontSize: 12, fontWeight: 800, cursor: "pointer",
-                          background: active
-                            ? lang === "lat"
-                              ? "linear-gradient(135deg,rgba(245,158,11,0.25),rgba(234,88,12,0.15))"
-                              : "linear-gradient(135deg,rgba(124,111,255,0.3),rgba(91,82,245,0.2))"
-                            : "transparent",
-                          border: `1px solid ${active ? (lang === "lat" ? "rgba(245,158,11,0.5)" : "rgba(124,111,255,0.55)") : "transparent"}`,
-                          color: active ? (lang === "lat" ? "#F59E0B" : "#B39DFF") : "rgba(255,255,255,0.4)",
-                          display: "flex", alignItems: "center", gap: 5,
-                          boxShadow: active ? `0 0 10px ${lang === "lat" ? "rgba(245,158,11,0.15)" : "rgba(124,111,255,0.2)"}` : "none",
-                          transition: "all 0.15s ease",
-                        }}>
-                        {lang === "lat" ? "🇪🇸 LAT" : "🇬🇧 SUB"}
-                        {lang === "sub" && query.isLoading && audioLang === "sub" && <span style={{ fontSize: 9, opacity: 0.6 }}>···</span>}
-                        {lang === "lat" && animeflvQuery.isLoading && <span style={{ fontSize: 9, opacity: 0.6 }}>···</span>}
-                      </button>
-                    );
-                  })}
+                {/* LAT badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 9, background: "linear-gradient(135deg,rgba(245,158,11,0.25),rgba(234,88,12,0.15))", border: "1px solid rgba(245,158,11,0.5)", color: "#F59E0B", fontSize: 12, fontWeight: 800 }}>
+                  🇪🇸 LAT
+                  {animeflvQuery.isLoading && <span style={{ fontSize: 9, opacity: 0.6 }}>···</span>}
                 </div>
-                {/* Subtitle language selector */}
-                {audioLang === "sub" && (streamSpanishSub || streamEnglishSub || hasSpanishHlsTracks || hasEnglishHlsTracks) && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <Captions size={14} style={{ color: subLang !== "off" ? "#22C55E" : "rgba(255,255,255,0.35)", flexShrink: 0 }} />
-                    {(["es", "en", "off"] as const).map((lang) => {
-                      const active = subLang === lang;
-                      const hasLang = lang === "es"
-                        ? (!!streamSpanishSub || hasSpanishHlsTracks)
-                        : lang === "en"
-                        ? (!!streamEnglishSub || hasEnglishHlsTracks)
-                        : true;
-                      if (!hasLang && lang !== "off") return null;
-                      return (
-                        <button key={lang} onClick={() => setSubLang(lang)}
-                          style={{
-                            padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 800, cursor: "pointer",
-                            background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
-                            border: `1px solid ${active ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.1)"}`,
-                            color: active ? "#22C55E" : "rgba(255,255,255,0.35)",
-                          }}>
-                          {lang === "off" ? "OFF" : lang.toUpperCase()}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+
                 {/* Share button */}
                 <div style={{ position: "relative" }}>
                   <button
@@ -1575,7 +1393,7 @@ export default function Player() {
                         transition: "all 0.15s ease",
                       }}>
                       {parseResolution(src)}
-                      {src.isDub && audioLang === "lat" && <span style={{ background: "rgba(245,158,11,0.2)", color: "#F59E0B", fontSize: 9, fontWeight: 800, borderRadius: 4, padding: "1px 5px", border: "1px solid rgba(245,158,11,0.3)" }}>ESP</span>}
+
                     </button>
                   ))}
                 </div>
@@ -1584,65 +1402,19 @@ export default function Player() {
 
             {/* Subtitles section */}
             <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Subtítulos</div>
-                {(streamSpanishSub || streamEnglishSub || hasSpanishHlsTracks || hasEnglishHlsTracks) && (
-                  <div style={{ display: "flex", gap: 4 }}>
-                    {(["es", "en", "off"] as const).map((lang) => {
-                      const hasLang = lang === "es"
-                        ? (!!streamSpanishSub || hasSpanishHlsTracks)
-                        : lang === "en"
-                        ? (!!streamEnglishSub || hasEnglishHlsTracks)
-                        : true;
-                      if (!hasLang && lang !== "off") return null;
-                      const active = subLang === lang;
-                      return (
-                        <button key={lang} onClick={() => setSubLang(lang)}
-                          style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 800, cursor: "pointer",
-                            background: active ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.05)",
-                            border: `1px solid ${active ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.1)"}`,
-                            color: active ? "#22C55E" : "rgba(255,255,255,0.35)" }}>
-                          {lang === "off" ? "OFF" : lang.toUpperCase()}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              {query.isLoading && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-                  <Loader2 size={12} className="animate-spin" /> Buscando subtítulos en inglés...
-                </div>
-              )}
-              {!query.isLoading && (streamSpanishSub || streamEnglishSub) && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  {streamSpanishSub && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: subLang === "es" ? "#22C55E" : "rgba(255,255,255,0.3)", fontSize: 12 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: subLang === "es" ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                      {streamSpanishSub.lang} — disponible
-                    </div>
-                  )}
-                  {streamEnglishSub && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: subLang === "en" ? "#22C55E" : "rgba(255,255,255,0.3)", fontSize: 12 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: subLang === "en" ? "#22C55E" : "rgba(255,255,255,0.2)", flexShrink: 0 }} />
-                      {streamEnglishSub.lang} — disponible
-                    </div>
-                  )}
-                </div>
-              )}
-              {!query.isLoading && !streamSpanishSub && !streamEnglishSub && (hasSpanishHlsTracks || hasEnglishHlsTracks) && (
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 10 }}>Subtítulos</div>
+              {hlsSubTracks.length > 0 ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12 }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
-                  Pistas HLS — disponibles
+                  Español — disponible
                 </div>
-              )}
-              {!query.isLoading && !streamSpanishSub && !streamEnglishSub && !hasSpanishHlsTracks && !hasEnglishHlsTracks && (
+              ) : (
                 <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos para este episodio.</p>
               )}
             </div>
 
             {/* Download section */}
-            {!query.isLoading && sources.length > 0 && (
+            {sources.length > 0 && (
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                   <Download size={14} color="#7C6FFF" />
@@ -1663,14 +1435,14 @@ export default function Player() {
                   {/* Video sources */}
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
-                      Video {audioLang === "lat" ? "· Latino" : "· Subtitulado"}
+                      Video · Latino
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {sources.map((src, i) => {
                         const label = parseResolution(src);
                         const isDirectMp4 = src.isM3U8 === false;
                         const filename = `${animeTitle}-ep${episodeNum}-${label}.${isDirectMp4 ? "mp4" : "m3u8"}`;
-                        const proxyHref = downloadProxyUrl(src.url, filename, "https://animekai.to/");
+                        const proxyHref = downloadProxyUrl(src.url, filename, latReferer);
 
                         if (isDirectMp4) {
                           // MP4: descarga directa via proxy
@@ -1727,44 +1499,7 @@ export default function Player() {
                     )}
                   </div>
 
-                  {/* Subtitle downloads */}
-                  {(streamSpanishSub || streamEnglishSub) && (
-                    <div>
-                      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
-                        Subtítulos (.vtt)
-                      </div>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {streamSpanishSub && (
-                          <a
-                            href={downloadProxyUrl(streamSpanishSub.url, `${animeTitle}-ep${episodeNum}-es.vtt`, subReferer)}
-                            download={`${animeTitle}-ep${episodeNum}-es.vtt`}
-                            style={{
-                              display: "inline-flex", alignItems: "center", gap: 5,
-                              padding: "6px 13px", borderRadius: 9,
-                              background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.3)",
-                              color: "#22C55E", fontSize: 12, fontWeight: 700, textDecoration: "none",
-                            }}
-                          >
-                            <Download size={11} /> ES · Español
-                          </a>
-                        )}
-                        {streamEnglishSub && (
-                          <a
-                            href={downloadProxyUrl(streamEnglishSub.url, `${animeTitle}-ep${episodeNum}-en.vtt`, subReferer)}
-                            download={`${animeTitle}-ep${episodeNum}-en.vtt`}
-                            style={{
-                              display: "inline-flex", alignItems: "center", gap: 5,
-                              padding: "6px 13px", borderRadius: 9,
-                              background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)",
-                              color: "#60A5FA", fontSize: 12, fontWeight: 700, textDecoration: "none",
-                            }}
-                          >
-                            <Download size={11} /> EN · English
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
+
                 </div>
               </div>
             )}
