@@ -74,7 +74,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
             )}
 
             <div style={{ position: "absolute", top: 6, left: 6, display: "flex", gap: 3 }}>
-              <span style={{ background: "#22C55E", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.4 }}>SUB</span>
+              <span style={{ background: "linear-gradient(135deg,#3B82F6,#6366F1)", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.4 }}>LAT</span>
               {anime.type && (
                 <span style={{ background: "rgba(124,111,255,0.85)", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.4 }}>{anime.type}</span>
               )}
