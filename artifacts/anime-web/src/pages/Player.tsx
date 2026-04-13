@@ -215,6 +215,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
   const onSubtitleCueRef = useRef(onSubtitleCue);
   const onPlaybackErrorRef = useRef(onPlaybackError);
   const onFullscreenChangeRef = useRef(onFullscreenChange);
+  const activeHlsSubIdRef = useRef(activeHlsSubId);
 
   useEffect(() => { onTimeUpdateRef.current = onTimeUpdate; }, [onTimeUpdate]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
@@ -223,6 +224,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
   useEffect(() => { onSubtitleCueRef.current = onSubtitleCue; }, [onSubtitleCue]);
   useEffect(() => { onPlaybackErrorRef.current = onPlaybackError; }, [onPlaybackError]);
   useEffect(() => { onFullscreenChangeRef.current = onFullscreenChange; }, [onFullscreenChange]);
+  useEffect(() => { activeHlsSubIdRef.current = activeHlsSubId; }, [activeHlsSubId]);
 
   // Switch active HLS subtitle track when prop changes
   useEffect(() => {
@@ -282,34 +284,32 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       if (video.duration > 0) {
         if (!seekRestoredRef.current) trySeekRestore();
         onTimeUpdateRef.current?.(video.currentTime, video.duration);
+
+        // Poll subtitle cues on every timeupdate — far more reliable than addtrack+cuechange
+        // on Android Chrome where cuechange events fire inconsistently.
+        // Only scan when a subtitle track is actually selected (activeHlsSubId >= 0).
+        let cueText: string | null = null;
+        if ((activeHlsSubIdRef.current ?? -1) >= 0) {
+          for (let i = 0; i < video.textTracks.length; i++) {
+            const track = video.textTracks[i];
+            // Ensure any subtitle/caption track is readable (not disabled)
+            if (track.mode === "disabled" &&
+                (track.kind === "subtitles" || track.kind === "captions" || track.kind === "metadata")) {
+              track.mode = "hidden";
+            }
+            if (track.mode !== "disabled" && track.activeCues && track.activeCues.length > 0) {
+              cueText = Array.from(track.activeCues)
+                .map(c => (c as VTTCue).text?.replace(/<[^>]+>/g, "") ?? "")
+                .filter(Boolean)
+                .join("\n");
+              if (cueText) break;
+            }
+          }
+        }
+        onSubtitleCueRef.current?.(cueText);
       }
     };
     const onEnd = () => { onEndedRef.current?.(); };
-
-    // Track cue changes across all subtitle text tracks
-    const handleCueChange = () => {
-      let text: string | null = null;
-      for (let i = 0; i < video.textTracks.length; i++) {
-        const track = video.textTracks[i];
-        if ((track.kind === "subtitles" || track.kind === "captions") && track.mode !== "disabled" && track.activeCues && track.activeCues.length > 0) {
-          text = Array.from(track.activeCues)
-            .map(c => (c as VTTCue).text.replace(/<[^>]+>/g, ""))
-            .join("\n");
-          break;
-        }
-      }
-      onSubtitleCueRef.current?.(text);
-    };
-
-    const handleAddTrack = (e: TrackEvent) => {
-      const track = e.track;
-      if (track && (track.kind === "subtitles" || track.kind === "captions")) {
-        track.mode = "hidden";
-        track.addEventListener("cuechange", handleCueChange);
-      }
-    };
-
-    video.textTracks.addEventListener("addtrack", handleAddTrack as EventListener);
 
     let loadTimeout: ReturnType<typeof setTimeout> | null = null;
     let playbackErrorSent = false;
@@ -430,7 +430,6 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       video.removeEventListener("timeupdate", onTimeUpd);
       video.removeEventListener("ended", onEnd);
       video.removeEventListener("error", onNativeError);
-      video.textTracks.removeEventListener("addtrack", handleAddTrack as EventListener);
       if (loadTimeout) clearTimeout(loadTimeout);
       if (controlsRef) controlsRef.current = null;
       if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; }
