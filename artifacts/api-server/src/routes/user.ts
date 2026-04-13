@@ -183,6 +183,7 @@ publicUserRouter.get("/config/limits", async (req, res) => {
     ]);
 
     res.json({
+      apiVersion: "v4-maintenance",
       dailyLimit: parseInt(dailyLimitStr, 10) || 5,
       dailyLimitEnabled: limitEnabledStr === "true",
       limitMessage,
