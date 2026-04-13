@@ -128,7 +128,7 @@ function SubtitleOverlay({
   if (!display) return null;
   return (
     <div style={{
-      position: "absolute", bottom: "64px", left: 0, right: 0, zIndex: 20,
+      position: "absolute", bottom: "15%", left: 0, right: 0, zIndex: 200,
       display: "flex", justifyContent: "center", pointerEvents: "none", padding: "0 24px",
     }}>
       <div style={{
@@ -1075,7 +1075,7 @@ export default function Player() {
         {/* Player column */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
-          <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: isFullscreen ? undefined : "16/9", height: isFullscreen ? "100dvh" : undefined, overflow: "hidden" }}>
+          <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9" }}>
             {query.isLoading && audioLang === "sub" && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 14, position: "absolute", inset: 0, background: "rgba(5,5,12,0.8)", backdropFilter: "blur(4px)" }}>
                 <div style={{ position: "relative" }}>
