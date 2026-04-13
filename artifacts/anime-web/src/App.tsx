@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FavoritesProvider } from "@/context/FavoritesContext";
 import { HistoryProvider } from "@/context/HistoryContext";
@@ -12,6 +12,8 @@ import ScrollToTop from "@/components/ScrollToTop";
 import AdScript from "@/components/AdScript";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import InstallPrompt from "@/components/InstallPrompt";
+import { useAuth } from "@/context/AuthContext";
+import { useLimitsConfig } from "@/hooks/use-limits-config";
 
 const Home = lazy(() => import("@/pages/Home"));
 const Search = lazy(() => import("@/pages/Search"));
@@ -90,6 +92,67 @@ function NotFound() {
   );
 }
 
+function formatMaintenanceTime(ms: number) {
+  const safeMs = Math.max(0, ms);
+  const totalSeconds = Math.floor(safeMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function MaintenanceOverlay() {
+  const [location] = useLocation();
+  const { isOwner, loading } = useAuth();
+  const { config } = useLimitsConfig();
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!config.maintenanceMode) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [config.maintenanceMode]);
+
+  if (!config.maintenanceMode || loading || isOwner || location.startsWith("/admin")) return null;
+
+  const endTime = config.maintenanceUntil ? new Date(config.maintenanceUntil).getTime() : 0;
+  const remaining = endTime ? endTime - now : 0;
+  const countdown = endTime && remaining > 0 ? formatMaintenanceTime(remaining) : "Pronto volveremos";
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 99999, background: "radial-gradient(circle at 50% 20%, rgba(124,111,255,0.28), transparent 28%), rgba(0,0,0,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, pointerEvents: "auto" }}>
+      <div style={{ width: "min(92vw, 520px)", background: "linear-gradient(145deg, rgba(15,15,30,0.98), rgba(4,4,10,0.98))", border: "1px solid rgba(124,111,255,0.32)", borderRadius: 28, padding: "34px 28px", textAlign: "center", boxShadow: "0 32px 100px rgba(0,0,0,0.72), 0 0 70px rgba(124,111,255,0.18)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(124,111,255,0.12), transparent 45%, rgba(245,158,11,0.08))", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ width: 76, height: 76, borderRadius: 24, margin: "0 auto 20px", background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 48px rgba(124,111,255,0.42)", fontSize: 34 }}>
+            🛠️
+          </div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#FBBF24", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.24)", borderRadius: 999, padding: "7px 12px", fontSize: 12, fontWeight: 900, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            Modo mantenimiento activo
+          </div>
+          <h1 style={{ color: "#F8FAFC", fontSize: "clamp(28px, 5vw, 42px)", lineHeight: 1.05, margin: "0 0 12px", fontWeight: 950, letterSpacing: -1.4 }}>
+            Estamos mejorando AnimeFlex
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.62)", fontSize: 15, lineHeight: 1.7, margin: "0 auto 24px", maxWidth: 420 }}>
+            {config.maintenanceMessage || "Estamos en mantenimiento, mejorando la plataforma y arreglando errores para que vuelvas a disfrutar mejor."}
+          </p>
+          <div style={{ background: "rgba(0,0,0,0.38)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "18px 16px", marginBottom: 20 }}>
+            <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 12, fontWeight: 800, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
+              Tiempo estimado
+            </div>
+            <div style={{ color: "#B39DFF", fontSize: "clamp(34px, 10vw, 54px)", fontWeight: 950, letterSpacing: -1.5, fontVariantNumeric: "tabular-nums" }}>
+              {countdown}
+            </div>
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 13, lineHeight: 1.6 }}>
+            La navegación está pausada temporalmente. Gracias por tu paciencia.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Router() {
   return (
     <Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "rgba(255,255,255,0.45)", fontSize: 15 }}>Cargando...</div></div>}>
@@ -125,6 +188,7 @@ function Layout() {
     <main className="page-enter page-transition" style={{ position: "relative", zIndex: 1, minHeight: "100vh", overflow: "hidden" }}>
       <AnnouncementBanner />
       <Router />
+      <MaintenanceOverlay />
       <ScrollToTop />
       <InstallPrompt />
     </main>

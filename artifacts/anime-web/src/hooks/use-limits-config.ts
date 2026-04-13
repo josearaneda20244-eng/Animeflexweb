@@ -6,6 +6,9 @@ interface LimitsConfig {
   dailyLimitEnabled: boolean;
   limitMessage: string;
   megafanMessage: string;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  maintenanceUntil: string;
 }
 
 export function useLimitsConfig() {
@@ -16,6 +19,9 @@ export function useLimitsConfig() {
     dailyLimitEnabled: true,
     limitMessage: "Has alcanzado tu límite diario de episodios gratuitos.",
     megafanMessage: "¡Hazte MegaFan y disfruta sin límites!",
+    maintenanceMode: false,
+    maintenanceMessage: "Estamos realizando mantenimiento para mejorar AnimeFlex.",
+    maintenanceUntil: "",
   }, isLoading: loading, refetch } = useQuery({
     queryKey: ["limits-config"],
     queryFn: () => apiClient.get<LimitsConfig>("/config/limits"),

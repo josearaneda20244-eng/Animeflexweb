@@ -1016,7 +1016,31 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
     finally { setSaving(false); }
   };
 
-  const toggle = (key: string) => save({ [key]: config[key] === "true" ? "false" : "true" });
+  const getMaintenancePatch = () => {
+    const minutes = Math.max(1, Number(config.maintenance_duration_minutes || "60") || 60);
+    return {
+      maintenance_started_at: new Date().toISOString(),
+      maintenance_until: new Date(Date.now() + minutes * 60 * 1000).toISOString(),
+      maintenance_duration_minutes: String(minutes),
+      maintenance_message: config.maintenance_message || "Estamos realizando mantenimiento para mejorar AnimeFlex.",
+    };
+  };
+
+  const toggle = (key: string) => {
+    const nextValue = config[key] === "true" ? "false" : "true";
+    const patch: Record<string, string> = { [key]: nextValue };
+    if (key === "maintenance_mode" && nextValue === "true") Object.assign(patch, getMaintenancePatch());
+    save(patch);
+  };
+
+  const saveMaintenanceDetails = () => {
+    const minutes = Math.max(1, Number(config.maintenance_duration_minutes || "60") || 60);
+    save({
+      maintenance_message: config.maintenance_message || "Estamos realizando mantenimiento para mejorar AnimeFlex.",
+      maintenance_duration_minutes: String(minutes),
+      ...(config.maintenance_mode === "true" ? { maintenance_until: new Date(Date.now() + minutes * 60 * 1000).toISOString() } : {}),
+    });
+  };
   const isEnabled = config["daily_limit_enabled"] === "true";
 
   const createCode = async () => {
@@ -1299,6 +1323,34 @@ function ConfigSection({ toast, refreshConfig }: { toast: (m: string, t: "ok" | 
       <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "4px 20px" }}>
         <BoolRow label="Registro de usuarios" desc="Permite que nuevos usuarios se registren en la plataforma" k="registration_enabled" />
         <BoolRow label="Modo mantenimiento" desc="Muestra un aviso de mantenimiento a todos los visitantes" k="maintenance_mode" />
+        <div style={{ padding: "16px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Aviso de mantenimiento</div>
+          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 12 }}>Mensaje y duración del contador que verán los visitantes en el Home.</div>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) 150px auto", gap: 10, alignItems: "center" }}>
+            <input
+              value={config.maintenance_message || ""}
+              onChange={e => setConfig(prev => ({ ...prev, maintenance_message: e.target.value }))}
+              placeholder="Mensaje para visitantes"
+              style={{ background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "10px 12px", color: "#F1F1F5", fontSize: 13, outline: "none" }}
+            />
+            <input
+              type="number"
+              min={1}
+              value={config.maintenance_duration_minutes || "60"}
+              onChange={e => setConfig(prev => ({ ...prev, maintenance_duration_minutes: e.target.value }))}
+              placeholder="Minutos"
+              style={{ background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "10px 12px", color: "#F1F1F5", fontSize: 13, outline: "none" }}
+            />
+            <button onClick={saveMaintenanceDetails} style={{ background: "rgba(124,111,255,0.14)", border: "1px solid rgba(124,111,255,0.25)", borderRadius: 9, padding: "10px 14px", color: "#B39DFF", cursor: "pointer", fontSize: 12, fontWeight: 800 }}>
+              Guardar aviso
+            </button>
+          </div>
+          {config.maintenance_mode === "true" && config.maintenance_until && (
+            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 10 }}>
+              Contador activo hasta: {new Date(config.maintenance_until).toLocaleString("es-ES")}
+            </div>
+          )}
+        </div>
         <BoolRow label="Límite diario activo" desc="Activa el sistema de límite de episodios para usuarios gratuitos" k="daily_limit_enabled" />
       </div>
       {saving && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 10, textAlign: "center" }}>Guardando...</div>}

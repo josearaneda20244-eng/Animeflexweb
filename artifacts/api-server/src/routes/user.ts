@@ -169,11 +169,14 @@ publicUserRouter.get("/users/:id/followers", async (req, res) => {
 /* ── GET /config/limits ── Public: get current limit settings and messages ── */
 publicUserRouter.get("/config/limits", async (req, res) => {
   try {
-    const [dailyLimitStr, limitEnabledStr, limitMessage, megafanMessage] = await Promise.all([
+    const [dailyLimitStr, limitEnabledStr, limitMessage, megafanMessage, maintenanceMode, maintenanceMessage, maintenanceUntil] = await Promise.all([
       getAdminConfig("daily_limit", "5"),
       getAdminConfig("daily_limit_enabled", "true"),
       getAdminConfig("limit_message", "Has alcanzado tu límite diario de episodios gratuitos."),
       getAdminConfig("megafan_message", "¡Hazte MegaFan y disfruta sin límites!"),
+      getAdminConfig("maintenance_mode", "false"),
+      getAdminConfig("maintenance_message", "Estamos realizando mantenimiento para mejorar AnimeFlex."),
+      getAdminConfig("maintenance_until", ""),
     ]);
 
     res.json({
@@ -181,6 +184,9 @@ publicUserRouter.get("/config/limits", async (req, res) => {
       dailyLimitEnabled: limitEnabledStr === "true",
       limitMessage,
       megafanMessage,
+      maintenanceMode: maintenanceMode === "true",
+      maintenanceMessage,
+      maintenanceUntil,
     });
   } catch (err) {
     console.error("Error getting limits config:", err);

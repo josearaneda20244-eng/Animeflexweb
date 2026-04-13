@@ -150,6 +150,9 @@ async function ensureAdminTables() {
     ["megafan_message", "¡Hazte MegaFan y disfruta sin límites!"],
     ["registration_enabled", "true"],
     ["maintenance_mode", "false"],
+    ["maintenance_message", "Estamos realizando mantenimiento para mejorar AnimeFlex."],
+    ["maintenance_duration_minutes", "60"],
+    ["maintenance_until", ""],
   ];
   for (const [key, value] of defaults) {
     await pool.query(
