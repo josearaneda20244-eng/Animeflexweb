@@ -1,4 +1,5 @@
 FROM node:22-slim
+LABEL version="2.0.0-maintenance"
 
 RUN npm install -g pnpm@latest
 
