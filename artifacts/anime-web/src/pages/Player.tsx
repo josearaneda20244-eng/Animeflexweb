@@ -2,10 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearch, useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import Hls from "hls.js";
-import Plyr from "plyr";
-import "plyr/dist/plyr.css";
 import {
-  ArrowLeft, SkipForward, AlertCircle, Loader2, Play, X,
+  ArrowLeft, SkipForward, AlertCircle, Loader2, Play, Pause, X,
   Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2,
   Share2, Copy, Check as CheckIcon, HelpCircle, FastForward, Rewind,
   Download,
@@ -201,107 +199,143 @@ interface PlyrPlayerProps {
   onFullscreenChange?: (isFs: boolean) => void;
 }
 
+/* ── Button style reused across player controls ── */
+const _playerBtnStyle: React.CSSProperties = {
+  background: "none", border: "none", cursor: "pointer",
+  padding: 8, display: "flex", alignItems: "center", justifyContent: "center",
+  lineHeight: 0, color: "#fff", flexShrink: 0,
+};
+
 function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef, onPlaybackError, onFullscreenChange }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const plyrRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const startAtRef = useRef(startAt);
   const seekRestoredRef = useRef(false);
+  const activeHlsSubIdRef = useRef(activeHlsSubId);
   const onTimeUpdateRef = useRef(onTimeUpdate);
   const onEndedRef = useRef(onEnded);
   const onSubtitleTracksRef = useRef(onSubtitleTracks);
   const onSubtitleCueRef = useRef(onSubtitleCue);
   const onPlaybackErrorRef = useRef(onPlaybackError);
   const onFullscreenChangeRef = useRef(onFullscreenChange);
-  const activeHlsSubIdRef = useRef(activeHlsSubId);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentSec, setCurrentSec] = useState(0);
+  const [dur, setDur] = useState(0);
+  const [bufferedFrac, setBufferedFrac] = useState(0);
+  const [vol, setVol] = useState(1);
+  const [muted, setMuted] = useState(false);
+  const [controlsVis, setControlsVis] = useState(true);
+  const [isFs, setIsFs] = useState(false);
+
+  useEffect(() => { startAtRef.current = startAt; }, [startAt]);
+  useEffect(() => { activeHlsSubIdRef.current = activeHlsSubId; }, [activeHlsSubId]);
   useEffect(() => { onTimeUpdateRef.current = onTimeUpdate; }, [onTimeUpdate]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
-  useEffect(() => { startAtRef.current = startAt; }, [startAt]);
   useEffect(() => { onSubtitleTracksRef.current = onSubtitleTracks; }, [onSubtitleTracks]);
   useEffect(() => { onSubtitleCueRef.current = onSubtitleCue; }, [onSubtitleCue]);
   useEffect(() => { onPlaybackErrorRef.current = onPlaybackError; }, [onPlaybackError]);
   useEffect(() => { onFullscreenChangeRef.current = onFullscreenChange; }, [onFullscreenChange]);
-  useEffect(() => { activeHlsSubIdRef.current = activeHlsSubId; }, [activeHlsSubId]);
 
-  // Switch active HLS subtitle track when prop changes
+  // HLS subtitle track switch
   useEffect(() => {
-    if (hlsRef.current && activeHlsSubId !== undefined) {
-      hlsRef.current.subtitleTrack = activeHlsSubId;
-    }
+    if (hlsRef.current) hlsRef.current.subtitleTrack = activeHlsSubId ?? -1;
   }, [activeHlsSubId]);
 
+  // Playback rate
+  useEffect(() => {
+    if (videoRef.current && playbackRate) videoRef.current.playbackRate = playbackRate;
+  }, [playbackRate]);
+
+  // Native fullscreen detection — no Plyr CSS fallback, fullscreenchange always fires
+  useEffect(() => {
+    const onFsChange = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFs(fs);
+      onFullscreenChangeRef.current?.(fs);
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+    };
+  }, []);
+
+  const enterFs = useCallback(() => {
+    const el = fullscreenContainer
+      ? (document.querySelector(fullscreenContainer) as HTMLElement | null)
+      : videoRef.current;
+    if (!el) return;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if ((el as any).webkitRequestFullscreen) (el as any).webkitRequestFullscreen();
+  }, [fullscreenContainer]);
+
+  const exitFs = useCallback(() => {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen();
+  }, []);
+
+  const showControls = useCallback(() => {
+    setControlsVis(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      setPlaying(p => { if (p) setControlsVis(false); return p; });
+    }, 3000);
+  }, []);
+
+  // Expose controls to parent (keyboard shortcuts, external seek, volume)
+  useEffect(() => {
+    if (controlsRef) {
+      controlsRef.current = {
+        seekTo: (t: number) => { if (videoRef.current) videoRef.current.currentTime = t; },
+        getVolume: () => videoRef.current?.volume ?? 1,
+        setVolume: (v: number) => { if (videoRef.current) { videoRef.current.volume = Math.max(0, Math.min(1, v)); } },
+      };
+    }
+  });
+
+  // Main HLS setup
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null); setCurrentSec(0); setDur(0);
+    setBufferedFrac(0); setPlaying(false);
     seekRestoredRef.current = false;
-    if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; }
     if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
 
-    const plyr = new Plyr(video, {
-      controls: ["play-large", "play", "progress", "current-time", "duration", "mute", "volume", "pip", "fullscreen"],
-      autoplay: true,
-      keyboard: { focused: true, global: true },
-      tooltips: { controls: false, seek: true },
-      fullscreen: { enabled: true, fallback: true, iosNative: false, container: fullscreenContainer ?? undefined },
-    });
-    plyrRef.current = plyr;
-
-    // Fire onFullscreenChange for BOTH native fullscreen and Plyr's CSS-fallback fullscreen.
-    // This is critical on Android where Plyr uses CSS fallback (position:fixed + z-index:10000000)
-    // and the native fullscreenchange event never fires.
-    plyr.on("enterfullscreen", () => onFullscreenChangeRef.current?.(true));
-    plyr.on("exitfullscreen", () => onFullscreenChangeRef.current?.(false));
-
-    if (controlsRef) {
-      controlsRef.current = {
-        seekTo: (t: number) => { video.currentTime = t; },
-        getVolume: () => plyr.volume ?? 1,
-        setVolume: (v: number) => { plyr.volume = Math.max(0, Math.min(1, v)); },
-      };
-    }
-
-    const trySeekRestore = () => {
+    const trySeek = () => {
       if (seekRestoredRef.current) return;
-      const target = startAtRef.current;
-      if (!target || target <= 5) { seekRestoredRef.current = true; return; }
-      const dur = video.duration;
-      if (dur && isFinite(dur) && target < dur - 5) {
-        video.currentTime = target;
-        seekRestoredRef.current = true;
+      const t = startAtRef.current;
+      if (!t || t <= 5) { seekRestoredRef.current = true; return; }
+      if (video.duration && isFinite(video.duration) && t < video.duration - 5) {
+        video.currentTime = t; seekRestoredRef.current = true;
       }
     };
 
-    const onLoadedMetadata = () => {
-      trySeekRestore();
-    };
+    let loadTimeout: ReturnType<typeof setTimeout> | null = null;
+    let errSent = false;
+    const notifyErr = () => { if (errSent) return; errSent = true; onPlaybackErrorRef.current?.(); };
 
     const onTimeUpd = () => {
       if (video.duration > 0) {
-        if (!seekRestoredRef.current) trySeekRestore();
-        onTimeUpdateRef.current?.(video.currentTime, video.duration);
-
-        // Poll subtitle cues on every timeupdate — far more reliable than addtrack+cuechange
-        // on Android Chrome where cuechange events fire inconsistently.
-        // Only scan when a subtitle track is actually selected (activeHlsSubId >= 0).
+        if (!seekRestoredRef.current) trySeek();
+        const ct = video.currentTime; const d = video.duration;
+        setCurrentSec(ct); setDur(d);
+        onTimeUpdateRef.current?.(ct, d);
+        // Poll subtitle cues — far more reliable on Android than cuechange events
         let cueText: string | null = null;
         if ((activeHlsSubIdRef.current ?? -1) >= 0) {
           for (let i = 0; i < video.textTracks.length; i++) {
             const track = video.textTracks[i];
-            // Ensure any subtitle/caption track is readable (not disabled)
-            if (track.mode === "disabled" &&
-                (track.kind === "subtitles" || track.kind === "captions" || track.kind === "metadata")) {
-              track.mode = "hidden";
-            }
+            if (track.mode === "disabled") track.mode = "hidden";
             if (track.mode !== "disabled" && track.activeCues && track.activeCues.length > 0) {
               cueText = Array.from(track.activeCues)
                 .map(c => (c as VTTCue).text?.replace(/<[^>]+>/g, "") ?? "")
-                .filter(Boolean)
-                .join("\n");
+                .filter(Boolean).join("\n");
               if (cueText) break;
             }
           }
@@ -309,157 +343,176 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         onSubtitleCueRef.current?.(cueText);
       }
     };
-    const onEnd = () => { onEndedRef.current?.(); };
 
-    let loadTimeout: ReturnType<typeof setTimeout> | null = null;
-    let playbackErrorSent = false;
-    const notifyPlaybackError = () => {
-      if (playbackErrorSent) return;
-      playbackErrorSent = true;
-      onPlaybackErrorRef.current?.();
+    const onPlay = () => setPlaying(true);
+    const onPause = () => { setPlaying(false); setControlsVis(true); };
+    const onEndEv = () => { onEndedRef.current?.(); setPlaying(false); setControlsVis(true); };
+    const onVolCh = () => { setVol(video.volume); setMuted(video.muted); };
+    const onProg = () => {
+      if (video.buffered.length && video.duration)
+        setBufferedFrac(video.buffered.end(video.buffered.length - 1) / video.duration);
     };
+    const onNativeErr = () => { setError("Error al cargar fuente. Probando otra..."); setLoading(false); notifyErr(); };
+    const onMeta = () => trySeek();
 
     if (Hls.isSupported()) {
       const hls = new Hls({
-        enableWorker: true,
-        maxBufferLength: 60,
-        maxMaxBufferLength: 240,
-        startLevel: -1,
-        fragLoadingTimeOut: 15000,
-        manifestLoadingTimeOut: 15000,
-        maxBufferHole: 1,
+        enableWorker: true, maxBufferLength: 60, maxMaxBufferLength: 240,
+        startLevel: -1, fragLoadingTimeOut: 15000, manifestLoadingTimeOut: 15000, maxBufferHole: 1,
       });
       hlsRef.current = hls;
       hls.loadSource(m3u8Url);
       hls.attachMedia(video);
-
       hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
-        const tracks: HlsSubTrack[] = (data.subtitleTracks ?? []).map(t => ({
-          id: t.id,
-          lang: t.lang ?? t.name ?? "",
-          name: t.name ?? t.lang ?? "",
-        }));
+        const tracks = (data.subtitleTracks ?? []).map(t => ({ id: t.id, lang: t.lang ?? t.name ?? "", name: t.name ?? t.lang ?? "" }));
         if (tracks.length > 0) onSubtitleTracksRef.current?.(tracks);
       });
-
-      let networkErrCount = 0;
-      let mediaErrCount = 0;
-      loadTimeout = setTimeout(() => {
-        setError("Tiempo de carga agotado. Probando otra fuente...");
-        setLoading(false);
-        notifyPlaybackError();
-      }, 12000);
-
+      loadTimeout = setTimeout(() => { setError("Tiempo agotado. Probando otra fuente..."); setLoading(false); notifyErr(); }, 12000);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-        networkErrCount = 0;
-        mediaErrCount = 0;
-        setLoading(false);
-        video.play().catch(() => {});
+        setLoading(false); video.play().catch(() => {});
       });
-
-      hls.on(Hls.Events.FRAG_LOADED, () => {
-        networkErrCount = 0;
-      });
-
+      let netErr = 0, mediaErr = 0;
+      hls.on(Hls.Events.FRAG_LOADED, () => { netErr = 0; });
       hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            networkErrCount++;
-            if (networkErrCount > 2) {
-              if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-              setError("Error de red al cargar la fuente. Probando otra...");
-              setLoading(false);
-              notifyPlaybackError();
-            } else {
-              setTimeout(() => hls.startLoad(), 1000);
-            }
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            mediaErrCount++;
-            if (mediaErrCount > 3) {
-              if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-              setError("Error de medios en esta fuente. Probando otra...");
-              setLoading(false);
-              notifyPlaybackError();
-              return;
-            }
-            const savedTime = video.currentTime;
-            hls.recoverMediaError();
-            if (savedTime > 5) {
-              const restoreTime = () => {
-                if (video.currentTime < savedTime - 2) {
-                  video.currentTime = savedTime;
-                }
-                video.removeEventListener("canplay", restoreTime);
-              };
-              video.addEventListener("canplay", restoreTime);
-            }
-          } else {
-            if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-            setError("Error al reproducir esta fuente. Probando otra...");
-            setLoading(false);
-            notifyPlaybackError();
-          }
-        }
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          netErr++;
+          if (netErr > 2) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de red. Probando otra..."); setLoading(false); notifyErr(); }
+          else setTimeout(() => hls.startLoad(), 1000);
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          mediaErr++;
+          if (mediaErr > 3) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de medios. Probando otra..."); setLoading(false); notifyErr(); }
+          else { const st = video.currentTime; hls.recoverMediaError(); setTimeout(() => { if (st > 5) video.currentTime = st; }, 300); }
+        } else { if (loadTimeout) clearTimeout(loadTimeout); setError("Error en esta fuente. Probando otra..."); setLoading(false); notifyErr(); }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = m3u8Url;
-      video.addEventListener("loadedmetadata", () => {
-        setLoading(false);
-        trySeekRestore();
-        video.play().catch(() => {});
-      }, { once: true });
-    } else {
-      setError("Tu navegador no soporta reproducción HLS.");
-      setLoading(false);
-      notifyPlaybackError();
-    }
+      video.addEventListener("loadedmetadata", () => { setLoading(false); video.play().catch(() => {}); }, { once: true });
+    } else { setError("Tu navegador no soporta HLS."); setLoading(false); notifyErr(); }
 
-    const onNativeError = () => {
-      setError("Esta fuente no cargó. Probando otra...");
-      setLoading(false);
-      notifyPlaybackError();
-    };
-
-    video.addEventListener("loadedmetadata", onLoadedMetadata);
+    video.addEventListener("loadedmetadata", onMeta);
     video.addEventListener("timeupdate", onTimeUpd);
-    video.addEventListener("ended", onEnd);
-    video.addEventListener("error", onNativeError);
+    video.addEventListener("play", onPlay);
+    video.addEventListener("pause", onPause);
+    video.addEventListener("ended", onEndEv);
+    video.addEventListener("volumechange", onVolCh);
+    video.addEventListener("progress", onProg);
+    video.addEventListener("error", onNativeErr);
     return () => {
-      video.removeEventListener("loadedmetadata", onLoadedMetadata);
+      video.removeEventListener("loadedmetadata", onMeta);
       video.removeEventListener("timeupdate", onTimeUpd);
-      video.removeEventListener("ended", onEnd);
-      video.removeEventListener("error", onNativeError);
+      video.removeEventListener("play", onPlay);
+      video.removeEventListener("pause", onPause);
+      video.removeEventListener("ended", onEndEv);
+      video.removeEventListener("volumechange", onVolCh);
+      video.removeEventListener("progress", onProg);
+      video.removeEventListener("error", onNativeErr);
       if (loadTimeout) clearTimeout(loadTimeout);
       if (controlsRef) controlsRef.current = null;
-      if (plyrRef.current) { plyrRef.current.destroy(); plyrRef.current = null; }
       if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
     };
   }, [m3u8Url]);
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video && playbackRate) {
-      video.playbackRate = playbackRate;
-      if (plyrRef.current) plyrRef.current.speed = playbackRate;
-    }
-  }, [playbackRate]);
+  const fmt = (t: number) => `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, "0")}`;
+
+  const seekFromClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    if (videoRef.current && dur) videoRef.current.currentTime = pct * dur;
+  };
+
+  const togglePlay = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const v = videoRef.current;
+    if (!v) return;
+    v.paused ? v.play() : v.pause();
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (videoRef.current) videoRef.current.muted = !videoRef.current.muted;
+  };
 
   return (
-    <div className="relative w-full h-full bg-black">
-      <video ref={videoRef} playsInline className="w-full h-full" style={{ display: "block" }} />
+    <div
+      className="relative w-full h-full bg-black select-none"
+      style={{ cursor: controlsVis ? "default" : "none" }}
+      onMouseMove={showControls}
+      onTouchStart={showControls}
+      onClick={() => { if (!controlsVis) { showControls(); return; } togglePlay(); }}
+    >
+      <video
+        ref={videoRef}
+        playsInline
+        style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
+      />
+
+      {/* Loading */}
       {loading && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 pointer-events-none">
-          <Loader2 size={36} className="animate-spin text-[#7C6FFF]" />
-          <p className="text-sm text-[#9090B0]">Cargando episodio...</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <Loader2 size={40} className="animate-spin" style={{ color: "#7C6FFF" }} />
+          <p style={{ color: "#9090B0", fontSize: 13 }}>Cargando episodio...</p>
         </div>
       )}
+
+      {/* Error */}
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80">
-          <AlertCircle size={36} className="text-[#EF4444]" />
-          <p className="text-sm text-[#F0F0FF]">{error}</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ background: "rgba(0,0,0,0.85)" }}>
+          <AlertCircle size={36} style={{ color: "#EF4444" }} />
+          <p style={{ color: "#F0F0FF", fontSize: 13 }}>{error}</p>
         </div>
       )}
+
+      {/* Controls overlay */}
+      <div
+        style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 55%, transparent 100%)",
+          padding: "52px 14px 12px",
+          opacity: controlsVis ? 1 : 0,
+          transition: "opacity 0.25s ease",
+          pointerEvents: controlsVis ? "auto" : "none",
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Progress bar */}
+        <div
+          style={{
+            height: 5, background: "rgba(255,255,255,0.18)", borderRadius: 3,
+            marginBottom: 10, cursor: "pointer", position: "relative",
+          }}
+          onClick={seekFromClick}
+        >
+          <div style={{ position: "absolute", inset: 0, width: `${bufferedFrac * 100}%`, background: "rgba(255,255,255,0.28)", borderRadius: 3 }} />
+          <div style={{ position: "absolute", inset: 0, width: `${dur ? (currentSec / dur) * 100 : 0}%`, background: "#7C6FFF", borderRadius: 3 }} />
+        </div>
+
+        {/* Controls row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <button onClick={e => { e.stopPropagation(); togglePlay(e); }} style={_playerBtnStyle}>
+            {playing ? <Pause size={22} fill="white" color="white" /> : <Play size={22} fill="white" color="white" />}
+          </button>
+
+          <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, fontVariantNumeric: "tabular-nums", padding: "0 4px" }}>
+            {fmt(currentSec)} / {fmt(dur)}
+          </span>
+
+          <div style={{ flex: 1 }} />
+
+          <button onClick={toggleMute} style={_playerBtnStyle}>
+            {muted || vol === 0
+              ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+              : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+            }
+          </button>
+
+          <button onClick={e => { e.stopPropagation(); isFs ? exitFs() : enterFs(); }} style={_playerBtnStyle}>
+            {isFs ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
