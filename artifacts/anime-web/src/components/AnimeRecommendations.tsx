@@ -79,10 +79,10 @@
           }} />
           <div style={{
             position: 'absolute', top: 7, left: 7,
-            background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+            background: 'linear-gradient(135deg, #3B82F6, #6366F1)',
             borderRadius: 4, padding: '2px 6px',
             color: '#fff', fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
-          }}>SUB</div>
+          }}>LAT</div>
           {rec.score > 0 && (
             <div style={{
               position: 'absolute', top: 7, right: 7,
