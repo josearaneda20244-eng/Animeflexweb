@@ -1016,31 +1016,6 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
     finally { setSaving(false); }
   };
 
-  const getMaintenancePatch = () => {
-    const minutes = Math.max(1, Number(config.maintenance_duration_minutes || "60") || 60);
-    return {
-      maintenance_started_at: new Date().toISOString(),
-      maintenance_until: new Date(Date.now() + minutes * 60 * 1000).toISOString(),
-      maintenance_duration_minutes: String(minutes),
-      maintenance_message: config.maintenance_message || "Estamos realizando mantenimiento para mejorar AnimeFlex.",
-    };
-  };
-
-  const toggle = (key: string) => {
-    const nextValue = config[key] === "true" ? "false" : "true";
-    const patch: Record<string, string> = { [key]: nextValue };
-    if (key === "maintenance_mode" && nextValue === "true") Object.assign(patch, getMaintenancePatch());
-    save(patch);
-  };
-
-  const saveMaintenanceDetails = () => {
-    const minutes = Math.max(1, Number(config.maintenance_duration_minutes || "60") || 60);
-    save({
-      maintenance_message: config.maintenance_message || "Estamos realizando mantenimiento para mejorar AnimeFlex.",
-      maintenance_duration_minutes: String(minutes),
-      ...(config.maintenance_mode === "true" ? { maintenance_until: new Date(Date.now() + minutes * 60 * 1000).toISOString() } : {}),
-    });
-  };
   const isEnabled = config["daily_limit_enabled"] === "true";
 
   const createCode = async () => {
@@ -1301,7 +1276,31 @@ function ConfigSection({ toast, refreshConfig }: { toast: (m: string, t: "ok" | 
     finally { setSaving(false); }
   };
 
-  const toggle = (key: string) => save({ [key]: config[key] === "true" ? "false" : "true" });
+  const getMaintenancePatch = () => {
+    const minutes = Math.max(1, Number(config.maintenance_duration_minutes || "60") || 60);
+    return {
+      maintenance_started_at: new Date().toISOString(),
+      maintenance_until: new Date(Date.now() + minutes * 60 * 1000).toISOString(),
+      maintenance_duration_minutes: String(minutes),
+      maintenance_message: config.maintenance_message || "Estamos realizando mantenimiento para mejorar AnimeFlex.",
+    };
+  };
+
+  const toggle = (key: string) => {
+    const nextValue = config[key] === "true" ? "false" : "true";
+    const patch: Record<string, string> = { [key]: nextValue };
+    if (key === "maintenance_mode" && nextValue === "true") Object.assign(patch, getMaintenancePatch());
+    save(patch);
+  };
+
+  const saveMaintenanceDetails = () => {
+    const minutes = Math.max(1, Number(config.maintenance_duration_minutes || "60") || 60);
+    save({
+      maintenance_message: config.maintenance_message || "Estamos realizando mantenimiento para mejorar AnimeFlex.",
+      maintenance_duration_minutes: String(minutes),
+      ...(config.maintenance_mode === "true" ? { maintenance_until: new Date(Date.now() + minutes * 60 * 1000).toISOString() } : {}),
+    });
+  };
 
   const BoolRow = ({ label, desc, k }: { label: string; desc: string; k: string }) => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
