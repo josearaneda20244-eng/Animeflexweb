@@ -309,14 +309,15 @@ export default function Profile() {
             {/* Quick stats row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
               {[
-                { label: "Episodios", value: loadingStats ? "–" : stats?.totalEpisodes ?? 0, color: "#7C6FFF" },
-                { label: "Horas", value: loadingStats ? "–" : `${stats?.estimatedHours ?? 0}h`, color: "#22C55E" },
-                { label: "Completados", value: loadingStats ? "–" : stats?.completed ?? 0, color: "#EC4899" },
-                { label: "Racha", value: loadingStats ? "–" : `${stats?.streak ?? 0}d`, color: "#F59E0B" },
-              ].map(({ label, value, color }) => (
-                <div key={label} style={{ textAlign: "center", background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "10px 6px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                { label: "Episodios", value: loadingStats ? "–" : stats?.totalEpisodes ?? 0, color: "#7C6FFF", icon: <Tv2 size={13} />, bg: "rgba(124,111,255,0.1)" },
+                { label: "Horas", value: loadingStats ? "–" : `${stats?.estimatedHours ?? 0}h`, color: "#22C55E", icon: <Clock size={13} />, bg: "rgba(34,197,94,0.1)" },
+                { label: "Completados", value: loadingStats ? "–" : stats?.completed ?? 0, color: "#EC4899", icon: <CheckCircle2 size={13} />, bg: "rgba(236,72,153,0.1)" },
+                { label: "Racha", value: loadingStats ? "–" : `${stats?.streak ?? 0}d`, color: "#F59E0B", icon: <Flame size={13} />, bg: "rgba(245,158,11,0.1)" },
+              ].map(({ label, value, color, icon, bg }) => (
+                <div key={label} style={{ textAlign: "center", background: bg, borderRadius: 14, padding: "12px 6px", border: `1px solid ${color}22`, position: "relative", overflow: "hidden" }}>
+                  <div style={{ color, fontSize: 11, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.8 }}>{icon}</div>
                   <div style={{ color, fontSize: 18, fontWeight: 900, lineHeight: 1 }}>{value}</div>
-                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, marginTop: 3, fontWeight: 600 }}>{label}</div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, marginTop: 4, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase" }}>{label}</div>
                 </div>
               ))}
             </div>
