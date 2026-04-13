@@ -25,7 +25,7 @@ function SearchCard({ anime }: { anime: AnimeResult }) {
       <img src={anime.image} alt={title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 48%, rgba(9,10,18,0.97) 100%)" }} />
       <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-        <span style={{ background: "#22C55E", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>SUB</span>
+        <span style={{ background: "linear-gradient(135deg,#3B82F6,#6366F1)", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>LAT</span>
         {anime.totalEpisodes && (
           <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.totalEpisodes}</span>
         )}
