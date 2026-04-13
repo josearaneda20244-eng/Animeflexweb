@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
@@ -99,6 +99,34 @@ function Counter({ target }: { target: number }) {
     return () => clearInterval(t);
   }, [target]);
   return <>{val.toLocaleString()}</>;
+}
+
+
+function SectionHeader({ icon, title, subtitle, action }: { icon: ReactNode; title: string; subtitle?: string; action?: ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "6px 0 -8px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 34, height: 34, borderRadius: 11, background: "linear-gradient(135deg,rgba(124,111,255,0.18),rgba(124,111,255,0.04))", border: "1px solid rgba(124,111,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#B39DFF" }}>
+          {icon}
+        </div>
+        <div>
+          <div style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 900, letterSpacing: -0.2 }}>{title}</div>
+          {subtitle && <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 2 }}>{subtitle}</div>}
+        </div>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function InsightCard({ label, value, tone, helper }: { label: string; value: string | number; tone: string; helper: string }) {
+  return (
+    <div style={{ background: `linear-gradient(135deg,${tone}1f,rgba(255,255,255,0.015))`, border: `1px solid ${tone}35`, borderRadius: 16, padding: "16px 18px", minHeight: 92, display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: `0 18px 50px ${tone}10` }}>
+      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6 }}>{label}</div>
+      <div style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 950, letterSpacing: -1 }}>{value}</div>
+      <div style={{ color: tone, fontSize: 12, fontWeight: 700 }}>{helper}</div>
+    </div>
+  );
 }
 
 /* ── Announcements Manager (embedded in dashboard) ── */
@@ -229,6 +257,17 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
   const estimatedRevenue = (stats?.megafanUsers ?? 0) * 4;
   const maxViews = stats?.topAnime && stats.topAnime.length > 0 ? Math.max(...stats.topAnime.map(a => parseInt(a.views) || 0)) || 1 : 1;
 
+  const healthScore = stats?.totalUsers
+    ? Math.max(0, Math.round(100 - ((stats.inactiveUsers ?? 0) / stats.totalUsers) * 100))
+    : 100;
+
+  const INSIGHTS = [
+    { label: "Actividad ahora", value: stats?.activeUsers ?? 0, tone: "#22C55E", helper: "usuarios en los últimos 30 min" },
+    { label: "Conversión", value: `${conversionRate}%`, tone: "#F59E0B", helper: "usuarios Free a MegaFan" },
+    { label: "Ingresos", value: `$${estimatedRevenue}`, tone: "#10B981", helper: "estimación mensual actual" },
+    { label: "Salud", value: `${healthScore}%`, tone: "#7C6FFF", helper: "cuentas activas sobre el total" },
+  ];
+
   const CARDS = [
     {
       label: "Usuarios totales", value: stats?.totalUsers ?? 0,
@@ -279,7 +318,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
     <div style={{ display: "flex", flexDirection: "column", gap: 24, position: "relative", animation: "fadeUp 0.45s ease forwards", opacity: 0, zIndex: 1 }}>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+      <div style={{ background: "linear-gradient(135deg,rgba(124,111,255,0.14),rgba(245,158,11,0.06) 55%,rgba(255,255,255,0.015))", border: "1px solid rgba(124,111,255,0.18)", borderRadius: 24, padding: "22px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 22px 70px rgba(0,0,0,0.22)" }}>
         <div>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 4, textTransform: "capitalize" }}>{dateStr}</div>
           <h2 style={{ color: "#F1F1F5", fontSize: 26, fontWeight: 900, margin: 0, letterSpacing: -0.5 }}>
@@ -305,7 +344,11 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       )}
 
-      {/* Stat Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
+        {INSIGHTS.map(item => <InsightCard key={item.label} {...item} />)}
+      </div>
+
+      <SectionHeader icon={<LayoutDashboard size={16} />} title="Métricas clave" subtitle="Indicadores principales para revisar el estado de AnimeFlex de un vistazo" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         {CARDS.map((c, index) => (
           <div key={c.label} style={{ background: c.gradient, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden", transition: "transform 0.3s ease, box-shadow 0.3s ease", cursor: "pointer", animation: `fadeUp 0.45s ease ${0.05 * index}s forwards`, opacity: 0, boxShadow: "0 18px 45px rgba(12,14,30,0.14)" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 24px 60px rgba(12,14,30,0.18)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 18px 45px rgba(12,14,30,0.14)"; }}>
@@ -325,7 +368,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         ))}
       </div>
 
-      {/* Conversion + Health row */}
+      <SectionHeader icon={<Activity size={16} />} title="Rendimiento y salud" subtitle="Conversión, actividad diaria y estabilidad de cuentas" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
@@ -366,7 +409,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       </div>
 
-      {/* Top Anime Chart */}
+      <SectionHeader icon={<Film size={16} />} title="Contenido y tendencias" subtitle="Lo que más se está viendo y buscando dentro de la plataforma" />
       {stats?.topAnime && stats.topAnime.length > 0 && (
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "22px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
@@ -408,7 +451,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       )}
 
-      {/* Quick Actions */}
+      <SectionHeader icon={<Zap size={16} />} title="Operación rápida" subtitle="Atajos para gestionar usuarios, contenido y monetización" />
       <div style={{ background: "linear-gradient(135deg,rgba(124,111,255,0.08),rgba(79,70,229,0.04))", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 18, padding: "20px" }}>
         <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
           <Zap size={15} color="#B39DFF" /> Accesos rápidos
@@ -428,7 +471,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       </div>
 
-      {/* Recent users + MegaFan list */}
+      <SectionHeader icon={<Users size={16} />} title="Usuarios y comunidad" subtitle="Nuevos registros, suscriptores y crecimiento" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
 
         {/* Recent registrations */}
@@ -500,8 +543,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       </div>
 
-      {/* Growth Chart + Active Users */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 14, alignItems: "stretch" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14, alignItems: "stretch" }}>
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -518,14 +560,14 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                   const res = await fetch(`${api}/admin/export/users`, {
                     headers: token ? { Authorization: `Bearer ${token}` } : {}
                   });
-                  if (!res.ok) return;
+                  if (!res.ok) throw new Error("No se pudo exportar");
                   const blob = await res.blob();
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url; a.download = `usuarios_${Date.now()}.csv`;
                   document.body.appendChild(a); a.click();
                   document.body.removeChild(a); URL.revokeObjectURL(url);
-                } catch {}
+                } catch { toast("Error al exportar CSV", "err"); }
               }}
               style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 9, padding: "7px 12px", color: "#22C55E", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
             >
@@ -551,7 +593,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             </div>
           )}
         </div>
-        <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px", minWidth: 160, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px", minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Radio size={22} color="#22C55E" />
           </div>
@@ -583,10 +625,9 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       )}
 
-      {/* Announcements Manager */}
+      <SectionHeader icon={<Megaphone size={16} />} title="Comunicación y actividad" subtitle="Mensajes globales y últimos movimientos de usuarios" />
       <AnnouncementsManager toast={toast} />
 
-      {/* Recent activity */}
       {(stats?.recentActivity ?? []).length > 0 && (
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -791,7 +832,7 @@ function ContentSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err"
     });
   };
 
-  const actionStyles: Record<string, { bg: string; color: string; label: string; icon: React.ReactNode }> = {
+  const actionStyles: Record<string, { bg: string; color: string; label: string; icon: ReactNode }> = {
     hidden:   { bg: "rgba(245,158,11,0.12)", color: "#F59E0B",  label: "Oculto",    icon: <EyeOff size={13} /> },
     featured: { bg: "rgba(124,111,255,0.12)", color: "#7C6FFF",  label: "Destacado", icon: <Star size={13} /> },
     blocked:  { bg: "rgba(220,38,38,0.12)", color: "#DC2626",   label: "Bloqueado", icon: <Ban size={13} /> },
@@ -1649,7 +1690,7 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
 }
 
 /* ── Sidebar nav ── */
-const NAV: { key: Section; label: string; icon: React.ReactNode }[] = [
+const NAV: { key: Section; label: string; icon: ReactNode }[] = [
   { key: "dashboard",    label: "Dashboard",      icon: <LayoutDashboard size={18} /> },
   { key: "users",        label: "Usuarios",       icon: <Users size={18} /> },
   { key: "content",      label: "Contenido",      icon: <Film size={18} /> },
@@ -1683,7 +1724,7 @@ export default function Admin() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", display: "flex", position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: "#000", display: "flex", position: "relative", overflowX: "hidden" }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -1691,6 +1732,7 @@ export default function Admin() {
         @keyframes glowPulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.75; } }
         @media (max-width: 768px) {
           .admin-sidebar { transform: translateX(-100%) !important; }
+          .admin-sidebar.open { transform: translateX(0) !important; }
           .sidebar-toggle { display: flex !important; }
           .admin-main { margin-left: 0 !important; }
         }
@@ -1703,7 +1745,7 @@ export default function Admin() {
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40 }} />}
 
       {/* Sidebar */}
-      <aside className="admin-sidebar" style={{ width: 230, flexShrink: 0, background: "linear-gradient(180deg, #0D0D1A 0%, #000 100%)", borderRight: "1px solid rgba(124,111,255,0.08)", boxShadow: "0 24px 70px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50, transition: "transform 0.22s ease, box-shadow 0.22s ease" }}>
+      <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`} style={{ width: 230, flexShrink: 0, background: "linear-gradient(180deg, #0D0D1A 0%, #000 100%)", borderRight: "1px solid rgba(124,111,255,0.08)", boxShadow: "0 24px 70px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50, transition: "transform 0.22s ease, box-shadow 0.22s ease" }}>
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(124,111,255,0.35)" }}>
@@ -1754,7 +1796,7 @@ export default function Admin() {
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, padding: "28px 24px", maxWidth: 1100, width: "100%" }}>
+        <div style={{ flex: 1, padding: "28px 24px", maxWidth: 1180, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
           {section === "dashboard"    && <DashboardSection toast={showToast} user={user} onNavigate={handleNavigate} />}
           {section === "users"        && <UsersSection toast={showToast} confirm={showConfirm} />}
           {section === "content"      && <ContentSection toast={showToast} confirm={showConfirm} />}
