@@ -166,7 +166,7 @@ publicUserRouter.get("/users/:id/followers", async (req, res) => {
   }
 });
 
-/* ── GET /config/limits ── Public: get current limit settings and messages ── */
+/* ── GET /config/limits ── Public: get current limit settings and messages (v2: includes maintenanceMode) ── */
 publicUserRouter.get("/config/limits", async (req, res) => {
   try {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
