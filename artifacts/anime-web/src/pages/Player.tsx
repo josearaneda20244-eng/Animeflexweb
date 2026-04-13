@@ -100,11 +100,12 @@ function parseVtt(vttText: string): VttCue[] {
 
 /* ── CUSTOM SUBTITLE OVERLAY ── */
 function SubtitleOverlay({
-  text, subtitleUrl, currentTime,
+  text, subtitleUrl, currentTime, isFullscreen,
 }: {
   text?: string | null;
   subtitleUrl?: string | null;
   currentTime?: number;
+  isFullscreen?: boolean;
 }) {
   const [cues, setCues] = useState<VttCue[]>([]);
   const loadedUrl = useRef<string | null>(null);
@@ -126,9 +127,14 @@ function SubtitleOverlay({
       : null);
 
   if (!display) return null;
+  // In fullscreen (native or Plyr CSS-fallback), use fixed positioning with z-index above
+  // Plyr's own fullscreen layer (z-index: 10000000)
   return (
     <div style={{
-      position: "absolute", bottom: "15%", left: 0, right: 0, zIndex: 200,
+      position: isFullscreen ? "fixed" : "absolute",
+      bottom: isFullscreen ? "13vh" : "15%",
+      left: 0, right: 0,
+      zIndex: isFullscreen ? 10000001 : 200,
       display: "flex", justifyContent: "center", pointerEvents: "none", padding: "0 24px",
     }}>
       <div style={{
@@ -192,9 +198,10 @@ interface PlyrPlayerProps {
   onSubtitleCue?: (text: string | null) => void;
   controlsRef?: React.MutableRefObject<PlyrControls | null>;
   onPlaybackError?: () => void;
+  onFullscreenChange?: (isFs: boolean) => void;
 }
 
-function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef, onPlaybackError }: PlyrPlayerProps) {
+function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef, onPlaybackError, onFullscreenChange }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const plyrRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -207,6 +214,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
   const onSubtitleTracksRef = useRef(onSubtitleTracks);
   const onSubtitleCueRef = useRef(onSubtitleCue);
   const onPlaybackErrorRef = useRef(onPlaybackError);
+  const onFullscreenChangeRef = useRef(onFullscreenChange);
 
   useEffect(() => { onTimeUpdateRef.current = onTimeUpdate; }, [onTimeUpdate]);
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
@@ -214,6 +222,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
   useEffect(() => { onSubtitleTracksRef.current = onSubtitleTracks; }, [onSubtitleTracks]);
   useEffect(() => { onSubtitleCueRef.current = onSubtitleCue; }, [onSubtitleCue]);
   useEffect(() => { onPlaybackErrorRef.current = onPlaybackError; }, [onPlaybackError]);
+  useEffect(() => { onFullscreenChangeRef.current = onFullscreenChange; }, [onFullscreenChange]);
 
   // Switch active HLS subtitle track when prop changes
   useEffect(() => {
@@ -239,6 +248,12 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       fullscreen: { enabled: true, fallback: true, iosNative: false, container: fullscreenContainer ?? undefined },
     });
     plyrRef.current = plyr;
+
+    // Fire onFullscreenChange for BOTH native fullscreen and Plyr's CSS-fallback fullscreen.
+    // This is critical on Android where Plyr uses CSS fallback (position:fixed + z-index:10000000)
+    // and the native fullscreenchange event never fires.
+    plyr.on("enterfullscreen", () => onFullscreenChangeRef.current?.(true));
+    plyr.on("exitfullscreen", () => onFullscreenChangeRef.current?.(false));
 
     if (controlsRef) {
       controlsRef.current = {
@@ -1224,6 +1239,7 @@ export default function Player() {
                     onSubtitleCue={handleSubtitleCue}
                     controlsRef={playerControlsRef}
                     onPlaybackError={handlePlaybackError}
+                    onFullscreenChange={setIsFullscreen}
                   />
                 ) : null
               )
@@ -1233,6 +1249,7 @@ export default function Player() {
               text={hlsCueToRender}
               subtitleUrl={vttSubUrl}
               currentTime={currentTime}
+              isFullscreen={isFullscreen}
             />
 
             {showAutoNext && nextEpisodeId && (
