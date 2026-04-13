@@ -4,6 +4,10 @@ const slugCache = new Map<string, string>();
 const SLUG_CACHE_TTL = 1000 * 60 * 60 * 2;
 const slugCacheTime = new Map<string, number>();
 
+// Cache M3U8 results keyed by "slug:ep" — avoids re-fetching iframes on repeat visits
+const m3u8Cache = new Map<string, { sources: Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB"; referer?: string }>, ts: number }>();
+const M3U8_CACHE_TTL = 1000 * 60 * 25; // 25 minutes
+
 const PAGE_HEADERS: Record<string, string> = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -72,7 +76,7 @@ function makeSlugs(title: string): string[] {
   return [...new Set(variants)];
 }
 
-async function fetchPage(url: string, timeoutMs = 4000): Promise<string> {
+async function fetchPage(url: string, timeoutMs = 2500): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -86,7 +90,7 @@ async function fetchPage(url: string, timeoutMs = 4000): Promise<string> {
   }
 }
 
-async function fetchIframe(url: string, referer: string, timeoutMs = 6000): Promise<string> {
+async function fetchIframe(url: string, referer: string, timeoutMs = 3000): Promise<string> {
   const headers = { ...IFRAME_HEADERS, "Referer": referer };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -188,6 +192,14 @@ export async function getJkAnimeWatch(
   const allTitles = [animeTitle, ...extraTitles].filter(Boolean);
   const cacheKey = animeTitle.toLowerCase().trim();
 
+  // Fast path: return cached M3U8 sources if still fresh (cached slug also used)
+  const cachedM3u8Key = `${cacheKey}:${episodeNum}`;
+  const cachedM3u8 = m3u8Cache.get(cachedM3u8Key);
+  if (cachedM3u8 && (Date.now() - cachedM3u8.ts) < M3U8_CACHE_TTL) {
+    const cachedSlugForReturn = slugCache.get(cacheKey) ?? cacheKey;
+    return { sources: cachedM3u8.sources, slug: cachedSlugForReturn, headers: { "Referer": `${BASE}/${cachedSlugForReturn}/${episodeNum}/` } };
+  }
+
   let slug: string | null = null;
   let episodeHtml = "";
 
@@ -208,7 +220,7 @@ export async function getJkAnimeWatch(
         if (!seenSlugs.has(s)) { seenSlugs.add(s); allSlugs.push(s); }
       }
     }
-    const BATCH = 4;
+    const BATCH = 8;
     for (let i = 0; i < allSlugs.length && !slug; i += BATCH) {
       const batch = allSlugs.slice(i, i + BATCH);
       const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
@@ -248,7 +260,7 @@ export async function getJkAnimeWatch(
     }
 
     // Check each found slug in parallel batches
-    const BATCH = 4;
+    const BATCH = 8;
     for (let i = 0; i < candidateSlugs.length && !slug; i += BATCH) {
       const batch = candidateSlugs.slice(i, i + BATCH);
       const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
@@ -300,6 +312,9 @@ export async function getJkAnimeWatch(
   if (sources.length === 0) {
     throw new Error(`No se pudieron resolver fuentes m3u8 para ${slug} ep ${episodeNum}`);
   }
+
+  // Cache the resolved M3U8 sources so subsequent requests for the same episode are instant
+  m3u8Cache.set(cachedM3u8Key, { sources, ts: Date.now() });
 
   return {
     sources,
