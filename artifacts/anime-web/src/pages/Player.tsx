@@ -140,6 +140,8 @@ function SubtitleOverlay({
       }}>
         {display}
       </div>
+      {/* Footer gradient — prevents abrupt end */}
+      <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(124,111,255,0.15),transparent)", margin: "0 16px 20px" }} />
     </div>
   );
 }
@@ -1012,7 +1014,7 @@ export default function Player() {
   const hlsCueToRender = hlsCueText ?? null;
 
   return (
-    <div style={{ background: "#090A12", minHeight: "100dvh" }}>
+    <div style={{ background: "#090A12" }}>
       {/* Top bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(9,10,18,0.98)" }}>
         <button onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
@@ -1273,6 +1275,9 @@ export default function Player() {
                   {hlsSubTracks.length > 0 && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 6, padding: "1px 7px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC · Subs</span>
                   )}
+                  {sources.length > 0 && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.06)", borderRadius: 6, padding: "1px 7px", color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 600 }}>{sources.length} {sources.length === 1 ? "servidor" : "servidores"}</span>
+                  )}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1440,7 +1445,7 @@ export default function Player() {
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {sources.map((src, i) => {
-                        const label = parseResolution(src);
+                        const label = parseLatLabel(src, i);
                         const isDirectMp4 = src.isM3U8 === false;
                         const filename = `${animeTitle}-ep${episodeNum}-${label}.${isDirectMp4 ? "mp4" : "m3u8"}`;
                         const proxyHref = downloadProxyUrl(src.url, filename, latReferer);
@@ -1522,9 +1527,47 @@ export default function Player() {
         )}
       </div>
 
+      {/* Now Playing hero card — mobile only */}
+      {animeImage && animeId && (
+        <div className="lg:hidden" style={{ margin: "0 12px 12px", position: "relative", borderRadius: 20, overflow: "hidden" }}>
+          {/* Blurred background */}
+          <div style={{
+            position: "absolute", inset: 0,
+            backgroundImage: `url(${animeImage})`,
+            backgroundSize: "cover", backgroundPosition: "center 20%",
+            filter: "blur(22px) brightness(0.25) saturate(1.4)",
+            transform: "scale(1.1)",
+          }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,rgba(9,10,18,0.55),rgba(124,111,255,0.08))" }} />
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14, padding: "16px 16px" }}>
+            {/* Poster */}
+            <img
+              src={animeImage} alt={animeTitle}
+              style={{ width: 72, height: 100, objectFit: "cover", borderRadius: 12, flexShrink: 0, boxShadow: "0 8px 24px rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.12)" }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(124,111,255,0.2)", border: "1px solid rgba(124,111,255,0.35)", borderRadius: 6, padding: "2px 8px", marginBottom: 7 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#7C6FFF", boxShadow: "0 0 6px #7C6FFF" }} />
+                <span style={{ color: "#B39DFF", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>REPRODUCIENDO</span>
+              </div>
+              <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 900, lineHeight: 1.25, marginBottom: 5 }} className="line-clamp-2">
+                {animeTitle}
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginBottom: 8 }}>Episodio {episodeNum}</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 20, padding: "3px 10px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Español Latino</span>
+                {hlsSubTracks.length > 0 && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 20, padding: "3px 10px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC Subtítulos</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Episode list for mobile/tablet */}
       {animeId && (
-        <div style={{ margin: "0 12px 32px", maxWidth: 1376 }} className="lg:hidden">
+        <div style={{ margin: "0 12px 32px", maxWidth: 1376, background: "rgba(255,255,255,0.02)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)", overflow: "hidden", paddingBottom: 4 }} className="lg:hidden">
           <EpisodePanel
             animeId={animeId}
             currentEpisodeId={episodeId}
