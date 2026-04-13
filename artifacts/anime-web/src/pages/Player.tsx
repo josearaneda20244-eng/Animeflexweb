@@ -330,7 +330,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
           for (let i = 0; i < video.textTracks.length; i++) {
             const track = video.textTracks[i];
             if (track.mode === "disabled") track.mode = "hidden";
-            if (track.mode !== "disabled" && track.activeCues && track.activeCues.length > 0) {
+            if (track.activeCues && track.activeCues.length > 0) {
               cueText = Array.from(track.activeCues)
                 .map(c => (c as VTTCue).text?.replace(/<[^>]+>/g, "") ?? "")
                 .filter(Boolean).join("\n");
