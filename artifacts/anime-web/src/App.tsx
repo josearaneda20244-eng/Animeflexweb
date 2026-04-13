@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FavoritesProvider } from "@/context/FavoritesContext";
@@ -101,27 +101,21 @@ function formatMaintenanceTime(ms: number) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function MaintenanceOverlay() {
-  const [location] = useLocation();
-  const { isOwner, loading } = useAuth();
-  const { config } = useLimitsConfig();
+function MaintenanceCard({ message, until }: { message: string; until: string }) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (!config.maintenanceMode) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [config.maintenanceMode]);
+  }, []);
 
-  if (!config.maintenanceMode || loading || isOwner || location.startsWith("/admin")) return null;
-
-  const endTime = config.maintenanceUntil ? new Date(config.maintenanceUntil).getTime() : 0;
-  const remaining = endTime ? endTime - now : 0;
+  const endTime = until ? new Date(until).getTime() : 0;
+  const remaining = Number.isFinite(endTime) && endTime > 0 ? endTime - now : 0;
   const countdown = endTime && remaining > 0 ? formatMaintenanceTime(remaining) : "Pronto volveremos";
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 99999, background: "radial-gradient(circle at 50% 20%, rgba(124,111,255,0.28), transparent 28%), rgba(0,0,0,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, pointerEvents: "auto" }}>
-      <div style={{ width: "min(92vw, 520px)", background: "linear-gradient(145deg, rgba(15,15,30,0.98), rgba(4,4,10,0.98))", border: "1px solid rgba(124,111,255,0.32)", borderRadius: 28, padding: "34px 28px", textAlign: "center", boxShadow: "0 32px 100px rgba(0,0,0,0.72), 0 0 70px rgba(124,111,255,0.18)", position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at 50% 20%, rgba(124,111,255,0.28), transparent 28%), rgba(0,0,0,0.94)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ width: "min(92vw, 540px)", background: "linear-gradient(145deg, rgba(15,15,30,0.98), rgba(4,4,10,0.98))", border: "1px solid rgba(124,111,255,0.32)", borderRadius: 28, padding: "34px 28px", textAlign: "center", boxShadow: "0 32px 100px rgba(0,0,0,0.72), 0 0 70px rgba(124,111,255,0.18)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(124,111,255,0.12), transparent 45%, rgba(245,158,11,0.08))", pointerEvents: "none" }} />
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ width: 76, height: 76, borderRadius: 24, margin: "0 auto 20px", background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 48px rgba(124,111,255,0.42)", fontSize: 34 }}>
@@ -131,10 +125,10 @@ function MaintenanceOverlay() {
             Modo mantenimiento activo
           </div>
           <h1 style={{ color: "#F8FAFC", fontSize: "clamp(28px, 5vw, 42px)", lineHeight: 1.05, margin: "0 0 12px", fontWeight: 950, letterSpacing: -1.4 }}>
-            Estamos mejorando AnimeFlex
+            Estamos en mantenimiento
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.62)", fontSize: 15, lineHeight: 1.7, margin: "0 auto 24px", maxWidth: 420 }}>
-            {config.maintenanceMessage || "Estamos en mantenimiento, mejorando la plataforma y arreglando errores para que vuelvas a disfrutar mejor."}
+          <p style={{ color: "rgba(255,255,255,0.66)", fontSize: 15, lineHeight: 1.7, margin: "0 auto 24px", maxWidth: 430, whiteSpace: "pre-wrap" }}>
+            {message || "Estamos realizando mantenimiento para mejorar AnimeFlex."}
           </p>
           <div style={{ background: "rgba(0,0,0,0.38)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "18px 16px", marginBottom: 20 }}>
             <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 12, fontWeight: 800, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
@@ -153,6 +147,27 @@ function MaintenanceOverlay() {
   );
 }
 
+function MaintenanceGate({ children }: { children: ReactNode }) {
+  const [location, navigate] = useLocation();
+  const { isOwner, loading: authLoading } = useAuth();
+  const { config, loading: configLoading } = useLimitsConfig();
+  const isAdminRoute = location.startsWith("/admin");
+  const shouldBlock = config.maintenanceMode && !isOwner && !isAdminRoute;
+
+  useEffect(() => {
+    if (shouldBlock && location !== "/") navigate("/", { replace: true });
+  }, [shouldBlock, location, navigate]);
+
+  if (authLoading || configLoading) {
+    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.45)", fontSize: 15 }}>Cargando...</div>;
+  }
+
+  if (shouldBlock) {
+    return <MaintenanceCard message={config.maintenanceMessage} until={config.maintenanceUntil} />;
+  }
+
+  return <>{children}</>;
+}
 function Router() {
   return (
     <Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "rgba(255,255,255,0.45)", fontSize: 15 }}>Cargando...</div></div>}>
@@ -186,11 +201,12 @@ function Router() {
 function Layout() {
   return (
     <main className="page-enter page-transition" style={{ position: "relative", zIndex: 1, minHeight: "100vh", overflow: "hidden" }}>
-      <AnnouncementBanner />
-      <Router />
-      <MaintenanceOverlay />
-      <ScrollToTop />
-      <InstallPrompt />
+      <MaintenanceGate>
+        <AnnouncementBanner />
+        <Router />
+        <ScrollToTop />
+        <InstallPrompt />
+      </MaintenanceGate>
     </main>
   );
 }

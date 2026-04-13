@@ -169,6 +169,9 @@ publicUserRouter.get("/users/:id/followers", async (req, res) => {
 /* ── GET /config/limits ── Public: get current limit settings and messages ── */
 publicUserRouter.get("/config/limits", async (req, res) => {
   try {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     const [dailyLimitStr, limitEnabledStr, limitMessage, megafanMessage, maintenanceMode, maintenanceMessage, maintenanceUntil] = await Promise.all([
       getAdminConfig("daily_limit", "5"),
       getAdminConfig("daily_limit_enabled", "true"),

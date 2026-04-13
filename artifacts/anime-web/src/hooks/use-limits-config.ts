@@ -25,8 +25,11 @@ export function useLimitsConfig() {
   }, isLoading: loading, refetch } = useQuery({
     queryKey: ["limits-config"],
     queryFn: () => apiClient.get<LimitsConfig>("/config/limits"),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 1000 * 15,
+    gcTime: 1000 * 60,
+    refetchInterval: 1000 * 15,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true
   });
 
   const refreshConfig = async (): Promise<void> => {
