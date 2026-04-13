@@ -51,6 +51,14 @@ function parseResolution(src: StreamingSource) {
   if (m2) return m2[1] + "p";
   return (src.quality ?? "").trim() || "Auto";
 }
+function parseLatLabel(src: StreamingSource, index: number): string {
+  const m = (src.quality ?? "").match(/(\d{3,4})p/i);
+  if (m) return m[1] + "p";
+  const m2 = (src.quality ?? "").match(/\b(\d{3,4})\b/);
+  if (m2) return m2[1] + "p";
+  if ((src as any).isEmbed) return `Reproductor ${index + 1}`;
+  return `Servidor ${index + 1}`;
+}
 
 /* ── VTT PARSER ── */
 interface VttCue { start: number; end: number; text: string; }
@@ -1004,7 +1012,7 @@ export default function Player() {
   const hlsCueToRender = hlsCueText ?? null;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000" }}>
+    <div style={{ background: "#090A12", minHeight: "100dvh" }}>
       {/* Top bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(9,10,18,0.98)" }}>
         <button onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
@@ -1253,13 +1261,18 @@ export default function Player() {
           </div>
 
           {/* Controls below video — hidden when fullscreen + mouse inactive */}
-          <div style={{ padding: "16px 16px 20px", display: isFullscreen && !fullscreenControlsVisible ? "none" : "flex", flexDirection: "column", gap: 14, transition: "opacity 0.3s", opacity: isFullscreen && !fullscreenControlsVisible ? 0 : 1, background: "linear-gradient(180deg,#090A12 0%,#0A0B16 100%)" }}>
+          <div style={{ padding: "16px 16px 28px", display: isFullscreen && !fullscreenControlsVisible ? "none" : "flex", flexDirection: "column", gap: 12, transition: "opacity 0.3s", opacity: isFullscreen && !fullscreenControlsVisible ? 0 : 1, background: "linear-gradient(180deg,#0A0B16 0%,#090A12 100%)" }}>
             {/* Episode title row */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, padding: "10px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, padding: "12px 16px", background: "linear-gradient(135deg,rgba(124,111,255,0.07),rgba(91,82,245,0.04))", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 16, borderLeft: "3px solid rgba(124,111,255,0.6)" }}>
               <div>
                 <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>{animeTitle}</div>
-                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 3 }}>
-                  Episodio {episodeNum} · 🇪🇸 Subtitulado en español
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                  <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Episodio {episodeNum}</span>
+                  <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 12 }}>·</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 6, padding: "1px 7px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Español Latino</span>
+                  {hlsSubTracks.length > 0 && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 6, padding: "1px 7px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC · Subs</span>
+                  )}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1347,36 +1360,35 @@ export default function Player() {
             </div>
 
             {/* Speed */}
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Velocidad</div>
-                <span style={{ color: "#B39DFF", fontSize: 12, fontWeight: 800 }}>{playbackRate}x</span>
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {SPEEDS.map((s) => (
-                  <button key={s} onClick={() => setPlaybackRate(s)}
-                    style={{
-                      padding: "7px 16px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                      background: playbackRate === s ? "linear-gradient(135deg,rgba(124,111,255,0.3),rgba(91,82,245,0.2))" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${playbackRate === s ? "rgba(124,111,255,0.6)" : "rgba(255,255,255,0.08)"}`,
-                      color: playbackRate === s ? "#B39DFF" : "rgba(255,255,255,0.35)",
-                      boxShadow: playbackRate === s ? "0 0 12px rgba(124,111,255,0.2)" : "none",
-                      transition: "all 0.15s ease",
-                    }}>
-                    {s}x
-                  </button>
-                ))}
+            <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", flexShrink: 0 }}>Velocidad</div>
+                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", flex: 1 }}>
+                  {SPEEDS.map((s) => (
+                    <button key={s} onClick={() => setPlaybackRate(s)}
+                      style={{
+                        padding: "5px 13px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        background: playbackRate === s ? "linear-gradient(135deg,rgba(124,111,255,0.35),rgba(91,82,245,0.25))" : "rgba(255,255,255,0.04)",
+                        border: `1px solid ${playbackRate === s ? "rgba(124,111,255,0.7)" : "rgba(255,255,255,0.07)"}`,
+                        color: playbackRate === s ? "#B39DFF" : "rgba(255,255,255,0.3)",
+                        boxShadow: playbackRate === s ? "0 0 10px rgba(124,111,255,0.25)" : "none",
+                        transition: "all 0.12s ease",
+                      }}>
+                      {s}x
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Quality */}
             {sources.length > 0 && (
-              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Calidad</div>
+              <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Servidor</div>
                   {selected && (
-                    <span style={{ background: "linear-gradient(135deg,rgba(124,111,255,0.25),rgba(91,82,245,0.15))", color: "#B39DFF", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid rgba(124,111,255,0.3)" }}>
-                      {parseResolution(selected)} activo
+                    <span style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid rgba(245,158,11,0.25)" }}>
+                      {parseLatLabel(selected, selectedIdx)} activo
                     </span>
                   )}
                 </div>
@@ -1385,42 +1397,31 @@ export default function Player() {
                     <button key={i} onClick={() => setSelectedIdx(i)}
                       style={{
                         display: "flex", alignItems: "center", gap: 5, padding: "7px 16px", borderRadius: 10, cursor: "pointer",
-                        background: i === selectedIdx ? "linear-gradient(135deg,rgba(124,111,255,0.3),rgba(91,82,245,0.2))" : "rgba(255,255,255,0.04)",
-                        border: `1px solid ${i === selectedIdx ? "rgba(124,111,255,0.6)" : "rgba(255,255,255,0.08)"}`,
-                        color: i === selectedIdx ? "#B39DFF" : "rgba(255,255,255,0.35)",
+                        background: i === selectedIdx ? "linear-gradient(135deg,rgba(245,158,11,0.25),rgba(234,88,12,0.15))" : "rgba(255,255,255,0.04)",
+                        border: `1px solid ${i === selectedIdx ? "rgba(245,158,11,0.55)" : "rgba(255,255,255,0.08)"}`,
+                        color: i === selectedIdx ? "#F59E0B" : "rgba(255,255,255,0.35)",
                         fontSize: 12, fontWeight: 700,
-                        boxShadow: i === selectedIdx ? "0 0 12px rgba(124,111,255,0.2)" : "none",
-                        transition: "all 0.15s ease",
+                        boxShadow: i === selectedIdx ? "0 0 10px rgba(245,158,11,0.15)" : "none",
+                        transition: "all 0.12s ease",
                       }}>
-                      {parseResolution(src)}
-
+                      {parseLatLabel(src, i)}
+                      {(src as any).isEmbed && <span style={{ fontSize: 9, opacity: 0.7, background: "rgba(255,255,255,0.08)", borderRadius: 4, padding: "1px 4px" }}>WEB</span>}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Subtitles section */}
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 10 }}>Subtítulos</div>
-              {hlsSubTracks.length > 0 ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#22C55E", fontSize: 12 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
-                  Español — disponible
-                </div>
-              ) : (
-                <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No se encontraron subtítulos para este episodio.</p>
-              )}
-            </div>
+
 
             {/* Download section */}
             {sources.length > 0 && (
-              <div>
+              <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                   <Download size={14} color="#7C6FFF" />
-                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Descargar</div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Descargar</div>
                 </div>
-                <div style={{ background: "rgba(124,111,255,0.06)", border: "1px solid rgba(124,111,255,0.15)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
                   {/* dlCopied toast */}
                   {dlCopied && (
@@ -1523,7 +1524,7 @@ export default function Player() {
 
       {/* Episode list for mobile/tablet */}
       {animeId && (
-        <div style={{ margin: "0 12px 24px", maxWidth: 1376 }} className="lg:hidden">
+        <div style={{ margin: "0 12px 32px", maxWidth: 1376 }} className="lg:hidden">
           <EpisodePanel
             animeId={animeId}
             currentEpisodeId={episodeId}
