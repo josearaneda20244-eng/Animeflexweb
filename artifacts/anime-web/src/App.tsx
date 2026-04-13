@@ -101,7 +101,17 @@ function formatMaintenanceTime(ms: number) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function MaintenanceCard({ message, until }: { message: string; until: string }) {
+function MaintenanceCard({
+  message,
+  until,
+  isAdminPreview,
+  onAdminBypass,
+}: {
+  message: string;
+  until: string;
+  isAdminPreview?: boolean;
+  onAdminBypass?: () => void;
+}) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -114,8 +124,32 @@ function MaintenanceCard({ message, until }: { message: string; until: string })
   const countdown = endTime && remaining > 0 ? formatMaintenanceTime(remaining) : "Pronto volveremos";
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at 50% 20%, rgba(124,111,255,0.28), transparent 28%), rgba(0,0,0,0.94)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ width: "min(92vw, 540px)", background: "linear-gradient(145deg, rgba(15,15,30,0.98), rgba(4,4,10,0.98))", border: "1px solid rgba(124,111,255,0.32)", borderRadius: 28, padding: "34px 28px", textAlign: "center", boxShadow: "0 32px 100px rgba(0,0,0,0.72), 0 0 70px rgba(124,111,255,0.18)", position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at 50% 20%, rgba(124,111,255,0.28), transparent 28%), rgba(0,0,0,0.94)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, flexDirection: "column", gap: 0 }}>
+      {isAdminPreview && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
+          background: "linear-gradient(90deg,#7C6FFF,#5B52F5)",
+          padding: "10px 20px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 12, flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontSize: 13, fontWeight: 800 }}>
+            <span style={{ fontSize: 16 }}>👁️</span>
+            <span>Vista de administrador — así ven la pantalla todos los usuarios</span>
+          </div>
+          <button
+            onClick={onAdminBypass}
+            style={{
+              background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.4)",
+              borderRadius: 10, padding: "6px 16px", color: "#fff",
+              fontSize: 13, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+            }}
+          >
+            Continuar al sitio →
+          </button>
+        </div>
+      )}
+      <div style={{ width: "min(92vw, 540px)", background: "linear-gradient(145deg, rgba(15,15,30,0.98), rgba(4,4,10,0.98))", border: "1px solid rgba(124,111,255,0.32)", borderRadius: 28, padding: isAdminPreview ? "80px 28px 34px" : "34px 28px", textAlign: "center", boxShadow: "0 32px 100px rgba(0,0,0,0.72), 0 0 70px rgba(124,111,255,0.18)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(124,111,255,0.12), transparent 45%, rgba(245,158,11,0.08))", pointerEvents: "none" }} />
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ width: 76, height: 76, borderRadius: 24, margin: "0 auto 20px", background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 48px rgba(124,111,255,0.42)", fontSize: 34 }}>
@@ -149,25 +183,78 @@ function MaintenanceCard({ message, until }: { message: string; until: string })
 
 function MaintenanceGate({ children }: { children: ReactNode }) {
   const [location, navigate] = useLocation();
-  const { isOwner, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { config, loading: configLoading } = useLimitsConfig();
+  const [adminBypass, setAdminBypass] = useState(false);
+
+  const isAdminOrOwner = user?.role === "owner" || user?.role === "admin";
   const isAdminRoute = location.startsWith("/admin");
-  const shouldBlock = config.maintenanceMode && !isOwner && !isAdminRoute;
+
+  const shouldBlock = config.maintenanceMode && !isAdminOrOwner && !isAdminRoute;
+  const adminShouldSeeCard = config.maintenanceMode && isAdminOrOwner && !isAdminRoute && !adminBypass;
 
   useEffect(() => {
     if (shouldBlock && location !== "/") navigate("/", { replace: true });
   }, [shouldBlock, location, navigate]);
+
+  useEffect(() => {
+    if (!config.maintenanceMode) setAdminBypass(false);
+  }, [config.maintenanceMode]);
 
   if (authLoading || configLoading) {
     return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.45)", fontSize: 15 }}>Cargando...</div>;
   }
 
   if (shouldBlock) {
-    return <MaintenanceCard message={config.maintenanceMessage} until={config.maintenanceUntil} />;
+    return (
+      <MaintenanceCard
+        message={config.maintenanceMessage}
+        until={config.maintenanceUntil}
+      />
+    );
   }
 
-  return <>{children}</>;
+  if (adminShouldSeeCard) {
+    return (
+      <MaintenanceCard
+        message={config.maintenanceMessage}
+        until={config.maintenanceUntil}
+        isAdminPreview
+        onAdminBypass={() => setAdminBypass(true)}
+      />
+    );
+  }
+
+  return (
+    <>
+      {config.maintenanceMode && isAdminOrOwner && adminBypass && !isAdminRoute && (
+        <div style={{
+          position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, background: "linear-gradient(90deg,#7C6FFF,#5B52F5)",
+          borderRadius: 999, padding: "10px 20px",
+          display: "flex", alignItems: "center", gap: 10,
+          boxShadow: "0 8px 32px rgba(124,111,255,0.5)",
+          fontSize: 13, color: "#fff", fontWeight: 800,
+          whiteSpace: "nowrap",
+        }}>
+          <span>🛠️ Mantenimiento activo</span>
+          <button
+            onClick={() => setAdminBypass(false)}
+            style={{
+              background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.35)",
+              borderRadius: 8, padding: "4px 12px", color: "#fff",
+              fontSize: 12, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            Ver tarjeta
+          </button>
+        </div>
+      )}
+      {children}
+    </>
+  );
 }
+
 function Router() {
   return (
     <Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "rgba(255,255,255,0.45)", fontSize: 15 }}>Cargando...</div></div>}>
