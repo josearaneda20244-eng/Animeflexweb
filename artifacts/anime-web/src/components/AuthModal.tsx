@@ -55,7 +55,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
       onClick={onClose}
       style={{
         position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
-        background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)",
+        background: "rgba(0,0,0,0.82)", backdropFilter: "blur(12px) saturate(150%)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 16, overflowY: "auto",
       }}
@@ -65,7 +65,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         style={{
           width: "100%", maxWidth: 400, background: "#0D0D1A",
           border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20,
-          overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.7)",
+          overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(124,111,255,0.1)",
           margin: "auto", position: "relative",
         }}
       >
@@ -98,7 +98,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             {(["login", "register"] as const).map((t) => (
               <button key={t} onClick={() => switchTab(t)} style={{
                 flex: 1, padding: "9px 0", borderRadius: 9, border: "none", cursor: "pointer",
-                background: tab === t ? "#7C6FFF" : "transparent",
+                background: tab === t ? "linear-gradient(135deg,#7C6FFF,#5B52F5)" : "transparent",
                 color: tab === t ? "#fff" : "rgba(255,255,255,0.5)",
                 fontSize: 13, fontWeight: 700, transition: "all 0.2s",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -113,7 +113,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         {tab === "forgot" && (
           <div style={{ padding: "20px 24px 0" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(124,111,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(124,111,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <KeyRound size={15} color="#B39DFF" />
               </div>
               <div>
@@ -171,7 +171,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
 
             <button type="submit" disabled={loading} style={{
               marginTop: 4, padding: "13px 0", borderRadius: 12, border: "none", cursor: loading ? "not-allowed" : "pointer",
-              background: loading ? "rgba(124,111,255,0.5)" : "linear-gradient(135deg,#7C6FFF,#5B52F5)",
+              background: loading ? "rgba(124,111,255,0.4)" : "linear-gradient(135deg,#8B7FFF,#6C63FF,#5B52F5)",
               color: "#fff", fontSize: 14, fontWeight: 800, transition: "opacity 0.2s",
             }}>
               {loading ? "Cargando..." : tab === "login" ? "Entrar" : tab === "register" ? "Crear cuenta" : "Enviar enlace"}
