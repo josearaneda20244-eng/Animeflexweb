@@ -195,7 +195,6 @@ router.post("/auth/forgot-password", async (req, res) => {
       console.error("forgot-password error:", err?.message ?? err);
       res.json({ ok: true });
     }
-  }
 });
 
 /* ── POST /auth/reset-password ── */
