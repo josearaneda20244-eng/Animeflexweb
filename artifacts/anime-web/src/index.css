@@ -478,3 +478,60 @@
 #plyr-fullscreen-container.plyr--fullscreen-fallback {
   aspect-ratio: unset !important;
 }
+
+  /* ═══════════════════════════════════════
+     GLASSMORPHISM NAVBAR
+  ═══════════════════════════════════════ */
+  .glass-nav {
+    background: rgba(0,0,0,0.8) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+  }
+
+  /* ═══════════════════════════════════════
+     FOCUS RING GLOW
+  ═══════════════════════════════════════ */
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(124,111,255,0.4) !important;
+  }
+
+  /* ═══════════════════════════════════════
+     BUTTON ACTIVE STATE
+  ═══════════════════════════════════════ */
+  button:active { transform: scale(0.97); }
+
+  /* ═══════════════════════════════════════
+     FADE-IN ANIMATION
+  ═══════════════════════════════════════ */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in-up {
+    animation: fadeInUp 0.4s cubic-bezier(.22,.68,0,1.2) both;
+  }
+
+  /* ═══════════════════════════════════════
+     SECTION TITLE
+  ═══════════════════════════════════════ */
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #7C6FFF, #5B52F5);
+    flex-shrink: 0;
+  }
+  
