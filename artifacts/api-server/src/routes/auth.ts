@@ -190,9 +190,11 @@ router.post("/auth/forgot-password", async (req, res) => {
     });
 
     res.json({ ok: true });
-  } catch {
-    /* Never reveal whether the email exists */
-    res.json({ ok: true });
+  } catch (err: any) {
+      /* Never reveal whether the email exists */
+      console.error("forgot-password error:", err?.message ?? err);
+      res.json({ ok: true });
+    }
   }
 });
 
