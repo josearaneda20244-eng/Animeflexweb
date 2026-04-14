@@ -469,7 +469,7 @@ export default function AnimeDetail() {
                 if (ep) handleEpisode(ep);
               }}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white justify-center transition-opacity hover:opacity-90"
-              style={{ background: "linear-gradient(135deg,#7C6FFF,#EC4899)" }}
+              style={{ background: "linear-gradient(135deg,#8B7FFF,#6C63FF,#5B52F5)", boxShadow: "0 4px 20px rgba(108,99,255,0.4)" }}
             >
               <Play size={16} fill="currentColor" />
               Continuar Ep. {animeProgress.episodeNum}
