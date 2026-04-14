@@ -38,7 +38,7 @@ export default function Footer() {
   return (
     <footer style={{
       background: "#000",
-      borderTop: "1px solid rgba(255,255,255,0.08)",
+      borderTop: "1px solid rgba(124,111,255,0.1)",
       marginTop: 56,
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "52px 24px 28px" }}>
@@ -58,7 +58,7 @@ export default function Footer() {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <div style={{
                 width: 34, height: 34, borderRadius: 8,
-                background: "#1a365d",
+                background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0,
               }}>
@@ -66,8 +66,8 @@ export default function Footer() {
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
               </div>
-              <span style={{ fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: -0.3 }}>
-                Anime<span style={{ color: "rgba(255,255,255,0.7)" }}>FLEX</span>
+              <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", letterSpacing: -0.3 }}>
+                Anime<span style={{ background: "linear-gradient(135deg,#7C6FFF,#B39DFF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
               </span>
             </div>
 
