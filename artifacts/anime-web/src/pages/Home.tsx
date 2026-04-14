@@ -138,7 +138,7 @@ import { useQuery } from "@tanstack/react-query";
     return (
       <div style={{ position: "relative", height: "min(70vw, 580px)", overflow: "hidden", margin: "0" }}>
         <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", filter: "saturate(1.03) brightness(0.9)", transition: "opacity 0.6s" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 40%, #000), linear-gradient(180deg, rgba(0,0,0,0.6), transparent 30%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7) 65%, #000 100%), linear-gradient(180deg, rgba(0,0,0,0.55), transparent 35%)" }} />
         <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(270deg, transparent 40%, rgba(0,0,0,0.54) 80%)" }} />
         <div style={{ position: "absolute", bottom: 34, left: 34, maxWidth: 560, zIndex: 2 }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
@@ -193,8 +193,8 @@ import { useQuery } from "@tanstack/react-query";
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #60A5FA, #818CF8)", flexShrink: 0 }} />
-          <span style={{ fontSize: 18, fontWeight: 700, color: "#F1F5F9", letterSpacing: -0.2 }}>{title}</span>
+          <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #7C6FFF, #5B52F5)", flexShrink: 0 }} />
+          <span style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: -0.3 }}>{title}</span>
         </div>
         {onSeeAll && (
           <button onClick={onSeeAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.18)", borderRadius: 20, color: "#93C5FD", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
@@ -210,7 +210,7 @@ import { useQuery } from "@tanstack/react-query";
 
   function SectionSurface({ children }: { children: React.ReactNode }) {
     return (
-      <div style={{ margin: "12px 0", padding: "24px 0 28px", background: "linear-gradient(180deg, rgba(15,15,20,0.9) 0%, #000 100%)" }}>
+      <div style={{ margin: "12px 0", padding: "24px 0 28px", background: "linear-gradient(180deg, rgba(8,8,14,0.95) 0%, #000 100%)" }}>
         {children}
       </div>
     );
