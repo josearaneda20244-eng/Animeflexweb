@@ -59,7 +59,7 @@ const DAY_ES: Record<string, string> = {
 const COLORS_BAR = ["#7C6FFF", "#7C73FF", "#8C83FF", "#9C93FF", "#B39DFF", "#B7A3FB", "#C7B3FC"];
 
 const GENRE_COLORS = [
-  "#7C6FFF", "#EC4899", "#22C55E", "#F59E0B", "#3B82F6",
+  "#7C6FFF", "#EC4899", "#22C55E", "#F59E0B", "#7C6FFF",
 ];
 
 function getLevelInfo(episodes: number) {
@@ -90,7 +90,7 @@ function getAchievements(stats: UserStats | null, isMegaFan: boolean): Achieveme
     { id: "dedicado", icon: "📺", label: "Dedicado", desc: "50 episodios vistos", color: "#22C55E", unlocked: eps >= 50 },
     { id: "maraton", icon: "🏃", label: "Maratonista", desc: "200 episodios vistos", color: "#F59E0B", unlocked: eps >= 200 },
     { id: "legend", icon: "⚡", label: "Leyenda", desc: "500 episodios vistos", color: "#EC4899", unlocked: eps >= 500 },
-    { id: "colec", icon: "🗂️", label: "Coleccionista", desc: "10 animes distintos", color: "#3B82F6", unlocked: animes >= 10 },
+    { id: "colec", icon: "🗂️", label: "Coleccionista", desc: "10 animes distintos", color: "#7C6FFF", unlocked: animes >= 10 },
     { id: "racha", icon: "🔥", label: "Racha semanal", desc: "7 días consecutivos", color: "#EF4444", unlocked: streak >= 7 },
     { id: "finish", icon: "✅", label: "Completista", desc: "5 animes completados", color: "#10B981", unlocked: completed >= 5 },
     { id: "mega", icon: "👑", label: "MegaFan", desc: "Plan premium activo", color: "#F59E0B", unlocked: isMegaFan },
@@ -201,7 +201,7 @@ export default function Profile() {
           <div style={{ height: 90, borderRadius: "20px 20px 0 0", position: "relative", overflow: "hidden", background: "linear-gradient(135deg,#1a1250,#2d1569,#130f2e)" }}>
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 25% 60%,rgba(124,111,255,0.5),transparent 60%)" }} />
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 30%,rgba(236,72,153,0.25),transparent 55%)" }} />
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 55% 90%,rgba(59,130,246,0.15),transparent 50%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 55% 90%,rgba(124,111,255,0.15),transparent 50%)" }} />
             <div style={{ position: "absolute", top: 12, right: 55, width: 36, height: 36, borderRadius: "50%", background: "rgba(124,111,255,0.12)", border: "1px solid rgba(124,111,255,0.2)" }} />
             <div style={{ position: "absolute", top: 28, right: 95, width: 18, height: 18, borderRadius: "50%", background: "rgba(236,72,153,0.1)", border: "1px solid rgba(236,72,153,0.2)" }} />
           </div>
