@@ -194,9 +194,9 @@ export default function Settings() {
     setVerifError("");
     try {
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Tiempo de espera agotado. Revisa la configuración SMTP en Railway.")), 20000)
+        setTimeout(() => reject(new Error("El servidor de correo tardó demasiado. Intenta de nuevo en unos minutos.")), 30000)
       );
-      await Promise.race([apiClient.post("/auth/send-verification", {}), timeout]);
+      await Promise.race([apiClient.post<{ ok: boolean }>("/auth/send-verification", {}), timeout]);
       setVerifSent(true);
     } catch (err: unknown) {
       setVerifError(err instanceof Error ? err.message : "Error al enviar verificación");
