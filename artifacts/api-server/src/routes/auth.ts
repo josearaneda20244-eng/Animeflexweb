@@ -274,10 +274,10 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
     res.json({ ok: true });
   } catch (err: any) {
     if (err?.message === "SMTP_NOT_CONFIGURED") {
-      res.status(503).json({ error: "El servidor de correo no está configurado. Contacta al administrador." });
+      res.status(503).json({ error: "Correo no configurado. Configura RESEND_API_KEY en las variables de entorno del servidor." });
     } else {
       console.error("send-verification error:", err);
-      res.status(500).json({ error: "No se pudo enviar el correo. Intenta de nuevo más tarde." });
+      res.status(500).json({ error: `No se pudo enviar el correo: ${(err?.message ?? String(err)).slice(0, 100)}` });
     }
   }
 });
