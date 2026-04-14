@@ -131,7 +131,7 @@ export default function Navbar() {
     <>
       <nav
         className="fixed top-0 left-0 right-0 z-50"
-        style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 1px 0 rgba(255,255,255,0.06)" }}
+        style={{ background: "rgba(5,5,12,0.88)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)", borderBottom: "1px solid rgba(124,111,255,0.12)", boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 56 }}>
           {/* Logo */}
