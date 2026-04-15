@@ -10,10 +10,12 @@ import ratingsRouter from "./ratings.js";
 import announcementsRouter from "./announcements.js";
 import searchLogRouter from "./search.js";
 import storageRouter from "./storage.js";
+import mangaRouter from "./manga.js";
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(storageRouter);
+router.use(mangaRouter);
 router.use(animeRouter);
 router.use(authRouter);
 router.use(publicUserRouter);
