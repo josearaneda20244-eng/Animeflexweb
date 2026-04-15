@@ -598,6 +598,59 @@ import { useQuery } from "@tanstack/react-query";
           <SectionDivider />
 
           <LazySection minHeight={120}>
+          {/* Manga promo banner */}
+          <div
+            onClick={() => navigate("/manga")}
+            style={{
+              cursor: "pointer",
+              borderRadius: 20,
+              background: "linear-gradient(135deg, rgba(236,72,153,0.15) 0%, rgba(168,85,247,0.15) 50%, rgba(99,102,241,0.1) 100%)",
+              border: "1px solid rgba(236,72,153,0.2)",
+              padding: "28px 32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 20,
+              flexWrap: "wrap",
+              marginBottom: 24,
+              transition: "transform 0.2s, box-shadow 0.2s",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px rgba(236,72,153,0.2)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 16,
+                background: "linear-gradient(135deg, rgba(236,72,153,0.3), rgba(168,85,247,0.3))",
+                border: "1px solid rgba(236,72,153,0.3)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 26, flexShrink: 0,
+              }}>📚</div>
+              <div>
+                <div style={{ color: "#F1F1F5", fontWeight: 900, fontSize: 20, marginBottom: 4 }}>¡Ya puedes leer Manga!</div>
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Explora miles de mangas directamente en AnimeFlex</div>
+              </div>
+            </div>
+            <div style={{
+              background: "linear-gradient(135deg, #EC4899, #A855F7)",
+              color: "#fff", fontSize: 14, fontWeight: 700,
+              padding: "10px 22px", borderRadius: 12, whiteSpace: "nowrap",
+              boxShadow: "0 6px 20px rgba(236,72,153,0.35)",
+            }}>
+              Explorar Manga →
+            </div>
+          </div>
+          </LazySection>
+
+          <SectionDivider />
+
+          <LazySection minHeight={120}>
           {/* Genres */}
           <SectionSurface>
             <SectionHeader title="🎭 Géneros" />
