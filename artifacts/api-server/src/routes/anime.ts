@@ -107,8 +107,17 @@ function titleVariants(title: string): string[] {
     const beforeColon = title.slice(0, colonIdx).trim();
     if (!variants.includes(beforeColon)) variants.push(beforeColon);
   }
-  const words = title.split(" ").slice(0, 4).join(" ");
-  if (!variants.includes(words) && words.length > 3) variants.push(words);
+  // Remove exclamation marks and punctuation (e.g. "Sword Art Online!" → "Sword Art Online")
+  const noPunct = title.replace(/[!?]/g, "").trim();
+  if (noPunct !== title && !variants.includes(noPunct)) variants.push(noPunct);
+  // Try fewer words for partial title matching
+  const words3 = title.split(" ").slice(0, 3).join(" ");
+  if (!variants.includes(words3) && words3.length > 3) variants.push(words3);
+  const words4 = title.split(" ").slice(0, 4).join(" ");
+  if (!variants.includes(words4) && words4.length > 3) variants.push(words4);
+  // First word only for single-word queries
+  const firstWord = title.split(/[\s:]/)[0].trim();
+  if (firstWord.length >= 4 && !variants.includes(firstWord)) variants.push(firstWord);
   return [...new Set(variants)];
 }
 
@@ -1146,6 +1155,29 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
     } catch (err) {
       lastPlaybackErr = err;
       req.log.error({ err, animeTitle, episodeNum }, "All parallel fallback providers failed");
+    }
+  }
+
+  // ── Final fallback: JKAnime (wide Spanish-language coverage) ─────────────
+  if (animeTitle && episodeNum) {
+    try {
+      req.log.warn({ animeTitle, episodeNum }, "Trying JKAnime as last-resort fallback");
+      let extraTitles: string[] = [];
+      if (animeId && /^\d+$/.test(animeId)) {
+        try { extraTitles = await fetchAnilistTitles(animeId); } catch {}
+      }
+      const jkData = await getJkAnimeWatch(animeTitle, parseInt(episodeNum, 10), extraTitles);
+      const playable = (jkData?.sources ?? []).filter(
+        (s: any) => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8"))
+      );
+      if (playable.length > 0) {
+        req.log.info({ animeTitle, episodeNum, sourceCount: playable.length }, "JKAnime last-resort fallback succeeded");
+        res.json(jkData);
+        return;
+      }
+    } catch (jkErr) {
+      lastPlaybackErr = jkErr;
+      req.log.warn({ err: jkErr, animeTitle, episodeNum }, "JKAnime last-resort fallback failed");
     }
   }
 
