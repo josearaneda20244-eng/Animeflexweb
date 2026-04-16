@@ -6,6 +6,56 @@ import { apiClient } from "@/lib/apiClient";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+const LME_API = "https://leermangaesp.net/api/buscar_mangas";
+const LME_IMAGES = "https://images.leermangaesp.net/file/leermangaesp";
+const RAILWAY_PROXY = "https://animeflex-api-production.up.railway.app/api/manga/img-proxy";
+
+function lmePortadaUrl(portada: string | null | undefined): string | null {
+  if (!portada) return null;
+  if (portada.startsWith("http")) return portada;
+  if (portada.startsWith("/")) return `https://leermangaesp.net${portada}`;
+  return `${LME_IMAGES}/${portada.replace(/^\/+/, "")}`;
+}
+
+function proxyImg(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return `${RAILWAY_PROXY}?u=${encodeURIComponent(url)}`;
+}
+
+async function searchLeerMangaEsp(query: string, page: number): Promise<MangaListResponse> {
+  const params = new URLSearchParams({
+    query,
+    page: String(page),
+    page_size: "20",
+  });
+  const res = await fetch(`${LME_API}/?${params}`, {
+    headers: {
+      Accept: "application/json",
+      Referer: "https://leermangaesp.net/biblioteca/",
+    },
+  });
+  if (!res.ok) throw new Error(`LeerMangaEsp search error: ${res.status}`);
+  const json = await res.json();
+  const items: any[] = json.resultados ?? [];
+  const results: MangaResult[] = items.map((item: any) => {
+    const rawImg = lmePortadaUrl(item.portada);
+    return {
+      id: item.slug,
+      title: item.titulo ?? item.slug,
+      image: proxyImg(rawImg) ?? undefined,
+      cover: proxyImg(rawImg) ?? undefined,
+      genres: [...new Set<string>([...(item.generos ?? []), item.tipo, item.demografia].filter(Boolean))].slice(0, 4) as string[],
+      chapters: item.ultimo_capitulo != null ? Number(item.ultimo_capitulo) : undefined,
+      status: undefined,
+    };
+  });
+  return {
+    results,
+    hasNextPage: page < (json.total_pages ?? 1),
+    currentPage: page,
+  };
+}
+
 interface MangaResult {
   id: string;
   title: string | { english?: string; romaji?: string; userPreferred?: string; native?: string };
@@ -146,7 +196,7 @@ export default function Manga() {
 
   const searchQuery = useQuery<MangaListResponse>({
     queryKey: ["manga", "search", debouncedQuery, page],
-    queryFn: () => apiClient.get<MangaListResponse>(`/manga/search?q=${encodeURIComponent(debouncedQuery)}&page=${page}`),
+    queryFn: () => searchLeerMangaEsp(debouncedQuery, page),
     enabled: isSearching,
     staleTime: 1000 * 60 * 2,
   });
