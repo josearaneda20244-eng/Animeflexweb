@@ -1,5 +1,4 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-  import { MANGA } from "@consumet/extensions";
 
   const router: IRouter = Router();
 
@@ -7,11 +6,6 @@ import { Router, type IRouter, type Request, type Response } from "express";
     process.env.API_BASE_URL ?? "https://animeflex-api-production.up.railway.app"
   ).replace(/\/$/, "");
 
-  // ─── Proveedor ComicK de Consumet ─────────────────────────────────────────────
-  // ComicK: contenido en español, sin capítulos externos, sin problemas de 0 páginas
-  const comicK = new (MANGA as any).ComicK();
-
-  // API directa de ComicK para filtrar capítulos en español
   const COMICK_API = "https://api.comick.io";
   const COMICK_IMG = "https://meo.comick.pictures";
 
@@ -30,7 +24,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
     cache.set(key, { data, ts: Date.now() });
   }
 
-  // ─── HTTP helper directo ComicK ───────────────────────────────────────────────
+  // ─── HTTP helper ──────────────────────────────────────────────────────────────
   const COMICK_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
     "Accept": "application/json",
@@ -40,30 +34,32 @@ import { Router, type IRouter, type Request, type Response } from "express";
 
   async function comickFetch(path: string): Promise<any> {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 15000);
+    const t = setTimeout(() => ctrl.abort(), 20000);
     try {
       const r = await fetch(`${COMICK_API}${path}`, { headers: COMICK_HEADERS, signal: ctrl.signal });
       clearTimeout(t);
-      if (!r.ok) throw new Error(`ComicK ${r.status}: ${path}`);
+      if (!r.ok) throw new Error(`ComicK ${r.status} on ${path}`);
       return r.json();
     } catch (err) { clearTimeout(t); throw err; }
   }
 
   // ─── Proxy de imágenes ────────────────────────────────────────────────────────
+  function proxyImg(url: string | null | undefined): string | null {
+    if (!url) return null;
+    if (!url.startsWith("http")) return null;
+    return `${API_SELF}/api/manga/img-proxy?u=${encodeURIComponent(url)}`;
+  }
+
   router.get("/manga/img-proxy", async (req: Request, res: Response) => {
     const u = req.query.u as string | undefined;
     if (!u || !u.startsWith("https://")) { res.status(400).end(); return; }
     let host: string;
     try { host = new URL(u).hostname; } catch { res.status(400).end(); return; }
-    const allowed = ["comick.pictures", "comick.io", "inmanga.com", "intomanga.com", "mangadex.org", "mangadex.network"];
+    const allowed = ["comick.pictures", "comick.io", "mangadex.org", "mangadex.network"];
     if (!allowed.some(d => host.endsWith(d))) { res.status(400).end(); return; }
     try {
       const upstream = await fetch(u, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          "Referer": "https://comick.io/",
-          "Accept": "image/*,*/*",
-        },
+        headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://comick.io/", "Accept": "image/*,*/*" },
       });
       if (!upstream.ok) { res.status(upstream.status).end(); return; }
       const ct = upstream.headers.get("content-type") ?? "image/jpeg";
@@ -75,46 +71,37 @@ import { Router, type IRouter, type Request, type Response } from "express";
     } catch { res.status(502).end(); }
   });
 
-  // Ruta legacy para compatibilidad con cover-proxy e image-proxy anteriores
+  // Compatibilidad con proxies anteriores
   router.get("/manga/cover-proxy", (req: Request, res: Response) => {
-    const u = req.query.u as string;
-    res.redirect(`/api/manga/img-proxy?u=${encodeURIComponent(u ?? "")}`);
+    res.redirect(`/api/manga/img-proxy?u=${encodeURIComponent((req.query.u as string) ?? "")}`);
   });
   router.get("/manga/image-proxy", (req: Request, res: Response) => {
-    const u = req.query.u as string;
-    res.redirect(`/api/manga/img-proxy?u=${encodeURIComponent(u ?? "")}`);
+    res.redirect(`/api/manga/img-proxy?u=${encodeURIComponent((req.query.u as string) ?? "")}`);
   });
 
-  // ─── Helpers de formato ───────────────────────────────────────────────────────
-  function proxyImg(url: string | null | undefined): string | null {
-    if (!url) return null;
-    if (!url.startsWith("http")) return null;
-    return `${API_SELF}/api/manga/img-proxy?u=${encodeURIComponent(url)}`;
-  }
-
+  // ─── Formato ──────────────────────────────────────────────────────────────────
   function pickCover(comic: any): string | null {
-    const rawUrl =
-      comic.cover_url ||
-      (Array.isArray(comic.md_covers) && comic.md_covers[0]?.b2key
+    const raw =
+      comic?.cover_url ||
+      (Array.isArray(comic?.md_covers) && comic.md_covers[0]?.b2key
         ? `${COMICK_IMG}/${comic.md_covers[0].b2key}`
         : null) ||
-      comic.image ||
+      comic?.image ||
       null;
-    return proxyImg(rawUrl);
+    return proxyImg(raw);
   }
 
-  function comickStatusToText(status: number | string | undefined): string {
-    const map: Record<string, string> = { "1": "Ongoing", "2": "Completed", "3": "Cancelled", "4": "Hiatus" };
-    return map[String(status ?? "")] ?? String(status ?? "");
+  function statusText(s: number | string | undefined): string {
+    return ({ "1": "Ongoing", "2": "Completed", "3": "Cancelled", "4": "Hiatus" } as any)[String(s ?? "")] ?? "";
   }
 
-  function formatComicResult(comic: any) {
+  function formatComic(comic: any) {
     return {
-      id: comic.slug ?? comic.hid ?? String(comic.id),
+      id: comic.slug ?? comic.hid ?? String(comic.id ?? ""),
       title: comic.title ?? comic.name ?? "Sin título",
       image: pickCover(comic),
       description: comic.desc ?? comic.description ?? "",
-      status: comickStatusToText(comic.status),
+      status: statusText(comic.status),
       genres: (comic.genres ?? []).map((g: any) => g.name ?? g).filter(Boolean).slice(0, 6),
       rating: comic.rating ? parseFloat(comic.rating) : null,
     };
@@ -123,64 +110,47 @@ import { Router, type IRouter, type Request, type Response } from "express";
   // ─── Trending ─────────────────────────────────────────────────────────────────
   router.get("/manga/trending", async (req: Request, res: Response) => {
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
-    const key = `comick:trending:${page}`;
-    const hit = cached(key);
+    const key = `comick:trending:v2:${page}`;
+    const hit = cached<any>(key);
     if (hit) { res.json(hit); return; }
     try {
-      // ComicK top comics filtrado por español
       const data = await comickFetch(`/top?lang=es&type=comic&page=${page}`);
-      // /top devuelve { rank: [{md_comics: {...}, ...}] }
-      const items: any[] = data?.rank ?? data?.results ?? data ?? [];
-      const mapped = items.map((item: any) => {
+      const items: any[] = data?.rank ?? data?.results ?? (Array.isArray(data) ? data : []);
+      const results = items.map((item: any) => {
         const comic = item.md_comics ?? item.comic ?? item;
-        return formatComicResult(comic);
-      });
-      const result = {
-        results: mapped.filter((m: any) => m.id),
-        hasNextPage: mapped.length >= 20,
-        currentPage: page,
-        total: null,
-      };
+        return formatComic(comic);
+      }).filter(m => m.id);
+      const result = { results, hasNextPage: results.length >= 20, currentPage: page, total: null };
       setCache(key, result);
       res.json(result);
     } catch (err: any) {
       req.log.error({ err: err?.message }, "comick/trending failed");
-      // Fallback: buscar populares vía Consumet
-      try {
-        const data = await comicK.search("", page);
-        const results = (data.results ?? []).map((m: any) => ({
-          id: m.id,
-          title: typeof m.title === "string" ? m.title : m.title?.english ?? "Sin título",
-          image: proxyImg(m.image),
-          description: m.description ?? "",
-          status: String(m.status ?? ""),
-          genres: m.genres ?? [],
-          rating: m.rating ?? null,
-        }));
-        res.json({ results, hasNextPage: data.hasNextPage ?? false, currentPage: page, total: null });
-      } catch (err2: any) {
-        req.log.error({ err: err2?.message }, "comick/trending fallback failed");
-        res.status(500).json({ error: "Error cargando mangas populares" });
-      }
+      res.status(500).json({ error: "Error cargando mangas populares" });
     }
   });
 
-  // ─── Recent ───────────────────────────────────────────────────────────────────
+  // ─── Recent (capítulos recientes en español) ──────────────────────────────────
   router.get("/manga/recent", async (req: Request, res: Response) => {
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
-    const key = `comick:recent:${page}`;
-    const hit = cached(key);
+    const key = `comick:recent:v2:${page}`;
+    const hit = cached<any>(key);
     if (hit) { res.json(hit); return; }
     try {
-      // Buscar recientes por capítulos nuevos en español
-      const data = await comickFetch(`/v1.0/search?page=${page}&limit=24&type=comic&sort=uploaded&lang=es`);
-      const items: any[] = Array.isArray(data) ? data : (data.results ?? data.comics ?? []);
-      const result = {
-        results: items.map(formatComicResult).filter((m: any) => m.id),
-        hasNextPage: items.length >= 24,
-        currentPage: page,
-        total: null,
-      };
+      // /chapter devuelve capítulos recientes; md_comics tiene el manga
+      const data = await comickFetch(`/chapter?lang=es&limit=60&page=${page}&order=new`);
+      const chapters: any[] = Array.isArray(data) ? data : (data.chapters ?? data.results ?? []);
+      const seen = new Set<string>();
+      const results: any[] = [];
+      for (const ch of chapters) {
+        const comic = ch.md_comics ?? ch.comic ?? null;
+        if (!comic) continue;
+        const slug = comic.slug ?? comic.hid ?? String(comic.id ?? "");
+        if (!slug || seen.has(slug)) continue;
+        seen.add(slug);
+        results.push(formatComic(comic));
+        if (results.length >= 24) break;
+      }
+      const result = { results, hasNextPage: results.length >= 24, currentPage: page, total: null };
       setCache(key, result);
       res.json(result);
     } catch (err: any) {
@@ -194,15 +164,14 @@ import { Router, type IRouter, type Request, type Response } from "express";
     const q = (req.query.q as string | undefined)?.trim();
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
     if (!q) { res.status(400).json({ error: "'q' es requerido" }); return; }
-    const key = `comick:search:${q}:${page}`;
-    const hit = cached(key);
+    const key = `comick:search:v2:${q}:${page}`;
+    const hit = cached<any>(key);
     if (hit) { res.json(hit); return; }
     try {
-      // Buscar primero con filtro español
       const data = await comickFetch(`/v1.0/search?q=${encodeURIComponent(q)}&page=${page}&limit=20&type=comic`);
-      const items: any[] = Array.isArray(data) ? data : (data.results ?? data.comics ?? []);
+      const items: any[] = Array.isArray(data) ? data : (data.results ?? []);
       const result = {
-        results: items.map(formatComicResult).filter((m: any) => m.id),
+        results: items.map(formatComic).filter(m => m.id),
         hasNextPage: items.length >= 20,
         currentPage: page,
         total: null,
@@ -210,60 +179,42 @@ import { Router, type IRouter, type Request, type Response } from "express";
       setCache(key, result);
       res.json(result);
     } catch (err: any) {
-      req.log.error({ err: err?.message, q }, "comick/search direct failed — trying Consumet");
-      try {
-        const data = await comicK.search(q, page);
-        const results = (data.results ?? []).map((m: any) => ({
-          id: m.id,
-          title: typeof m.title === "string" ? m.title : m.title?.english ?? "Sin título",
-          image: proxyImg(m.image),
-          description: m.description ?? "",
-          status: String(m.status ?? ""),
-          genres: m.genres ?? [],
-          rating: m.rating ?? null,
-        }));
-        res.json({ results, hasNextPage: data.hasNextPage ?? false, currentPage: page, total: null });
-      } catch (err2: any) {
-        req.log.error({ err: err2?.message, q }, "comick/search fallback failed");
-        res.status(500).json({ error: "Error buscando manga" });
-      }
+      req.log.error({ err: err?.message, q }, "comick/search failed");
+      res.status(500).json({ error: "Error buscando manga" });
     }
   });
 
-  // ─── Manga info + chapters ────────────────────────────────────────────────────
+  // ─── Manga info + capítulos ───────────────────────────────────────────────────
   router.get("/manga/info/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
-    const key = `comick:info:v3:${id}`;
-    const hit = cached(key);
+    const key = `comick:info:v4:${id}`;
+    const hit = cached<any>(key);
     if (hit) { res.json(hit); return; }
     try {
-      // 1. Obtener info del comic (slug → hid)
-      const comicData = await comickFetch(`/comic/${encodeURIComponent(id)}`);
+      const comicData = await comickFetch(`/comic/${id}`);
       const comic = comicData.comic ?? comicData;
-      if (!comic?.hid && !comic?.id) {
+      // hid puede ser un hash corto o el id numérico
+      const hid: string | null = comic.hid ?? null;
+      const numId: string | null = comic.id ? String(comic.id) : null;
+      const chapterKey = hid ?? numId;
+      if (!chapterKey) {
         res.status(404).json({ error: "Manga no encontrado" }); return;
       }
-      const hid = comic.hid ?? String(comic.id);
       const slug = comic.slug ?? id;
 
-      // 2. Traer capítulos en español (es + es-la), luego inglés para los que falten
-      const [esChaps, enChaps] = await Promise.allSettled([
-        fetchComickChapters(hid, "es"),
-        fetchComickChapters(hid, "en"),
+      // Traer capítulos: español primero, inglés de respaldo
+      const [esRes, enRes] = await Promise.allSettled([
+        fetchChapters(chapterKey, "es"),
+        fetchChapters(chapterKey, "en"),
       ]);
-      const spanishChapters = esChaps.status === "fulfilled" ? esChaps.value : [];
-      const englishChapters = enChaps.status === "fulfilled" ? enChaps.value : [];
+      const esChaps = esRes.status === "fulfilled" ? esRes.value : [];
+      const enChaps = enRes.status === "fulfilled" ? enRes.value : [];
 
-      // Mezclar: español tiene prioridad, inglés rellena huecos
+      // Mezclar: español tiene prioridad por número de capítulo
       const byNum = new Map<string, any>();
-      for (const ch of englishChapters) {
-        const k = String(ch.chapterNumber ?? ch.id);
-        if (!byNum.has(k)) byNum.set(k, ch);
-      }
-      for (const ch of spanishChapters) {
-        const k = String(ch.chapterNumber ?? ch.id);
-        byNum.set(k, ch);  // sobreescribe inglés con español
-      }
+      for (const ch of enChaps) byNum.set(ch.chapterNumber ?? ch.id, ch);
+      for (const ch of esChaps) byNum.set(ch.chapterNumber ?? ch.id, ch);
+
       const chapters = Array.from(byNum.values()).sort(
         (a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0))
       );
@@ -275,8 +226,8 @@ import { Router, type IRouter, type Request, type Response } from "express";
         image: coverImg,
         cover: coverImg,
         description: comic.desc ?? comic.description ?? "",
-        status: comickStatusToText(comic.status),
-        genres: (comic.genres ?? comicData.genres ?? []).map((g: any) => g.name ?? g).filter(Boolean).slice(0, 8),
+        status: statusText(comic.status),
+        genres: (comicData.genres ?? comic.genres ?? []).map((g: any) => g.name ?? g).filter(Boolean).slice(0, 8),
         authors: (comicData.authors ?? []).map((a: any) => ({ id: String(a.id ?? ""), name: a.name ?? "" })),
         chapters,
       };
@@ -284,67 +235,56 @@ import { Router, type IRouter, type Request, type Response } from "express";
       res.json(result);
     } catch (err: any) {
       req.log.error({ err: err?.message, id }, "comick/info failed");
-      res.status(500).json({ error: "Error cargando información del manga" });
+      res.status(500).json({ error: "Error cargando manga: " + (err?.message ?? "desconocido") });
     }
   });
 
-  async function fetchComickChapters(hid: string, lang: string) {
+  async function fetchChapters(hid: string, lang: string): Promise<any[]> {
     const all: any[] = [];
     let page = 1;
-    const limit = 300;
-    while (all.length < 3000) {
-      const data = await comickFetch(`/comic/${hid}/chapters?lang=${lang}&page=${page}&limit=${limit}`);
-      const batch: any[] = data.chapters ?? data ?? [];
+    while (all.length < 5000) {
+      const data = await comickFetch(`/comic/${hid}/chapters?lang=${lang}&page=${page}&limit=300`);
+      const batch: any[] = data?.chapters ?? (Array.isArray(data) ? data : []);
+      if (batch.length === 0) break;
       all.push(...batch);
-      if (batch.length < limit) break;
+      if (batch.length < 300) break;
       page++;
     }
-    // Deduplicar por número de capítulo
     const seen = new Set<string>();
-    const deduped: any[] = [];
+    const out: any[] = [];
     for (const ch of all) {
-      const k = String(ch.chap ?? ch.id);
-      if (!seen.has(k)) { seen.add(k); deduped.push(ch); }
+      const k = ch.chap ?? ch.id;
+      if (seen.has(String(k))) continue;
+      seen.add(String(k));
+      out.push({
+        id: ch.hid ?? ch.id,
+        chapterNumber: ch.chap ?? null,
+        volumeNumber: ch.vol ?? null,
+        title: ch.title || null,
+        pages: ch.page_count ?? 0,
+        lang,
+        releaseDate: ch.created_at ?? null,
+      });
     }
-    return deduped.map((ch: any) => ({
-      id: ch.hid ?? ch.id,
-      chapterNumber: ch.chap ?? null,
-      volumeNumber: ch.vol ?? null,
-      title: ch.title || null,
-      pages: ch.page_count ?? ch.pages ?? 0,
-      lang,
-      releaseDate: ch.created_at ?? ch.updated_at ?? null,
-    }));
+    return out;
   }
 
-  // ─── Chapter pages ─────────────────────────────────────────────────────────────
+  // ─── Páginas de capítulo ──────────────────────────────────────────────────────
   router.get("/manga/chapter/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
-    const key = `comick:ch:${id}`;
-    const hit = cached(key);
+    const key = `comick:ch:v2:${id}`;
+    const hit = cached<any>(key);
     if (hit) { res.json(hit); return; }
     try {
-      // Intentar primero con API directa de ComicK
-      const data = await comickFetch(`/chapter/${encodeURIComponent(id)}`);
+      const data = await comickFetch(`/chapter/${id}`);
       const images: any[] = data?.chapter?.images ?? data?.images ?? [];
-      if (images.length > 0) {
-        const result = images.map((img: any, i: number) => ({
-          img: proxyImg(`${COMICK_IMG}/${img.b2key ?? img.url}`) ?? `${COMICK_IMG}/${img.b2key ?? img.url}`,
-          page: i + 1,
-        }));
-        setCache(key, result);
-        res.json(result);
+      if (!images || images.length === 0) {
+        res.status(404).json({ error: "Este capítulo no tiene páginas disponibles." });
         return;
       }
-      // Fallback: usar Consumet
-      const pages = await comicK.fetchChapterPages(id);
-      if (!pages || pages.length === 0) {
-        res.status(404).json({ error: "No se encontraron páginas para este capítulo." });
-        return;
-      }
-      const result = pages.map((p: any, i: number) => ({
-        img: proxyImg(p.img) ?? p.img,
-        page: p.page ?? i + 1,
+      const result = images.map((img: any, i: number) => ({
+        img: proxyImg(`${COMICK_IMG}/${img.b2key}`) ?? `${COMICK_IMG}/${img.b2key}`,
+        page: i + 1,
       }));
       setCache(key, result);
       res.json(result);
