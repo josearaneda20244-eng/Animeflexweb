@@ -163,9 +163,9 @@ export default function Manga() {
 
       {/* Header */}
       <div style={{
-        background: "linear-gradient(180deg, rgba(236,72,153,0.18) 0%, transparent 100%)",
-        borderBottom: "1px solid rgba(236,72,153,0.12)",
-        padding: "48px 24px 32px",
+        background: "#09090F",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        padding: "calc(56px + 32px) 24px 32px",
         textAlign: "center",
       }}>
         <div style={{ maxWidth: 700, margin: "0 auto" }}>
