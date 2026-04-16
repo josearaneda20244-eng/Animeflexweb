@@ -342,17 +342,27 @@ async function fetchMangaChapters(mangaId: string) {
         if (batch.length < limit || all.length >= (data.total ?? 0)) break;
         offset += limit;
       }
-      const chapters = all
-        .filter((ch: any) => (ch.attributes?.pages ?? 0) > 0)
-        .map((ch: any) => ({
-          id: ch.id,
-          chapterNumber: ch.attributes?.chapter ?? null,
-          volumeNumber: ch.attributes?.volume ?? null,
-          title: ch.attributes?.title || null,
-          pages: ch.attributes?.pages ?? 0,
-          lang: ch.attributes?.translatedLanguage ?? lang,
-          releaseDate: ch.attributes?.publishAt ?? ch.attributes?.updatedAt ?? null,
-        }));
+      // Map chapters — do NOT filter by pages count because MangaDex frequently
+      // stores pages:0 even when chapters have actual content. Let the at-home
+      // server be the source of truth for page availability.
+      const mapped = all.map((ch: any) => ({
+        id: ch.id,
+        chapterNumber: ch.attributes?.chapter ?? null,
+        volumeNumber: ch.attributes?.volume ?? null,
+        title: ch.attributes?.title || null,
+        pages: ch.attributes?.pages ?? 0,
+        lang: ch.attributes?.translatedLanguage ?? lang,
+        releaseDate: ch.attributes?.publishAt ?? ch.attributes?.updatedAt ?? null,
+      }));
+      // Deduplicate by chapter number — keep first upload per chapter to avoid
+      // showing the same chapter multiple times from different scanlation groups.
+      const seen = new Set<string>();
+      const chapters = mapped.filter(ch => {
+        const key = ch.chapterNumber ?? ch.id;
+        if (seen.has(String(key))) return false;
+        seen.add(String(key));
+        return true;
+      });
       if (chapters.length > 0) return chapters;
     } catch { /* try next lang */ }
   }
