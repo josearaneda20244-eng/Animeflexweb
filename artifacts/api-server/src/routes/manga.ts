@@ -1,14 +1,15 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import https from "node:https";
 
 const router: IRouter = Router();
 
-// ─── Comick.io API ───────────────────────────────────────────────────────────
-// Covers and chapter images are served from meo.comick.pictures — a public CDN
-// that works directly in the browser without needing a special Referer header.
-const COMICK = "https://api.comick.fun";
+// ─── MangaDex API ────────────────────────────────────────────────────────────
+const MDX = "https://api.mangadex.org";
+const CDN = "https://uploads.mangadex.org";
 
+// Simple in-memory cache
 const cache = new Map<string, { data: unknown; ts: number }>();
-const TTL = 1000 * 60 * 10;
+const TTL = 1000 * 60 * 10; // 10 min
 
 function cached<T>(key: string): T | null {
   const e = cache.get(key);
@@ -17,98 +18,110 @@ function cached<T>(key: string): T | null {
   return e.data as T;
 }
 function setCache(key: string, data: unknown) {
-  if (cache.size > 400) { const k = cache.keys().next().value; if (k) cache.delete(k); }
+  if (cache.size > 500) { const k = cache.keys().next().value; if (k) cache.delete(k); }
   cache.set(key, { data, ts: Date.now() });
 }
 
-async function comickFetch(path: string, params: Record<string, string> = {}): Promise<any> {
-  const url = new URL(`${COMICK}${path}`);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+// HTTP agent that keeps connections alive (reduces latency for batched MangaDex calls)
+const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
+
+async function mdxFetch(path: string, params: Record<string, string | string[]> = {}): Promise<any> {
+  const url = new URL(`${MDX}${path}`);
+  for (const [k, v] of Object.entries(params)) {
+    if (Array.isArray(v)) {
+      v.forEach(val => url.searchParams.append(k, val));
+    } else {
+      url.searchParams.set(k, v);
+    }
+  }
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 15000);
   try {
     const r = await fetch(url.toString(), {
+      // @ts-ignore — Node 18 fetch accepts dispatcher
+      agent: keepAliveAgent,
       headers: {
-        "User-Agent": "AnimeFlex/1.0 (animeflex.lat)",
+        "User-Agent": "AnimeFlex/3.0 (animeflex.lat)",
         "Accept": "application/json",
-        "Referer": "https://comick.io/",
       },
       signal: ctrl.signal,
     });
     clearTimeout(t);
     if (!r.ok) {
       const txt = await r.text().catch(() => "");
-      throw new Error(`Comick ${r.status}: ${txt.slice(0, 120)}`);
+      throw new Error(`MangaDex ${r.status}: ${txt.slice(0, 120)}`);
     }
     return r.json();
-  } catch (err) { clearTimeout(t); throw err; }
+  } catch (err) {
+    clearTimeout(t);
+    throw err;
+  }
 }
 
-function getCoverUrl(comic: any): string | null {
-  const cover = comic.md_covers?.[0] ?? comic.cover ?? null;
-  if (!cover) return null;
-  const key = cover.b2key ?? cover.gpurl ?? cover.url ?? null;
-  if (!key) return null;
-  if (key.startsWith("http")) return key;
-  return `https://meo.comick.pictures/${key}`;
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function coverUrl(mangaId: string, rel: any): string | null {
+  const fileName = rel?.attributes?.fileName;
+  if (!fileName) return null;
+  return `${CDN}/covers/${mangaId}/${fileName}.512.jpg`;
 }
 
-function formatComic(comic: any) {
-  const genres = (comic.md_comic_md_genres ?? comic.genres ?? [])
-    .map((g: any) => g.md_genres?.name ?? g.name ?? "").filter(Boolean).slice(0, 6);
-  const rating = comic.bayesian_rating
-    ? Math.round(parseFloat(String(comic.bayesian_rating)) * 10)
-    : (comic.rating ?? undefined);
+function formatManga(manga: any) {
+  const attrs = manga.attributes ?? {};
+  const coverRel = (manga.relationships ?? []).find((r: any) => r.type === "cover_art");
+  const authorRel = (manga.relationships ?? []).find((r: any) => r.type === "author");
+  const title =
+    attrs.title?.en ||
+    attrs.title?.["ja-ro"] ||
+    attrs.title?.es ||
+    attrs.title?.["zh-ro"] ||
+    Object.values(attrs.title ?? {})[0] ||
+    "Sin título";
+  const description =
+    attrs.description?.es ||
+    attrs.description?.en ||
+    Object.values(attrs.description ?? {})[0] ||
+    "";
+  const genres = (attrs.tags ?? [])
+    .filter((t: any) => t.attributes?.group === "genre")
+    .map((t: any) => t.attributes?.name?.en ?? "")
+    .filter(Boolean)
+    .slice(0, 6);
   return {
-    id: comic.slug,
-    title: comic.title || comic.md_titles?.[0]?.title || "Sin título",
-    image: getCoverUrl(comic),
-    status: comic.status === 2 ? "Completed" : comic.status === 1 ? "Ongoing" : undefined,
+    id: manga.id,
+    title,
+    image: coverUrl(manga.id, coverRel),
+    description,
+    status: attrs.status,
     genres,
-    description: comic.desc || comic.description || "",
-    rating: isNaN(rating) ? undefined : rating,
-    chapters: comic.chapter_count || undefined,
+    author: authorRel?.attributes?.name ?? null,
+    rating: attrs.contentRating,
   };
 }
 
-async function fetchChapters(slug: string): Promise<any[]> {
-  // Try Spanish first, fall back to English
-  const langs = ["es", "en"];
-  for (const lang of langs) {
-    try {
-      const all: any[] = [];
-      let page = 1;
-      while (all.length < 500) {
-        const data = await comickFetch(`/comic/${slug}/chapters`, {
-          lang, limit: "100", page: String(page), "chap-order": "1",
-        });
-        const batch: any[] = data.chapters ?? [];
-        all.push(...batch);
-        const total: number = data.total ?? 0;
-        if (batch.length === 0 || all.length >= total) break;
-        page++;
-      }
-      if (all.length > 0) return all;
-    } catch { /* try next lang */ }
-  }
-  return [];
-}
+const RATINGS = ["safe", "suggestive", "erotica"];
 
-// ─── Trending ────────────────────────────────────────────────────────────────
+// ─── Trending ─────────────────────────────────────────────────────────────────
 router.get("/manga/trending", async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
+  const offset = (page - 1) * 24;
   const key = `trending:${page}`;
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
-    const data = await comickFetch("/v1.0/comics", {
-      trending: "true", page: String(page), type: "manga",
+    const data = await mdxFetch("/manga", {
+      limit: "24",
+      offset: String(offset),
+      "order[followedCount]": "desc",
+      "includes[]": ["cover_art", "author"],
+      "contentRating[]": RATINGS,
+      "availableTranslatedLanguage[]": ["es", "en"],
     });
-    const comics: any[] = Array.isArray(data) ? data : (data.comics ?? data.data ?? []);
+    const results = (data.data ?? []).map(formatManga);
     const result = {
-      results: comics.map(formatComic),
-      hasNextPage: comics.length >= 20,
+      results,
+      hasNextPage: offset + results.length < (data.total ?? 0),
       currentPage: page,
+      total: data.total ?? 0,
     };
     setCache(key, result);
     res.json(result);
@@ -118,21 +131,28 @@ router.get("/manga/trending", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Recent ──────────────────────────────────────────────────────────────────
+// ─── Recent ───────────────────────────────────────────────────────────────────
 router.get("/manga/recent", async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
+  const offset = (page - 1) * 24;
   const key = `recent:${page}`;
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
-    const data = await comickFetch("/v1.0/comics", {
-      sort: "uploaded", page: String(page), type: "manga",
+    const data = await mdxFetch("/manga", {
+      limit: "24",
+      offset: String(offset),
+      "order[latestUploadedChapter]": "desc",
+      "includes[]": ["cover_art", "author"],
+      "contentRating[]": RATINGS,
+      "availableTranslatedLanguage[]": ["es", "en"],
     });
-    const comics: any[] = Array.isArray(data) ? data : (data.comics ?? data.data ?? []);
+    const results = (data.data ?? []).map(formatManga);
     const result = {
-      results: comics.map(formatComic),
-      hasNextPage: comics.length >= 20,
+      results,
+      hasNextPage: offset + results.length < (data.total ?? 0),
       currentPage: page,
+      total: data.total ?? 0,
     };
     setCache(key, result);
     res.json(result);
@@ -142,23 +162,29 @@ router.get("/manga/recent", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Search ──────────────────────────────────────────────────────────────────
+// ─── Search ───────────────────────────────────────────────────────────────────
 router.get("/manga/search", async (req: Request, res: Response) => {
   const q = (req.query.q as string | undefined)?.trim();
   const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
+  const offset = (page - 1) * 20;
   if (!q) { res.status(400).json({ error: "'q' es requerido" }); return; }
   const key = `search:${q}:${page}`;
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
-    const data = await comickFetch("/v1.0/search", {
-      q, limit: "24", page: String(page), tachiyomi: "true",
+    const data = await mdxFetch("/manga", {
+      title: q,
+      limit: "20",
+      offset: String(offset),
+      "includes[]": ["cover_art", "author"],
+      "contentRating[]": RATINGS,
     });
-    const comics: any[] = Array.isArray(data) ? data : [];
+    const results = (data.data ?? []).map(formatManga);
     const result = {
-      results: comics.map(formatComic),
-      hasNextPage: comics.length >= 24,
+      results,
+      hasNextPage: offset + results.length < (data.total ?? 0),
       currentPage: page,
+      total: data.total ?? 0,
     };
     setCache(key, result);
     res.json(result);
@@ -168,46 +194,60 @@ router.get("/manga/search", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Manga info + chapters ───────────────────────────────────────────────────
+// ─── Manga info ────────────────────────────────────────────────────────────────
 router.get("/manga/info/:id", async (req: Request, res: Response) => {
-  const { id } = req.params; // id = slug
+  const { id } = req.params;
   const key = `info:${id}`;
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
-    const [comicData, chapterList] = await Promise.all([
-      comickFetch(`/comic/${id}`),
-      fetchChapters(id),
+    // Fetch manga details + chapters concurrently
+    const [mangaResp, chapterResp] = await Promise.all([
+      mdxFetch(`/manga/${id}`, {
+        "includes[]": ["cover_art", "author", "artist"],
+      }),
+      fetchMangaChapters(id),
     ]);
 
-    const comic = comicData.comic ?? comicData;
-    const authorsList: any[] = comicData.authors ?? comic.authors ?? [];
-    const genresList: any[] = comicData.genres ?? comic.md_comic_md_genres ?? [];
+    const manga = mangaResp.data;
+    if (!manga) {
+      res.status(404).json({ error: "Manga no encontrado" });
+      return;
+    }
+    const attrs = manga.attributes ?? {};
+    const coverRel = (manga.relationships ?? []).find((r: any) => r.type === "cover_art");
+    const authorRel = (manga.relationships ?? []).find((r: any) => r.type === "author");
 
-    const chapters = chapterList.map((ch: any) => ({
-      id: ch.hid,
-      chapterNumber: ch.chap ?? null,
-      volumeNumber: ch.vol ?? null,
-      title: ch.title || null,
-      pages: ch.page_count ?? null,
-      releaseDate: ch.updated_at ?? null,
-      lang: ch.lang ?? "es",
-    }));
+    const title =
+      attrs.title?.en ||
+      attrs.title?.["ja-ro"] ||
+      attrs.title?.es ||
+      Object.values(attrs.title ?? {})[0] ||
+      "Sin título";
+    const description =
+      attrs.description?.es ||
+      attrs.description?.en ||
+      Object.values(attrs.description ?? {})[0] ||
+      "";
 
-    const coverUrl = getCoverUrl(comic);
     const result = {
-      id: comic.slug,
-      title: comic.title || "Sin título",
-      image: coverUrl,
-      cover: coverUrl,
-      description: comic.desc || "",
-      status: comic.status === 2 ? "Completed" : comic.status === 1 ? "Ongoing" : undefined,
-      genres: genresList.map((g: any) => g.md_genres?.name ?? g.name ?? "").filter(Boolean).slice(0, 8),
-      rating: comic.bayesian_rating ? Math.round(parseFloat(String(comic.bayesian_rating)) * 10) : undefined,
-      authors: authorsList.map((a: any) => ({ id: a.slug ?? a.name ?? "", name: a.name ?? "" })),
-      chapters,
+      id: manga.id,
+      title,
+      image: coverUrl(manga.id, coverRel),
+      cover: coverUrl(manga.id, coverRel),
+      description,
+      status: attrs.status,
+      genres: (attrs.tags ?? [])
+        .filter((t: any) => t.attributes?.group === "genre")
+        .map((t: any) => t.attributes?.name?.en ?? "")
+        .filter(Boolean)
+        .slice(0, 8),
+      authors: [authorRel].filter(Boolean).map((r: any) => ({
+        id: r.id,
+        name: r.attributes?.name ?? "",
+      })),
+      chapters: chapterResp,
     };
-
     setCache(key, result);
     res.json(result);
   } catch (err) {
@@ -216,24 +256,66 @@ router.get("/manga/info/:id", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Chapter pages ───────────────────────────────────────────────────────────
+async function fetchMangaChapters(mangaId: string) {
+  // Prefer Spanish, fall back to English
+  const langs = ["es", "en"];
+  for (const lang of langs) {
+    try {
+      const all: any[] = [];
+      let offset = 0;
+      const limit = 100;
+      while (all.length < 600) {
+        const data = await mdxFetch(`/manga/${mangaId}/feed`, {
+          limit: String(limit),
+          offset: String(offset),
+          "translatedLanguage[]": [lang],
+          "order[chapter]": "asc",
+          "contentRating[]": RATINGS,
+          "includes[]": ["scanlation_group"],
+        });
+        const batch: any[] = data.data ?? [];
+        all.push(...batch);
+        if (batch.length < limit || all.length >= (data.total ?? 0)) break;
+        offset += limit;
+      }
+      const chapters = all
+        .filter((ch: any) => (ch.attributes?.pages ?? 0) > 0)
+        .map((ch: any) => ({
+          id: ch.id,
+          chapterNumber: ch.attributes?.chapter ?? null,
+          volumeNumber: ch.attributes?.volume ?? null,
+          title: ch.attributes?.title || null,
+          pages: ch.attributes?.pages ?? 0,
+          lang: ch.attributes?.translatedLanguage ?? lang,
+          releaseDate: ch.attributes?.publishAt ?? ch.attributes?.updatedAt ?? null,
+        }));
+      if (chapters.length > 0) return chapters;
+    } catch { /* try next lang */ }
+  }
+  return [];
+}
+
+// ─── Chapter pages ─────────────────────────────────────────────────────────────
 router.get("/manga/chapter/:id", async (req: Request, res: Response) => {
-  const { id } = req.params; // id = hid
+  const { id } = req.params;
   const key = `ch:${id}`;
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
-    const images = await comickFetch(`/chapter/${id}/get_images`, { tachiyomi: "true" });
-    const pages: any[] = Array.isArray(images) ? images : (images.chapter?.images ?? images.images ?? []);
-    if (!pages.length) {
+    const data = await mdxFetch(`/at-home/server/${id}`);
+    const baseUrl: string = data.baseUrl;
+    const hash: string = data.chapter?.hash;
+    const files: string[] = data.chapter?.data ?? [];
+    if (!baseUrl || !hash || !files.length) {
       res.status(404).json({ error: "No se encontraron páginas para este capítulo." });
       return;
     }
-    const result = pages.map((img: any, i: number) => {
-      const b2key = img.b2key ?? img.gpurl ?? img.url ?? "";
-      const imgUrl = b2key.startsWith("http") ? b2key : `https://meo.comick.pictures/${b2key}`;
-      return { img: imgUrl, page: i + 1 };
-    });
+    // Return direct CDN URLs — browsers send Referer automatically (animeflex.lat origin)
+    // MangaDex at-home servers accept any Referer, so no server-side proxy needed.
+    const result = files.map((f, i) => ({
+      img: `${baseUrl}/data/${hash}/${f}`,
+      page: i + 1,
+    }));
     setCache(key, result);
     res.json(result);
   } catch (err) {
