@@ -168,24 +168,96 @@ async function listFromApi(page: number, query?: string) {
   const readable: LmeManga[] = [];
   let totalPages = page;
   let total: number | undefined;
-  for (let apiPage = page; apiPage < page + 5 && readable.length < PAGE_SIZE; apiPage++) {
-    const params = new URLSearchParams({
-      page: String(apiPage),
-      page_size: String(PAGE_SIZE * 3),
-    });
-    if (query) params.set("query", query);
-    const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
-    totalPages = data.total_pages ?? totalPages;
-    total = data.total;
-    readable.push(...(data.resultados ?? []).filter((item) => Number(item.ultimo_capitulo ?? 0) > 0));
-    if (apiPage >= totalPages) break;
+
+  // For search queries, try multiple param names in case the API uses a different key
+  const queryParamNames = query ? ["query", "titulo", "search", "q"] : [undefined];
+
+  let fetchedAny = false;
+  for (const paramName of queryParamNames) {
+    if (fetchedAny) break;
+    for (let apiPage = page; apiPage < page + 5 && readable.length < PAGE_SIZE; apiPage++) {
+      const params = new URLSearchParams({
+        page: String(apiPage),
+        page_size: String(PAGE_SIZE * 3),
+      });
+      if (query && paramName) params.set(paramName, query);
+      try {
+        const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
+        totalPages = data.total_pages ?? totalPages;
+        total = data.total;
+        const items = data.resultados ?? [];
+        // For search queries, don't filter by ultimo_capitulo — show all matches
+        const filtered = query ? items : items.filter((item) => Number(item.ultimo_capitulo ?? 0) > 0);
+        readable.push(...filtered);
+        if (items.length > 0) fetchedAny = true;
+        if (apiPage >= totalPages) break;
+      } catch {
+        break;
+      }
+    }
   }
+
   const results = readable.slice(0, PAGE_SIZE).map(formatListManga);
   return {
     results,
     hasNextPage: page < totalPages,
     currentPage: page,
     total,
+  };
+}
+
+/**
+ * Scrape LeerMangaEsp search page (HTML fallback when API returns nothing).
+ */
+async function searchFromHtml(query: string, page: number) {
+  const searchUrl = `${LME}/buscar/?q=${encodeURIComponent(query)}&page=${page}`;
+  let html: string;
+  try {
+    html = await fetchText(searchUrl);
+  } catch {
+    // Try alternate URL pattern
+    try {
+      html = await fetchText(`${LME}/biblioteca/?search=${encodeURIComponent(query)}&page=${page}`);
+    } catch {
+      return null;
+    }
+  }
+
+  const items: LmeManga[] = [];
+  const seen = new Set<string>();
+
+  // Manga card pattern
+  const cardRe = /<div\b[^>]*class=["'][^"']*manga-item[^"']*["'][^>]*>([\s\S]*?)(?=<div\b[^>]*class=["'][^"']*manga-item[^"']*["']|<\/section>|<footer)/gi;
+  for (const card of html.matchAll(cardRe)) {
+    const block = card[1];
+    const slug = block.match(/href=["'](?:https:\/\/leermangaesp\.net)?\/manga\/([^\/"']+)\/["']/i)?.[1];
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    const imgTag = block.match(/<img\b[^>]*>/i)?.[0] ?? "";
+    const title = stripTags(block.match(/class=["'][^"']*manga-title[^"']*["'][^>]*>([\s\S]*?)<\/h\d>/i)?.[1] ?? attr(imgTag, "alt") ?? slug.replace(/-/g, " "));
+    const portada = attr(imgTag, "data-src") ?? attr(imgTag, "src") ?? undefined;
+    const chapter = block.match(/href=["'](?:https:\/\/leermangaesp\.net)?\/leer-m\/[^\/"']+\/([^\/"']+)\/["']/i)?.[1];
+    items.push({ slug, titulo: title, portada, generos: [], ultimo_capitulo: chapter });
+  }
+
+  // Fallback: any links that look like manga pages
+  if (items.length === 0) {
+    const linkRe = /href="\/manga\/([a-z0-9][a-z0-9-]+)\/"[^>]*>([\s\S]*?)<\/a>/gi;
+    for (const m of html.matchAll(linkRe)) {
+      const slug = m[1];
+      if (seen.has(slug)) continue;
+      seen.add(slug);
+      const title = stripTags(m[2]).trim() || slug.replace(/-/g, " ");
+      items.push({ slug, titulo: title, generos: [] });
+    }
+  }
+
+  if (items.length === 0) return null;
+  return {
+    results: items.slice(0, PAGE_SIZE).map(formatListManga),
+    hasNextPage: false,
+    currentPage: page,
+    total: items.length,
   };
 }
 
@@ -494,11 +566,32 @@ router.get("/manga/search", async (req: Request, res: Response) => {
     return;
   }
   try {
-    const result = await listFromApi(page, q);
-    setCache(key, result);
-    res.json(result);
+    // 1. Try the JSON API first
+    const apiResult = await listFromApi(page, q);
+
+    // 2. If API returned nothing, fall back to HTML scraping
+    if (apiResult.results.length === 0) {
+      req.log.warn({ q }, "API search returned 0 results, trying HTML scrape");
+      const htmlResult = await searchFromHtml(q, page);
+      if (htmlResult && htmlResult.results.length > 0) {
+        setCache(key, htmlResult);
+        res.json(htmlResult);
+        return;
+      }
+    }
+
+    setCache(key, apiResult);
+    res.json(apiResult);
   } catch (err: any) {
     req.log.error({ err: err?.message, q }, "lme/search failed");
+    // Last resort: try HTML scraping
+    try {
+      const htmlResult = await searchFromHtml(q, page);
+      if (htmlResult) {
+        res.json(htmlResult);
+        return;
+      }
+    } catch {}
     res.status(500).json({ error: "Error buscando manga" });
   }
 });
