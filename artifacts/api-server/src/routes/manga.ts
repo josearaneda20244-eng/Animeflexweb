@@ -165,20 +165,63 @@ function formatListManga(item: LmeManga) {
 }
 
 async function listFromApi(page: number, query?: string) {
-  const params = new URLSearchParams({
-    page: String(page),
-    page_size: String(PAGE_SIZE * 3),
-  });
-  if (query) params.set("query", query);
-  const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
-  const readable = (data.resultados ?? []).filter((item) => Number(item.ultimo_capitulo ?? 0) > 0);
+  const readable: LmeManga[] = [];
+  let totalPages = page;
+  let total: number | undefined;
+  for (let apiPage = page; apiPage < page + 5 && readable.length < PAGE_SIZE; apiPage++) {
+    const params = new URLSearchParams({
+      page: String(apiPage),
+      page_size: String(PAGE_SIZE * 3),
+    });
+    if (query) params.set("query", query);
+    const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
+    totalPages = data.total_pages ?? totalPages;
+    total = data.total;
+    readable.push(...(data.resultados ?? []).filter((item) => Number(item.ultimo_capitulo ?? 0) > 0));
+    if (apiPage >= totalPages) break;
+  }
   const results = readable.slice(0, PAGE_SIZE).map(formatListManga);
-  const totalPages = data.total_pages ?? page;
   return {
     results,
-    hasNextPage: page < totalPages || readable.length > PAGE_SIZE,
+    hasNextPage: page < totalPages,
     currentPage: page,
-    total: data.total,
+    total,
+  };
+}
+
+async function listFromHome(page: number) {
+  const html = await fetchText(LME);
+  const cardRe = /<div\b[^>]*class=["'][^"']*manga-item[^"']*["'][^>]*>([\s\S]*?)(?=<div\b[^>]*class=["'][^"']*manga-item[^"']*["']|<link rel="stylesheet" href="\/static\/mi_app_public\/footer|<\/body>)/gi;
+  const items: LmeManga[] = [];
+  const seen = new Set<string>();
+  for (const card of html.matchAll(cardRe)) {
+    const block = card[1];
+    const slug = block.match(/href=["'](?:https:\/\/leermangaesp\.net)?\/manga\/([^\/"']+)\/["']/i)?.[1];
+    const chapter = block.match(/href=["'](?:https:\/\/leermangaesp\.net)?\/leer-m\/[^\/"']+\/([^\/"']+)\/["']/i)?.[1];
+    if (!slug || !chapter || seen.has(slug)) continue;
+    seen.add(slug);
+    const imgTag = block.match(/<img\b[^>]*>/i)?.[0] ?? "";
+    const title = stripTags(block.match(/class=["'][^"']*manga-title[^"']*["'][^>]*>([\s\S]*?)<\/h3>/i)?.[1] ?? attr(imgTag, "alt") ?? slug.replace(/-/g, " "));
+    const portada = attr(imgTag, "data-src") ?? attr(imgTag, "src") ?? undefined;
+    const tipo = stripTags(block.match(/class=["'][^"']*manga-type[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)?.[1] ?? "");
+    const demografia = stripTags(block.match(/class=["'][^"']*manga-demografia[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)?.[1] ?? "");
+    items.push({
+      slug,
+      titulo: title,
+      portada,
+      tipo,
+      demografia,
+      generos: [tipo, demografia].filter(Boolean),
+      ultimo_capitulo: chapter,
+    });
+  }
+  const start = (page - 1) * PAGE_SIZE;
+  const results = items.slice(start, start + PAGE_SIZE).map(formatListManga);
+  return {
+    results,
+    hasNextPage: start + PAGE_SIZE < items.length,
+    currentPage: page,
+    total: items.length,
   };
 }
 
@@ -223,7 +266,7 @@ function parseChapters(html: string, slug: string): any[] {
       chapterNumber: chapterNumber.replace(/\.00$/, ""),
       volumeNumber: null,
       title: cleanTitle && cleanTitle !== chapterNumber ? cleanTitle : null,
-      pages: 0,
+      pages: undefined,
       lang: "es",
       releaseDate: dateMatch ? stripTags(dateMatch[1]) : null,
     });
@@ -316,7 +359,7 @@ router.get("/manga/trending", async (req: Request, res: Response) => {
     return;
   }
   try {
-    const result = await listFromApi(page);
+    const result = await listFromHome(page);
     setCache(key, result);
     res.json(result);
   } catch (err: any) {
@@ -334,7 +377,7 @@ router.get("/manga/recent", async (req: Request, res: Response) => {
     return;
   }
   try {
-    const result = await listFromApi(page);
+    const result = await listFromHome(page);
     setCache(key, result);
     res.json(result);
   } catch (err: any) {
@@ -401,7 +444,7 @@ router.get("/manga/chapter/:id", async (req: Request, res: Response) => {
     const html = await fetchText(`${LME}/leer-m/${encodeURIComponent(parsed.slug)}/${encodeURIComponent(parsed.chapter)}/`);
     const seen = new Set<string>();
     const pages = [...html.matchAll(/<img[^>]+class=["'][^"']*manga-image[^"']*["'][^>]*>/gi)]
-      .map((m) => attr(m[0], "src"))
+      .map((m) => attr(m[0], "src") ?? attr(m[0], "data-src") ?? attr(m[0], "data-lazy-src"))
       .filter((src): src is string => !!src && src.startsWith("http"))
       .filter((src) => {
         if (!src.includes("/mangas/") || seen.has(src)) return false;

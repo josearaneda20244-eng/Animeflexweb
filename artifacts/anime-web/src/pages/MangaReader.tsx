@@ -225,7 +225,7 @@ export default function MangaReader() {
         </button>
 
         <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, textAlign: "center" }}>
-          {pages?.length ?? 0} páginas
+          {isLoading ? "Cargando páginas..." : isError ? "" : `${pages?.length ?? 0} páginas`}
         </div>
 
         <button
