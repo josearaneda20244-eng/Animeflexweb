@@ -144,6 +144,7 @@ router.get("/manga/cover-proxy", async (req: Request, res: Response) => {
     const buf = await upstream.arrayBuffer();
     res.setHeader("Content-Type", ct);
     res.setHeader("Cache-Control", "public, max-age=86400");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     res.send(Buffer.from(buf));
   } catch {
     res.status(502).end();
@@ -176,6 +177,7 @@ router.get("/manga/image-proxy", async (req: Request, res: Response) => {
     const buf = await upstream.arrayBuffer();
     res.setHeader("Content-Type", ct);
     res.setHeader("Cache-Control", "public, max-age=3600");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     res.send(Buffer.from(buf));
   } catch {
     res.status(502).end();
