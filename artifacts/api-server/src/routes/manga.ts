@@ -3,13 +3,21 @@ import https from "node:https";
 
 const router: IRouter = Router();
 
-// ─── MangaDex API ────────────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 const MDX = "https://api.mangadex.org";
 const CDN = "https://uploads.mangadex.org";
 
-// Simple in-memory cache
+// Absolute base URL of THIS server — used to build proxy URLs that the browser
+// will request. Prefer an env var; fall back to the known Railway deployment URL.
+const API_SELF = (
+  process.env.API_BASE_URL ?? "https://animeflex-api-production.up.railway.app"
+).replace(/\/$/, "");
+
+const RATINGS = ["safe", "suggestive", "erotica"];
+
+// ─── Cache ────────────────────────────────────────────────────────────────────
 const cache = new Map<string, { data: unknown; ts: number }>();
-const TTL = 1000 * 60 * 10; // 10 min
+const TTL = 1000 * 60 * 10;
 
 function cached<T>(key: string): T | null {
   const e = cache.get(key);
@@ -22,65 +30,70 @@ function setCache(key: string, data: unknown) {
   cache.set(key, { data, ts: Date.now() });
 }
 
-// HTTP agent that keeps connections alive (reduces latency for batched MangaDex calls)
-const keepAliveAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
+// ─── HTTP helpers ─────────────────────────────────────────────────────────────
+const agent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function mdxFetch(path: string, params: Record<string, string | string[]> = {}): Promise<any> {
   const url = new URL(`${MDX}${path}`);
   for (const [k, v] of Object.entries(params)) {
-    if (Array.isArray(v)) {
-      v.forEach(val => url.searchParams.append(k, val));
-    } else {
-      url.searchParams.set(k, v);
-    }
+    if (Array.isArray(v)) v.forEach(val => url.searchParams.append(k, val));
+    else url.searchParams.set(k, v);
   }
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 15000);
   try {
     const r = await fetch(url.toString(), {
-      // @ts-ignore — Node 18 fetch accepts dispatcher
-      agent: keepAliveAgent,
-      headers: {
-        "User-Agent": "AnimeFlex/3.0 (animeflex.lat)",
-        "Accept": "application/json",
-      },
+      // @ts-ignore
+      agent,
+      headers: { "User-Agent": "AnimeFlex/3.0 (animeflex.lat)", Accept: "application/json" },
       signal: ctrl.signal,
     });
     clearTimeout(t);
-    if (!r.ok) {
-      const txt = await r.text().catch(() => "");
-      throw new Error(`MangaDex ${r.status}: ${txt.slice(0, 120)}`);
-    }
+    if (!r.ok) throw new Error(`MangaDex ${r.status}`);
     return r.json();
-  } catch (err) {
-    clearTimeout(t);
-    throw err;
-  }
+  } catch (err) { clearTimeout(t); throw err; }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function coverUrl(mangaId: string, rel: any): string | null {
+// ─── Cover URL helpers ────────────────────────────────────────────────────────
+function directCoverUrl(mangaId: string, rel: any): string | null {
   const fileName = rel?.attributes?.fileName;
   if (!fileName) return null;
   return `${CDN}/covers/${mangaId}/${fileName}.512.jpg`;
+}
+
+/** Returns a proxied cover URL so the browser never hits MangaDex CDN directly.
+ *  Avoids hotlink-blocking by having the server add the correct Referer. */
+function proxyCoverUrl(directUrl: string | null): string | null {
+  if (!directUrl) return null;
+  return `${API_SELF}/api/manga/cover-proxy?u=${encodeURIComponent(directUrl)}`;
+}
+
+// ─── Format helpers ───────────────────────────────────────────────────────────
+function pickTitle(title: Record<string, string>): string {
+  return (
+    title?.en ||
+    title?.["ja-ro"] ||
+    title?.es ||
+    title?.["zh-ro"] ||
+    Object.values(title ?? {})[0] ||
+    "Sin título"
+  );
+}
+
+function pickDesc(description: Record<string, string>): string {
+  return (
+    description?.es ||
+    description?.en ||
+    Object.values(description ?? {})[0] ||
+    ""
+  );
 }
 
 function formatManga(manga: any) {
   const attrs = manga.attributes ?? {};
   const coverRel = (manga.relationships ?? []).find((r: any) => r.type === "cover_art");
   const authorRel = (manga.relationships ?? []).find((r: any) => r.type === "author");
-  const title =
-    attrs.title?.en ||
-    attrs.title?.["ja-ro"] ||
-    attrs.title?.es ||
-    attrs.title?.["zh-ro"] ||
-    Object.values(attrs.title ?? {})[0] ||
-    "Sin título";
-  const description =
-    attrs.description?.es ||
-    attrs.description?.en ||
-    Object.values(attrs.description ?? {})[0] ||
-    "";
+  const image = proxyCoverUrl(directCoverUrl(manga.id, coverRel));
   const genres = (attrs.tags ?? [])
     .filter((t: any) => t.attributes?.group === "genre")
     .map((t: any) => t.attributes?.name?.en ?? "")
@@ -88,17 +101,86 @@ function formatManga(manga: any) {
     .slice(0, 6);
   return {
     id: manga.id,
-    title,
-    image: coverUrl(manga.id, coverRel),
-    description,
+    title: pickTitle(attrs.title ?? {}),
+    image,
+    description: pickDesc(attrs.description ?? {}),
     status: attrs.status,
     genres,
     author: authorRel?.attributes?.name ?? null,
-    rating: attrs.contentRating,
   };
 }
 
-const RATINGS = ["safe", "suggestive", "erotica"];
+// ─── Cover proxy ──────────────────────────────────────────────────────────────
+// Fetches cover images from MangaDex CDN server-side, adding the required
+// Referer header so the CDN doesn't block the request.
+router.get("/manga/cover-proxy", async (req: Request, res: Response) => {
+  const u = req.query.u as string | undefined;
+  if (!u || !u.startsWith("https://")) {
+    res.status(400).end();
+    return;
+  }
+  // Only proxy MangaDex CDN domains
+  let host: string;
+  try { host = new URL(u).hostname; } catch { res.status(400).end(); return; }
+  if (!host.endsWith("mangadex.org") && !host.endsWith("mangadex.network")) {
+    res.status(400).end();
+    return;
+  }
+  try {
+    const upstream = await fetch(u, {
+      // @ts-ignore
+      agent,
+      headers: {
+        "User-Agent": "AnimeFlex/3.0",
+        "Referer": "https://mangadex.org/",
+        "Accept": "image/*,*/*",
+      },
+    });
+    if (!upstream.ok) {
+      res.status(upstream.status).end();
+      return;
+    }
+    const ct = upstream.headers.get("content-type") ?? "image/jpeg";
+    const buf = await upstream.arrayBuffer();
+    res.setHeader("Content-Type", ct);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.send(Buffer.from(buf));
+  } catch {
+    res.status(502).end();
+  }
+});
+
+// ─── Chapter image proxy ──────────────────────────────────────────────────────
+// Proxies MangaDex at-home chapter page images, adding mangadex.org Referer.
+router.get("/manga/image-proxy", async (req: Request, res: Response) => {
+  const u = req.query.u as string | undefined;
+  if (!u || !u.startsWith("https://")) { res.status(400).end(); return; }
+  let host: string;
+  try { host = new URL(u).hostname; } catch { res.status(400).end(); return; }
+  if (!host.endsWith("mangadex.org") && !host.endsWith("mangadex.network")) {
+    res.status(400).end();
+    return;
+  }
+  try {
+    const upstream = await fetch(u, {
+      // @ts-ignore
+      agent,
+      headers: {
+        "User-Agent": "AnimeFlex/3.0",
+        "Referer": "https://mangadex.org/",
+        "Accept": "image/*,*/*",
+      },
+    });
+    if (!upstream.ok) { res.status(upstream.status).end(); return; }
+    const ct = upstream.headers.get("content-type") ?? "image/jpeg";
+    const buf = await upstream.arrayBuffer();
+    res.setHeader("Content-Type", ct);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.send(Buffer.from(buf));
+  } catch {
+    res.status(502).end();
+  }
+});
 
 // ─── Trending ─────────────────────────────────────────────────────────────────
 router.get("/manga/trending", async (req: Request, res: Response) => {
@@ -114,7 +196,6 @@ router.get("/manga/trending", async (req: Request, res: Response) => {
       "order[followedCount]": "desc",
       "includes[]": ["cover_art", "author"],
       "contentRating[]": RATINGS,
-      "availableTranslatedLanguage[]": ["es", "en"],
     });
     const results = (data.data ?? []).map(formatManga);
     const result = {
@@ -145,7 +226,6 @@ router.get("/manga/recent", async (req: Request, res: Response) => {
       "order[latestUploadedChapter]": "desc",
       "includes[]": ["cover_art", "author"],
       "contentRating[]": RATINGS,
-      "availableTranslatedLanguage[]": ["es", "en"],
     });
     const results = (data.data ?? []).map(formatManga);
     const result = {
@@ -194,48 +274,29 @@ router.get("/manga/search", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Manga info ────────────────────────────────────────────────────────────────
+// ─── Manga info + chapters ─────────────────────────────────────────────────────
 router.get("/manga/info/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   const key = `info:${id}`;
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
-    // Fetch manga details + chapters concurrently
-    const [mangaResp, chapterResp] = await Promise.all([
-      mdxFetch(`/manga/${id}`, {
-        "includes[]": ["cover_art", "author", "artist"],
-      }),
+    const [mangaResp, chapterList] = await Promise.all([
+      mdxFetch(`/manga/${id}`, { "includes[]": ["cover_art", "author", "artist"] }),
       fetchMangaChapters(id),
     ]);
-
     const manga = mangaResp.data;
-    if (!manga) {
-      res.status(404).json({ error: "Manga no encontrado" });
-      return;
-    }
+    if (!manga) { res.status(404).json({ error: "Manga no encontrado" }); return; }
     const attrs = manga.attributes ?? {};
     const coverRel = (manga.relationships ?? []).find((r: any) => r.type === "cover_art");
     const authorRel = (manga.relationships ?? []).find((r: any) => r.type === "author");
-
-    const title =
-      attrs.title?.en ||
-      attrs.title?.["ja-ro"] ||
-      attrs.title?.es ||
-      Object.values(attrs.title ?? {})[0] ||
-      "Sin título";
-    const description =
-      attrs.description?.es ||
-      attrs.description?.en ||
-      Object.values(attrs.description ?? {})[0] ||
-      "";
-
+    const imageUrl = proxyCoverUrl(directCoverUrl(manga.id, coverRel));
     const result = {
       id: manga.id,
-      title,
-      image: coverUrl(manga.id, coverRel),
-      cover: coverUrl(manga.id, coverRel),
-      description,
+      title: pickTitle(attrs.title ?? {}),
+      image: imageUrl,
+      cover: imageUrl,
+      description: pickDesc(attrs.description ?? {}),
       status: attrs.status,
       genres: (attrs.tags ?? [])
         .filter((t: any) => t.attributes?.group === "genre")
@@ -246,7 +307,7 @@ router.get("/manga/info/:id", async (req: Request, res: Response) => {
         id: r.id,
         name: r.attributes?.name ?? "",
       })),
-      chapters: chapterResp,
+      chapters: chapterList,
     };
     setCache(key, result);
     res.json(result);
@@ -257,13 +318,14 @@ router.get("/manga/info/:id", async (req: Request, res: Response) => {
 });
 
 async function fetchMangaChapters(mangaId: string) {
-  // Prefer Spanish, fall back to English
+  // Try Spanish first, then English — stop as soon as we find chapters
   const langs = ["es", "en"];
   for (const lang of langs) {
     try {
       const all: any[] = [];
       let offset = 0;
       const limit = 100;
+      // Cap at 600 chapters to avoid timeout
       while (all.length < 600) {
         const data = await mdxFetch(`/manga/${mangaId}/feed`, {
           limit: String(limit),
@@ -310,10 +372,9 @@ router.get("/manga/chapter/:id", async (req: Request, res: Response) => {
       res.status(404).json({ error: "No se encontraron páginas para este capítulo." });
       return;
     }
-    // Return direct CDN URLs — browsers send Referer automatically (animeflex.lat origin)
-    // MangaDex at-home servers accept any Referer, so no server-side proxy needed.
+    // Proxy ALL chapter images through our server so the CDN Referer is correct
     const result = files.map((f, i) => ({
-      img: `${baseUrl}/data/${hash}/${f}`,
+      img: `${API_SELF}/api/manga/image-proxy?u=${encodeURIComponent(`${baseUrl}/data/${hash}/${f}`)}`,
       page: i + 1,
     }));
     setCache(key, result);
