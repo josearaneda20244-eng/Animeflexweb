@@ -246,7 +246,7 @@ function parseGenres(html: string): string[] {
     .slice(0, 12);
 }
 
-function parseChapters(html: string, slug: string): any[] {
+function parseChaptersFromHtml(html: string, slug: string): any[] {
   const chapters: any[] = [];
   const seen = new Set<string>();
   const re = /<a\b[^>]*href=["']\/leer-m\/([^\/"']+)\/([^\/"']+)\/["'][^>]*class=["'][^"']*chapter-link[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -274,6 +274,60 @@ function parseChapters(html: string, slug: string): any[] {
   return chapters.sort((a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0)));
 }
 
+type LmeChapterApi = {
+  numero?: string | number;
+  slug_capitulo?: string;
+  titulo?: string;
+  fecha?: string;
+  capitulo?: string | number;
+  chapter?: string | number;
+  title?: string;
+  date?: string;
+  id?: string | number;
+};
+
+async function fetchAllChaptersFromApi(slug: string): Promise<any[] | null> {
+  const endpoints = [
+    `${LME}/api/capitulos/?manga=${encodeURIComponent(slug)}&page=1&page_size=9999`,
+    `${LME}/api/capitulos/?manga=${encodeURIComponent(slug)}`,
+    `${LME}/api/chapters/?manga=${encodeURIComponent(slug)}&page_size=9999`,
+  ];
+  for (const url of endpoints) {
+    try {
+      const data = await fetchJson<any>(url);
+      const list: LmeChapterApi[] = Array.isArray(data) ? data : (data?.results ?? data?.capitulos ?? data?.chapters ?? null);
+      if (!Array.isArray(list) || list.length === 0) continue;
+      const chapters = list.map((item) => {
+        const num = String(item.numero ?? item.capitulo ?? item.chapter ?? item.id ?? "");
+        const chSlug = String(item.slug_capitulo ?? num);
+        return {
+          id: encodeChapterId(slug, chSlug || num),
+          chapterNumber: num.replace(/\.00$/, ""),
+          volumeNumber: null,
+          title: decodeHtml(String(item.titulo ?? item.title ?? "")) || null,
+          pages: undefined,
+          lang: "es",
+          releaseDate: item.fecha ?? item.date ?? null,
+        };
+      }).filter((c) => c.chapterNumber);
+      if (chapters.length > 0) {
+        return chapters.sort((a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0)));
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+async function fetchAllChapters(slug: string, htmlChapters: any[]): Promise<any[]> {
+  const fromApi = await fetchAllChaptersFromApi(slug);
+  if (fromApi && fromApi.length > htmlChapters.length) {
+    return fromApi;
+  }
+  return htmlChapters;
+}
+
 function parseDetail(slug: string, html: string) {
   const jsonLd = parseJsonLd(html);
   const titleFromHead = decodeHtml(html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? "").replace(/\s*\|\s*LeerMangaEsp.*$/i, "");
@@ -284,7 +338,7 @@ function parseDetail(slug: string, html: string) {
   const coverFromBody = html.match(/data-portada-rel=["']([^"']+)["']/i)?.[1];
   const image = proxyImg(absoluteUrl(coverFromTag) ?? portadaUrl(coverFromBody));
   const genres = parseGenres(html);
-  const chapters = parseChapters(html, slug);
+  const chapters = parseChaptersFromHtml(html, slug);
   return {
     id: slug,
     title,
@@ -420,6 +474,8 @@ router.get("/manga/info/:id", async (req: Request, res: Response) => {
   try {
     const html = await fetchText(`${LME}/manga/${encodeURIComponent(slug)}/`);
     const result = parseDetail(slug, html);
+    const allChapters = await fetchAllChapters(slug, result.chapters);
+    result.chapters = allChapters;
     setCache(key, result);
     res.json(result);
   } catch (err: any) {
