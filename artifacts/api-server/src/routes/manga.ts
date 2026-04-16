@@ -373,70 +373,58 @@ function mapApiChapter(item: LmeChapterApi, slug: string): any | null {
   };
 }
 
-async function fetchAllChaptersFromApi(slug: string): Promise<any[] | null> {
-  const baseEndpoints = [
-    `${LME}/api/capitulos/?manga=${encodeURIComponent(slug)}`,
-    `${LME}/api/chapters/?manga=${encodeURIComponent(slug)}`,
-  ];
-  for (const base of baseEndpoints) {
-    try {
-      const allItems: LmeChapterApi[] = [];
-      let page = 1;
-      const MAX_PAGES = 50;
-      while (page <= MAX_PAGES) {
-        const url = `${base}&page=${page}&page_size=200`;
-        const data = await fetchJson<any>(url);
-        const list: LmeChapterApi[] = Array.isArray(data)
-          ? data
-          : (data?.results ?? data?.capitulos ?? data?.chapters ?? null);
-        if (!Array.isArray(list) || list.length === 0) break;
-        allItems.push(...list);
-        const total = data?.total ?? data?.count ?? null;
-        if (total != null && allItems.length >= Number(total)) break;
-        if (list.length < 200) break;
-        page++;
-      }
-      if (allItems.length === 0) continue;
-      const chapters = allItems.map(item => mapApiChapter(item, slug)).filter(Boolean);
-      if (chapters.length > 0) {
-        return chapters.sort((a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0)));
-      }
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
+/**
+ * Fetch ALL chapters using the ?before= pagination that LeerMangaEsp uses.
+ * The manga detail page only shows the most recent ~96 chapters; older ones
+ * are loaded by following the "Ver más" link: ?before=<lowest_chapter_number>.
+ * Railway CAN reach these HTML pages even when the /api/capitulos/ endpoint is blocked.
+ */
+async function fetchAllChaptersWithPagination(slug: string, firstPageHtml: string): Promise<any[]> {
+  const allChapters: any[] = [];
+  const seenNums = new Set<string>();
 
-function extractChaptersFromJsonScript(html: string, slug: string): any[] {
-  const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)];
-  for (const s of scripts) {
-    const body = s[1];
-    const listMatch = body.match(/(?:capitulos|chapters|chapter_list)\s*[:=]\s*(\[[\s\S]*?\])/i);
-    if (!listMatch) continue;
-    try {
-      const arr: LmeChapterApi[] = JSON.parse(listMatch[1]);
-      if (!Array.isArray(arr) || arr.length === 0) continue;
-      const chapters = arr.map(item => mapApiChapter(item, slug)).filter(Boolean);
-      if (chapters.length > 0) {
-        return chapters.sort((a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0)));
+  const addChapters = (chapters: any[]) => {
+    for (const ch of chapters) {
+      if (!seenNums.has(ch.chapterNumber)) {
+        seenNums.add(ch.chapterNumber);
+        allChapters.push(ch);
       }
-    } catch {
-      continue;
     }
+  };
+
+  // Parse chapters from the first page (already fetched)
+  addChapters(parseChaptersFromHtml(firstPageHtml, slug));
+
+  // Follow ?before= links to get older chapters
+  let beforeParam: string | null = firstPageHtml.match(/href="\?before=([\d.]+)"/)?.[1] ?? null;
+  const MAX_PAGES = 30;
+  let page = 0;
+
+  while (beforeParam && page < MAX_PAGES) {
+    try {
+      const url = `${LME}/manga/${encodeURIComponent(slug)}/?before=${encodeURIComponent(beforeParam)}`;
+      const pageHtml = await fetchText(url);
+      const pageChapters = parseChaptersFromHtml(pageHtml, slug);
+      if (pageChapters.length === 0) break;
+      addChapters(pageChapters);
+      beforeParam = pageHtml.match(/href="\?before=([\d.]+)"/)?.[1] ?? null;
+    } catch {
+      break;
+    }
+    page++;
   }
-  return [];
+
+  return allChapters.sort(
+    (a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0))
+  );
 }
 
 async function fetchAllChapters(slug: string, htmlChapters: any[], html: string): Promise<any[]> {
-  const jsonScriptChapters = extractChaptersFromJsonScript(html, slug);
-  if (jsonScriptChapters.length > htmlChapters.length) {
-    return jsonScriptChapters;
-  }
-  const fromApi = await fetchAllChaptersFromApi(slug);
-  if (fromApi && fromApi.length > htmlChapters.length) {
-    return fromApi;
-  }
+  // Use ?before= HTML pagination — works from Railway, fetches all chapters from ch.1
+  try {
+    const all = await fetchAllChaptersWithPagination(slug, html);
+    if (all.length > htmlChapters.length) return all;
+  } catch {}
   return htmlChapters;
 }
 
