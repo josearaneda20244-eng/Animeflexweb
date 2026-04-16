@@ -167,15 +167,16 @@ function formatListManga(item: LmeManga) {
 async function listFromApi(page: number, query?: string) {
   const params = new URLSearchParams({
     page: String(page),
-    page_size: String(PAGE_SIZE),
+    page_size: String(PAGE_SIZE * 3),
   });
   if (query) params.set("query", query);
   const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
-  const results = (data.resultados ?? []).map(formatListManga);
+  const readable = (data.resultados ?? []).filter((item) => Number(item.ultimo_capitulo ?? 0) > 0);
+  const results = readable.slice(0, PAGE_SIZE).map(formatListManga);
   const totalPages = data.total_pages ?? page;
   return {
     results,
-    hasNextPage: page < totalPages,
+    hasNextPage: page < totalPages || readable.length > PAGE_SIZE,
     currentPage: page,
     total: data.total,
   };
