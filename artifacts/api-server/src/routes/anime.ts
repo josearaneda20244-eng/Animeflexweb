@@ -562,7 +562,7 @@ router.get("/anime/recent", async (req, res) => {
       const results: any[] = [];
       for (const s of schedules) {
         const m = s.media;
-        if (!m || !isAnimeFormat(m.type) || seen.has(String(m.id))) continue;
+        if (!m || seen.has(String(m.id))) continue; // airingSchedules already filtered to anime
         seen.add(String(m.id));
         results.push({
           id: String(m.id),
