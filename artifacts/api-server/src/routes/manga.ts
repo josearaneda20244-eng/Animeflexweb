@@ -58,8 +58,11 @@ import { Router, type IRouter } from "express";
     const descRaw = a.description ?? {};
     const description = descRaw.es || descRaw["es-la"] || descRaw.en || (Object.values(descRaw)[0] as string) || "";
     const authorRel = rels.find((r: any) => r.type === "author");
-    // Use og.mangadex.org — accessible from browsers and servers, no 403
-    const image = `https://og.mangadex.org/og-image/manga/${manga.id}`;
+    // uploads.mangadex.org is accessible from browsers (only blocks server-side IPs)
+    const rel = (manga.relationships ?? []).find((r: any) => r.type === "cover_art");
+    const image = rel?.attributes?.fileName
+      ? `https://uploads.mangadex.org/covers/${manga.id}/${rel.attributes.fileName}.512.jpg`
+      : null;
     return {
       id: manga.id,
       title: getTitle(manga),
