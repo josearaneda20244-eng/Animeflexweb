@@ -92,6 +92,7 @@ UPDATE users SET role='owner' WHERE email='josearaneda20244@gmail.com';
 
 ## Cambios Recientes
 
+- El módulo de manga ahora usa LeerMangaEsp como fuente principal: listado/búsqueda desde su API pública y scraping de ficha, capítulos e imágenes de lectura desde páginas públicas.
 - La ficha del anime ahora prioriza la lista completa de episodios de AnimeKai cuando supera la lista parcial de AniList.
 - El detalle del anime incluye búsqueda rápida por número o título de episodio para series largas.
 - El reproductor abre el panel de episodios en el rango del episodio actual e incluye salto directo por número, selector compacto de rangos y botón de últimos episodios.
