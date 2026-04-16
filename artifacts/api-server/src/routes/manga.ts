@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 
   const router: IRouter = Router();
   const MANGADEX = "https://api.mangadex.org";
@@ -17,7 +17,6 @@ import { Router, type IRouter } from "express";
     cache.set(key, { data, ts: Date.now() });
   }
 
-  /** Build MangaDex URL with correct bracket array params */
   function mdUrl(path: string, params: Record<string, string | string[]> = {}): string {
     const parts: string[] = [];
     for (const [k, v] of Object.entries(params)) {
@@ -37,12 +36,22 @@ import { Router, type IRouter } from "express";
     try {
       const r = await fetch(url, { headers: { "User-Agent": "AnimeFlex/1.0" }, signal: ctrl.signal });
       clearTimeout(t);
-      if (!r.ok) throw new Error(`MangaDex ${r.status} for ${path}`);
+      if (!r.ok) {
+        const text = await r.text().catch(() => "");
+        throw new Error(`MangaDex ${r.status}: ${text.slice(0, 100)}`);
+      }
       return r.json();
     } catch (err) { clearTimeout(t); throw err; }
   }
 
-  function getCover(manga: any): string | null {
+  /** Returns a proxy URL for a MangaDex cover image */
+  function proxyUrl(req: Request, directUrl: string): string {
+    const proto = req.headers["x-forwarded-proto"] ?? req.protocol ?? "https";
+    const host = req.headers["x-forwarded-host"] ?? req.get("host") ?? "";
+    return `${proto}://${host}/api/manga/cover-proxy?u=${encodeURIComponent(directUrl)}`;
+  }
+
+  function getCoverDirect(manga: any): string | null {
     const rel = (manga.relationships ?? []).find((r: any) => r.type === "cover_art");
     if (!rel?.attributes?.fileName) return null;
     return `https://uploads.mangadex.org/covers/${manga.id}/${rel.attributes.fileName}.512.jpg`;
@@ -53,7 +62,7 @@ import { Router, type IRouter } from "express";
     return t.en || t["ja-ro"] || t.ja || (Object.values(t)[0] as string) || "Sin título";
   }
 
-  function formatManga(manga: any) {
+  function formatManga(manga: any, req: Request) {
     const a = manga.attributes ?? {};
     const rels = manga.relationships ?? [];
     const genres = (a.tags ?? [])
@@ -62,10 +71,11 @@ import { Router, type IRouter } from "express";
     const descRaw = a.description ?? {};
     const description = descRaw.es || descRaw["es-la"] || descRaw.en || (Object.values(descRaw)[0] as string) || "";
     const authorRel = rels.find((r: any) => r.type === "author");
+    const directCover = getCoverDirect(manga);
     return {
       id: manga.id,
       title: getTitle(manga),
-      image: getCover(manga),
+      image: directCover ? proxyUrl(req, directCover) : null,
       status: a.status ? a.status.charAt(0).toUpperCase() + a.status.slice(1) : undefined,
       genres,
       description,
@@ -75,6 +85,51 @@ import { Router, type IRouter } from "express";
     };
   }
 
+  /** Fetch all chapters for a manga, paginating by 100 (MangaDex max) */
+  async function fetchAllChapters(mangaId: string, maxChapters = 300): Promise<any[]> {
+    const all: any[] = [];
+    let offset = 0;
+    const limit = 100;
+    while (all.length < maxChapters) {
+      const data = await mdFetch("/chapter", {
+        manga: mangaId, limit: String(limit), offset: String(offset),
+        translatedLanguage: ["es", "es-la", "en"],
+        "order[chapter]": "asc",
+      });
+      const batch: any[] = data.data ?? [];
+      all.push(...batch);
+      if (batch.length < limit || all.length >= (data.total ?? 0)) break;
+      offset += limit;
+    }
+    return all;
+  }
+
+  // ─── Cover image proxy ───────────────────────────────────────────────────────
+  router.get("/manga/cover-proxy", async (req, res) => {
+    const u = req.query.u as string | undefined;
+    if (!u || !u.startsWith("https://uploads.mangadex.org/")) {
+      res.status(400).send("Invalid url"); return;
+    }
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 8000);
+      const img = await fetch(u, {
+        headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://mangadex.org/" },
+        signal: ctrl.signal,
+      });
+      clearTimeout(t);
+      if (!img.ok) { res.status(img.status).send("Upstream error"); return; }
+      const ct = img.headers.get("content-type") ?? "image/jpeg";
+      res.set("Content-Type", ct);
+      res.set("Cache-Control", "public, max-age=86400");
+      const buf = await img.arrayBuffer();
+      res.send(Buffer.from(buf));
+    } catch (err) {
+      res.status(502).send("Proxy error");
+    }
+  });
+
+  // ─── Trending ────────────────────────────────────────────────────────────────
   router.get("/manga/trending", async (req, res) => {
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
     const offset = (page - 1) * 24;
@@ -89,7 +144,7 @@ import { Router, type IRouter } from "express";
         includes: ["cover_art", "author"],
         availableTranslatedLanguage: ["es", "es-la", "en"],
       });
-      const result = { results: (data.data ?? []).map(formatManga), hasNextPage: offset + 24 < (data.total ?? 0), currentPage: page };
+      const result = { results: (data.data ?? []).map((m: any) => formatManga(m, req)), hasNextPage: offset + 24 < (data.total ?? 0), currentPage: page };
       setCache(key, result);
       res.json(result);
     } catch (err) {
@@ -98,6 +153,7 @@ import { Router, type IRouter } from "express";
     }
   });
 
+  // ─── Recent ──────────────────────────────────────────────────────────────────
   router.get("/manga/recent", async (req, res) => {
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
     const offset = (page - 1) * 24;
@@ -112,7 +168,7 @@ import { Router, type IRouter } from "express";
         includes: ["cover_art", "author"],
         availableTranslatedLanguage: ["es", "es-la", "en"],
       });
-      const result = { results: (data.data ?? []).map(formatManga), hasNextPage: offset + 24 < (data.total ?? 0), currentPage: page };
+      const result = { results: (data.data ?? []).map((m: any) => formatManga(m, req)), hasNextPage: offset + 24 < (data.total ?? 0), currentPage: page };
       setCache(key, result);
       res.json(result);
     } catch (err) {
@@ -121,6 +177,7 @@ import { Router, type IRouter } from "express";
     }
   });
 
+  // ─── Search ──────────────────────────────────────────────────────────────────
   router.get("/manga/search", async (req, res) => {
     const q = (req.query.q as string | undefined)?.trim();
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
@@ -135,7 +192,7 @@ import { Router, type IRouter } from "express";
         contentRating: ["safe", "suggestive"],
         includes: ["cover_art", "author"],
       });
-      const result = { results: (data.data ?? []).map(formatManga), hasNextPage: offset + 24 < (data.total ?? 0), currentPage: page };
+      const result = { results: (data.data ?? []).map((m: any) => formatManga(m, req)), hasNextPage: offset + 24 < (data.total ?? 0), currentPage: page };
       setCache(key, result);
       res.json(result);
     } catch (err) {
@@ -144,23 +201,22 @@ import { Router, type IRouter } from "express";
     }
   });
 
+  // ─── Info + chapters ─────────────────────────────────────────────────────────
   router.get("/manga/info/:id", async (req, res) => {
     const { id } = req.params;
     const key = `info:${id}`;
     const hit = cached(key);
     if (hit) { res.json(hit); return; }
     try {
-      const [mangaRes, chaptersRes] = await Promise.all([
+      const [mangaRes, allChapters] = await Promise.all([
         mdFetch(`/manga/${id}`, { includes: ["cover_art", "author", "artist"] }),
-        mdFetch("/chapter", {
-          manga: id, limit: "500",
-          translatedLanguage: ["es", "es-la", "en"],
-          "order[chapter]": "asc",
-        }),
+        fetchAllChapters(id),
       ]);
-      const info = formatManga(mangaRes.data);
+      const info = formatManga(mangaRes.data, req);
+
+      // Deduplicate: prefer Spanish chapters
       const chapMap = new Map<string, any>();
-      for (const ch of (chaptersRes.data ?? [])) {
+      for (const ch of allChapters) {
         const num = String(ch.attributes?.chapter ?? "0");
         const lang = ch.attributes?.translatedLanguage ?? "";
         const ex = chapMap.get(num);
@@ -170,6 +226,7 @@ import { Router, type IRouter } from "express";
           chapMap.set(num, ch);
         }
       }
+
       const chapters = Array.from(chapMap.values()).map(ch => ({
         id: ch.id,
         chapterNumber: ch.attributes?.chapter ?? null,
@@ -179,6 +236,7 @@ import { Router, type IRouter } from "express";
         releaseDate: ch.attributes?.publishAt ?? null,
         lang: ch.attributes?.translatedLanguage ?? "en",
       }));
+
       const result = { ...info, chapters };
       setCache(key, result);
       res.json(result);
@@ -188,6 +246,7 @@ import { Router, type IRouter } from "express";
     }
   });
 
+  // ─── Chapter pages ───────────────────────────────────────────────────────────
   router.get("/manga/chapter/:id", async (req, res) => {
     const { id } = req.params;
     const key = `ch:${id}`;
@@ -197,7 +256,7 @@ import { Router, type IRouter } from "express";
       const data = await mdFetch(`/at-home/server/${id}`);
       const { baseUrl, chapter } = data;
       const hash = chapter?.hash;
-      const pages: string[] = chapter?.data ?? chapter?.dataSaver ?? [];
+      const pages: string[] = chapter?.data?.length ? chapter.data : (chapter?.dataSaver ?? []);
       if (!baseUrl || !hash || !pages.length) {
         res.status(404).json({ error: "Páginas no encontradas" });
         return;
