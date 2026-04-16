@@ -286,30 +286,46 @@ type LmeChapterApi = {
   id?: string | number;
 };
 
+function mapApiChapter(item: LmeChapterApi, slug: string): any | null {
+  const num = String(item.numero ?? item.capitulo ?? item.chapter ?? item.id ?? "").trim();
+  if (!num) return null;
+  const chSlug = String(item.slug_capitulo ?? num);
+  return {
+    id: encodeChapterId(slug, chSlug || num),
+    chapterNumber: num.replace(/\.00$/, ""),
+    volumeNumber: null,
+    title: decodeHtml(String(item.titulo ?? item.title ?? "")) || null,
+    pages: undefined,
+    lang: "es",
+    releaseDate: item.fecha ?? item.date ?? null,
+  };
+}
+
 async function fetchAllChaptersFromApi(slug: string): Promise<any[] | null> {
-  const endpoints = [
-    `${LME}/api/capitulos/?manga=${encodeURIComponent(slug)}&page=1&page_size=9999`,
+  const baseEndpoints = [
     `${LME}/api/capitulos/?manga=${encodeURIComponent(slug)}`,
-    `${LME}/api/chapters/?manga=${encodeURIComponent(slug)}&page_size=9999`,
+    `${LME}/api/chapters/?manga=${encodeURIComponent(slug)}`,
   ];
-  for (const url of endpoints) {
+  for (const base of baseEndpoints) {
     try {
-      const data = await fetchJson<any>(url);
-      const list: LmeChapterApi[] = Array.isArray(data) ? data : (data?.results ?? data?.capitulos ?? data?.chapters ?? null);
-      if (!Array.isArray(list) || list.length === 0) continue;
-      const chapters = list.map((item) => {
-        const num = String(item.numero ?? item.capitulo ?? item.chapter ?? item.id ?? "");
-        const chSlug = String(item.slug_capitulo ?? num);
-        return {
-          id: encodeChapterId(slug, chSlug || num),
-          chapterNumber: num.replace(/\.00$/, ""),
-          volumeNumber: null,
-          title: decodeHtml(String(item.titulo ?? item.title ?? "")) || null,
-          pages: undefined,
-          lang: "es",
-          releaseDate: item.fecha ?? item.date ?? null,
-        };
-      }).filter((c) => c.chapterNumber);
+      const allItems: LmeChapterApi[] = [];
+      let page = 1;
+      const MAX_PAGES = 50;
+      while (page <= MAX_PAGES) {
+        const url = `${base}&page=${page}&page_size=200`;
+        const data = await fetchJson<any>(url);
+        const list: LmeChapterApi[] = Array.isArray(data)
+          ? data
+          : (data?.results ?? data?.capitulos ?? data?.chapters ?? null);
+        if (!Array.isArray(list) || list.length === 0) break;
+        allItems.push(...list);
+        const total = data?.total ?? data?.count ?? null;
+        if (total != null && allItems.length >= Number(total)) break;
+        if (list.length < 200) break;
+        page++;
+      }
+      if (allItems.length === 0) continue;
+      const chapters = allItems.map(item => mapApiChapter(item, slug)).filter(Boolean);
       if (chapters.length > 0) {
         return chapters.sort((a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0)));
       }
@@ -320,7 +336,31 @@ async function fetchAllChaptersFromApi(slug: string): Promise<any[] | null> {
   return null;
 }
 
-async function fetchAllChapters(slug: string, htmlChapters: any[]): Promise<any[]> {
+function extractChaptersFromJsonScript(html: string, slug: string): any[] {
+  const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)];
+  for (const s of scripts) {
+    const body = s[1];
+    const listMatch = body.match(/(?:capitulos|chapters|chapter_list)\s*[:=]\s*(\[[\s\S]*?\])/i);
+    if (!listMatch) continue;
+    try {
+      const arr: LmeChapterApi[] = JSON.parse(listMatch[1]);
+      if (!Array.isArray(arr) || arr.length === 0) continue;
+      const chapters = arr.map(item => mapApiChapter(item, slug)).filter(Boolean);
+      if (chapters.length > 0) {
+        return chapters.sort((a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0)));
+      }
+    } catch {
+      continue;
+    }
+  }
+  return [];
+}
+
+async function fetchAllChapters(slug: string, htmlChapters: any[], html: string): Promise<any[]> {
+  const jsonScriptChapters = extractChaptersFromJsonScript(html, slug);
+  if (jsonScriptChapters.length > htmlChapters.length) {
+    return jsonScriptChapters;
+  }
   const fromApi = await fetchAllChaptersFromApi(slug);
   if (fromApi && fromApi.length > htmlChapters.length) {
     return fromApi;
@@ -474,7 +514,7 @@ router.get("/manga/info/:id", async (req: Request, res: Response) => {
   try {
     const html = await fetchText(`${LME}/manga/${encodeURIComponent(slug)}/`);
     const result = parseDetail(slug, html);
-    const allChapters = await fetchAllChapters(slug, result.chapters);
+    const allChapters = await fetchAllChapters(slug, result.chapters, html);
     result.chapters = allChapters;
     setCache(key, result);
     res.json(result);
