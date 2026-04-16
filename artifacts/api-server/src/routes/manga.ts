@@ -1,18 +1,19 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-  import https from "node:https";
+  import { MANGA } from "@consumet/extensions";
 
   const router: IRouter = Router();
-
-  // ─── Config ───────────────────────────────────────────────────────────────────
-  const MDX = "https://api.mangadex.org";
-  const CDN = "https://uploads.mangadex.org";
 
   const API_SELF = (
     process.env.API_BASE_URL ?? "https://animeflex-api-production.up.railway.app"
   ).replace(/\/$/, "");
 
-  const RATINGS = ["safe", "suggestive", "erotica"];
-  const SPANISH_LANGS = ["es", "es-la"];
+  // ─── Proveedor ComicK de Consumet ─────────────────────────────────────────────
+  // ComicK: contenido en español, sin capítulos externos, sin problemas de 0 páginas
+  const comicK = new (MANGA as any).ComicK();
+
+  // API directa de ComicK para filtrar capítulos en español
+  const COMICK_API = "https://api.comick.io";
+  const COMICK_IMG = "https://meo.comick.pictures";
 
   // ─── Cache ────────────────────────────────────────────────────────────────────
   const cache = new Map<string, { data: unknown; ts: number }>();
@@ -29,100 +30,40 @@ import { Router, type IRouter, type Request, type Response } from "express";
     cache.set(key, { data, ts: Date.now() });
   }
 
-  // ─── HTTP helpers ─────────────────────────────────────────────────────────────
-  const agent = new https.Agent({ keepAlive: true, maxSockets: 10 });
+  // ─── HTTP helper directo ComicK ───────────────────────────────────────────────
+  const COMICK_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "application/json",
+    "Origin": "https://comick.io",
+    "Referer": "https://comick.io/",
+  };
 
-  async function mdxFetch(path: string, params: Record<string, string | string[]> = {}): Promise<any> {
-    const url = new URL(`${MDX}${path}`);
-    for (const [k, v] of Object.entries(params)) {
-      if (Array.isArray(v)) v.forEach(val => url.searchParams.append(k, val));
-      else url.searchParams.set(k, v);
-    }
+  async function comickFetch(path: string): Promise<any> {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 15000);
     try {
-      const r = await fetch(url.toString(), {
-        // @ts-ignore
-        agent,
-        headers: { "User-Agent": "AnimeFlex/3.0 (animeflex.lat)", Accept: "application/json" },
-        signal: ctrl.signal,
-      });
+      const r = await fetch(`${COMICK_API}${path}`, { headers: COMICK_HEADERS, signal: ctrl.signal });
       clearTimeout(t);
-      if (!r.ok) throw new Error(`MangaDex ${r.status}`);
+      if (!r.ok) throw new Error(`ComicK ${r.status}: ${path}`);
       return r.json();
     } catch (err) { clearTimeout(t); throw err; }
   }
 
-  // ─── Cover helpers ────────────────────────────────────────────────────────────
-  function directCoverUrl(mangaId: string, rel: any): string | null {
-    const fileName = rel?.attributes?.fileName;
-    if (!fileName) return null;
-    return `${CDN}/covers/${mangaId}/${fileName}.512.jpg`;
-  }
-
-  function proxyCoverUrl(directUrl: string | null): string | null {
-    if (!directUrl) return null;
-    return `${API_SELF}/api/manga/cover-proxy?u=${encodeURIComponent(directUrl)}`;
-  }
-
-  // ─── Format helpers ───────────────────────────────────────────────────────────
-  function pickTitle(title: Record<string, string>): string {
-    return (
-      title?.es ||
-      title?.["es-la"] ||
-      title?.en ||
-      title?.["ja-ro"] ||
-      title?.["zh-ro"] ||
-      Object.values(title ?? {})[0] ||
-      "Sin título"
-    );
-  }
-
-  function pickDesc(description: Record<string, string>): string {
-    return (
-      description?.es ||
-      description?.["es-la"] ||
-      description?.en ||
-      Object.values(description ?? {})[0] ||
-      ""
-    );
-  }
-
-  function formatManga(manga: any) {
-    const attrs = manga.attributes ?? {};
-    const coverRel = (manga.relationships ?? []).find((r: any) => r.type === "cover_art");
-    const authorRel = (manga.relationships ?? []).find((r: any) => r.type === "author");
-    const image = proxyCoverUrl(directCoverUrl(manga.id, coverRel));
-    const genres = (attrs.tags ?? [])
-      .filter((t: any) => t.attributes?.group === "genre")
-      .map((t: any) => t.attributes?.name?.es ?? t.attributes?.name?.en ?? "")
-      .filter(Boolean)
-      .slice(0, 6);
-    return {
-      id: manga.id,
-      title: pickTitle(attrs.title ?? {}),
-      image,
-      description: pickDesc(attrs.description ?? {}),
-      status: attrs.status,
-      genres,
-      author: authorRel?.attributes?.name ?? null,
-    };
-  }
-
-  // ─── Cover proxy ──────────────────────────────────────────────────────────────
-  router.get("/manga/cover-proxy", async (req: Request, res: Response) => {
+  // ─── Proxy de imágenes ────────────────────────────────────────────────────────
+  router.get("/manga/img-proxy", async (req: Request, res: Response) => {
     const u = req.query.u as string | undefined;
     if (!u || !u.startsWith("https://")) { res.status(400).end(); return; }
     let host: string;
     try { host = new URL(u).hostname; } catch { res.status(400).end(); return; }
-    if (!host.endsWith("mangadex.org") && !host.endsWith("mangadex.network")) {
-      res.status(400).end(); return;
-    }
+    const allowed = ["comick.pictures", "comick.io", "inmanga.com", "intomanga.com", "mangadex.org", "mangadex.network"];
+    if (!allowed.some(d => host.endsWith(d))) { res.status(400).end(); return; }
     try {
       const upstream = await fetch(u, {
-        // @ts-ignore
-        agent,
-        headers: { "User-Agent": "AnimeFlex/3.0", "Referer": "https://mangadex.org/", "Accept": "image/*,*/*" },
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Referer": "https://comick.io/",
+          "Accept": "image/*,*/*",
+        },
       });
       if (!upstream.ok) { res.status(upstream.status).end(); return; }
       const ct = upstream.headers.get("content-type") ?? "image/jpeg";
@@ -134,79 +75,116 @@ import { Router, type IRouter, type Request, type Response } from "express";
     } catch { res.status(502).end(); }
   });
 
-  // ─── Image proxy ──────────────────────────────────────────────────────────────
-  router.get("/manga/image-proxy", async (req: Request, res: Response) => {
-    const u = req.query.u as string | undefined;
-    if (!u || !u.startsWith("https://")) { res.status(400).end(); return; }
-    let host: string;
-    try { host = new URL(u).hostname; } catch { res.status(400).end(); return; }
-    if (!host.endsWith("mangadex.org") && !host.endsWith("mangadex.network")) {
-      res.status(400).end(); return;
-    }
-    try {
-      const upstream = await fetch(u, {
-        // @ts-ignore
-        agent,
-        headers: { "User-Agent": "AnimeFlex/3.0", "Referer": "https://mangadex.org/", "Accept": "image/*,*/*" },
-      });
-      if (!upstream.ok) { res.status(upstream.status).end(); return; }
-      const ct = upstream.headers.get("content-type") ?? "image/jpeg";
-      const buf = await upstream.arrayBuffer();
-      res.setHeader("Content-Type", ct);
-      res.setHeader("Cache-Control", "public, max-age=3600");
-      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-      res.send(Buffer.from(buf));
-    } catch { res.status(502).end(); }
+  // Ruta legacy para compatibilidad con cover-proxy e image-proxy anteriores
+  router.get("/manga/cover-proxy", (req: Request, res: Response) => {
+    const u = req.query.u as string;
+    res.redirect(`/api/manga/img-proxy?u=${encodeURIComponent(u ?? "")}`);
   });
+  router.get("/manga/image-proxy", (req: Request, res: Response) => {
+    const u = req.query.u as string;
+    res.redirect(`/api/manga/img-proxy?u=${encodeURIComponent(u ?? "")}`);
+  });
+
+  // ─── Helpers de formato ───────────────────────────────────────────────────────
+  function proxyImg(url: string | null | undefined): string | null {
+    if (!url) return null;
+    if (!url.startsWith("http")) return null;
+    return `${API_SELF}/api/manga/img-proxy?u=${encodeURIComponent(url)}`;
+  }
+
+  function pickCover(comic: any): string | null {
+    const rawUrl =
+      comic.cover_url ||
+      (Array.isArray(comic.md_covers) && comic.md_covers[0]?.b2key
+        ? `${COMICK_IMG}/${comic.md_covers[0].b2key}`
+        : null) ||
+      comic.image ||
+      null;
+    return proxyImg(rawUrl);
+  }
+
+  function comickStatusToText(status: number | string | undefined): string {
+    const map: Record<string, string> = { "1": "Ongoing", "2": "Completed", "3": "Cancelled", "4": "Hiatus" };
+    return map[String(status ?? "")] ?? String(status ?? "");
+  }
+
+  function formatComicResult(comic: any) {
+    return {
+      id: comic.slug ?? comic.hid ?? String(comic.id),
+      title: comic.title ?? comic.name ?? "Sin título",
+      image: pickCover(comic),
+      description: comic.desc ?? comic.description ?? "",
+      status: comickStatusToText(comic.status),
+      genres: (comic.genres ?? []).map((g: any) => g.name ?? g).filter(Boolean).slice(0, 6),
+      rating: comic.rating ? parseFloat(comic.rating) : null,
+    };
+  }
 
   // ─── Trending ─────────────────────────────────────────────────────────────────
   router.get("/manga/trending", async (req: Request, res: Response) => {
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
-    const offset = (page - 1) * 24;
-    const key = `trending:${page}`;
+    const key = `comick:trending:${page}`;
     const hit = cached(key);
     if (hit) { res.json(hit); return; }
     try {
-      const data = await mdxFetch("/manga", {
-        limit: "24",
-        offset: String(offset),
-        "order[followedCount]": "desc",
-        "includes[]": ["cover_art", "author"],
-        "contentRating[]": RATINGS,
-        "availableTranslatedLanguage[]": SPANISH_LANGS,
+      // ComicK top comics filtrado por español
+      const data = await comickFetch(`/top?lang=es&type=comic&page=${page}`);
+      // /top devuelve { rank: [{md_comics: {...}, ...}] }
+      const items: any[] = data?.rank ?? data?.results ?? data ?? [];
+      const mapped = items.map((item: any) => {
+        const comic = item.md_comics ?? item.comic ?? item;
+        return formatComicResult(comic);
       });
-      const results = (data.data ?? []).map(formatManga);
-      const result = { results, hasNextPage: offset + results.length < (data.total ?? 0), currentPage: page, total: data.total ?? 0 };
+      const result = {
+        results: mapped.filter((m: any) => m.id),
+        hasNextPage: mapped.length >= 20,
+        currentPage: page,
+        total: null,
+      };
       setCache(key, result);
       res.json(result);
-    } catch (err) {
-      req.log.error({ err }, "manga/trending failed");
-      res.status(500).json({ error: "Error cargando mangas populares" });
+    } catch (err: any) {
+      req.log.error({ err: err?.message }, "comick/trending failed");
+      // Fallback: buscar populares vía Consumet
+      try {
+        const data = await comicK.search("", page);
+        const results = (data.results ?? []).map((m: any) => ({
+          id: m.id,
+          title: typeof m.title === "string" ? m.title : m.title?.english ?? "Sin título",
+          image: proxyImg(m.image),
+          description: m.description ?? "",
+          status: String(m.status ?? ""),
+          genres: m.genres ?? [],
+          rating: m.rating ?? null,
+        }));
+        res.json({ results, hasNextPage: data.hasNextPage ?? false, currentPage: page, total: null });
+      } catch (err2: any) {
+        req.log.error({ err: err2?.message }, "comick/trending fallback failed");
+        res.status(500).json({ error: "Error cargando mangas populares" });
+      }
     }
   });
 
   // ─── Recent ───────────────────────────────────────────────────────────────────
   router.get("/manga/recent", async (req: Request, res: Response) => {
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
-    const offset = (page - 1) * 24;
-    const key = `recent:${page}`;
+    const key = `comick:recent:${page}`;
     const hit = cached(key);
     if (hit) { res.json(hit); return; }
     try {
-      const data = await mdxFetch("/manga", {
-        limit: "24",
-        offset: String(offset),
-        "order[latestUploadedChapter]": "desc",
-        "includes[]": ["cover_art", "author"],
-        "contentRating[]": RATINGS,
-        "availableTranslatedLanguage[]": SPANISH_LANGS,
-      });
-      const results = (data.data ?? []).map(formatManga);
-      const result = { results, hasNextPage: offset + results.length < (data.total ?? 0), currentPage: page, total: data.total ?? 0 };
+      // Buscar recientes por capítulos nuevos en español
+      const data = await comickFetch(`/v1.0/search?page=${page}&limit=24&type=comic&sort=uploaded&lang=es`);
+      const items: any[] = Array.isArray(data) ? data : (data.results ?? data.comics ?? []);
+      const result = {
+        results: items.map(formatComicResult).filter((m: any) => m.id),
+        hasNextPage: items.length >= 24,
+        currentPage: page,
+        total: null,
+      };
       setCache(key, result);
       res.json(result);
-    } catch (err) {
-      req.log.error({ err }, "manga/recent failed");
+    } catch (err: any) {
+      req.log.error({ err: err?.message }, "comick/recent failed");
       res.status(500).json({ error: "Error cargando mangas recientes" });
     }
   });
@@ -215,200 +193,163 @@ import { Router, type IRouter, type Request, type Response } from "express";
   router.get("/manga/search", async (req: Request, res: Response) => {
     const q = (req.query.q as string | undefined)?.trim();
     const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
-    const offset = (page - 1) * 20;
     if (!q) { res.status(400).json({ error: "'q' es requerido" }); return; }
-    const key = `search:${q}:${page}`;
+    const key = `comick:search:${q}:${page}`;
     const hit = cached(key);
     if (hit) { res.json(hit); return; }
     try {
-      const data = await mdxFetch("/manga", {
-        title: q,
-        limit: "20",
-        offset: String(offset),
-        "includes[]": ["cover_art", "author"],
-        "contentRating[]": RATINGS,
-        "availableTranslatedLanguage[]": SPANISH_LANGS,
-      });
-      let results = (data.data ?? []).map(formatManga);
-
-      // Si no hay resultados en español, buscar sin filtro de idioma
-      if (results.length === 0 && offset === 0) {
-        const fb = await mdxFetch("/manga", {
-          title: q,
-          limit: "20",
-          offset: "0",
-          "includes[]": ["cover_art", "author"],
-          "contentRating[]": RATINGS,
-        });
-        results = (fb.data ?? []).map(formatManga);
-        const result = { results, hasNextPage: results.length < (fb.total ?? 0), currentPage: page, total: fb.total ?? 0 };
-        setCache(key, result);
-        res.json(result);
-        return;
-      }
-
-      const result = { results, hasNextPage: offset + results.length < (data.total ?? 0), currentPage: page, total: data.total ?? 0 };
+      // Buscar primero con filtro español
+      const data = await comickFetch(`/v1.0/search?q=${encodeURIComponent(q)}&page=${page}&limit=20&type=comic`);
+      const items: any[] = Array.isArray(data) ? data : (data.results ?? data.comics ?? []);
+      const result = {
+        results: items.map(formatComicResult).filter((m: any) => m.id),
+        hasNextPage: items.length >= 20,
+        currentPage: page,
+        total: null,
+      };
       setCache(key, result);
       res.json(result);
-    } catch (err) {
-      req.log.error({ err, q }, "manga/search failed");
-      res.status(500).json({ error: "Error buscando manga" });
+    } catch (err: any) {
+      req.log.error({ err: err?.message, q }, "comick/search direct failed — trying Consumet");
+      try {
+        const data = await comicK.search(q, page);
+        const results = (data.results ?? []).map((m: any) => ({
+          id: m.id,
+          title: typeof m.title === "string" ? m.title : m.title?.english ?? "Sin título",
+          image: proxyImg(m.image),
+          description: m.description ?? "",
+          status: String(m.status ?? ""),
+          genres: m.genres ?? [],
+          rating: m.rating ?? null,
+        }));
+        res.json({ results, hasNextPage: data.hasNextPage ?? false, currentPage: page, total: null });
+      } catch (err2: any) {
+        req.log.error({ err: err2?.message, q }, "comick/search fallback failed");
+        res.status(500).json({ error: "Error buscando manga" });
+      }
     }
   });
 
   // ─── Manga info + chapters ────────────────────────────────────────────────────
   router.get("/manga/info/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
-    // La clave incluye el ID único de MangaDex — nunca habrá colisión entre mangas
-    const key = `info:v2:${id}`;
+    const key = `comick:info:v3:${id}`;
     const hit = cached(key);
     if (hit) { res.json(hit); return; }
     try {
-      const [mangaResp, chapterList] = await Promise.all([
-        mdxFetch(`/manga/${id}`, { "includes[]": ["cover_art", "author", "artist"] }),
-        fetchAllChapters(id),
+      // 1. Obtener info del comic (slug → hid)
+      const comicData = await comickFetch(`/comic/${encodeURIComponent(id)}`);
+      const comic = comicData.comic ?? comicData;
+      if (!comic?.hid && !comic?.id) {
+        res.status(404).json({ error: "Manga no encontrado" }); return;
+      }
+      const hid = comic.hid ?? String(comic.id);
+      const slug = comic.slug ?? id;
+
+      // 2. Traer capítulos en español (es + es-la), luego inglés para los que falten
+      const [esChaps, enChaps] = await Promise.allSettled([
+        fetchComickChapters(hid, "es"),
+        fetchComickChapters(hid, "en"),
       ]);
-      const manga = mangaResp.data;
-      if (!manga) { res.status(404).json({ error: "Manga no encontrado" }); return; }
-      const attrs = manga.attributes ?? {};
-      const coverRel = (manga.relationships ?? []).find((r: any) => r.type === "cover_art");
-      const authorRel = (manga.relationships ?? []).find((r: any) => r.type === "author");
-      const imageUrl = proxyCoverUrl(directCoverUrl(manga.id, coverRel));
+      const spanishChapters = esChaps.status === "fulfilled" ? esChaps.value : [];
+      const englishChapters = enChaps.status === "fulfilled" ? enChaps.value : [];
+
+      // Mezclar: español tiene prioridad, inglés rellena huecos
+      const byNum = new Map<string, any>();
+      for (const ch of englishChapters) {
+        const k = String(ch.chapterNumber ?? ch.id);
+        if (!byNum.has(k)) byNum.set(k, ch);
+      }
+      for (const ch of spanishChapters) {
+        const k = String(ch.chapterNumber ?? ch.id);
+        byNum.set(k, ch);  // sobreescribe inglés con español
+      }
+      const chapters = Array.from(byNum.values()).sort(
+        (a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0))
+      );
+
+      const coverImg = pickCover(comic) ?? pickCover(comicData);
       const result = {
-        id: manga.id,
-        title: pickTitle(attrs.title ?? {}),
-        image: imageUrl,
-        cover: imageUrl,
-        description: pickDesc(attrs.description ?? {}),
-        status: attrs.status,
-        genres: (attrs.tags ?? [])
-          .filter((t: any) => t.attributes?.group === "genre")
-          .map((t: any) => t.attributes?.name?.es ?? t.attributes?.name?.["es-la"] ?? t.attributes?.name?.en ?? "")
-          .filter(Boolean)
-          .slice(0, 8),
-        authors: [authorRel].filter(Boolean).map((r: any) => ({
-          id: r.id,
-          name: r.attributes?.name ?? "",
-        })),
-        chapters: chapterList,
+        id: slug,
+        title: comic.title ?? comic.name ?? "Sin título",
+        image: coverImg,
+        cover: coverImg,
+        description: comic.desc ?? comic.description ?? "",
+        status: comickStatusToText(comic.status),
+        genres: (comic.genres ?? comicData.genres ?? []).map((g: any) => g.name ?? g).filter(Boolean).slice(0, 8),
+        authors: (comicData.authors ?? []).map((a: any) => ({ id: String(a.id ?? ""), name: a.name ?? "" })),
+        chapters,
       };
       setCache(key, result);
       res.json(result);
-    } catch (err) {
-      req.log.error({ err, id }, "manga/info failed");
+    } catch (err: any) {
+      req.log.error({ err: err?.message, id }, "comick/info failed");
       res.status(500).json({ error: "Error cargando información del manga" });
     }
   });
 
-  // ─── Obtener capítulos: español + inglés mezclados ────────────────────────────
-  // Estrategia: traer TODOS los capítulos en español Y en inglés en paralelo,
-  // luego mezclar: usar español donde exista, inglés para los capítulos restantes.
-  // Así el usuario ve la lista COMPLETA con preferencia al español.
-  // Se excluyen capítulos con externalUrl (apuntan a otro sitio, 0 páginas siempre).
-  async function fetchAllChapters(mangaId: string) {
-    const [spanishRes, englishRes] = await Promise.allSettled([
-      fetchChaptersByLang(mangaId, SPANISH_LANGS),
-      fetchChaptersByLang(mangaId, ["en"]),
-    ]);
-
-    const spanish = spanishRes.status === "fulfilled" ? spanishRes.value : [];
-    const english = englishRes.status === "fulfilled" ? englishRes.value : [];
-
-    if (spanish.length === 0 && english.length === 0) return [];
-
-    // Mapa por número de capítulo — empieza con inglés, luego sobreescribe con español
-    const byNum = new Map<string, (typeof spanish)[0]>();
-
-    // 1. Agregar inglés como base
-    for (const ch of english) {
-      const k = String(ch.chapterNumber ?? ch.id);
-      if (!byNum.has(k)) byNum.set(k, ch);
-    }
-
-    // 2. Sobreescribir con español donde exista
-    for (const ch of spanish) {
-      const k = String(ch.chapterNumber ?? ch.id);
-      byNum.set(k, ch);
-    }
-
-    // Ordenar por número de capítulo ascendente
-    return Array.from(byNum.values()).sort((a, b) =>
-      parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0))
-    );
-  }
-
-  async function fetchChaptersByLang(mangaId: string, langs: string[]) {
+  async function fetchComickChapters(hid: string, lang: string) {
     const all: any[] = [];
-    let offset = 0;
-    const limit = 100;
-
-    while (all.length < 1000) {
-      const data = await mdxFetch(`/manga/${mangaId}/feed`, {
-        limit: String(limit),
-        offset: String(offset),
-        "translatedLanguage[]": langs,
-        "order[chapter]": "asc",
-        "contentRating[]": RATINGS,
-      });
-      const batch: any[] = data.data ?? [];
-
-      // Excluir capítulos externos (externalUrl != null → no tienen imágenes en MangaDex)
-      const valid = batch.filter((ch: any) => !ch.attributes?.externalUrl);
-      all.push(...valid);
-
-      if (batch.length < limit || all.length >= (data.total ?? 0)) break;
-      offset += limit;
+    let page = 1;
+    const limit = 300;
+    while (all.length < 3000) {
+      const data = await comickFetch(`/comic/${hid}/chapters?lang=${lang}&page=${page}&limit=${limit}`);
+      const batch: any[] = data.chapters ?? data ?? [];
+      all.push(...batch);
+      if (batch.length < limit) break;
+      page++;
     }
-
-    // Deduplicar por número de capítulo dentro del mismo idioma
+    // Deduplicar por número de capítulo
     const seen = new Set<string>();
     const deduped: any[] = [];
     for (const ch of all) {
-      const k = String(ch.attributes?.chapter ?? ch.id);
+      const k = String(ch.chap ?? ch.id);
       if (!seen.has(k)) { seen.add(k); deduped.push(ch); }
     }
-
     return deduped.map((ch: any) => ({
-      id: ch.id,
-      chapterNumber: ch.attributes?.chapter ?? null,
-      volumeNumber: ch.attributes?.volume ?? null,
-      title: ch.attributes?.title || null,
-      pages: ch.attributes?.pages ?? 0,
-      lang: ch.attributes?.translatedLanguage ?? langs[0],
-      releaseDate: ch.attributes?.publishAt ?? ch.attributes?.updatedAt ?? null,
+      id: ch.hid ?? ch.id,
+      chapterNumber: ch.chap ?? null,
+      volumeNumber: ch.vol ?? null,
+      title: ch.title || null,
+      pages: ch.page_count ?? ch.pages ?? 0,
+      lang,
+      releaseDate: ch.created_at ?? ch.updated_at ?? null,
     }));
   }
 
   // ─── Chapter pages ─────────────────────────────────────────────────────────────
   router.get("/manga/chapter/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
-    const key = `ch:${id}`;
+    const key = `comick:ch:${id}`;
     const hit = cached(key);
     if (hit) { res.json(hit); return; }
     try {
-      const data = await mdxFetch(`/at-home/server/${id}`);
-      const baseUrl: string = data.baseUrl;
-      const hash: string = data.chapter?.hash;
-      const files: string[] = data.chapter?.data ?? [];
-      const filesSaver: string[] = data.chapter?.dataSaver ?? [];
-
-      // Calidad normal primero, dataSaver como respaldo automático
-      const imagesToUse = files.length > 0 ? files : filesSaver;
-      const qualityPath = files.length > 0 ? "data" : "data-saver";
-
-      if (!baseUrl || !hash || imagesToUse.length === 0) {
+      // Intentar primero con API directa de ComicK
+      const data = await comickFetch(`/chapter/${encodeURIComponent(id)}`);
+      const images: any[] = data?.chapter?.images ?? data?.images ?? [];
+      if (images.length > 0) {
+        const result = images.map((img: any, i: number) => ({
+          img: proxyImg(`${COMICK_IMG}/${img.b2key ?? img.url}`) ?? `${COMICK_IMG}/${img.b2key ?? img.url}`,
+          page: i + 1,
+        }));
+        setCache(key, result);
+        res.json(result);
+        return;
+      }
+      // Fallback: usar Consumet
+      const pages = await comicK.fetchChapterPages(id);
+      if (!pages || pages.length === 0) {
         res.status(404).json({ error: "No se encontraron páginas para este capítulo." });
         return;
       }
-
-      const result = imagesToUse.map((f, i) => ({
-        img: `${API_SELF}/api/manga/image-proxy?u=${encodeURIComponent(`${baseUrl}/${qualityPath}/${hash}/${f}`)}`,
-        page: i + 1,
+      const result = pages.map((p: any, i: number) => ({
+        img: proxyImg(p.img) ?? p.img,
+        page: p.page ?? i + 1,
       }));
       setCache(key, result);
       res.json(result);
-    } catch (err) {
-      req.log.error({ err, id }, "manga/chapter failed");
+    } catch (err: any) {
+      req.log.error({ err: err?.message, id }, "comick/chapter failed");
       res.status(500).json({ error: "Error cargando páginas del capítulo" });
     }
   });
