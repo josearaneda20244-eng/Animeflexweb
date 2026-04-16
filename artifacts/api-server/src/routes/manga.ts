@@ -7,13 +7,14 @@ const router: IRouter = Router();
 const MDX = "https://api.mangadex.org";
 const CDN = "https://uploads.mangadex.org";
 
-// Absolute base URL of THIS server — used to build proxy URLs that the browser
-// will request. Prefer an env var; fall back to the known Railway deployment URL.
 const API_SELF = (
   process.env.API_BASE_URL ?? "https://animeflex-api-production.up.railway.app"
 ).replace(/\/$/, "");
 
 const RATINGS = ["safe", "suggestive", "erotica"];
+
+// Español europeo + español latinoamericano — ambos juntos en cada petición
+const SPANISH_LANGS = ["es", "es-la"];
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
 const cache = new Map<string, { data: unknown; ts: number }>();
@@ -61,8 +62,6 @@ function directCoverUrl(mangaId: string, rel: any): string | null {
   return `${CDN}/covers/${mangaId}/${fileName}.512.jpg`;
 }
 
-/** Returns a proxied cover URL so the browser never hits MangaDex CDN directly.
- *  Avoids hotlink-blocking by having the server add the correct Referer. */
 function proxyCoverUrl(directUrl: string | null): string | null {
   if (!directUrl) return null;
   return `${API_SELF}/api/manga/cover-proxy?u=${encodeURIComponent(directUrl)}`;
@@ -70,10 +69,12 @@ function proxyCoverUrl(directUrl: string | null): string | null {
 
 // ─── Format helpers ───────────────────────────────────────────────────────────
 function pickTitle(title: Record<string, string>): string {
+  // Preferir español antes que inglés
   return (
+    title?.es ||
+    title?.["es-la"] ||
     title?.en ||
     title?.["ja-ro"] ||
-    title?.es ||
     title?.["zh-ro"] ||
     Object.values(title ?? {})[0] ||
     "Sin título"
@@ -81,8 +82,10 @@ function pickTitle(title: Record<string, string>): string {
 }
 
 function pickDesc(description: Record<string, string>): string {
+  // Preferir descripción en español
   return (
     description?.es ||
+    description?.["es-la"] ||
     description?.en ||
     Object.values(description ?? {})[0] ||
     ""
@@ -96,7 +99,7 @@ function formatManga(manga: any) {
   const image = proxyCoverUrl(directCoverUrl(manga.id, coverRel));
   const genres = (attrs.tags ?? [])
     .filter((t: any) => t.attributes?.group === "genre")
-    .map((t: any) => t.attributes?.name?.en ?? "")
+    .map((t: any) => t.attributes?.name?.es ?? t.attributes?.name?.en ?? "")
     .filter(Boolean)
     .slice(0, 6);
   return {
@@ -111,15 +114,12 @@ function formatManga(manga: any) {
 }
 
 // ─── Cover proxy ──────────────────────────────────────────────────────────────
-// Fetches cover images from MangaDex CDN server-side, adding the required
-// Referer header so the CDN doesn't block the request.
 router.get("/manga/cover-proxy", async (req: Request, res: Response) => {
   const u = req.query.u as string | undefined;
   if (!u || !u.startsWith("https://")) {
     res.status(400).end();
     return;
   }
-  // Only proxy MangaDex CDN domains
   let host: string;
   try { host = new URL(u).hostname; } catch { res.status(400).end(); return; }
   if (!host.endsWith("mangadex.org") && !host.endsWith("mangadex.network")) {
@@ -152,7 +152,6 @@ router.get("/manga/cover-proxy", async (req: Request, res: Response) => {
 });
 
 // ─── Chapter image proxy ──────────────────────────────────────────────────────
-// Proxies MangaDex at-home chapter page images, adding mangadex.org Referer.
 router.get("/manga/image-proxy", async (req: Request, res: Response) => {
   const u = req.query.u as string | undefined;
   if (!u || !u.startsWith("https://")) { res.status(400).end(); return; }
@@ -185,6 +184,7 @@ router.get("/manga/image-proxy", async (req: Request, res: Response) => {
 });
 
 // ─── Trending ─────────────────────────────────────────────────────────────────
+// Solo muestra manga que SÍ tienen capítulos en español (es o es-la)
 router.get("/manga/trending", async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
   const offset = (page - 1) * 24;
@@ -198,6 +198,8 @@ router.get("/manga/trending", async (req: Request, res: Response) => {
       "order[followedCount]": "desc",
       "includes[]": ["cover_art", "author"],
       "contentRating[]": RATINGS,
+      // Filtrar solo manga con traducciones en español disponibles
+      "availableTranslatedLanguage[]": SPANISH_LANGS,
     });
     const results = (data.data ?? []).map(formatManga);
     const result = {
@@ -215,6 +217,7 @@ router.get("/manga/trending", async (req: Request, res: Response) => {
 });
 
 // ─── Recent ───────────────────────────────────────────────────────────────────
+// Solo muestra manga que SÍ tienen capítulos en español (es o es-la)
 router.get("/manga/recent", async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt((req.query.page as string) ?? "1") || 1);
   const offset = (page - 1) * 24;
@@ -228,6 +231,8 @@ router.get("/manga/recent", async (req: Request, res: Response) => {
       "order[latestUploadedChapter]": "desc",
       "includes[]": ["cover_art", "author"],
       "contentRating[]": RATINGS,
+      // Filtrar solo manga con traducciones en español disponibles
+      "availableTranslatedLanguage[]": SPANISH_LANGS,
     });
     const results = (data.data ?? []).map(formatManga);
     const result = {
@@ -254,14 +259,38 @@ router.get("/manga/search", async (req: Request, res: Response) => {
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
+    // Primero buscar con filtro de español
     const data = await mdxFetch("/manga", {
       title: q,
       limit: "20",
       offset: String(offset),
       "includes[]": ["cover_art", "author"],
       "contentRating[]": RATINGS,
+      "availableTranslatedLanguage[]": SPANISH_LANGS,
     });
-    const results = (data.data ?? []).map(formatManga);
+    let results = (data.data ?? []).map(formatManga);
+
+    // Si no hay resultados en español, buscar sin filtro de idioma como fallback
+    if (results.length === 0 && offset === 0) {
+      const dataFallback = await mdxFetch("/manga", {
+        title: q,
+        limit: "20",
+        offset: "0",
+        "includes[]": ["cover_art", "author"],
+        "contentRating[]": RATINGS,
+      });
+      results = (dataFallback.data ?? []).map(formatManga);
+      const result = {
+        results,
+        hasNextPage: results.length < (dataFallback.total ?? 0),
+        currentPage: page,
+        total: dataFallback.total ?? 0,
+      };
+      setCache(key, result);
+      res.json(result);
+      return;
+    }
+
     const result = {
       results,
       hasNextPage: offset + results.length < (data.total ?? 0),
@@ -302,7 +331,7 @@ router.get("/manga/info/:id", async (req: Request, res: Response) => {
       status: attrs.status,
       genres: (attrs.tags ?? [])
         .filter((t: any) => t.attributes?.group === "genre")
-        .map((t: any) => t.attributes?.name?.en ?? "")
+        .map((t: any) => t.attributes?.name?.es ?? t.attributes?.name?.["es-la"] ?? t.attributes?.name?.en ?? "")
         .filter(Boolean)
         .slice(0, 8),
       authors: [authorRel].filter(Boolean).map((r: any) => ({
@@ -319,54 +348,99 @@ router.get("/manga/info/:id", async (req: Request, res: Response) => {
   }
 });
 
+// ─── Obtener capítulos en español ─────────────────────────────────────────────
+// Pide es + es-la juntos en una sola llamada. Si no hay nada en español,
+// intenta inglés como último recurso.
 async function fetchMangaChapters(mangaId: string) {
-  // Try Spanish first, then English — stop as soon as we find chapters
-  const langs = ["es", "en"];
-  for (const lang of langs) {
-    try {
-      const all: any[] = [];
-      let offset = 0;
-      const limit = 100;
-      // Cap at 600 chapters to avoid timeout
-      while (all.length < 600) {
-        const data = await mdxFetch(`/manga/${mangaId}/feed`, {
-          limit: String(limit),
-          offset: String(offset),
-          "translatedLanguage[]": [lang],
-          "order[chapter]": "asc",
-          "contentRating[]": RATINGS,
-          "includes[]": ["scanlation_group"],
-        });
-        const batch: any[] = data.data ?? [];
-        all.push(...batch);
-        if (batch.length < limit || all.length >= (data.total ?? 0)) break;
-        offset += limit;
-      }
-      // Map chapters — do NOT filter by pages count because MangaDex frequently
-      // stores pages:0 even when chapters have actual content. Let the at-home
-      // server be the source of truth for page availability.
-      const mapped = all.map((ch: any) => ({
-        id: ch.id,
-        chapterNumber: ch.attributes?.chapter ?? null,
-        volumeNumber: ch.attributes?.volume ?? null,
-        title: ch.attributes?.title || null,
-        pages: ch.attributes?.pages ?? 0,
-        lang: ch.attributes?.translatedLanguage ?? lang,
-        releaseDate: ch.attributes?.publishAt ?? ch.attributes?.updatedAt ?? null,
-      }));
-      // Deduplicate by chapter number — keep first upload per chapter to avoid
-      // showing the same chapter multiple times from different scanlation groups.
-      const seen = new Set<string>();
-      const chapters = mapped.filter(ch => {
-        const key = ch.chapterNumber ?? ch.id;
-        if (seen.has(String(key))) return false;
-        seen.add(String(key));
-        return true;
+  // Intentar ambos dialectos de español en una sola petición
+  try {
+    const all: any[] = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (all.length < 600) {
+      const data = await mdxFetch(`/manga/${mangaId}/feed`, {
+        limit: String(limit),
+        offset: String(offset),
+        // Ambos dialectos de español en una sola petición
+        "translatedLanguage[]": SPANISH_LANGS,
+        "order[chapter]": "asc",
+        "contentRating[]": RATINGS,
+        "includes[]": ["scanlation_group"],
       });
-      if (chapters.length > 0) return chapters;
-    } catch { /* try next lang */ }
+      const batch: any[] = data.data ?? [];
+      all.push(...batch);
+      if (batch.length < limit || all.length >= (data.total ?? 0)) break;
+      offset += limit;
+    }
+
+    if (all.length > 0) {
+      return deduplicateChapters(all);
+    }
+  } catch {
+    // seguimos al fallback
   }
+
+  // Fallback en inglés si no hay nada en español
+  try {
+    const all: any[] = [];
+    let offset = 0;
+    const limit = 100;
+
+    while (all.length < 600) {
+      const data = await mdxFetch(`/manga/${mangaId}/feed`, {
+        limit: String(limit),
+        offset: String(offset),
+        "translatedLanguage[]": ["en"],
+        "order[chapter]": "asc",
+        "contentRating[]": RATINGS,
+        "includes[]": ["scanlation_group"],
+      });
+      const batch: any[] = data.data ?? [];
+      all.push(...batch);
+      if (batch.length < limit || all.length >= (data.total ?? 0)) break;
+      offset += limit;
+    }
+
+    if (all.length > 0) {
+      return deduplicateChapters(all);
+    }
+  } catch { /* sin capítulos */ }
+
   return [];
+}
+
+function deduplicateChapters(chapters: any[]) {
+  const mapped = chapters.map((ch: any) => ({
+    id: ch.id,
+    chapterNumber: ch.attributes?.chapter ?? null,
+    volumeNumber: ch.attributes?.volume ?? null,
+    title: ch.attributes?.title || null,
+    pages: ch.attributes?.pages ?? 0,
+    lang: ch.attributes?.translatedLanguage ?? "",
+    releaseDate: ch.attributes?.publishAt ?? ch.attributes?.updatedAt ?? null,
+  }));
+
+  // Deduplicar por número de capítulo.
+  // Si hay versión en español (es/es-la) Y en inglés para el mismo número,
+  // preferir siempre la española.
+  const byNumber = new Map<string, typeof mapped[0]>();
+  for (const ch of mapped) {
+    const key = String(ch.chapterNumber ?? ch.id);
+    const existing = byNumber.get(key);
+    if (!existing) {
+      byNumber.set(key, ch);
+    } else {
+      // Preferir español sobre inglés
+      const chIsSpanish = SPANISH_LANGS.includes(ch.lang);
+      const existingIsSpanish = SPANISH_LANGS.includes(existing.lang);
+      if (chIsSpanish && !existingIsSpanish) {
+        byNumber.set(key, ch);
+      }
+    }
+  }
+
+  return Array.from(byNumber.values());
 }
 
 // ─── Chapter pages ─────────────────────────────────────────────────────────────
@@ -380,13 +454,19 @@ router.get("/manga/chapter/:id", async (req: Request, res: Response) => {
     const baseUrl: string = data.baseUrl;
     const hash: string = data.chapter?.hash;
     const files: string[] = data.chapter?.data ?? [];
-    if (!baseUrl || !hash || !files.length) {
+    const filesSaver: string[] = data.chapter?.dataSaver ?? [];
+
+    // Intentar primero calidad normal, luego dataSaver como respaldo
+    const imagesToUse = files.length > 0 ? files : filesSaver;
+    const qualityPath = files.length > 0 ? "data" : "data-saver";
+
+    if (!baseUrl || !hash || imagesToUse.length === 0) {
       res.status(404).json({ error: "No se encontraron páginas para este capítulo." });
       return;
     }
-    // Proxy ALL chapter images through our server so the CDN Referer is correct
-    const result = files.map((f, i) => ({
-      img: `${API_SELF}/api/manga/image-proxy?u=${encodeURIComponent(`${baseUrl}/data/${hash}/${f}`)}`,
+
+    const result = imagesToUse.map((f, i) => ({
+      img: `${API_SELF}/api/manga/image-proxy?u=${encodeURIComponent(`${baseUrl}/${qualityPath}/${hash}/${f}`)}`,
       page: i + 1,
     }));
     setCache(key, result);
