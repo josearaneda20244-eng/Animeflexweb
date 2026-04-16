@@ -544,15 +544,44 @@ router.get("/anime/popular", async (req, res) => {
 });
 
 router.get("/anime/recent", async (req, res) => {
-  try {
-    const data = await getAnilist().fetchRecentEpisodes(undefined, 1, 28);
-    const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
-    res.json({ currentPage: data.currentPage, hasNextPage: data.hasNextPage, results });
-  } catch (err) {
-    req.log.error({ err }, "Failed to fetch recent episodes");
-    res.status(500).json({ error: "Failed to fetch recent episodes" });
-  }
-});
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      const weekAgo = now - 7 * 24 * 60 * 60;
+      const gqlResp = await fetch("https://graphql.anilist.co", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `query($from:Int,$to:Int){Page(page:1,perPage:28){airingSchedules(airingAt_greater:$from,airingAt_lesser:$to,sort:[TIME_DESC]){episode airingAt media{id title{romaji english userPreferred}coverImage{extraLarge large}format status episodes averageScore genres type}}}}`,
+          variables: { from: weekAgo, to: now },
+        }),
+      });
+      if (!gqlResp.ok) throw new Error("AniList " + gqlResp.status);
+      const gql: any = await gqlResp.json();
+      const schedules: any[] = gql.data?.Page?.airingSchedules ?? [];
+      const seen = new Set<string>();
+      const results: any[] = [];
+      for (const s of schedules) {
+        const m = s.media;
+        if (!m || !isAnimeFormat(m.type) || seen.has(String(m.id))) continue;
+        seen.add(String(m.id));
+        results.push({
+          id: String(m.id),
+          title: m.title,
+          image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
+          currentEpisode: s.episode,
+          type: m.format ?? m.type ?? "TV",
+          status: m.status ?? "",
+          totalEpisodes: m.episodes ?? 0,
+          rating: m.averageScore ?? 0,
+          genres: m.genres ?? [],
+        });
+      }
+      res.json({ currentPage: 1, hasNextPage: false, results });
+    } catch (err) {
+      req.log.error({ err }, "Failed to fetch recent episodes");
+      res.status(500).json({ error: "Failed to fetch recent episodes" });
+    }
+  });
 
 router.get("/anime/search", async (req, res) => {
   const query = req.query.q as string;
