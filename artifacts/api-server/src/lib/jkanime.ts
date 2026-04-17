@@ -38,8 +38,36 @@ function slugify(title: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function extractSeasonNumber(title: string): number | null {
+  const match =
+    title.match(/\b(\d+)(?:st|nd|rd|th)?\s+season\b/i) ??
+    title.match(/\bseason\s+(\d+)\b/i);
+  return match?.[1] ? parseInt(match[1], 10) : null;
+}
+
+function hasSpecificSeasonIntent(title: string): boolean {
+  return (
+    (extractSeasonNumber(title) ?? 1) > 1 ||
+    /\b(part|cour)\s+\d+\b/i.test(title) ||
+    /\b(second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+year\b/i.test(title) ||
+    /:\s*\S.+/.test(title)
+  );
+}
+
 function makeSlugs(title: string): string[] {
   const variants: string[] = [slugify(title)];
+  const specificSeasonIntent = hasSpecificSeasonIntent(title);
+
+  const noPunct = slugify(title.replace(/[!?]/g, "").trim());
+  if (noPunct !== variants[0] && !variants.includes(noPunct)) variants.push(noPunct);
+
+  if (specificSeasonIntent) {
+    const noYear = title.replace(/\s*\(\d{4}\)\s*$/g, "").trim();
+    if (noYear !== title) variants.push(slugify(noYear));
+    const noColon = title.split(":")[0].trim();
+    if (noColon !== title && hasSpecificSeasonIntent(noColon)) variants.push(slugify(noColon));
+    return [...new Set(variants)];
+  }
 
   const noSeason = title.replace(/\s*:?\s*Season\s+\d+\s*$/i, "").trim();
   if (noSeason !== title) variants.push(slugify(noSeason));

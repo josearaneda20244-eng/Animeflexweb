@@ -100,3 +100,4 @@ UPDATE users SET role='owner' WHERE email='josearaneda20244@gmail.com';
 - El frontend inicia fuentes alternativas automáticamente en los últimos episodios o cuando AnimeKai empieza a reintentar, para reducir el bloqueo en capítulos recién publicados.
 - El reproductor cambia automáticamente a la siguiente fuente cuando una fuente HLS falla o tarda demasiado, manteniendo AnimeKai como prioridad.
 - Los rangos del panel de episodios ahora muestran exactamente la misma tanda visible (por ejemplo, Ep. 101-124 si se listan 24 por página).
+- La resolución de reproducción ahora rechaza coincidencias genéricas cuando el título solicita una temporada/parte específica, evitando que secuelas como Classroom of the Elite 4th Season reproduzcan temporadas anteriores.

@@ -96,29 +96,108 @@ function getAnilistWithKai() {
 
 function titleVariants(title: string): string[] {
   const variants: string[] = [title];
+  const specificSeasonIntent = hasSpecificSeasonIntent(title);
+  const colonIdx = title.indexOf(":");
+  if (specificSeasonIntent && colonIdx > 0) {
+    const beforeColon = title.slice(0, colonIdx).trim();
+    if (beforeColon && !variants.includes(beforeColon)) variants.push(beforeColon);
+  }
+  const noPunct = title.replace(/[!?]/g, "").trim();
+  if (noPunct !== title && !variants.includes(noPunct)) variants.push(noPunct);
+  if (specificSeasonIntent) return [...new Set(variants)];
   const noPart = title.replace(/[\s:,\-–]+Part\s+\d+\s*$/i, "").trim();
   if (noPart !== title) variants.push(noPart);
   const noSeason = title
     .replace(/[\s:,\-–]+(Season\s+\d+|\d+(st|nd|rd|th)\s+Season)\s*$/i, "")
     .trim();
   if (noSeason !== title && noSeason !== noPart) variants.push(noSeason);
-  const colonIdx = title.indexOf(":");
   if (colonIdx > 0) {
     const beforeColon = title.slice(0, colonIdx).trim();
     if (!variants.includes(beforeColon)) variants.push(beforeColon);
   }
-  // Remove exclamation marks and punctuation (e.g. "Sword Art Online!" → "Sword Art Online")
-  const noPunct = title.replace(/[!?]/g, "").trim();
-  if (noPunct !== title && !variants.includes(noPunct)) variants.push(noPunct);
-  // Try fewer words for partial title matching
   const words3 = title.split(" ").slice(0, 3).join(" ");
   if (!variants.includes(words3) && words3.length > 3) variants.push(words3);
   const words4 = title.split(" ").slice(0, 4).join(" ");
   if (!variants.includes(words4) && words4.length > 3) variants.push(words4);
-  // First word only for single-word queries
   const firstWord = title.split(/[\s:]/)[0].trim();
   if (firstWord.length >= 4 && !variants.includes(firstWord)) variants.push(firstWord);
   return [...new Set(variants)];
+}
+
+function normalizeComparableTitle(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractSeasonNumber(title: string): number | null {
+  const match =
+    title.match(/\b(\d+)(?:st|nd|rd|th)?\s+season\b/i) ??
+    title.match(/\bseason\s+(\d+)\b/i);
+  return match?.[1] ? parseInt(match[1], 10) : null;
+}
+
+function hasSpecificSeasonIntent(title: string): boolean {
+  return (
+    (extractSeasonNumber(title) ?? 1) > 1 ||
+    /\b(part|cour)\s+\d+\b/i.test(title) ||
+    /\b(second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+year\b/i.test(title) ||
+    /:\s*\S.+/.test(title)
+  );
+}
+
+function getAllTitleTexts(title: unknown): string[] {
+  if (!title) return [];
+  if (typeof title === "string") return [title];
+  const t = title as { english?: string; romaji?: string; userPreferred?: string; native?: string };
+  return [t.english, t.romaji, t.userPreferred, t.native].filter((v): v is string => !!v);
+}
+
+function titleMatchesRequestedSeason(requestedTitle: string, candidateTitles: unknown): boolean {
+  const requested = normalizeComparableTitle(requestedTitle);
+  const candidates = getAllTitleTexts(candidateTitles);
+  if (candidates.length === 0) return !hasSpecificSeasonIntent(requestedTitle);
+
+  const requestedSeason = extractSeasonNumber(requestedTitle);
+  const colonSuffix = requestedTitle.includes(":")
+    ? normalizeComparableTitle(requestedTitle.split(":").slice(1).join(" "))
+    : "";
+  const suffixTokens = colonSuffix.split(" ").filter((w) => w.length > 2);
+
+  for (const candidateTitle of candidates) {
+    const candidate = normalizeComparableTitle(candidateTitle);
+    if (!candidate) continue;
+    if (candidate === requested) return true;
+
+    if (hasSpecificSeasonIntent(requestedTitle)) {
+      const candidateSeason = extractSeasonNumber(candidateTitle);
+      if (requestedSeason && requestedSeason > 1) {
+        const sameSeason =
+          candidateSeason === requestedSeason ||
+          new RegExp(`\\b${requestedSeason}\\b`).test(candidate) ||
+          new RegExp(`\\b${requestedSeason}(st|nd|rd|th)\\b`).test(candidate);
+        if (!sameSeason) continue;
+        return true;
+      }
+      if (suffixTokens.length > 0) {
+        const commonSuffixTokens = suffixTokens.filter((token) => candidate.includes(token)).length;
+        const required = Math.min(3, Math.ceil(suffixTokens.length / 2));
+        if (commonSuffixTokens < required && computeTitleSimilarity(candidate, requested) < 0.78) continue;
+      }
+      if (computeTitleSimilarity(candidate, requested) >= 0.5) return true;
+      if (requestedSeason && candidate.includes(`${requestedSeason}`)) return true;
+      continue;
+    }
+
+    if (computeTitleSimilarity(candidate, requested) >= 0.5) return true;
+  }
+
+  return false;
 }
 
 const DEFAULT_UA =
@@ -793,9 +872,8 @@ router.get("/anime/info", async (req, res) => {
  */
 function computeTitleSimilarity(a: string, b: string): number {
   if (!a || !b) return 0;
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
-  const na = norm(a);
-  const nb = norm(b);
+  const na = normalizeComparableTitle(a);
+  const nb = normalizeComparableTitle(b);
   if (na === nb) return 1;
   if (na.includes(nb) || nb.includes(na)) return 0.85;
   const wa = na.split(/\s+/);
@@ -820,7 +898,7 @@ async function fetchAnilistBasicMeta(anilistId: string): Promise<{
       body: JSON.stringify({
         query: `query ($id: Int) {
           Media(id: $id, type: ANIME) {
-            title { romaji english native }
+            title { romaji english native userPreferred }
             episodes
             nextAiringEpisode { episode }
             streamingEpisodes { title thumbnail }
@@ -917,7 +995,7 @@ router.get("/anime/episodes", async (req, res) => {
       const anilistCount = (meta.episodes ?? (meta.nextAiringEpisode?.episode != null ? meta.nextAiringEpisode.episode - 1 : null)) ?? 0;
       const kaiCount = (kai.episodes as any[])?.length ?? 0;
       const countOk = anilistCount === 0 || kaiCount === 0 || kaiCount <= anilistCount * 2;
-      useKai = score >= 0.5 && countOk;
+      useKai = score >= 0.5 && countOk && titleMatchesRequestedSeason(anilistTitle, kai.title);
     } else if (kai && !meta) {
       useKai = true;
     }
@@ -1115,10 +1193,12 @@ router.get("/anime/info-by-title", async (req, res) => {
   for (const variant of variants) {
     try {
       const searchResults = await getAnimeKai().search(variant);
-      const first = searchResults.results?.[0];
-      if (first?.id) {
-        const data = await getAnimeKai().fetchAnimeInfo(first.id as string);
-        req.log.info({ variant, id: first.id }, "Found anime info on AnimeKai");
+      const candidates = (searchResults.results ?? []).slice(0, 5);
+      for (const candidate of candidates) {
+        if (!candidate?.id) continue;
+        const data = await getAnimeKai().fetchAnimeInfo(candidate.id as string);
+        if (!titleMatchesRequestedSeason(title, data.title ?? candidate.title)) continue;
+        req.log.info({ variant, id: candidate.id }, "Found anime info on AnimeKai");
         res.json(data);
         return;
       }
@@ -1229,6 +1309,7 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
     for (const candidateAnilistId of anilistCandidates) {
       try {
         const info = await retryFetch(() => getAnilistWithKai().fetchAnimeInfo(candidateAnilistId), 2, 500) as any;
+        if (animeTitle && !titleMatchesRequestedSeason(animeTitle, info?.title)) continue;
         const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
         if (!ep?.id) continue;
         const data = await fetchAnimeKaiSources(ep.id as string);
@@ -1252,6 +1333,7 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
           if (!candidate?.id) continue;
           try {
             const info = await retryFetch(() => getAnimeKai().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
+            if (!titleMatchesRequestedSeason(animeTitle, info?.title ?? candidate.title)) continue;
             const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
             if (!ep?.id) continue;
             const data = await fetchAnimeKaiSources(ep.id as string);
@@ -1289,6 +1371,7 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
           if (!candidate?.id) continue;
           let info: any;
           try { info = await infoFetcher(String(candidate.id)); } catch { continue; }
+          if (!titleMatchesRequestedSeason(animeTitle, info?.title ?? candidate.title)) continue;
           const ep = (info?.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
           if (!ep?.id) continue;
           try {
@@ -1328,7 +1411,7 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
       if (animeId && /^\d+$/.test(animeId)) {
         try { extraTitles = await fetchAnilistTitles(animeId); } catch {}
       }
-      const jkData = await getJkAnimeWatch(animeTitle, parseInt(episodeNum, 10), extraTitles);
+      const jkData = await getJkAnimeWatch(animeTitle, parseInt(episodeNum, 10), extraTitles, animeId);
       const playable = (jkData?.sources ?? []).filter(
         (s: any) => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8"))
       );
@@ -1648,7 +1731,7 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
       // Exclude the already-provided title to avoid duplicates
       extraTitles = anilistTitles.filter(t => t.toLowerCase().trim() !== title.toLowerCase().trim());
     }
-    const data = await getJkAnimeWatch(title, episode, extraTitles);
+    const data = await getJkAnimeWatch(title, episode, extraTitles, animeId);
     res.json(data);
   } catch (err) {
     req.log.warn({ err, title, episode, animeId }, "JKAnime (LAT/español) watch failed");
