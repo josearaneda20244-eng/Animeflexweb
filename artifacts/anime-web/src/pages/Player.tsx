@@ -363,9 +363,9 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         manifestLoadingTimeOut: 20000,
         levelLoadingTimeOut: 20000,
         maxBufferHole: 2,
-        fragLoadingRetry: 6,
+        fragLoadingMaxRetry: 6,
         fragLoadingRetryDelay: 1000,
-        levelLoadingRetry: 4,
+        levelLoadingMaxRetry: 4,
         levelLoadingRetryDelay: 1000,
       });
       hlsRef.current = hls;
