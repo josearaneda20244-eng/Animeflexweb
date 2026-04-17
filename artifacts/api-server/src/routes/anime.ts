@@ -788,9 +788,99 @@ router.get("/anime/info", async (req, res) => {
 });
 
 /**
+ * Compute a rough title similarity score between two strings (0–1).
+ * Used to detect when AnimeKai maps an AniList ID to the wrong anime.
+ */
+function computeTitleSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+  const na = norm(a);
+  const nb = norm(b);
+  if (na === nb) return 1;
+  if (na.includes(nb) || nb.includes(na)) return 0.85;
+  const wa = na.split(/\s+/);
+  const wb = nb.split(/\s+/);
+  const common = wa.filter(w => w.length > 1 && wb.includes(w)).length;
+  return common / Math.max(wa.length, wb.length);
+}
+
+/**
+ * Fetch minimal AniList metadata: titles, episode count, streaming episodes.
+ */
+async function fetchAnilistBasicMeta(anilistId: string): Promise<{
+  title: { romaji?: string; english?: string; native?: string };
+  episodes: number | null;
+  nextAiringEpisode: { episode: number } | null;
+  streamingEpisodes: Array<{ title?: string; thumbnail?: string }>;
+} | null> {
+  try {
+    const resp = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        query: `query ($id: Int) {
+          Media(id: $id, type: ANIME) {
+            title { romaji english native }
+            episodes
+            nextAiringEpisode { episode }
+            streamingEpisodes { title thumbnail }
+          }
+        }`,
+        variables: { id: parseInt(anilistId, 10) },
+      }),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json() as any;
+    const m = json?.data?.Media;
+    if (!m) return null;
+    return {
+      title: m.title ?? {},
+      episodes: m.episodes ?? null,
+      nextAiringEpisode: m.nextAiringEpisode ?? null,
+      streamingEpisodes: m.streamingEpisodes ?? [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build a numbered episode list from AniList metadata.
+ * IDs use the stable format "{anilistId}-episode-{num}" so they match
+ * what /anime/anilist-info produces.
+ */
+function buildEpisodesFromAnilistMeta(
+  anilistId: string,
+  meta: Awaited<ReturnType<typeof fetchAnilistBasicMeta>>,
+): Array<{ id: string; number: number; title: string; image: string | null }> {
+  if (!meta) return [];
+  const airedCount =
+    meta.nextAiringEpisode?.episode != null
+      ? Math.max(0, meta.nextAiringEpisode.episode - 1)
+      : null;
+  const count = meta.episodes ?? airedCount ?? meta.streamingEpisodes.length ?? 0;
+  return Array.from({ length: count }, (_, i) => {
+    const num = i + 1;
+    const streaming = meta.streamingEpisodes.find((e) => {
+      const m = e.title?.match(/Episode\s+(\d+)/i);
+      return m ? parseInt(m[1]) === num : false;
+    });
+    return {
+      id: `${anilistId}-episode-${num}`,
+      number: num,
+      title: streaming?.title ?? `Episodio ${num}`,
+      image: streaming?.thumbnail ?? null,
+    };
+  });
+}
+
+/**
  * Fetch episodes for an anime using its AniList ID.
- * Uses META.Anilist(AnimeKai) which maps AniList IDs to AnimeKai slugs,
- * giving access to the full AnimeKai library without title-based search.
+ * Tries AnimeKai first (via META.Anilist wrapper) for richer metadata.
+ * Validates the returned anime title against AniList's canonical title —
+ * if AnimeKai maps the ID to the wrong anime (title mismatch), we fall back
+ * to building a numbered episode list directly from AniList data so the
+ * player always shows the correct anime's episodes.
  */
 router.get("/anime/episodes", async (req, res) => {
   const anilistId = req.query.anilistId as string;
@@ -799,10 +889,53 @@ router.get("/anime/episodes", async (req, res) => {
     return;
   }
   try {
-    const data = await getAnilistWithKai().fetchAnimeInfo(anilistId);
-    res.json(data);
+    // Fetch AniList canonical metadata in parallel with AnimeKai
+    const [anilistMeta, kaiData] = await Promise.allSettled([
+      fetchAnilistBasicMeta(anilistId),
+      getAnilistWithKai().fetchAnimeInfo(anilistId),
+    ]);
+
+    const meta = anilistMeta.status === "fulfilled" ? anilistMeta.value : null;
+    const kai = kaiData.status === "fulfilled" ? kaiData.value : null;
+
+    if (!kai && !meta) {
+      res.status(500).json({ error: "Failed to fetch episode list" });
+      return;
+    }
+
+    // Determine whether AnimeKai returned the correct anime by comparing titles
+    let useKai = false;
+    if (kai && meta) {
+      const kaiTitle =
+        (typeof kai.title === "string"
+          ? kai.title
+          : (kai.title as any)?.english || (kai.title as any)?.romaji || "") as string;
+      const anilistTitle = meta.title?.english || meta.title?.romaji || "";
+      const score = computeTitleSimilarity(kaiTitle, anilistTitle);
+      // Also sanity-check episode count: if AnimeKai returned way more episodes
+      // than AniList knows about, it found a different (longer) anime.
+      const anilistCount = (meta.episodes ?? (meta.nextAiringEpisode?.episode != null ? meta.nextAiringEpisode.episode - 1 : null)) ?? 0;
+      const kaiCount = (kai.episodes as any[])?.length ?? 0;
+      const countOk = anilistCount === 0 || kaiCount === 0 || kaiCount <= anilistCount * 2;
+      useKai = score >= 0.5 && countOk;
+    } else if (kai && !meta) {
+      useKai = true;
+    }
+
+    if (useKai) {
+      res.json(kai);
+    } else {
+      // AnimeKai mapped the wrong anime — build episodes from AniList directly
+      const episodes = buildEpisodesFromAnilistMeta(anilistId, meta);
+      res.json({
+        id: anilistId,
+        title: meta?.title ?? {},
+        episodes,
+        totalEpisodes: episodes.length,
+      });
+    }
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch episodes via AniList+AnimeKai");
+    req.log.error({ err }, "Failed to fetch episodes");
     res.status(500).json({ error: "Failed to fetch episode list" });
   }
 });
