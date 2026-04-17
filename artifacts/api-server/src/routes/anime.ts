@@ -1712,15 +1712,17 @@ async function fetchAnilistTitles(anilistId: string): Promise<string[]> {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        query: `query ($id: Int) { Media(id: $id, type: ANIME) { title { romaji english native } } }`,
+        query: `query ($id: Int) { Media(id: $id, type: ANIME) { title { romaji english native } synonyms } }`,
         variables: { id: parseInt(anilistId, 10) },
       }),
     });
     if (!resp.ok) return [];
     const json = await resp.json() as any;
-    const t = json?.data?.Media?.title;
-    if (!t) return [];
-    return [t.romaji, t.english, t.native].filter((s): s is string => !!s && typeof s === "string");
+    const media = json?.data?.Media;
+    if (!media) return [];
+    const t = media.title ?? {};
+    const synonyms: string[] = Array.isArray(media.synonyms) ? media.synonyms : [];
+    return [t.romaji, t.english, t.native, ...synonyms].filter((s): s is string => !!s && typeof s === "string");
   } catch {
     return [];
   }
