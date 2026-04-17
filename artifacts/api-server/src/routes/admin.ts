@@ -689,4 +689,35 @@ router.post("/admin/send-email", async (req: AuthRequest, res) => {
   }
 });
 
+
+/* ── JKAnime slug overrides ── */
+router.get('/admin/jkanime-overrides', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(`SELECT * FROM jkanime_slug_overrides ORDER BY updated_at DESC`);
+    res.json({ overrides: rows });
+  } catch { res.status(500).json({ error: 'Error al obtener sobrescrituras' }); }
+});
+
+router.post('/admin/jkanime-overrides', async (req, res) => {
+  const { anime_id, anime_title, jk_slug } = req.body as { anime_id?: string; anime_title?: string; jk_slug: string };
+  if (!jk_slug?.trim()) { res.status(400).json({ error: 'jk_slug es requerido' }); return; }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO jkanime_slug_overrides (anime_id, anime_title, jk_slug, updated_at)
+       VALUES (, , , NOW())
+       ON CONFLICT (anime_id) DO UPDATE SET jk_slug = EXCLUDED.jk_slug, anime_title = EXCLUDED.anime_title, updated_at = NOW()
+       RETURNING *`,
+      [anime_id || null, anime_title || null, jk_slug.trim()]
+    );
+    res.json({ override: rows[0] });
+  } catch { res.status(500).json({ error: 'Error al guardar sobrescritura' }); }
+});
+
+router.delete('/admin/jkanime-overrides/:id', async (req, res) => {
+  try {
+    await pool.query(`DELETE FROM jkanime_slug_overrides WHERE id = `, [req.params.id]);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: 'Error al eliminar sobrescritura' }); }
+});
+
 export default router;
