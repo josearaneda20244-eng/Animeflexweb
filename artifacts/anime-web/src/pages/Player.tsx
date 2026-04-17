@@ -355,8 +355,18 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
 
     if (Hls.isSupported()) {
       const hls = new Hls({
-        enableWorker: true, maxBufferLength: 60, maxMaxBufferLength: 240,
-        startLevel: -1, fragLoadingTimeOut: 15000, manifestLoadingTimeOut: 15000, maxBufferHole: 1,
+        enableWorker: true,
+        maxBufferLength: 60,
+        maxMaxBufferLength: 240,
+        startLevel: -1,
+        fragLoadingTimeOut: 30000,
+        manifestLoadingTimeOut: 20000,
+        levelLoadingTimeOut: 20000,
+        maxBufferHole: 2,
+        fragLoadingRetry: 6,
+        fragLoadingRetryDelay: 1000,
+        levelLoadingRetry: 4,
+        levelLoadingRetryDelay: 1000,
       });
       hlsRef.current = hls;
       hls.loadSource(m3u8Url);
@@ -365,7 +375,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         const tracks = (data.subtitleTracks ?? []).map(t => ({ id: t.id, lang: t.lang ?? t.name ?? "", name: t.name ?? t.lang ?? "" }));
         if (tracks.length > 0) onSubtitleTracksRef.current?.(tracks);
       });
-      loadTimeout = setTimeout(() => { setError("Tiempo agotado. Probando otra fuente..."); setLoading(false); notifyErr(); }, 12000);
+      loadTimeout = setTimeout(() => { setError("Tiempo agotado. Probando otra fuente..."); setLoading(false); notifyErr(); }, 20000);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
         setLoading(false); video.play().catch(() => {});
@@ -376,14 +386,67 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         if (!data.fatal) return;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           netErr++;
-          if (netErr > 2) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de red. Probando otra..."); setLoading(false); notifyErr(); }
-          else setTimeout(() => hls.startLoad(), 1000);
+          if (netErr > 4) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de red. Probando otra..."); setLoading(false); notifyErr(); }
+          else setTimeout(() => hls.startLoad(), 1500);
         } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
           mediaErr++;
-          if (mediaErr > 3) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de medios. Probando otra..."); setLoading(false); notifyErr(); }
+          if (mediaErr > 5) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de medios. Probando otra..."); setLoading(false); notifyErr(); }
           else { const st = video.currentTime; hls.recoverMediaError(); setTimeout(() => { if (st > 5) video.currentTime = st; }, 300); }
         } else { if (loadTimeout) clearTimeout(loadTimeout); setError("Error en esta fuente. Probando otra..."); setLoading(false); notifyErr(); }
       });
+
+      // Detección de video trabado: si lleva 8s sin avanzar y no está pausado, recuperar
+      let lastStallTime = 0;
+      let stallCount = 0;
+      const stallInterval = setInterval(() => {
+        if (!video || video.paused || video.ended || video.seeking || video.readyState < 3) {
+          stallCount = 0;
+          lastStallTime = video?.currentTime ?? 0;
+          return;
+        }
+        if (video.currentTime === lastStallTime) {
+          stallCount++;
+          if (stallCount >= 2) {
+            stallCount = 0;
+            const ct = video.currentTime;
+            hls.startLoad();
+            setTimeout(() => {
+              if (video && Math.abs(video.currentTime - ct) < 1) {
+                video.currentTime = ct + 0.1;
+              }
+            }, 600);
+          }
+        } else {
+          stallCount = 0;
+          lastStallTime = video.currentTime;
+        }
+      }, 4000);
+
+      const origReturn_HLS = () => {
+        clearInterval(stallInterval);
+      };
+      video.addEventListener("loadedmetadata", onMeta);
+      video.addEventListener("timeupdate", onTimeUpd);
+      video.addEventListener("play", onPlay);
+      video.addEventListener("pause", onPause);
+      video.addEventListener("ended", onEndEv);
+      video.addEventListener("volumechange", onVolCh);
+      video.addEventListener("progress", onProg);
+      video.addEventListener("error", onNativeErr);
+      return () => {
+        origReturn_HLS();
+        video.removeEventListener("loadedmetadata", onMeta);
+        video.removeEventListener("timeupdate", onTimeUpd);
+        video.removeEventListener("play", onPlay);
+        video.removeEventListener("pause", onPause);
+        video.removeEventListener("ended", onEndEv);
+        video.removeEventListener("volumechange", onVolCh);
+        video.removeEventListener("progress", onProg);
+        video.removeEventListener("error", onNativeErr);
+        if (loadTimeout) clearTimeout(loadTimeout);
+        if (controlsRef) controlsRef.current = null;
+        if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
+      };
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = m3u8Url;
       video.addEventListener("loadedmetadata", () => { setLoading(false); video.play().catch(() => {}); }, { once: true });
