@@ -251,6 +251,18 @@ async function runMigrations() {
     )
   `, "admin_content");
 
+
+  await safeQuery(`
+    CREATE TABLE IF NOT EXISTS jkanime_slug_overrides (
+      id         SERIAL PRIMARY KEY,
+      anime_id   VARCHAR(200) UNIQUE,
+      anime_title VARCHAR(500) UNIQUE,
+      jk_slug    VARCHAR(500) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `, 'jkanime_slug_overrides');
+
   const defaults = [
     ["daily_limit", "5"],
     ["daily_limit_enabled", "true"],
