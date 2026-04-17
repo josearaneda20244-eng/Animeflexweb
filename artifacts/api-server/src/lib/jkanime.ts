@@ -1,5 +1,3 @@
-import pool from "../db.js";
-
 const BASE = "https://jkanime.net";
 
 const slugCache = new Map<string, string>();
@@ -342,28 +340,6 @@ async function trySlug(slug: string, episodeNum: number): Promise<string | null>
   }
 }
 
-/** Check DB for a manually configured JKAnime slug override */
-async function getSlugOverride(animeId?: string, animeTitle?: string): Promise<string | null> {
-  try {
-    if (animeId) {
-      const r = await pool.query(
-        `SELECT jk_slug FROM jkanime_slug_overrides WHERE anime_id = $1 LIMIT 1`,
-        [animeId]
-      );
-      if (r.rows[0]?.jk_slug) return r.rows[0].jk_slug as string;
-    }
-    if (animeTitle) {
-      const r = await pool.query(
-        `SELECT jk_slug FROM jkanime_slug_overrides WHERE LOWER(anime_title) = LOWER($1) LIMIT 1`,
-        [animeTitle.trim()]
-      );
-      if (r.rows[0]?.jk_slug) return r.rows[0].jk_slug as string;
-    }
-  } catch {
-    // Table might not exist yet — ignore
-  }
-  return null;
-}
 
 export interface JkAnimeStreamData {
   sources: Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB"; referer?: string }>;
@@ -391,17 +367,6 @@ export async function getJkAnimeWatch(
   let slug: string | null = null;
   let episodeHtml = "";
 
-  // 0. Check DB for manual override first
-  const override = await getSlugOverride(animeId, animeTitle);
-  if (override) {
-    const html = await trySlug(override, episodeNum);
-    if (html) {
-      slug = override;
-      episodeHtml = html;
-      slugCache.set(cacheKey, slug);
-      slugCacheTime.set(cacheKey, Date.now());
-    }
-  }
 
   // 1. Check slug cache (only use if it matches season intent)
   if (!slug) {
