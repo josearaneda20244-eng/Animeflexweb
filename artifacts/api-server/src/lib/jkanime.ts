@@ -1,3 +1,5 @@
+import pool from "../db.js";
+
 const BASE = "https://jkanime.net";
 
 const slugCache = new Map<string, string>();
@@ -39,7 +41,6 @@ function slugify(title: string): string {
 function makeSlugs(title: string): string[] {
   const variants: string[] = [slugify(title)];
 
-  // Remove trailing season/part info
   const noSeason = title.replace(/\s*:?\s*Season\s+\d+\s*$/i, "").trim();
   if (noSeason !== title) variants.push(slugify(noSeason));
 
@@ -60,29 +61,23 @@ function makeSlugs(title: string): string[] {
   if (noTrailingNum !== title && !variants.includes(slugify(noTrailingNum)))
     variants.push(slugify(noTrailingNum));
 
-  // JKAnime-specific: append season number suffix (e.g. "one-piece-2")
   const seasonMatch = title.match(/\s+(\d+)\s*$/);
   if (seasonMatch) {
     const base = title.replace(/\s+\d+\s*$/, "").trim();
     variants.push(`${slugify(base)}-${seasonMatch[1]}`);
   }
 
-  // First 3 and 4 words
   const words = title.split(" ");
   const words3 = words.slice(0, 3).join(" ");
   const words4 = words.slice(0, 4).join(" ");
   if (!variants.includes(slugify(words3)) && words3.length > 3) variants.push(slugify(words3));
   if (!variants.includes(slugify(words4)) && words4.length > 3) variants.push(slugify(words4));
 
-  // First word
   const firstWord = title.split(/[\s:]/)[0].trim();
   const firstWordSlug = slugify(firstWord);
   if (firstWordSlug.length >= 4 && !variants.includes(firstWordSlug)) {
     variants.push(firstWordSlug);
   }
-
-  // JKAnime sometimes uses "nire" suffix: e.g. "enen-no-shouboutai-ni-nare"
-  // We don't add that automatically, but search will find it
 
   return [...new Set(variants)];
 }
@@ -117,37 +112,44 @@ async function fetchIframe(url: string, referer: string, timeoutMs = 8000): Prom
 }
 
 /**
- * Search JKAnime and return ALL candidate slugs found.
+ * Search JKAnime using the updated /buscar/ URL (old /search/anime/ no longer works).
+ * Extracts slugs from full URLs like https://jkanime.net/slug/
  */
 async function searchJkAnimeSlugs(query: string): Promise<string[]> {
   try {
-    const url = `${BASE}/search/anime/?q=${encodeURIComponent(query)}`;
+    // JKAnime changed search URL: /search/anime/?q= → /buscar/{query}
+    const url = `${BASE}/buscar/${encodeURIComponent(query)}`;
     const html = await fetchPage(url, 12000);
     const slugs: string[] = [];
     const seen = new Set<string>();
 
+    const SKIP = new Set([
+      "search", "buscar", "api", "cdn", "assets", "static", "tag", "genero", "tipo",
+      "temporada", "directorio", "usuario", "dash", "notificaciones", "guardado",
+      "historial", "salir", "login", "registro", "perfil", "listas", "solicitudes",
+    ]);
+
     const addSlug = (candidate: string) => {
-      const SKIP = ["search", "api", "cdn", "assets", "static", "tag", "genero", "tipo", "temporada", "directorio"];
-      if (!SKIP.includes(candidate) && !seen.has(candidate) && candidate.length >= 2) {
+      if (!SKIP.has(candidate) && !seen.has(candidate) && candidate.length >= 2) {
         seen.add(candidate);
         slugs.push(candidate);
       }
     };
 
-    // Pattern 1: href="/slug/" title=
-    const re1 = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
+    // Pattern 1: full URLs — href="https://jkanime.net/slug/"
+    const re1 = /href="https?:\/\/jkanime\.net\/([a-z0-9][a-z0-9-]+)\/"/g;
     let m: RegExpExecArray | null;
     while ((m = re1.exec(html)) !== null) addSlug(m[1]);
 
-    // Pattern 2: href="/slug/" (without title=, but with class or other attributes)
-    const re2 = /href="\/([a-z0-9][a-z0-9-]{2,})\/"[^>]*class="[^"]*anime[^"]*"/g;
+    // Pattern 2: relative href="/slug/" title=
+    const re2 = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
     while ((m = re2.exec(html)) !== null) addSlug(m[1]);
 
-    // Pattern 3: data-slug or data-name
+    // Pattern 3: data-slug or data-anime
     const re3 = /data-(?:slug|anime)="([a-z0-9][a-z0-9-]+)"/g;
     while ((m = re3.exec(html)) !== null) addSlug(m[1]);
 
-    // Pattern 4: any href="/slug/" as long as slug looks like an anime name (has a dash or is long enough)
+    // Pattern 4: any relative href that looks like an anime slug
     const re4 = /href="\/([a-z0-9][a-z0-9-]{3,})\/"/g;
     while ((m = re4.exec(html)) !== null) {
       const candidate = m[1];
@@ -184,7 +186,6 @@ function extractIframeUrls(html: string, episodePageUrl: string): string[] {
     }
   };
 
-  // JKPlayer iframes
   const re1 = /src="(https?:\/\/jkanime\.net\/jkplayer\/[^"]+)"/g;
   let m: RegExpExecArray | null;
   while ((m = re1.exec(html)) !== null) addUrl(m[1]);
@@ -192,28 +193,19 @@ function extractIframeUrls(html: string, episodePageUrl: string): string[] {
   while ((m = re2.exec(html)) !== null) addUrl(m[1]);
   const re3 = /data-src=["'](https?:\/\/jkanime\.net\/jkplayer\/[^"']+)["']/g;
   while ((m = re3.exec(html)) !== null) addUrl(m[1]);
-
-  // Also catch any other player iframes from jkanime.net
   const re4 = /src="(https?:\/\/jkanime\.net\/(?:jkplayer|player|cdn)[^"]+)"/g;
   while ((m = re4.exec(html)) !== null) addUrl(m[1]);
 
   return urls;
 }
 
-/**
- * Check if an HTML response looks like a valid JKAnime episode page.
- * Flexible — doesn't require a specific player name.
- */
 function isValidEpisodePage(html: string): boolean {
   if (html.length < 3000) return false;
   const lower = html.toLowerCase();
-  // Must not be a 404/not found page
   if (lower.includes("404 not found") || lower.includes("página no encontrada") || lower.includes("page not found")) return false;
-  // Must contain some video/player indicator
   const hasPlayer = lower.includes("jkplayer") || lower.includes("jwplayer") || lower.includes(".m3u8") ||
     lower.includes("videojs") || lower.includes("video/mp4") || lower.includes("hlsurl") ||
     lower.includes("data-video") || lower.includes("player") && lower.includes("source");
-  // OR must have episode-specific content
   const hasEpisodeContent = lower.includes("episodio") || lower.includes("capítulo") || lower.includes("episode");
   return hasPlayer || (hasEpisodeContent && html.length > 8000);
 }
@@ -222,13 +214,34 @@ async function trySlug(slug: string, episodeNum: number): Promise<string | null>
   try {
     const url = `${BASE}/${slug}/${episodeNum}/`;
     const html = await fetchPage(url, 10000);
-    if (isValidEpisodePage(html)) {
-      return html;
-    }
+    if (isValidEpisodePage(html)) return html;
     return null;
   } catch {
     return null;
   }
+}
+
+/** Check DB for a manually configured JKAnime slug override */
+async function getSlugOverride(animeId?: string, animeTitle?: string): Promise<string | null> {
+  try {
+    if (animeId) {
+      const r = await pool.query(
+        `SELECT jk_slug FROM jkanime_slug_overrides WHERE anime_id = $1 LIMIT 1`,
+        [animeId]
+      );
+      if (r.rows[0]?.jk_slug) return r.rows[0].jk_slug as string;
+    }
+    if (animeTitle) {
+      const r = await pool.query(
+        `SELECT jk_slug FROM jkanime_slug_overrides WHERE LOWER(anime_title) = LOWER($1) LIMIT 1`,
+        [animeTitle.trim()]
+      );
+      if (r.rows[0]?.jk_slug) return r.rows[0].jk_slug as string;
+    }
+  } catch {
+    // Table might not exist yet — ignore
+  }
+  return null;
 }
 
 export interface JkAnimeStreamData {
@@ -237,14 +250,11 @@ export interface JkAnimeStreamData {
   headers?: Record<string, string>;
 }
 
-/**
- * Find anime on JKAnime using all provided title variants (English, Romaji, etc.)
- * and return streaming sources.
- */
 export async function getJkAnimeWatch(
   animeTitle: string,
   episodeNum: number,
   extraTitles: string[] = [],
+  animeId?: string,
 ): Promise<JkAnimeStreamData> {
   const allTitles = [animeTitle, ...extraTitles].filter(Boolean);
   const cacheKey = animeTitle.toLowerCase().trim();
@@ -260,12 +270,26 @@ export async function getJkAnimeWatch(
   let slug: string | null = null;
   let episodeHtml = "";
 
+  // 0. Check DB for manual override first
+  const override = await getSlugOverride(animeId, animeTitle);
+  if (override) {
+    const html = await trySlug(override, episodeNum);
+    if (html) {
+      slug = override;
+      episodeHtml = html;
+      slugCache.set(cacheKey, slug);
+      slugCacheTime.set(cacheKey, Date.now());
+    }
+  }
+
   // 1. Check slug cache
-  const cachedSlug = slugCache.get(cacheKey);
-  const cacheAge = slugCacheTime.get(cacheKey) ?? 0;
-  if (cachedSlug && (Date.now() - cacheAge) < SLUG_CACHE_TTL) {
-    const html = await trySlug(cachedSlug, episodeNum);
-    if (html) { slug = cachedSlug; episodeHtml = html; }
+  if (!slug) {
+    const cachedSlug = slugCache.get(cacheKey);
+    const cacheAge = slugCacheTime.get(cacheKey) ?? 0;
+    if (cachedSlug && (Date.now() - cacheAge) < SLUG_CACHE_TTL) {
+      const html = await trySlug(cachedSlug, episodeNum);
+      if (html) { slug = cachedSlug; episodeHtml = html; }
+    }
   }
 
   // 2. Try all slug variants in parallel batches
@@ -291,11 +315,10 @@ export async function getJkAnimeWatch(
     }
   }
 
-  // 3. Search JKAnime with all title variants
+  // 3. Search JKAnime with all title variants (using fixed /buscar/ URL)
   if (!slug) {
     const triedSlugs = new Set<string>(allTitles.flatMap(t => makeSlugs(t)));
 
-    // Build all unique search queries
     const allSearchQueries: string[] = [];
     const seenQ = new Set<string>();
     for (const t of allTitles) {
@@ -304,7 +327,6 @@ export async function getJkAnimeWatch(
         t.split(":")[0].trim(),
         t.split(" ").slice(0, 2).join(" "),
         t.split(" ").slice(0, 3).join(" "),
-        // Also try just the first word if it's long enough
         ...(t.split(" ")[0].length >= 4 ? [t.split(" ")[0]] : []),
       ];
       for (const q of queries) {
@@ -312,7 +334,6 @@ export async function getJkAnimeWatch(
       }
     }
 
-    // Fire all search requests in parallel
     const searchResults = await Promise.allSettled(allSearchQueries.map(q => searchJkAnimeSlugs(q)));
     const candidateSlugs: string[] = [];
     const seenCand = new Set<string>();
@@ -324,7 +345,6 @@ export async function getJkAnimeWatch(
       }
     }
 
-    // Check search results in parallel batches
     const BATCH = 6;
     for (let i = 0; i < candidateSlugs.length && !slug; i += BATCH) {
       const batch = candidateSlugs.slice(i, i + BATCH);
