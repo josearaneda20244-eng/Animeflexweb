@@ -226,7 +226,6 @@ export default function Navbar() {
                 <NavBtn href="/manga" icon={<BookOpen size={15} />} label="Manga" active={isActive("/manga")} />
                 <NavBtn href="/movies" icon={<Film size={15} />} label="Películas" active={isActive("/movies")} />
                 <NavBtn href="/ovas" icon={<Tv2 size={15} />} label="OVAs" active={isActive("/ovas")} />
-                <NavBtn href="/schedule" icon={<Calendar size={15} />} label="Horario" active={isActive("/schedule")} />
 
                 <div ref={moreRef} style={{ position: "relative" }}>
                   <button
@@ -246,6 +245,7 @@ export default function Navbar() {
                       padding: 8, minWidth: 160, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
                     }}>
                       {[
+                        { label: "Horario", icon: <Calendar size={14} />, href: "/schedule" },
                         { label: "Mi Lista", icon: <ListVideo size={14} />, href: "/watchlist" },
                         { label: "Favoritos", icon: <Bookmark size={14} />, href: "/favorites" },
                         { label: "Historial", icon: <Clock size={14} />, href: "/history" },
