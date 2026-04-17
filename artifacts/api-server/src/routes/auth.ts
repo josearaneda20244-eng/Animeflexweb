@@ -7,6 +7,20 @@ import { sendEmail, emailTemplate } from "../lib/email.js";
 
 const router = Router();
 
+/* Columnas que siempre existen en el esquema base */
+const BASE_USER_COLS = `id, username, email, password_hash, avatar_url, created_at,
+  membership_tier, subscription_expires_at, role, is_active`;
+
+/** Complementa campos opcionales que pueden no existir aún en la BD */
+function safeUser(row: Record<string, unknown>) {
+  const { password_hash, is_active, ...rest } = row;
+  return {
+    is_profile_public: true,
+    email_verified: false,
+    ...rest,
+  };
+}
+
 router.post("/auth/register", async (req, res) => {
   const { username, email, password } = req.body as Record<string, string>;
   if (!username || !email || !password) {
@@ -22,14 +36,11 @@ router.post("/auth/register", async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (username, email, password_hash)
        VALUES ($1, $2, $3)
-       RETURNING id, username, email, avatar_url, created_at, membership_tier,
-                 subscription_expires_at, role,
-                 COALESCE(is_profile_public, TRUE) AS is_profile_public,
-                 COALESCE(email_verified, FALSE) AS email_verified`,
+       RETURNING ${BASE_USER_COLS}`,
       [username.trim(), email.trim().toLowerCase(), hash]
     );
-    const user = result.rows[0];
-    const token = signToken(user.id, user.email);
+    const user = safeUser(result.rows[0]);
+    const token = signToken(user.id as number, user.email as string);
     res.status(201).json({ token, user });
   } catch (err: any) {
     if (err.code === "23505") {
@@ -49,30 +60,25 @@ router.post("/auth/login", async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT id, username, email, password_hash, avatar_url, created_at,
-              membership_tier, subscription_expires_at, role, is_active,
-              COALESCE(is_profile_public, TRUE) AS is_profile_public,
-              COALESCE(email_verified, FALSE) AS email_verified
-       FROM users WHERE email = $1`,
+      `SELECT ${BASE_USER_COLS} FROM users WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
-    const user = result.rows[0];
-    if (!user) {
+    const row = result.rows[0];
+    if (!row) {
       res.status(401).json({ error: "Email o contraseña incorrectos" });
       return;
     }
-    if (user.is_active === false) {
+    if (row.is_active === false) {
       res.status(403).json({ error: "Tu cuenta ha sido desactivada" });
       return;
     }
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await bcrypt.compare(password, row.password_hash as string);
     if (!valid) {
       res.status(401).json({ error: "Email o contraseña incorrectos" });
       return;
     }
-    const { password_hash, is_active, ...safeUser } = user;
-    const token = signToken(user.id, user.email);
-    res.json({ token, user: safeUser });
+    const token = signToken(row.id as number, row.email as string);
+    res.json({ token, user: safeUser(row) });
   } catch {
     res.status(500).json({ error: "Error interno del servidor" });
   }
@@ -81,16 +87,12 @@ router.post("/auth/login", async (req, res) => {
 router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, username, email, avatar_url, created_at,
-              membership_tier, subscription_expires_at, role,
-              COALESCE(is_profile_public, TRUE) AS is_profile_public,
-              COALESCE(email_verified, FALSE) AS email_verified
-       FROM users WHERE id = $1`,
+      `SELECT ${BASE_USER_COLS} FROM users WHERE id = $1`,
       [req.userId]
     );
-    const user = result.rows[0];
-    if (!user) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
-    res.json({ user });
+    const row = result.rows[0];
+    if (!row) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
+    res.json({ user: safeUser(row) });
   } catch {
     res.status(500).json({ error: "Error interno del servidor" });
   }
@@ -115,12 +117,10 @@ router.patch("/auth/me", requireAuth, async (req: AuthRequest, res) => {
     const result = await pool.query(
       `UPDATE users SET ${fields.join(", ")}
        WHERE id = $${idx}
-       RETURNING id, username, email, avatar_url, created_at, membership_tier, subscription_expires_at, role,
-                 COALESCE(is_profile_public, TRUE) AS is_profile_public,
-                 COALESCE(email_verified, FALSE) AS email_verified`,
+       RETURNING ${BASE_USER_COLS}`,
       values
     );
-    res.json({ user: result.rows[0] });
+    res.json({ user: safeUser(result.rows[0]) });
   } catch (err: any) {
     if (err.code === "23505") {
       res.status(409).json({ error: "El nombre de usuario ya está en uso" });
@@ -130,60 +130,43 @@ router.patch("/auth/me", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-/* ── POST /auth/forgot-password ── */
 router.post("/auth/forgot-password", async (req, res) => {
   const { email } = req.body as { email?: string };
-  if (!email?.trim()) {
-    res.status(400).json({ error: "Email requerido" });
-    return;
-  }
+  if (!email?.trim()) { res.status(400).json({ error: "Email requerido" }); return; }
   try {
     const { rows } = await pool.query(
       `SELECT id, username FROM users WHERE email = $1 AND is_active = TRUE`,
       [email.trim().toLowerCase()]
     );
-    if (!rows[0]) {
-      res.json({ ok: true });
-      return;
-    }
+    if (!rows[0]) { res.json({ ok: true }); return; }
     const user = rows[0];
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-    await pool.query(
-      `DELETE FROM password_reset_tokens WHERE user_id = $1 AND used_at IS NULL`,
-      [user.id]
-    );
+    await pool.query(`DELETE FROM password_reset_tokens WHERE user_id = $1 AND used_at IS NULL`, [user.id]);
     await pool.query(
       `INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
       [user.id, token, expiresAt]
     );
-
-    const proto  = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
-    const host   = req.get("host") ?? "animeflex.lat";
+    const proto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
+    const host  = req.get("host") ?? "animeflex.lat";
     const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
     const frontendBase = process.env["APP_URL"] ?? `${proto}://${host}${basePath}`;
     const resetUrl = `${frontendBase}/reset-password?token=${token}`;
-
     await sendEmail({
       to: email.trim().toLowerCase(),
       subject: "Restablecer contraseña — AnimeFlex",
-      text: `Restablece tu contraseña de AnimeFlex: ${resetUrl} (válido 1 hora)`,
+      text: `Restablece tu contraseña: ${resetUrl} (válido 1 hora)`,
       html: emailTemplate(`
         <h2 style="margin:0 0 12px;font-size:20px">Restablecer contraseña</h2>
         <p style="color:rgba(255,255,255,0.6);margin:0 0 24px;line-height:1.6">
-          Hola <strong style="color:#F1F1F5">${user.username}</strong>, recibimos una solicitud para restablecer tu contraseña.
-          El enlace es válido por <strong style="color:#F1F1F5">1 hora</strong>.
+          Hola <strong style="color:#F1F1F5">${user.username}</strong>, el enlace es válido por <strong style="color:#F1F1F5">1 hora</strong>.
         </p>
         <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#6C63FF,#4F46E5);color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">
           Restablecer contraseña
         </a>
-        <p style="color:rgba(255,255,255,0.3);font-size:12px;margin-top:24px">
-          Si no solicitaste esto, ignora este correo. Tu contraseña no cambiará.
-        </p>
+        <p style="color:rgba(255,255,255,0.3);font-size:12px;margin-top:24px">Si no solicitaste esto, ignora este correo.</p>
       `),
     });
-
     res.json({ ok: true });
   } catch (err: any) {
     console.error("forgot-password error:", err?.message ?? err);
@@ -191,7 +174,6 @@ router.post("/auth/forgot-password", async (req, res) => {
   }
 });
 
-/* ── POST /auth/reset-password ── */
 router.post("/auth/reset-password", async (req, res) => {
   const { token, password } = req.body as { token?: string; password?: string };
   if (!token || !password || password.length < 6) {
@@ -218,71 +200,53 @@ router.post("/auth/reset-password", async (req, res) => {
   }
 });
 
-/* ── POST /auth/send-verification ── */
 router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT email, username, COALESCE(email_verified, FALSE) AS email_verified FROM users WHERE id = $1`,
+      `SELECT email, username FROM users WHERE id = $1`,
       [req.userId]
     );
     const user = rows[0];
     if (!user) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
-    if (user.email_verified) {
-      res.status(400).json({ error: "El correo ya está verificado" });
-      return;
-    }
-
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
     await pool.query(`DELETE FROM email_verification_tokens WHERE user_id = $1`, [req.userId]);
     await pool.query(
       `INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
       [req.userId, token, expiresAt]
     );
-
     const vProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
     const vHost  = req.get("host") ?? "animeflex.lat";
     const verifyUrl = `${vProto}://${vHost}/api/auth/verify-email?token=${token}`;
-
     await sendEmail({
       to: user.email,
       subject: "Verifica tu correo — AnimeFlex",
       html: emailTemplate(`
         <h2 style="margin:0 0 12px;font-size:20px">Verifica tu correo electrónico</h2>
         <p style="color:rgba(255,255,255,0.6);margin:0 0 24px;line-height:1.6">
-          Hola <strong style="color:#F1F1F5">${user.username}</strong>, haz clic en el botón para confirmar tu dirección de correo.
-          El enlace es válido por <strong style="color:#F1F1F5">24 horas</strong>.
+          Hola <strong style="color:#F1F1F5">${user.username}</strong>, el enlace es válido por <strong style="color:#F1F1F5">24 horas</strong>.
         </p>
         <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#22C55E,#16A34A);color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">
           ✓ Verificar correo
         </a>
-        <p style="color:rgba(255,255,255,0.3);font-size:12px;margin-top:24px">
-          Si no creaste una cuenta en AnimeFlex, ignora este correo.
-        </p>
       `),
     });
-
     res.json({ ok: true });
   } catch (err: any) {
     if (err?.message === "SMTP_NOT_CONFIGURED") {
-      res.status(503).json({ error: "Correo no configurado. Configura RESEND_API_KEY en las variables de entorno del servidor." });
+      res.status(503).json({ error: "Correo no configurado." });
     } else {
-      console.error("send-verification error:", err);
-      res.status(500).json({ error: `No se pudo enviar el correo: ${(err?.message ?? String(err)).slice(0, 100)}` });
+      res.status(500).json({ error: "No se pudo enviar el correo." });
     }
   }
 });
 
-/* ── GET /auth/verify-email?token= ── */
 router.get("/auth/verify-email", async (req, res) => {
   const { token } = req.query as { token?: string };
-
   const rProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
   const rHost  = req.get("host") ?? "animeflex.lat";
   const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
   const frontendBase = process.env["APP_URL"] ?? `${rProto}://${rHost}${basePath}`;
-
   if (!token) {
     return res.redirect(302, `${frontendBase}/verify-email?status=error&msg=${encodeURIComponent("Token requerido")}`);
   }
@@ -296,11 +260,8 @@ router.get("/auth/verify-email", async (req, res) => {
       return res.redirect(302, `${frontendBase}/verify-email?status=error&msg=${encodeURIComponent("El enlace no es válido o ya expiró")}`);
     }
     const { id: tokenId, user_id } = rows[0];
-    await pool.query(`UPDATE users SET email_verified = TRUE WHERE id = $1`, [user_id]);
-    await pool.query(
-      `UPDATE email_verification_tokens SET verified_at = NOW() WHERE id = $1`,
-      [tokenId]
-    );
+    await pool.query(`UPDATE users SET email_verified = TRUE WHERE id = $1`, [user_id]).catch(() => {});
+    await pool.query(`UPDATE email_verification_tokens SET verified_at = NOW() WHERE id = $1`, [tokenId]);
     return res.redirect(302, `${frontendBase}/verify-email?status=success`);
   } catch {
     return res.redirect(302, `${frontendBase}/verify-email?status=error&msg=${encodeURIComponent("Error interno del servidor")}`);
