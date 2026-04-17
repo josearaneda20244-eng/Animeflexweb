@@ -872,16 +872,38 @@ export default function Player() {
     refetchOnWindowFocus: false,
   });
 
+  const streamQuery = useQuery({
+    queryKey: ["stream", episodeId, animeTitle, episodeNum, animeId],
+    queryFn: () => consumet.streaming(episodeId, animeTitle || undefined, episodeNum || undefined, animeId || undefined),
+    enabled: !!episodeId,
+    retry: 1,
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+  });
+
   const animeflvSources = animeflvQuery.data
     ? (animeflvQuery.data.sources ?? [])
-        .map(s => ({ ...s, isDub: true, provider: "backup", isEmbed: !s.isM3U8 && (s.quality ?? "").includes("[embed]") }))
+        .map(s => ({ ...s, isDub: true, provider: "lat", isEmbed: !s.isM3U8 && (s.quality ?? "").includes("[embed]") }))
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
-  const sources = animeflvSources;
+
+  const streamSources = streamQuery.data
+    ? (streamQuery.data.sources ?? [])
+        .filter(s => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8")))
+        .map(s => ({ ...s, isDub: false, provider: "sub", isEmbed: false }))
+        .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
+    : [];
+
+  const sources = [...animeflvSources, ...streamSources];
   const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
+  const streamHeaders = (streamQuery.data as any)?.headers ?? {};
   const latReferer = animeflvHeaders["Referer"] ?? animeflvHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
-  const selectedIsBackup = !!selected && (selected as any).provider === "backup";
+  const selectedIsBackup = !!selected && ((selected as any).provider === "lat" || (selected as any).provider === "sub");
+
+  const isLoadingAny = (animeflvQuery.isLoading && streamQuery.isLoading) || (sources.length === 0 && (animeflvQuery.isLoading || streamQuery.isLoading));
+  const isErrorAll = animeflvQuery.isError && streamQuery.isError && sources.length === 0;
 
   useEffect(() => {
     setSelectedIdx(0);
@@ -1164,35 +1186,35 @@ export default function Player() {
               </div>
             )}
 
-          {animeflvQuery.isError && (
+          {isErrorAll && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 16, position: "absolute", inset: 0, background: "rgba(5,5,12,0.85)", backdropFilter: "blur(6px)" }}>
                 <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <AlertCircle size={28} color="#EF4444" />
                 </div>
                 <div style={{ textAlign: "center", maxWidth: 300, padding: "0 16px" }}>
                   <p style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800, marginBottom: 6 }}>No disponible</p>
-                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>No se encontró este episodio en JKAnime (Español).</p>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>No se encontró este episodio en ningún servidor. Intenta de nuevo.</p>
                 </div>
                 <button
-                  onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); }}
+                  onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); streamQuery.refetch(); }}
                   style={{ padding: "10px 20px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                   Reintentar
                 </button>
               </div>
             )}
-            {animeflvQuery.isLoading && (
+            {isLoadingAny && !isErrorAll && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <Loader2 size={36} color="#F59E0B" className="animate-spin" />
-                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando episodio en JKAnime (Español Latino)...</p>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando fuentes de video...</p>
               </div>
             )}
-            {!selected && !showLimitModal && !animeflvQuery.isLoading && !animeflvQuery.isError && (
+            {!selected && !showLimitModal && !isLoadingAny && !isErrorAll && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
                 <AlertCircle size={36} color="rgba(255,255,255,0.2)" />
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
               </div>
             )}
-            {!showLimitModal && selected && !animeflvQuery.isLoading && !animeflvQuery.isError && (
+            {!showLimitModal && selected && !isLoadingAny && !isErrorAll && (
               selected.isM3U8 === false ? (
                 (selected as any).isEmbed ? (
                   <iframe
