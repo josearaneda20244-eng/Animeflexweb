@@ -403,11 +403,11 @@ export async function getJkAnimeWatch(
     }
   }
 
-  // 1. Check slug cache
+  // 1. Check slug cache (only use if it matches season intent)
   if (!slug) {
     const cachedSlug = slugCache.get(cacheKey);
     const cacheAge = slugCacheTime.get(cacheKey) ?? 0;
-    if (cachedSlug && (Date.now() - cacheAge) < SLUG_CACHE_TTL) {
+    if (cachedSlug && (Date.now() - cacheAge) < SLUG_CACHE_TTL && slugMatchesSpecificIntent(cachedSlug, allTitles)) {
       const html = await trySlug(cachedSlug, episodeNum);
       if (html) { slug = cachedSlug; episodeHtml = html; }
     }
@@ -419,7 +419,10 @@ export async function getJkAnimeWatch(
     const seenSlugs = new Set<string>();
     for (const title of allTitles) {
       for (const s of makeSlugs(title)) {
-        if (!seenSlugs.has(s)) { seenSlugs.add(s); allSlugs.push(s); }
+        if (!seenSlugs.has(s) && slugMatchesSpecificIntent(s, allTitles)) {
+          seenSlugs.add(s);
+          allSlugs.push(s);
+        }
       }
     }
     const BATCH = 6;
