@@ -27,6 +27,19 @@ const IFRAME_HEADERS: Record<string, string> = {
   "Sec-Fetch-Site": "same-origin",
 };
 
+const ORDINAL_WORDS: Record<string, number> = {
+  first: 1,
+  second: 2,
+  third: 3,
+  fourth: 4,
+  fifth: 5,
+  sixth: 6,
+  seventh: 7,
+  eighth: 8,
+  ninth: 9,
+  tenth: 10,
+};
+
 function slugify(title: string): string {
   return title
     .toLowerCase()
@@ -42,7 +55,10 @@ function extractSeasonNumber(title: string): number | null {
   const match =
     title.match(/\b(\d+)(?:st|nd|rd|th)?\s+season\b/i) ??
     title.match(/\bseason\s+(\d+)\b/i);
-  return match?.[1] ? parseInt(match[1], 10) : null;
+  if (match?.[1]) return parseInt(match[1], 10);
+
+  const wordMatch = title.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+season\b/i);
+  return wordMatch?.[1] ? ORDINAL_WORDS[wordMatch[1].toLowerCase()] ?? null : null;
 }
 
 function hasSpecificSeasonIntent(title: string): boolean {
@@ -108,6 +124,83 @@ function makeSlugs(title: string): string[] {
   }
 
   return [...new Set(variants)];
+}
+
+function extractRequestedSeason(titles: string[]): number | null {
+  for (const title of titles) {
+    const season = extractSeasonNumber(title);
+    if (season && season > 1) return season;
+  }
+  return null;
+}
+
+function slugHasSeason(slug: string, season: number): boolean {
+  const ordinal = Object.entries(ORDINAL_WORDS).find(([, n]) => n === season)?.[0];
+  const patterns = [
+    new RegExp(`(?:^|-)${season}(?:st|nd|rd|th)?-season(?:-|$)`),
+    new RegExp(`(?:^|-)season-${season}(?:-|$)`),
+    new RegExp(`(?:^|-)s${season}(?:-|$)`),
+    ...(ordinal ? [
+      new RegExp(`(?:^|-)${ordinal}-season(?:-|$)`),
+      new RegExp(`(?:^|-)season-${ordinal}(?:-|$)`),
+    ] : []),
+  ];
+  return patterns.some((pattern) => pattern.test(slug));
+}
+
+function requestedYearNumber(title: string): number | null {
+  const explicit =
+    title.match(/\b(\d+)(?:st|nd|rd|th)?\s+year\b/i) ??
+    title.match(/\b(\d+)\s*[-\s]?nensei\b/i);
+  if (explicit?.[1]) return parseInt(explicit[1], 10);
+  const word = title.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+year\b/i);
+  return word?.[1] ? ORDINAL_WORDS[word[1].toLowerCase()] ?? null : null;
+}
+
+function requestedTermNumber(title: string): number | null {
+  const explicit =
+    title.match(/\b(\d+)(?:st|nd|rd|th)?\s+semester\b/i) ??
+    title.match(/\b(\d+)\s*[-\s]?gakki\b/i);
+  if (explicit?.[1]) return parseInt(explicit[1], 10);
+  const word = title.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+semester\b/i);
+  return word?.[1] ? ORDINAL_WORDS[word[1].toLowerCase()] ?? null : null;
+}
+
+function slugHasSchoolYear(slug: string, year: number): boolean {
+  const ordinal = Object.entries(ORDINAL_WORDS).find(([, n]) => n === year)?.[0];
+  const patterns = [
+    new RegExp(`(?:^|-)${year}-?nensei(?:-|$)`),
+    new RegExp(`(?:^|-)${year}(?:st|nd|rd|th)?-year(?:-|$)`),
+    ...(ordinal ? [new RegExp(`(?:^|-)${ordinal}-year(?:-|$)`)] : []),
+  ];
+  return patterns.some((pattern) => pattern.test(slug));
+}
+
+function slugHasSchoolTerm(slug: string, term: number): boolean {
+  const ordinal = Object.entries(ORDINAL_WORDS).find(([, n]) => n === term)?.[0];
+  const patterns = [
+    new RegExp(`(?:^|-)${term}-?gakki(?:-|$)`),
+    new RegExp(`(?:^|-)${term}(?:st|nd|rd|th)?-semester(?:-|$)`),
+    ...(ordinal ? [new RegExp(`(?:^|-)${ordinal}-semester(?:-|$)`)] : []),
+  ];
+  return patterns.some((pattern) => pattern.test(slug));
+}
+
+function slugMatchesSpecificIntent(slug: string, titles: string[]): boolean {
+  if (!titles.some(hasSpecificSeasonIntent)) return true;
+
+  const season = extractRequestedSeason(titles);
+  if (season && !slugHasSeason(slug, season)) return false;
+
+  for (const title of titles) {
+    const year = requestedYearNumber(title);
+    if (year && !slugHasSchoolYear(slug, year)) return false;
+
+    const term = requestedTermNumber(title);
+    if (term && !slugHasSchoolTerm(slug, term)) return false;
+  }
+
+  return true;
 }
 
 async function fetchPage(url: string, timeoutMs = 10000): Promise<string> {
@@ -368,6 +461,7 @@ export async function getJkAnimeWatch(
     for (const r of searchResults) {
       if (r.status === "fulfilled") {
         for (const s of r.value) {
+          if (!slugMatchesSpecificIntent(s, allTitles)) continue;
           if (!triedSlugs.has(s) && !seenCand.has(s)) { seenCand.add(s); candidateSlugs.push(s); }
         }
       }

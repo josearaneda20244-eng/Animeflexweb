@@ -7,9 +7,9 @@ export interface AuthRequest extends Request {
   userEmail?: string;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
 if (!JWT_SECRET) {
-  console.error("[SECURITY] JWT_SECRET no está configurado. Define JWT_SECRET en las variables de entorno.");
+  console.error("[SECURITY] JWT_SECRET o SESSION_SECRET no está configurado. Define una variable secreta para firmar tokens.");
   process.exit(1);
 }
 

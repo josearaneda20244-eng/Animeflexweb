@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = (process.env.JWT_SECRET || process.env.SESSION_SECRET)!;
 const router = Router();
 
 function optionalAuth(req: AuthRequest, _res: import("express").Response, next: () => void) {

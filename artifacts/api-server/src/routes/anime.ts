@@ -6,7 +6,7 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import jwt from "jsonwebtoken";
 import pool from "../db.js";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = (process.env.JWT_SECRET || process.env.SESSION_SECRET)!;
 
 // Helper function to get admin config from database
 async function getAdminConfig(key: string, defaultValue: string = ""): Promise<string> {
@@ -135,11 +135,26 @@ function normalizeComparableTitle(s: string): string {
     .trim();
 }
 
+const ORDINAL_WORDS: Record<string, number> = {
+  first: 1,
+  second: 2,
+  third: 3,
+  fourth: 4,
+  fifth: 5,
+  sixth: 6,
+  seventh: 7,
+  eighth: 8,
+  ninth: 9,
+  tenth: 10,
+};
+
 function extractSeasonNumber(title: string): number | null {
   const match =
     title.match(/\b(\d+)(?:st|nd|rd|th)?\s+season\b/i) ??
     title.match(/\bseason\s+(\d+)\b/i);
-  return match?.[1] ? parseInt(match[1], 10) : null;
+  if (match?.[1]) return parseInt(match[1], 10);
+  const wordMatch = title.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+season\b/i);
+  return wordMatch?.[1] ? ORDINAL_WORDS[wordMatch[1].toLowerCase()] ?? null : null;
 }
 
 function hasSpecificSeasonIntent(title: string): boolean {
