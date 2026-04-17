@@ -25,8 +25,7 @@ router.post("/auth/register", async (req, res) => {
        RETURNING id, username, email, avatar_url, created_at, membership_tier,
                  subscription_expires_at, role,
                  COALESCE(is_profile_public, TRUE) AS is_profile_public,
-                 COALESCE(email_verified, FALSE) AS email_verified,
-                 stripe_customer_id`,
+                 COALESCE(email_verified, FALSE) AS email_verified`,
       [username.trim(), email.trim().toLowerCase(), hash]
     );
     const user = result.rows[0];
@@ -53,8 +52,7 @@ router.post("/auth/login", async (req, res) => {
       `SELECT id, username, email, password_hash, avatar_url, created_at,
               membership_tier, subscription_expires_at, role, is_active,
               COALESCE(is_profile_public, TRUE) AS is_profile_public,
-              COALESCE(email_verified, FALSE) AS email_verified,
-              stripe_customer_id
+              COALESCE(email_verified, FALSE) AS email_verified
        FROM users WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
@@ -86,8 +84,7 @@ router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
       `SELECT id, username, email, avatar_url, created_at,
               membership_tier, subscription_expires_at, role,
               COALESCE(is_profile_public, TRUE) AS is_profile_public,
-              COALESCE(email_verified, FALSE) AS email_verified,
-              stripe_customer_id
+              COALESCE(email_verified, FALSE) AS email_verified
        FROM users WHERE id = $1`,
       [req.userId]
     );
@@ -145,16 +142,14 @@ router.post("/auth/forgot-password", async (req, res) => {
       `SELECT id, username FROM users WHERE email = $1 AND is_active = TRUE`,
       [email.trim().toLowerCase()]
     );
-    /* Always return OK to avoid email enumeration */
     if (!rows[0]) {
       res.json({ ok: true });
       return;
     }
     const user = rows[0];
     const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    /* Delete any previous unused token for this user */
     await pool.query(
       `DELETE FROM password_reset_tokens WHERE user_id = $1 AND used_at IS NULL`,
       [user.id]
@@ -191,10 +186,9 @@ router.post("/auth/forgot-password", async (req, res) => {
 
     res.json({ ok: true });
   } catch (err: any) {
-      /* Never reveal whether the email exists */
-      console.error("forgot-password error:", err?.message ?? err);
-      res.json({ ok: true });
-    }
+    console.error("forgot-password error:", err?.message ?? err);
+    res.json({ ok: true });
+  }
 });
 
 /* ── POST /auth/reset-password ── */
@@ -239,7 +233,7 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
     }
 
     const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await pool.query(`DELETE FROM email_verification_tokens WHERE user_id = $1`, [req.userId]);
     await pool.query(
@@ -249,7 +243,6 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
 
     const vProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
     const vHost  = req.get("host") ?? "animeflex.lat";
-    /* Link goes to the API endpoint which verifies and then redirects to the SPA */
     const verifyUrl = `${vProto}://${vHost}/api/auth/verify-email?token=${token}`;
 
     await sendEmail({
@@ -285,7 +278,6 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
 router.get("/auth/verify-email", async (req, res) => {
   const { token } = req.query as { token?: string };
 
-  /* Derive frontend base URL from the incoming request host */
   const rProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
   const rHost  = req.get("host") ?? "animeflex.lat";
   const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
