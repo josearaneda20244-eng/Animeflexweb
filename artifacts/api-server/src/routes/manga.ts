@@ -146,6 +146,7 @@ type LmeListResponse = {
   resultados?: LmeManga[];
   total_pages?: number;
   total?: number;
+  total_results?: number;
 };
 
 function formatListManga(item: LmeManga) {
@@ -184,7 +185,7 @@ async function listFromApi(page: number, query?: string) {
       try {
         const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
         totalPages = data.total_pages ?? totalPages;
-        total = data.total;
+        total = data.total ?? data.total_results;
         const items = data.resultados ?? [];
         // For search queries, don't filter by ultimo_capitulo — show all matches
         const filtered = query ? items : items.filter((item) => Number(item.ultimo_capitulo ?? 0) > 0);
@@ -204,6 +205,34 @@ async function listFromApi(page: number, query?: string) {
     currentPage: page,
     total,
   };
+}
+
+/**
+ * Use the JSON API with an ordering parameter for trending/recent lists.
+ * This is more reliable than HTML scraping because it uses the stable API endpoint.
+ * - trending: ordering=-ultimo_capitulo (most chapters = most active/popular)
+ * - recent:   ordering=-id (newest added to the catalog)
+ */
+async function listFromApiOrdered(page: number, ordering: string) {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(PAGE_SIZE),
+    ordering,
+  });
+  try {
+    const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
+    const totalPages = data.total_pages ?? page;
+    const items = (data.resultados ?? []).filter((item) => Number(item.ultimo_capitulo ?? 0) > 0);
+    return {
+      results: items.map(formatListManga),
+      hasNextPage: page < totalPages,
+      currentPage: page,
+      total: data.total ?? data.total_results,
+    };
+  } catch {
+    // Fallback to HTML scraping if JSON API fails
+    return listFromHome(page);
+  }
 }
 
 /**
@@ -513,7 +542,7 @@ router.get("/manga/trending", async (req: Request, res: Response) => {
     return;
   }
   try {
-    const result = await listFromHome(page);
+    const result = await listFromApiOrdered(page, "-ultimo_capitulo");
     setCache(key, result);
     res.json(result);
   } catch (err: any) {
@@ -531,7 +560,7 @@ router.get("/manga/recent", async (req: Request, res: Response) => {
     return;
   }
   try {
-    const result = await listFromHome(page);
+    const result = await listFromApiOrdered(page, "-id");
     setCache(key, result);
     res.json(result);
   } catch (err: any) {
