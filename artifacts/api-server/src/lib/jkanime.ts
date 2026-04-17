@@ -201,6 +201,24 @@ function slugMatchesSpecificIntent(slug: string, titles: string[]): boolean {
   return true;
 }
 
+/**
+ * Score how relevant a JKAnime slug is for the requested title(s).
+ * Returns the number of slug words that appear in any of the requested titles.
+ * A score of 0 means the slug shares NO words with the title — almost certainly the wrong anime.
+ */
+function slugRelevanceScore(slug: string, titles: string[]): number {
+  const slugWords = new Set(slug.split("-").filter(w => w.length >= 3));
+  if (slugWords.size === 0) return 0;
+  let best = 0;
+  for (const title of titles) {
+    const titleSlug = slugify(title);
+    const titleWords = new Set(titleSlug.split("-").filter(w => w.length >= 3));
+    const shared = [...slugWords].filter(w => titleWords.has(w)).length;
+    if (shared > best) best = shared;
+  }
+  return best;
+}
+
 async function fetchPage(url: string, timeoutMs = 10000): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -411,12 +429,14 @@ export async function getJkAnimeWatch(
     const allSearchQueries: string[] = [];
     const seenQ = new Set<string>();
     for (const t of allTitles) {
+      const words = t.split(" ").filter(Boolean);
       const queries = [
         t,
         t.split(":")[0].trim(),
-        t.split(" ").slice(0, 2).join(" "),
-        t.split(" ").slice(0, 3).join(" "),
-        ...(t.split(" ")[0].length >= 4 ? [t.split(" ")[0]] : []),
+        words.slice(0, 2).join(" "),
+        words.slice(0, 3).join(" "),
+        // Only add single-word query if the title itself is a single word
+        ...(words.length === 1 && words[0].length >= 4 ? [words[0]] : []),
       ];
       for (const q of queries) {
         if (q.length >= 3 && !seenQ.has(q)) { seenQ.add(q); allSearchQueries.push(q); }
@@ -424,16 +444,25 @@ export async function getJkAnimeWatch(
     }
 
     const searchResults = await Promise.allSettled(allSearchQueries.map(q => searchJkAnimeSlugs(q)));
-    const candidateSlugs: string[] = [];
+    const candidateSlugsRaw: string[] = [];
     const seenCand = new Set<string>();
     for (const r of searchResults) {
       if (r.status === "fulfilled") {
         for (const s of r.value) {
           if (!slugMatchesSpecificIntent(s, allTitles)) continue;
-          if (!triedSlugs.has(s) && !seenCand.has(s)) { seenCand.add(s); candidateSlugs.push(s); }
+          if (!triedSlugs.has(s) && !seenCand.has(s)) { seenCand.add(s); candidateSlugsRaw.push(s); }
         }
       }
     }
+
+    // Sort candidates by relevance: slugs that share words with the requested title come first.
+    // Higher-relevance slugs are tried before zero-relevance ones (which might be wrong animes).
+    // We still allow zero-relevance candidates (e.g. Japanese slugs for English-titled anime)
+    // but they are only tried after higher-relevance ones fail.
+    const candidateSlugs = candidateSlugsRaw
+      .map(s => ({ s, score: slugRelevanceScore(s, allTitles) }))
+      .sort((a, b) => b.score - a.score)
+      .map(({ s }) => s);
 
     const BATCH = 6;
     for (let i = 0; i < candidateSlugs.length && !slug; i += BATCH) {
