@@ -7,18 +7,19 @@ import { sendEmail, emailTemplate } from "../lib/email.js";
 
 const router = Router();
 
-/* Columnas que siempre existen en el esquema base */
+/* Columnas base para INSERT/UPDATE RETURNING (solo columnas simples) */
 const BASE_USER_COLS = `id, username, email, password_hash, avatar_url, created_at,
   membership_tier, subscription_expires_at, role, is_active`;
 
-/** Complementa campos opcionales que pueden no existir aún en la BD */
+/* Columnas completas para SELECT (incluye campos opcionales con valores por defecto) */
+const FULL_USER_COLS = `${BASE_USER_COLS},
+  COALESCE(email_verified, FALSE) AS email_verified,
+  COALESCE(is_profile_public, TRUE) AS is_profile_public`;
+
+/** Limpia campos internos antes de devolver el usuario al cliente */
 function safeUser(row: Record<string, unknown>) {
   const { password_hash, is_active, ...rest } = row;
-  return {
-    is_profile_public: true,
-    email_verified: false,
-    ...rest,
-  };
+  return rest;
 }
 
 router.post("/auth/register", async (req, res) => {
@@ -60,7 +61,7 @@ router.post("/auth/login", async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT ${BASE_USER_COLS} FROM users WHERE email = $1`,
+      `SELECT ${FULL_USER_COLS} FROM users WHERE email = $1`,
       [email.trim().toLowerCase()]
     );
     const row = result.rows[0];
@@ -87,7 +88,7 @@ router.post("/auth/login", async (req, res) => {
 router.get("/auth/me", requireAuth, async (req: AuthRequest, res) => {
   try {
     const result = await pool.query(
-      `SELECT ${BASE_USER_COLS} FROM users WHERE id = $1`,
+      `SELECT ${FULL_USER_COLS} FROM users WHERE id = $1`,
       [req.userId]
     );
     const row = result.rows[0];
@@ -114,13 +115,15 @@ router.patch("/auth/me", requireAuth, async (req: AuthRequest, res) => {
     if (avatar_url !== undefined) { fields.push(`avatar_url = $${idx++}`); values.push(avatar_url); }
     if (is_profile_public !== undefined) { fields.push(`is_profile_public = $${idx++}`); values.push(is_profile_public); }
     values.push(req.userId!);
-    const result = await pool.query(
-      `UPDATE users SET ${fields.join(", ")}
-       WHERE id = $${idx}
-       RETURNING ${BASE_USER_COLS}`,
+    await pool.query(
+      `UPDATE users SET ${fields.join(", ")} WHERE id = $${idx}`,
       values
     );
-    res.json({ user: safeUser(result.rows[0]) });
+    const updated = await pool.query(
+      `SELECT ${FULL_USER_COLS} FROM users WHERE id = $1`,
+      [req.userId]
+    );
+    res.json({ user: safeUser(updated.rows[0]) });
   } catch (err: any) {
     if (err.code === "23505") {
       res.status(409).json({ error: "El nombre de usuario ya está en uso" });
