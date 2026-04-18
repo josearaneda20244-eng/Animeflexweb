@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchUser().catch(() => {});
   };
 
-  const updateProfile = async (data: { username?: string; avatar_url?: string }) => {
+  const updateProfile = async (data: { username?: string; avatar_url?: string; is_profile_public?: boolean }) => {
     const { user: updated } = await apiClient.patch<{ user: AuthUser }>("/auth/me", data);
     setUser(updated);
   };
