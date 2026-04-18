@@ -169,7 +169,7 @@ router.post("/auth/forgot-password", async (req, res) => {
     });
     res.json({ ok: true });
   } catch (err: any) {
-    console.error("forgot-password error:", err?.message ?? err);
+    req.log.error({ err: err?.message ?? err }, "forgot-password error");
     res.json({ ok: true });
   }
 });
