@@ -52,76 +52,122 @@ function slugify(title: string): string {
 function extractSeasonNumber(title: string): number | null {
   const match =
     title.match(/\b(\d+)(?:st|nd|rd|th)?\s+season\b/i) ??
-    title.match(/\bseason\s+(\d+)\b/i);
+    title.match(/\bseason\s+(\d+)\b/i) ??
+    title.match(/\btemporada\s+(\d+)\b/i);
   if (match?.[1]) return parseInt(match[1], 10);
 
   const wordMatch = title.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+season\b/i);
   return wordMatch?.[1] ? ORDINAL_WORDS[wordMatch[1].toLowerCase()] ?? null : null;
 }
 
+function isFinalSeason(title: string): boolean {
+  return /\bfinal\s+season\b/i.test(title) || /\bthe\s+final\b/i.test(title);
+}
+
+function extractPartNumber(title: string): number | null {
+  const m = title.match(/\b(?:part|parte|cour)\s+(\d+)\b/i) ?? title.match(/\bpart(\d+)\b/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 function hasSpecificSeasonIntent(title: string): boolean {
   return (
     (extractSeasonNumber(title) ?? 1) > 1 ||
-    /\b(part|cour)\s+\d+\b/i.test(title) ||
+    isFinalSeason(title) ||
+    extractPartNumber(title) !== null ||
     /\b(second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+year\b/i.test(title) ||
     /:\s*\S.+/.test(title)
   );
 }
 
+/**
+ * Strip the season/part suffix from a title to get the base anime name.
+ */
+function stripSeasonSuffix(title: string): string {
+  return title
+    .replace(/\s*:?\s*(?:the\s+)?final\s+season\b.*/i, "")
+    .replace(/\s*:?\s*\d+(?:st|nd|rd|th)?\s+season\b.*/i, "")
+    .replace(/\s*:?\s*season\s+\d+\b.*/i, "")
+    .replace(/\s*:?\s*temporada\s+\d+\b.*/i, "")
+    .replace(/\s*:?\s*(?:part|parte|cour)\s+\d+\b.*/i, "")
+    .replace(/\s*\(\d{4}\)\s*$/, "")
+    .trim();
+}
+
 function makeSlugs(title: string): string[] {
+  const add = (s: string, arr: string[]) => {
+    if (s && !arr.includes(s)) arr.push(s);
+  };
+
   const variants: string[] = [slugify(title)];
-  const specificSeasonIntent = hasSpecificSeasonIntent(title);
 
   const noPunct = slugify(title.replace(/[!?]/g, "").trim());
-  if (noPunct !== variants[0] && !variants.includes(noPunct)) variants.push(noPunct);
+  add(noPunct, variants);
 
-  if (specificSeasonIntent) {
-    const noYear = title.replace(/\s*\(\d{4}\)\s*$/g, "").trim();
-    if (noYear !== title) variants.push(slugify(noYear));
-    const noColon = title.split(":")[0].trim();
-    if (noColon !== title && hasSpecificSeasonIntent(noColon)) variants.push(slugify(noColon));
-    return [...new Set(variants)];
+  const seasonNum = extractSeasonNumber(title);
+  const partNum = extractPartNumber(title);
+  const finalSeason = isFinalSeason(title);
+  const base = stripSeasonSuffix(title);
+  const baseSlug = slugify(base);
+
+  if (baseSlug && baseSlug !== variants[0]) add(baseSlug, variants);
+
+  // Season-number variants (English + Spanish + trailing-number)
+  if (seasonNum && seasonNum > 1) {
+    add(`${baseSlug}-${seasonNum}`, variants);
+    add(`${baseSlug}-temporada-${seasonNum}`, variants);
+    add(`${baseSlug}-season-${seasonNum}`, variants);
+    add(`${baseSlug}-s${seasonNum}`, variants);
   }
 
-  const noSeason = title.replace(/\s*:?\s*Season\s+\d+\s*$/i, "").trim();
-  if (noSeason !== title) variants.push(slugify(noSeason));
+  // Final season variants
+  if (finalSeason) {
+    add(`${baseSlug}-the-final-season`, variants);
+    add(`${baseSlug}-final-season`, variants);
+  }
 
-  const noOrdinalSeason = title.replace(/\s*:?\s*\d+(st|nd|rd|th)\s+Season\s*$/i, "").trim();
-  if (noOrdinalSeason !== title && !variants.includes(slugify(noOrdinalSeason)))
-    variants.push(slugify(noOrdinalSeason));
+  // Part variants (English + Spanish)
+  if (partNum) {
+    add(`${baseSlug}-parte-${partNum}`, variants);
+    add(`${baseSlug}-part-${partNum}`, variants);
+    // Combined season + part
+    if (seasonNum && seasonNum > 1) {
+      add(`${baseSlug}-${seasonNum}-parte-${partNum}`, variants);
+      add(`${baseSlug}-temporada-${seasonNum}-parte-${partNum}`, variants);
+    }
+    if (finalSeason) {
+      add(`${baseSlug}-the-final-season-parte-${partNum}`, variants);
+      add(`${baseSlug}-final-season-parte-${partNum}`, variants);
+    }
+  }
 
-  const noPart = title.replace(/\s*:?\s*Part\s+\d+\s*$/i, "").trim();
-  if (noPart !== title) variants.push(slugify(noPart));
-
+  // No-year variant
   const noYear = title.replace(/\s*\(\d{4}\)\s*$/g, "").trim();
-  if (noYear !== title) variants.push(slugify(noYear));
+  if (noYear !== title) add(slugify(noYear), variants);
 
+  // No-colon variant
   const noColon = title.split(":")[0].trim();
-  if (noColon !== title) variants.push(slugify(noColon));
+  if (noColon !== title) add(slugify(noColon), variants);
 
-  const noTrailingNum = title.replace(/\s+\d+\s*$/, "").trim();
-  if (noTrailingNum !== title && !variants.includes(slugify(noTrailingNum)))
-    variants.push(slugify(noTrailingNum));
-
-  const seasonMatch = title.match(/\s+(\d+)\s*$/);
-  if (seasonMatch) {
-    const base = title.replace(/\s+\d+\s*$/, "").trim();
-    variants.push(`${slugify(base)}-${seasonMatch[1]}`);
+  // Trailing-number check (e.g. "Naruto Shippuden 2" → "naruto-shippuden-2")
+  const trailingNumMatch = title.match(/\s+(\d+)\s*$/);
+  if (trailingNumMatch) {
+    const trailingBase = title.replace(/\s+\d+\s*$/, "").trim();
+    add(`${slugify(trailingBase)}-${trailingNumMatch[1]}`, variants);
   }
 
-  const words = title.split(" ");
+  // Word-prefix variants
+  const words = title.split(" ").filter(Boolean);
   const words3 = words.slice(0, 3).join(" ");
   const words4 = words.slice(0, 4).join(" ");
-  if (!variants.includes(slugify(words3)) && words3.length > 3) variants.push(slugify(words3));
-  if (!variants.includes(slugify(words4)) && words4.length > 3) variants.push(slugify(words4));
+  if (words3.length > 3) add(slugify(words3), variants);
+  if (words4.length > 3) add(slugify(words4), variants);
 
+  // First word (useful for Japanese single-word romaji)
   const firstWord = title.split(/[\s:]/)[0].trim();
   const firstWordSlug = slugify(firstWord);
-  if (firstWordSlug.length >= 4 && !variants.includes(firstWordSlug)) {
-    variants.push(firstWordSlug);
-  }
+  if (firstWordSlug.length >= 4) add(firstWordSlug, variants);
 
-  return [...new Set(variants)];
+  return variants;
 }
 
 function extractRequestedSeason(titles: string[]): number | null {
@@ -132,18 +178,43 @@ function extractRequestedSeason(titles: string[]): number | null {
   return null;
 }
 
+/**
+ * Check if a JKAnime slug contains a season number in any expected format.
+ * Covers English (season-N, Nth-season, sN), Spanish (temporada-N), and
+ * JKAnime's common pattern of appending just the number at the end (anime-N).
+ */
 function slugHasSeason(slug: string, season: number): boolean {
   const ordinal = Object.entries(ORDINAL_WORDS).find(([, n]) => n === season)?.[0];
   const patterns = [
+    // English patterns
     new RegExp(`(?:^|-)${season}(?:st|nd|rd|th)?-season(?:-|$)`),
     new RegExp(`(?:^|-)season-${season}(?:-|$)`),
     new RegExp(`(?:^|-)s${season}(?:-|$)`),
+    // Spanish patterns
+    new RegExp(`(?:^|-)temporada-${season}(?:-|$)`),
+    // JKAnime trailing-number style: boku-no-hero-academia-6
+    new RegExp(`-${season}(?:-parte-\\d+)?$`),
     ...(ordinal ? [
       new RegExp(`(?:^|-)${ordinal}-season(?:-|$)`),
       new RegExp(`(?:^|-)season-${ordinal}(?:-|$)`),
     ] : []),
   ];
   return patterns.some((pattern) => pattern.test(slug));
+}
+
+function slugHasFinalSeason(slug: string): boolean {
+  return /(?:^|-)(?:the-)?final-season(?:-|$)/.test(slug);
+}
+
+function slugHasPart(slug: string, part: number): boolean {
+  const patterns = [
+    new RegExp(`(?:^|-)part-${part}(?:-|$)`),
+    new RegExp(`(?:^|-)parte-${part}(?:-|$)`),
+    new RegExp(`(?:^|-)cour-${part}(?:-|$)`),
+    // trailing part
+    new RegExp(`-parte?-${part}$`),
+  ];
+  return patterns.some(p => p.test(slug));
 }
 
 function requestedYearNumber(title: string): number | null {
@@ -184,11 +255,38 @@ function slugHasSchoolTerm(slug: string, term: number): boolean {
   return patterns.some((pattern) => pattern.test(slug));
 }
 
+/**
+ * Returns true if the slug is compatible with the season/part intent of the titles.
+ * More permissive than before: base-only slugs are also accepted when we can't
+ * find a season marker (JKAnime sometimes doesn't include season in the slug).
+ */
 function slugMatchesSpecificIntent(slug: string, titles: string[]): boolean {
   if (!titles.some(hasSpecificSeasonIntent)) return true;
 
   const season = extractRequestedSeason(titles);
-  if (season && !slugHasSeason(slug, season)) return false;
+  const finalSeason = titles.some(isFinalSeason);
+  const partNum = titles.reduce<number | null>((acc, t) => acc ?? extractPartNumber(t), null);
+
+  // Season check: slug must contain season indicator OR just be the base name
+  // (some anime don't append season to slug for season 1 style sequels)
+  if (season && season > 1) {
+    if (!slugHasSeason(slug, season)) return false;
+  }
+
+  if (finalSeason && !slugHasFinalSeason(slug)) {
+    // Still accept if slug has a trailing number (some JKAnime use -4 for final season 4)
+    const hasTrailingNum = /-\d+(?:-parte?-\d+)?$/.test(slug);
+    if (!hasTrailingNum) return false;
+  }
+
+  if (partNum && !slugHasPart(slug, partNum)) {
+    // Accept slugs without part marker — JKAnime sometimes includes part in season slug
+    // or uses a different episode numbering. Only reject if slug explicitly has a DIFFERENT part.
+    const hasWrongPart = Array.from({ length: 10 }, (_, i) => i + 1)
+      .filter(p => p !== partNum)
+      .some(p => slugHasPart(slug, p));
+    if (hasWrongPart) return false;
+  }
 
   for (const title of titles) {
     const year = requestedYearNumber(title);
@@ -204,7 +302,6 @@ function slugMatchesSpecificIntent(slug: string, titles: string[]): boolean {
 /**
  * Score how relevant a JKAnime slug is for the requested title(s).
  * Returns the number of slug words that appear in any of the requested titles.
- * A score of 0 means the slug shares NO words with the title — almost certainly the wrong anime.
  */
 function slugRelevanceScore(slug: string, titles: string[]): number {
   const slugWords = new Set(slug.split("-").filter(w => w.length >= 3));
@@ -249,12 +346,11 @@ async function fetchIframe(url: string, referer: string, timeoutMs = 8000): Prom
 }
 
 /**
- * Search JKAnime using the updated /buscar/ URL (old /search/anime/ no longer works).
+ * Search JKAnime using /buscar/ URL.
  * Extracts slugs from full URLs like https://jkanime.net/slug/
  */
 async function searchJkAnimeSlugs(query: string): Promise<string[]> {
   try {
-    // JKAnime changed search URL: /search/anime/?q= → /buscar/{query}
     const url = `${BASE}/buscar/${encodeURIComponent(query)}`;
     const html = await fetchPage(url, 12000);
     const slugs: string[] = [];
@@ -273,12 +369,12 @@ async function searchJkAnimeSlugs(query: string): Promise<string[]> {
       }
     };
 
-    // Pattern 1: full URLs — href="https://jkanime.net/slug/"
+    // Pattern 1: full URLs
     const re1 = /href="https?:\/\/jkanime\.net\/([a-z0-9][a-z0-9-]+)\/"/g;
     let m: RegExpExecArray | null;
     while ((m = re1.exec(html)) !== null) addSlug(m[1]);
 
-    // Pattern 2: relative href="/slug/" title=
+    // Pattern 2: relative href with title
     const re2 = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
     while ((m = re2.exec(html)) !== null) addSlug(m[1]);
 
@@ -358,7 +454,6 @@ async function trySlug(slug: string, episodeNum: number): Promise<string | null>
   }
 }
 
-
 export interface JkAnimeStreamData {
   sources: Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB"; referer?: string }>;
   slug: string;
@@ -385,7 +480,6 @@ export async function getJkAnimeWatch(
   let slug: string | null = null;
   let episodeHtml = "";
 
-
   // 1. Check slug cache (only use if it matches season intent)
   if (!slug) {
     const cachedSlug = slugCache.get(cacheKey);
@@ -396,7 +490,7 @@ export async function getJkAnimeWatch(
     }
   }
 
-  // 2. Try all slug variants in parallel batches
+  // 2. Try all slug variants from all title variants in parallel batches
   if (!slug) {
     const allSlugs: string[] = [];
     const seenSlugs = new Set<string>();
@@ -422,25 +516,32 @@ export async function getJkAnimeWatch(
     }
   }
 
-  // 3. Search JKAnime with all title variants (using fixed /buscar/ URL)
+  // 3. Search JKAnime with all title variants (using /buscar/ URL)
   if (!slug) {
     const triedSlugs = new Set<string>(allTitles.flatMap(t => makeSlugs(t)));
 
     const allSearchQueries: string[] = [];
     const seenQ = new Set<string>();
+    const addQuery = (q: string) => {
+      const qc = q.trim();
+      if (qc.length >= 3 && !seenQ.has(qc)) { seenQ.add(qc); allSearchQueries.push(qc); }
+    };
+
     for (const t of allTitles) {
       const words = t.split(" ").filter(Boolean);
-      const queries = [
-        t,
-        t.split(":")[0].trim(),
-        words.slice(0, 2).join(" "),
-        words.slice(0, 3).join(" "),
-        // Only add single-word query if the title itself is a single word
-        ...(words.length === 1 && words[0].length >= 4 ? [words[0]] : []),
-      ];
-      for (const q of queries) {
-        if (q.length >= 3 && !seenQ.has(q)) { seenQ.add(q); allSearchQueries.push(q); }
-      }
+      const base = stripSeasonSuffix(t);
+      // Add multiple query forms per title
+      addQuery(t);
+      addQuery(base);
+      addQuery(t.split(":")[0].trim());
+      addQuery(words.slice(0, 2).join(" "));
+      addQuery(words.slice(0, 3).join(" "));
+      addQuery(words.slice(0, 4).join(" "));
+      // Single word queries for Japanese/romaji titles (e.g. "Shingeki", "Naruto")
+      if (words[0] && words[0].length >= 4) addQuery(words[0]);
+      // Base without trailing season words
+      const baseWords = base.split(" ").filter(Boolean);
+      if (baseWords.length >= 2) addQuery(baseWords.slice(0, 2).join(" "));
     }
 
     const searchResults = await Promise.allSettled(allSearchQueries.map(q => searchJkAnimeSlugs(q)));
@@ -455,10 +556,19 @@ export async function getJkAnimeWatch(
       }
     }
 
-    // Sort candidates by relevance: slugs that share words with the requested title come first.
-    // Higher-relevance slugs are tried before zero-relevance ones (which might be wrong animes).
-    // We still allow zero-relevance candidates (e.g. Japanese slugs for English-titled anime)
-    // but they are only tried after higher-relevance ones fail.
+    // If no candidates with season intent matched, fall back to ANY returned slug
+    // (handles cases where JKAnime's slug has no season marker at all)
+    if (candidateSlugsRaw.length === 0) {
+      for (const r of searchResults) {
+        if (r.status === "fulfilled") {
+          for (const s of r.value) {
+            if (!triedSlugs.has(s) && !seenCand.has(s)) { seenCand.add(s); candidateSlugsRaw.push(s); }
+          }
+        }
+      }
+    }
+
+    // Sort by relevance: slugs sharing words with titles come first
     const candidateSlugs = candidateSlugsRaw
       .map(s => ({ s, score: slugRelevanceScore(s, allTitles) }))
       .sort((a, b) => b.score - a.score)
