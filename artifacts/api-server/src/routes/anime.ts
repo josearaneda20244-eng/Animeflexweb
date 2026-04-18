@@ -701,7 +701,71 @@ router.get("/anime/search", async (req, res) => {
  */
 const byFormatCache = new Map<string, { data: unknown; expires: number }>();
 
+// Cache for AniList anime info — prevents rate-limiting (AniList: 90 req/min)
+const anilistInfoCache = new Map<string, { data: unknown; expires: number; stale: unknown }>();
+const ANILIST_INFO_CACHE_TTL = 20 * 60 * 1000; // 20 minutes
+
 const ANILIST_GQL = "https://graphql.anilist.co";
+
+const ANILIST_INFO_FIELDS = `
+  id idMal
+  title { romaji english native userPreferred }
+  description(asHtml: false)
+  coverImage { extraLarge large medium color }
+  bannerImage genres status format episodes duration season seasonYear
+  averageScore popularity
+  nextAiringEpisode { episode airingAt }
+  studios(isMain: true) { nodes { name } }
+  streamingEpisodes { title thumbnail url site }
+  trailer { id site }
+  characters(sort: [ROLE, RELEVANCE], perPage: 16) {
+    edges { role node { id name { full } image { medium } } }
+  }
+  recommendations(sort: RATING_DESC, perPage: 10) {
+    nodes {
+      mediaRecommendation {
+        id title { userPreferred english romaji }
+        coverImage { large medium } averageScore format episodes
+      }
+    }
+  }
+  relations {
+    edges {
+      relationType
+      node { id title { userPreferred } coverImage { medium } format episodes }
+    }
+  }
+`;
+
+/**
+ * Query AniList GraphQL by numeric ID.
+ * Retries on 429 (rate limit) with exponential backoff.
+ */
+async function queryAnilistById(numId: number, field: "idMal" | "id" = "id"): Promise<any | null> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const gql = `query ($id: Int) { Media(${field}: $id, type: ANIME) { ${ANILIST_INFO_FIELDS} } }`;
+      const resp = await fetch(ANILIST_GQL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: gql, variables: { id: numId } }),
+      });
+      if (resp.status === 429) {
+        const retryAfter = parseInt(resp.headers.get("retry-after") ?? "0", 10) || 0;
+        const wait = Math.max(retryAfter * 1000, (attempt + 1) * 2000);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      if (!resp.ok) return null;
+      const json = await resp.json() as { data?: { Media?: any }; errors?: unknown[] };
+      if (json.errors?.length || !json.data?.Media) return null;
+      return json.data.Media;
+    } catch {
+      if (attempt < 2) await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+    }
+  }
+  return null;
+}
 
 async function anilistByFormat(format: string, page: number, perPage = 24) {
   const query = `
@@ -1040,59 +1104,29 @@ router.get("/anime/anilist-info", async (req, res) => {
     return;
   }
   const numId = parseInt(id, 10);
+  if (isNaN(numId)) {
+    res.status(400).json({ error: "Invalid id — must be a numeric AniList ID" });
+    return;
+  }
 
-  const FIELDS = `
-    id idMal
-    title { romaji english native userPreferred }
-    description(asHtml: false)
-    coverImage { extraLarge large medium color }
-    bannerImage genres status format episodes duration season seasonYear
-    averageScore popularity
-    nextAiringEpisode { episode airingAt }
-    studios(isMain: true) { nodes { name } }
-    streamingEpisodes { title thumbnail url site }
-    trailer { id site }
-    characters(sort: [ROLE, RELEVANCE], perPage: 16) {
-      edges { role node { id name { full } image { medium } } }
-    }
-    recommendations(sort: RATING_DESC, perPage: 10) {
-      nodes {
-        mediaRecommendation {
-          id title { userPreferred english romaji }
-          coverImage { large medium } averageScore format episodes
-        }
-      }
-    }
-    relations {
-      edges {
-        relationType
-        node { id title { userPreferred } coverImage { medium } format episodes }
-      }
-    }
-  `;
-
-  async function queryAnilist(field: "idMal" | "id"): Promise<any | null> {
-    try {
-      const gql = `query ($id: Int) { Media(${field}: $id, type: ANIME) { ${FIELDS} } }`;
-      const resp = await fetch("https://graphql.anilist.co", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ query: gql, variables: { id: numId } }),
-      });
-      if (!resp.ok) return null;
-      const json = await resp.json() as { data?: { Media?: any }; errors?: unknown[] };
-      if (json.errors?.length || !json.data?.Media) return null;
-      return json.data.Media;
-    } catch {
-      return null;
-    }
+  // Serve from cache if available and not expired
+  const cacheKey = `anilist-info:${numId}`;
+  const cached = anilistInfoCache.get(cacheKey);
+  if (cached && Date.now() < cached.expires) {
+    res.json(cached.data);
+    return;
   }
 
   try {
-    // Query AniList by native AniList ID
-    let media = await queryAnilist("id");
+    const media = await queryAnilistById(numId, "id");
 
     if (!media) {
+      // Return stale cache data rather than an error when AniList is unavailable
+      if (cached?.stale) {
+        req.log.warn({ id }, "AniList unavailable — serving stale cache");
+        res.json(cached.stale);
+        return;
+      }
       res.status(404).json({ error: "Anime not found" });
       return;
     }
@@ -1101,7 +1135,6 @@ router.get("/anime/anilist-info", async (req, res) => {
 
     // For airing anime, media.episodes may be null (total not yet known).
     // Use nextAiringEpisode.episode - 1 to count how many have already aired.
-    // Fall back to streamingEpisodes length, then 0.
     const airedCount: number | null =
       media.nextAiringEpisode?.episode != null
         ? Math.max(0, media.nextAiringEpisode.episode - 1)
@@ -1148,7 +1181,7 @@ router.get("/anime/anilist-info", async (req, res) => {
       ? { id: media.trailer.id as string, site: (media.trailer.site ?? "") as string }
       : null;
 
-    res.json({
+    const payload = {
       id: String(media.id),
       title: media.title,
       image: media.coverImage?.extraLarge ?? media.coverImage?.large ?? "",
@@ -1166,9 +1199,23 @@ router.get("/anime/anilist-info", async (req, res) => {
       characters,
       recommendations,
       episodes,
+    };
+
+    anilistInfoCache.set(cacheKey, {
+      data: payload,
+      expires: Date.now() + ANILIST_INFO_CACHE_TTL,
+      stale: payload,
     });
+
+    res.json(payload);
   } catch (err) {
     req.log.error({ err }, "Failed to fetch anilist anime info");
+    // Serve stale cache rather than returning an error
+    if (cached?.stale) {
+      req.log.warn({ id }, "AniList error — serving stale cache");
+      res.json(cached.stale);
+      return;
+    }
     res.status(500).json({ error: "Failed to fetch anime info" });
   }
 });
