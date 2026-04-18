@@ -215,9 +215,16 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
       `INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
       [req.userId, token, expiresAt]
     );
-    const vProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
-    const vHost  = req.get("host") ?? "animeflex.lat";
-    const verifyUrl = `${vProto}://${vHost}/api/auth/verify-email?token=${token}`;
+    const appUrl = process.env["APP_URL"];
+    let verifyUrl: string;
+    if (appUrl) {
+      verifyUrl = `${appUrl.replace(/\/$/, "")}/api/auth/verify-email?token=${token}`;
+    } else {
+      const vProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
+      const vHost  = req.get("host") ?? "animeflex.lat";
+      verifyUrl = `${vProto}://${vHost}/api/auth/verify-email?token=${token}`;
+    }
+    req.log.info({ to: user.email, verifyUrl }, "Sending verification email");
     await sendEmail({
       to: user.email,
       subject: "Verifica tu correo — AnimeFlex",
@@ -231,12 +238,14 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
         </a>
       `),
     });
+    req.log.info({ to: user.email }, "Verification email sent successfully");
     res.json({ ok: true });
   } catch (err: any) {
+    req.log.error({ err: err?.message }, "send-verification failed");
     if (err?.message === "SMTP_NOT_CONFIGURED") {
-      res.status(503).json({ error: "Correo no configurado." });
+      res.status(503).json({ error: "El servidor de correo no está configurado. Contacta al administrador." });
     } else {
-      res.status(500).json({ error: "No se pudo enviar el correo." });
+      res.status(500).json({ error: `No se pudo enviar el correo: ${err?.message ?? "error desconocido"}` });
     }
   }
 });
