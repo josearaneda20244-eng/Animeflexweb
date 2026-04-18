@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import pool from "../db.js";
 import { requireAuth, signToken, type AuthRequest } from "../middleware/authMiddleware.js";
-import { sendEmail, emailTemplate } from "../lib/email.js";
+import { sendEmail, verificationEmailHtml, resetPasswordEmailHtml } from "../lib/email.js";
 
 const router = Router();
 
@@ -155,17 +155,8 @@ router.post("/auth/forgot-password", async (req, res) => {
     await sendEmail({
       to: email.trim().toLowerCase(),
       subject: "Restablecer contraseña — AnimeFlex",
-      text: `Restablece tu contraseña: ${resetUrl} (válido 1 hora)`,
-      html: emailTemplate(`
-        <h2 style="margin:0 0 12px;font-size:20px">Restablecer contraseña</h2>
-        <p style="color:rgba(255,255,255,0.6);margin:0 0 24px;line-height:1.6">
-          Hola <strong style="color:#F1F1F5">${user.username}</strong>, el enlace es válido por <strong style="color:#F1F1F5">1 hora</strong>.
-        </p>
-        <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#6C63FF,#4F46E5);color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">
-          Restablecer contraseña
-        </a>
-        <p style="color:rgba(255,255,255,0.3);font-size:12px;margin-top:24px">Si no solicitaste esto, ignora este correo.</p>
-      `),
+      text: `Restablece tu contraseña de AnimeFlex: ${resetUrl} (válido 1 hora)`,
+      html: resetPasswordEmailHtml(user.username as string, resetUrl),
     });
     res.json({ ok: true });
   } catch (err: any) {
@@ -228,15 +219,8 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
     await sendEmail({
       to: user.email,
       subject: "Verifica tu correo — AnimeFlex",
-      html: emailTemplate(`
-        <h2 style="margin:0 0 12px;font-size:20px">Verifica tu correo electrónico</h2>
-        <p style="color:rgba(255,255,255,0.6);margin:0 0 24px;line-height:1.6">
-          Hola <strong style="color:#F1F1F5">${user.username}</strong>, el enlace es válido por <strong style="color:#F1F1F5">24 horas</strong>.
-        </p>
-        <a href="${verifyUrl}" style="display:inline-block;background:linear-gradient(135deg,#22C55E,#16A34A);color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px">
-          ✓ Verificar correo
-        </a>
-      `),
+      text: `Hola ${user.username}, verifica tu correo en AnimeFlex: ${verifyUrl} (válido 24 horas)`,
+      html: verificationEmailHtml(user.username as string, verifyUrl),
     });
     req.log.info({ to: user.email }, "Verification email sent successfully");
     res.json({ ok: true });
