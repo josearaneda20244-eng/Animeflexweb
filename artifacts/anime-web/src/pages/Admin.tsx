@@ -1665,7 +1665,7 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
     <div>
       <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Envío de Emails</h2>
       <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginBottom: 20 }}>
-        Envía mensajes a segmentos de usuarios. Requiere configurar SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM en las variables de entorno.
+        Envía mensajes a segmentos de usuarios. Usa automáticamente Resend (RESEND_API_KEY) o SMTP si está configurado.
       </p>
 
       {/* Segment selector */}
