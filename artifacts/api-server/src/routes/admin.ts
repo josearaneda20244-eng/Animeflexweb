@@ -1,8 +1,8 @@
 import { Router } from "express";
-import nodemailer from "nodemailer";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 import { requireAdmin } from "../middleware/requireAdmin.js";
+import { sendEmail, emailTemplate } from "../lib/email.js";
 import {
   isPayPalConfigured, getPayPalToken, fetchSubscription, fetchReportingTransactions,
   type PayPalReportingTx,
@@ -164,7 +164,7 @@ async function ensureAdminTables() {
 ensureAdminTables().catch((err) => console.error("ensureAdminTables error:", err));
 
 /* ── GET /admin/stats ── */
-router.get("/admin/stats", async (_req: AuthRequest, res) => {
+router.get("/admin/stats", async (req: AuthRequest, res) => {
   const safe = (p: Promise<any>, fallback: any) => p.catch(() => fallback);
   const zeroRow = { rows: [{ count: "0" }] };
 
@@ -252,8 +252,8 @@ router.get("/admin/stats", async (_req: AuthRequest, res) => {
       searchTrends: searchTrends.rows,
       totalRatings: parseInt(totalRatings.rows[0]?.count ?? "0") || 0,
     });
-  } catch (err) {
-    console.error("Admin stats error", err);
+  } catch (err: any) {
+    req.log.error({ err: err?.message }, "Admin stats error");
     res.status(500).json({ error: "Error al obtener estadísticas" });
   }
 });
@@ -305,8 +305,8 @@ router.get("/admin/users", async (req: AuthRequest, res) => {
       [search]
     );
     res.json({ users: rows, total: parseInt(countRows[0].count) });
-  } catch (err) {
-    console.error("Admin users error", err);
+  } catch (err: any) {
+    req.log.error({ err: err?.message }, "Admin users error");
     res.status(500).json({ error: "Error al obtener usuarios" });
   }
 });
@@ -331,8 +331,8 @@ router.patch("/admin/users/:id", async (req: AuthRequest, res) => {
     );
     if (!rows[0]) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
     res.json({ user: rows[0] });
-  } catch (err) {
-    console.error("Admin update user error", err);
+  } catch (err: any) {
+    req.log.error({ err: err?.message }, "Admin update user error");
     res.status(500).json({ error: "Error al actualizar usuario" });
   }
 });
@@ -605,7 +605,7 @@ router.get("/admin/transactions", async (req: AuthRequest, res) => {
 
       } catch (ppErr: any) {
         paypalError = `PayPal API: ${ppErr.message}`;
-        console.warn("PayPal admin fetch error", ppErr);
+        req.log.warn({ err: ppErr?.message }, "PayPal admin fetch error");
       }
     }
 
@@ -619,7 +619,7 @@ router.get("/admin/transactions", async (req: AuthRequest, res) => {
       paypalReporting: paypalReporting.slice(0, 200),
     });
   } catch (err: any) {
-    console.error("Admin transactions error", err);
+    req.log.error({ err: err?.message }, "Admin transactions error");
     res.status(500).json({ error: err.message });
   }
 });
@@ -632,17 +632,17 @@ router.post("/admin/send-email", async (req: AuthRequest, res) => {
     return;
   }
 
-  /* Check SMTP config */
-  const smtpHost = process.env["SMTP_HOST"];
-  if (!smtpHost) {
-    res.status(503).json({ error: "SMTP no configurado. Añade SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM a las variables de entorno." });
+  const hasResend = !!process.env["RESEND_API_KEY"];
+  const hasSmtp   = !!process.env["SMTP_HOST"];
+  if (!hasResend && !hasSmtp) {
+    res.status(503).json({ error: "Correo no configurado. Añade RESEND_API_KEY (recomendado) o SMTP_HOST+SMTP_USER+SMTP_PASS en las variables de entorno." });
     return;
   }
 
   let tierFilter = "";
   if (to === "megafan") tierFilter = "WHERE membership_tier = 'megafan' AND is_active = TRUE";
   else if (to === "free") tierFilter = "WHERE membership_tier = 'free' AND is_active = TRUE";
-  else tierFilter = "WHERE is_active = TRUE";
+  else                    tierFilter = "WHERE is_active = TRUE";
 
   try {
     const { rows: recipients } = await pool.query(
@@ -653,38 +653,30 @@ router.post("/admin/send-email", async (req: AuthRequest, res) => {
       return;
     }
 
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: parseInt(process.env["SMTP_PORT"] ?? "587"),
-      secure: process.env["SMTP_PORT"] === "465",
-      auth: {
-        user: process.env["SMTP_USER"],
-        pass: process.env["SMTP_PASS"],
-      },
-    });
+    const safeBody = body
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
 
-    const from = process.env["SMTP_FROM"] ?? process.env["SMTP_USER"] ?? "noreply@animeflex.app";
+    const html = emailTemplate(`
+      <p style="color:rgba(255,255,255,0.7);font-size:15px;margin:0 0 20px;line-height:1.7;">${safeBody}</p>
+      <p style="color:rgba(255,255,255,0.25);font-size:12px;margin:0;">AnimeFlex &mdash; animeflex.lat</p>
+    `);
+
     let sent = 0;
     const errors: string[] = [];
 
     for (const r of recipients) {
       try {
-        await transporter.sendMail({
-          from,
-          to: r.email,
-          subject,
-          text: body,
-          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto"><p>${body.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>")}</p><hr><p style="font-size:11px;color:#888">AnimeFlex — Para darte de baja responde a este correo.</p></div>`,
-        });
+        await sendEmail({ to: r.email, subject, html, text: body });
         sent++;
       } catch (e: any) {
         errors.push(`${r.email}: ${e.message}`);
       }
     }
 
+    req.log.info({ sent, total: recipients.length, errors: errors.length }, "Admin mass email completed");
     res.json({ ok: true, sent, total: recipients.length, errors: errors.slice(0, 5) });
   } catch (err: any) {
-    console.error("Send email error", err);
+    req.log.error({ err: err?.message }, "Admin send-email error");
     res.status(500).json({ error: err.message });
   }
 });
