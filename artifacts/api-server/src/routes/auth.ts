@@ -147,11 +147,8 @@ router.post("/auth/forgot-password", async (req, res) => {
       `INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
       [user.id, token, expiresAt]
     );
-    const proto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
-    const host  = req.get("host") ?? "animeflex.lat";
-    const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
-    const frontendBase = process.env["APP_URL"] ?? `${proto}://${host}${basePath}`;
-    const resetUrl = `${frontendBase}/reset-password?token=${token}`;
+    const feBase = (process.env["FRONTEND_URL"] ?? "https://animeflex.lat").replace(/\/$/, "");
+    const resetUrl = `${feBase}/reset-password?token=${token}`;
     await sendEmail({
       to: email.trim().toLowerCase(),
       subject: "Restablecer contraseña — AnimeFlex",
@@ -252,10 +249,7 @@ router.post("/auth/send-verification", requireAuth, async (req: AuthRequest, res
 
 router.get("/auth/verify-email", async (req, res) => {
   const { token } = req.query as { token?: string };
-  const rProto = (req.get("x-forwarded-proto") ?? req.protocol).split(",")[0].trim();
-  const rHost  = req.get("host") ?? "animeflex.lat";
-  const basePath = process.env["FRONTEND_BASE_PATH"] ?? "/anime-web";
-  const frontendBase = process.env["APP_URL"] ?? `${rProto}://${rHost}${basePath}`;
+  const frontendBase = (process.env["FRONTEND_URL"] ?? "https://animeflex.lat").replace(/\/$/, "");
   if (!token) {
     return res.redirect(302, `${frontendBase}/verify-email?status=error&msg=${encodeURIComponent("Token requerido")}`);
   }
