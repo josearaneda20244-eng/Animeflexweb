@@ -37,7 +37,7 @@ router.post("/auth/register", async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (username, email, password_hash)
        VALUES ($1, $2, $3)
-       RETURNING ${BASE_USER_COLS}`,
+       RETURNING ${FULL_USER_COLS}`,
       [username.trim(), email.trim().toLowerCase(), hash]
     );
     const user = safeUser(result.rows[0]);
