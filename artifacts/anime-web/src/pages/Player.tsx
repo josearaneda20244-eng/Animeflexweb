@@ -228,6 +228,11 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
   const [muted, setMuted] = useState(false);
   const [controlsVis, setControlsVis] = useState(true);
   const [isFs, setIsFs] = useState(false);
+  const [buffering, setBuffering] = useState(false);
+  const wasPlayingRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const durRef = useRef(0);
 
   useEffect(() => { startAtRef.current = startAt; }, [startAt]);
   useEffect(() => { activeHlsSubIdRef.current = activeHlsSubId; }, [activeHlsSubId]);
@@ -283,6 +288,35 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     hideTimerRef.current = setTimeout(() => {
       setPlaying(p => { if (p) setControlsVis(false); return p; });
     }, 3000);
+  }, []);
+
+  // Keep durRef in sync so drag handlers can read duration without stale closure
+  useEffect(() => { durRef.current = dur; }, [dur]);
+
+  // Global mouse listeners for progress bar drag (mousedown starts in the bar, move/up anywhere)
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current || !progressBarRef.current) return;
+      const d = durRef.current;
+      if (!d) return;
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      if (videoRef.current) videoRef.current.currentTime = pct * d;
+    };
+    const onMouseUp = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      // Resume playback if the video was playing before we started dragging
+      if (wasPlayingRef.current && videoRef.current?.paused) {
+        videoRef.current.play().catch(() => {});
+      }
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
   }, []);
 
   // Expose controls to parent (keyboard shortcuts, external seek, volume)
@@ -342,8 +376,11 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       }
     };
 
-    const onPlay = () => setPlaying(true);
-    const onPause = () => { setPlaying(false); setControlsVis(true); };
+    const onPlay = () => { setPlaying(true); setBuffering(false); wasPlayingRef.current = true; };
+    const onPause = () => {
+      // Don't update state if the pause was caused by dragging the seek bar
+      if (!isDraggingRef.current) { setPlaying(false); setControlsVis(true); wasPlayingRef.current = false; }
+    };
     const onEndEv = () => { onEndedRef.current?.(); setPlaying(false); setControlsVis(true); };
     const onVolCh = () => { setVol(video.volume); setMuted(video.muted); };
     const onProg = () => {
@@ -352,6 +389,16 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     };
     const onNativeErr = () => { setError("Error al cargar fuente. Probando otra..."); setLoading(false); notifyErr(); };
     const onMeta = () => trySeek();
+
+    // Seeking/buffering handlers — keep the UI responsive during HLS segment loads
+    const onSeekingEv = () => { wasPlayingRef.current = !video.paused; setBuffering(true); };
+    const onSeekedEv = () => {
+      setBuffering(false);
+      // If the video was playing before we sought, resume it
+      if (wasPlayingRef.current && video.paused) video.play().catch(() => {});
+    };
+    const onWaiting = () => setBuffering(true);
+    const onPlayingEv = () => { setBuffering(false); setPlaying(true); };
 
     if (Hls.isSupported()) {
       const hls = new Hls({
@@ -433,6 +480,10 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       video.addEventListener("volumechange", onVolCh);
       video.addEventListener("progress", onProg);
       video.addEventListener("error", onNativeErr);
+      video.addEventListener("seeking", onSeekingEv);
+      video.addEventListener("seeked", onSeekedEv);
+      video.addEventListener("waiting", onWaiting);
+      video.addEventListener("playing", onPlayingEv);
       return () => {
         origReturn_HLS();
         video.removeEventListener("loadedmetadata", onMeta);
@@ -443,6 +494,10 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         video.removeEventListener("volumechange", onVolCh);
         video.removeEventListener("progress", onProg);
         video.removeEventListener("error", onNativeErr);
+        video.removeEventListener("seeking", onSeekingEv);
+        video.removeEventListener("seeked", onSeekedEv);
+        video.removeEventListener("waiting", onWaiting);
+        video.removeEventListener("playing", onPlayingEv);
         if (loadTimeout) clearTimeout(loadTimeout);
         if (controlsRef) controlsRef.current = null;
         if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
@@ -460,6 +515,10 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     video.addEventListener("volumechange", onVolCh);
     video.addEventListener("progress", onProg);
     video.addEventListener("error", onNativeErr);
+    video.addEventListener("seeking", onSeekingEv);
+    video.addEventListener("seeked", onSeekedEv);
+    video.addEventListener("waiting", onWaiting);
+    video.addEventListener("playing", onPlayingEv);
     return () => {
       video.removeEventListener("loadedmetadata", onMeta);
       video.removeEventListener("timeupdate", onTimeUpd);
@@ -469,6 +528,10 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
       video.removeEventListener("volumechange", onVolCh);
       video.removeEventListener("progress", onProg);
       video.removeEventListener("error", onNativeErr);
+      video.removeEventListener("seeking", onSeekingEv);
+      video.removeEventListener("seeked", onSeekedEv);
+      video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("playing", onPlayingEv);
       if (loadTimeout) clearTimeout(loadTimeout);
       if (controlsRef) controlsRef.current = null;
       if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
@@ -481,7 +544,10 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    if (videoRef.current && dur) videoRef.current.currentTime = pct * dur;
+    if (videoRef.current && dur) {
+      wasPlayingRef.current = !videoRef.current.paused;
+      videoRef.current.currentTime = pct * dur;
+    }
   };
 
   const togglePlay = (e?: React.MouseEvent) => {
@@ -510,11 +576,16 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
       />
 
-      {/* Loading */}
-      {loading && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ background: "rgba(0,0,0,0.7)" }}>
+      {/* Loading / Buffering spinner */}
+      {(loading || buffering) && !error && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none"
+          style={{ background: loading ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.35)" }}
+        >
           <Loader2 size={40} className="animate-spin" style={{ color: "#7C6FFF" }} />
-          <p style={{ color: "#9090B0", fontSize: 13 }}>Cargando episodio...</p>
+          <p style={{ color: "#9090B0", fontSize: 13 }}>
+            {loading ? "Cargando episodio..." : "Cargando..."}
+          </p>
         </div>
       )}
 
@@ -538,16 +609,44 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Progress bar */}
+        {/* Progress bar — supports click and drag */}
         <div
+          ref={progressBarRef}
           style={{
-            height: 5, background: "rgba(255,255,255,0.18)", borderRadius: 3,
-            marginBottom: 10, cursor: "pointer", position: "relative",
+            height: 18, background: "transparent",
+            marginBottom: 6, cursor: "pointer", position: "relative",
+            display: "flex", alignItems: "center",
           }}
           onClick={seekFromClick}
+          onMouseDown={e => {
+            e.stopPropagation();
+            e.preventDefault();
+            isDraggingRef.current = true;
+            wasPlayingRef.current = !(videoRef.current?.paused ?? true);
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+            if (videoRef.current && dur) videoRef.current.currentTime = pct * dur;
+          }}
         >
-          <div style={{ position: "absolute", inset: 0, width: `${bufferedFrac * 100}%`, background: "rgba(255,255,255,0.28)", borderRadius: 3 }} />
-          <div style={{ position: "absolute", inset: 0, width: `${dur ? (currentSec / dur) * 100 : 0}%`, background: "#7C6FFF", borderRadius: 3 }} />
+          {/* Track background */}
+          <div style={{ position: "absolute", left: 0, right: 0, height: 5, background: "rgba(255,255,255,0.18)", borderRadius: 3 }}>
+            {/* Buffered fill */}
+            <div style={{ position: "absolute", inset: 0, width: `${bufferedFrac * 100}%`, background: "rgba(255,255,255,0.28)", borderRadius: 3 }} />
+            {/* Played fill */}
+            <div style={{ position: "absolute", inset: 0, width: `${dur ? (currentSec / dur) * 100 : 0}%`, background: "#7C6FFF", borderRadius: 3 }} />
+          </div>
+          {/* Thumb */}
+          <div style={{
+            position: "absolute",
+            left: `${dur ? (currentSec / dur) * 100 : 0}%`,
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 13, height: 13, borderRadius: "50%",
+            background: "#7C6FFF",
+            boxShadow: "0 0 6px rgba(124,111,255,0.85)",
+            transition: "transform 0.1s",
+            pointerEvents: "none",
+          }} />
         </div>
 
         {/* Controls row */}
