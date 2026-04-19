@@ -170,27 +170,31 @@ async function listFromApi(page: number, query?: string) {
   let totalPages = page;
   let total: number | undefined;
 
-  // For search queries, try multiple param names in case the API uses a different key
-  const queryParamNames = query ? ["query", "titulo", "search", "q"] : [undefined];
-
-  let fetchedAny = false;
-  for (const paramName of queryParamNames) {
-    if (fetchedAny) break;
+  if (query) {
+    // Search mode: the API rejects page_size when query is provided — omit it
+    const params = new URLSearchParams({ page: String(page), query });
+    try {
+      const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
+      totalPages = data.total_pages ?? totalPages;
+      total = data.total ?? data.total_results;
+      readable.push(...(data.resultados ?? []));
+    } catch {
+      // leave readable empty so the caller falls back to HTML scraping
+    }
+  } else {
+    // Listing mode: page_size is accepted without a query
     for (let apiPage = page; apiPage < page + 5 && readable.length < PAGE_SIZE; apiPage++) {
       const params = new URLSearchParams({
         page: String(apiPage),
         page_size: String(PAGE_SIZE * 3),
       });
-      if (query && paramName) params.set(paramName, query);
       try {
         const data = await fetchJson<LmeListResponse>(`${LME}/api/buscar_mangas/?${params.toString()}`);
         totalPages = data.total_pages ?? totalPages;
         total = data.total ?? data.total_results;
         const items = data.resultados ?? [];
-        // For search queries, don't filter by ultimo_capitulo — show all matches
-        const filtered = query ? items : items.filter((item) => Number(item.ultimo_capitulo ?? 0) > 0);
+        const filtered = items.filter((item) => Number(item.ultimo_capitulo ?? 0) > 0);
         readable.push(...filtered);
-        if (items.length > 0) fetchedAny = true;
         if (apiPage >= totalPages) break;
       } catch {
         break;
