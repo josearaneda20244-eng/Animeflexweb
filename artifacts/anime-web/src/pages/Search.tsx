@@ -60,11 +60,20 @@ export default function Search() {
     sortBy: "popularity"
   });
 
+  // Un "filtro real" es cualquier cosa que no sea el sortBy por defecto
+  const hasRealFilter =
+    filters.genres.length > 0 ||
+    !!filters.status ||
+    !!filters.year ||
+    !!filters.season ||
+    !!filters.type ||
+    filters.minRating > 0;
+
   // Búsqueda avanzada con filtros
   const { data: searchResults, isLoading, error } = useQuery<AnimeResult[]>({
     queryKey: ["search", query, filters],
     queryFn: async (): Promise<AnimeResult[]> => {
-      if (!query.trim() && Object.values(filters).every(v => !v || (Array.isArray(v) && v.length === 0))) {
+      if (!query.trim() && !hasRealFilter) {
         return [];
       }
 
@@ -124,7 +133,7 @@ export default function Search() {
         return [];
       }
     },
-    enabled: !!(query.trim() || Object.values(filters).some(v => v && (Array.isArray(v) ? v.length > 0 : true))),
+    enabled: !!(query.trim() || hasRealFilter),
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
@@ -176,7 +185,7 @@ export default function Search() {
                 ))}
               </div>
             </>
-          ) : query || Object.values(filters).some(v => v && (Array.isArray(v) ? v.length > 0 : true)) ? (
+          ) : query || hasRealFilter ? (
             <div className="text-center py-20">
               <SearchIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-400 mb-2">No se encontraron resultados</h3>
