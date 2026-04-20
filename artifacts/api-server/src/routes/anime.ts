@@ -1,6 +1,7 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
+import { getLatanimeStream } from "../lib/latanime.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -1820,6 +1821,27 @@ router.get("/anime/animeflv-search", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "AnimeFLV search failed");
     res.status(500).json({ error: "AnimeFLV search failed" });
+  }
+});
+
+
+/**
+ * Latanime — episodios en español Latino (doblaje)
+ * GET /api/anime/lat-watch?title=...&episode=N
+ */
+router.get('/anime/lat-watch', optAuth, async (req: AuthReq, res) => {
+  const title = (req.query.title as string | undefined)?.trim();
+  const episode = parseInt(req.query.episode as string);
+  if (!title || !episode || isNaN(episode)) {
+    res.status(400).json({ error: "Query params 'title' and 'episode' are required" });
+    return;
+  }
+  try {
+    const data = await getLatanimeStream(title, episode);
+    res.json(data);
+  } catch (err) {
+    req.log.warn({ err, title, episode }, 'Latanime (Latino dub) watch failed');
+    res.status(404).json({ error: 'No se encontró el episodio en español latino' });
   }
 });
 
