@@ -221,21 +221,20 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number, 
     throw new Error(`No player URLs found on Latanime for "${animeTitle}" ep ${episodeNum}`);
   }
 
-  // Return embed pages directly — the browser will load each embed player in an iframe.
-  // This avoids server-side extraction of signed CDN URLs which expire or require cookies.
   const episodePageUrl = `${BASE}/ver/${slug}-episodio-${episodeNum}`;
 
-  // First try to find m3u8 URLs (work best with proxy), fall back to embed iframes
+  // Try to extract direct stream URLs from each embed player page
   const resolveResults = await Promise.allSettled(
     embedUrls.slice(0, 5).map(async (embedUrl) => {
       try {
         const html = await fetchPage(embedUrl, episodePageUrl, 7000);
         const streamUrl = extractStreamUrl(html);
-        if (streamUrl && isM3U8(streamUrl)) {
-          return { type: "m3u8" as const, url: streamUrl, embedUrl };
+        if (streamUrl) {
+          // Return any found URL — m3u8 or mp4
+          return { type: isM3U8(streamUrl) ? ("m3u8" as const) : ("mp4" as const), url: streamUrl, embedUrl };
         }
       } catch { /* ignore */ }
-      // Fall back: return the embed page URL itself for iframe loading
+      // Fall back: return the embed page URL itself for proxy serving
       return { type: "embed" as const, url: embedUrl, embedUrl };
     })
   );
@@ -254,7 +253,18 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number, 
           lang: "LAT",
           referer: item.embedUrl,
         });
+      } else if (item.type === "mp4") {
+        // Direct MP4 — play through video proxy (no iframe, no ads)
+        sources.push({
+          url: item.url,
+          quality: `Servidor ${serverNum} (Latino)`,
+          isM3U8: false,
+          isEmbed: false,
+          lang: "LAT",
+          referer: item.embedUrl,
+        });
       } else {
+        // Last resort: serve the embed page through proxy
         sources.push({
           url: item.url,
           quality: `Servidor ${serverNum} (Latino)`,
