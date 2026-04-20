@@ -458,6 +458,37 @@ function extractServersFromPage(html: string): JkServer[] {
   return results;
 }
 
+/**
+ * Try to extract m3u8 or mp4 stream URLs directly from a jkanime episode page HTML.
+ * This avoids having to open embed player pages (which often show ads).
+ */
+function extractDirectStreamsFromEpisodePage(
+  html: string,
+  episodePageUrl: string,
+): Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB"; referer: string }> {
+  const results: Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB"; referer: string }> = [];
+  const seen = new Set<string>();
+
+  const addIfNew = (url: string, isM3U8: boolean, lang: "LAT" | "SUB", label: string) => {
+    if (!url || seen.has(url) || EMBED_SKIP_PATTERNS.test(url)) return;
+    seen.add(url);
+    results.push({ url, quality: label, isM3U8, lang, referer: episodePageUrl });
+  };
+
+  // Look for m3u8 URLs tagged with language info
+  const m3u8Re = /['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/g;
+  let m: RegExpExecArray | null;
+  while ((m = m3u8Re.exec(html)) !== null) {
+    const url = m[1];
+    // Guess language from surrounding context (50 chars before)
+    const ctx = html.slice(Math.max(0, m.index - 80), m.index).toLowerCase();
+    const lang: "LAT" | "SUB" = ctx.includes("lat") || ctx.includes("esp") || ctx.includes("dub") ? "LAT" : "SUB";
+    addIfNew(url, true, lang, `Directo ${lang}`);
+  }
+
+  return results;
+}
+
 function isValidEpisodePage(html: string): boolean {
   if (html.length < 3000) return false;
   const lower = html.toLowerCase();
@@ -619,14 +650,23 @@ export async function getJkAnimeWatch(
 
   const episodePageUrl = `${BASE}/${slug}/${episodeNum}/`;
 
-  // Extract player servers from the new `var servers = [...]` structure
-  const jkServers = extractServersFromPage(episodeHtml);
+  // Step 1: Try to extract direct m3u8 streams from the episode page HTML (no ads, no embed)
+  const directStreams = extractDirectStreamsFromEpisodePage(episodeHtml, episodePageUrl);
+  if (directStreams.length > 0) {
+    const cacheable = directStreams.filter(s => s.isM3U8);
+    if (cacheable.length > 0) {
+      m3u8Cache.set(cachedM3u8Key, { sources: cacheable, ts: Date.now() });
+    }
+    return { sources: directStreams, slug, headers: { "Referer": episodePageUrl } };
+  }
 
+  // Step 2: Extract embed player URLs from `var servers = [...]`
+  const jkServers = extractServersFromPage(episodeHtml);
   if (jkServers.length === 0) {
     throw new Error(`No players found for ${slug} ep ${episodeNum}`);
   }
 
-  // Try to resolve each embed URL to a direct m3u8/mp4 stream (parallel, up to 4)
+  // Step 3: Try to resolve each embed player to a direct m3u8/mp4 stream server-side
   const resolveResults = await Promise.allSettled(
     jkServers.slice(0, 4).map(async (s) => {
       const resolved = await resolveEmbedToStream(s.url, episodePageUrl);
@@ -640,6 +680,7 @@ export async function getJkAnimeWatch(
     const { server, lang, embedUrl, resolved } = r.value;
     const langTag = lang === 2 ? "LAT" as const : "SUB" as const;
     if (resolved) {
+      // Got a direct stream URL — no embed needed, no ads
       sources.push({
         url: resolved.url,
         quality: `${server}`,
@@ -648,7 +689,7 @@ export async function getJkAnimeWatch(
         referer: embedUrl,
       });
     } else {
-      // Fallback: keep embed URL so the proxy can serve it
+      // Fallback: return embed URL for proxy serving
       sources.push({
         url: embedUrl,
         quality: `${server} [embed]`,
@@ -663,7 +704,7 @@ export async function getJkAnimeWatch(
     throw new Error(`No playable sources for ${slug} ep ${episodeNum}`);
   }
 
-  // Cache only resolved m3u8 sources (embed URLs change constantly)
+  // Cache only direct m3u8 sources
   const cacheable = sources.filter(s => s.isM3U8);
   if (cacheable.length > 0) {
     m3u8Cache.set(cachedM3u8Key, { sources: cacheable, ts: Date.now() });
