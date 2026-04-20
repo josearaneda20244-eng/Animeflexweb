@@ -322,18 +322,93 @@ async function fetchPage(url: string, timeoutMs = 10000, extraHeaders?: Record<s
   }
 }
 
-const EMBED_STREAM_PATTERNS: RegExp[] = [
-  /(?:file|src|hlsUrl|source|videoUrl|streamUrl)\s*[=:]\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/i,
-  /['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/,
-  /(?:file|src|videoUrl|streamUrl)\s*[=:]\s*['"`](https?:\/\/[^'"`\s<>]+\.mp4[^'"`\s<>]*)['"`]/i,
-  /['"`](https?:\/\/[^'"`\s<>]+\.mp4[^'"`\s<>]*)['"`]/,
-];
-
 const EMBED_SKIP_PATTERNS = /thumbnail|poster|banner|preview|\.jpg|\.jpeg|\.png|\.webp|\.gif|\.svg/i;
 
 /**
+ * Attempt to unpack Dean Edwards packer (eval(function(p,a,c,k,e,d){...})).
+ * Returns original string if not packed or if unpacking fails.
+ */
+function tryUnpackPacker(js: string): string {
+  if (!js.includes("eval(function(p,a,c,k,e")) return js;
+  try {
+    const inner = js.match(/\)\s*\(\s*'([\s\S]+?)'\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*'([\s\S]+?)'\s*\.split/);
+    if (!inner) return js;
+    const [, p, radixStr, , kRaw] = inner;
+    const radix = parseInt(radixStr, 10);
+    const k = kRaw.split("|");
+    let result = p;
+    for (let i = k.length - 1; i >= 0; i--) {
+      if (k[i]) {
+        result = result.replace(new RegExp("\\b" + i.toString(radix) + "\\b", "g"), k[i]);
+      }
+    }
+    return result;
+  } catch {
+    return js;
+  }
+}
+
+/**
+ * Scan for base64 atob() calls that decode to a video URL.
+ */
+function extractAtobVideoUrl(html: string): string | null {
+  const atobRe = /atob\s*\(\s*["'`]([A-Za-z0-9+/]{20,}={0,2})["'`]\s*\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = atobRe.exec(html)) !== null) {
+    try {
+      const decoded = Buffer.from(m[1], "base64").toString("utf8");
+      const urlMatch = decoded.match(/https?:\/\/[^\s"'<>]+\.(?:m3u8|mp4)[^\s"'<>]*/i);
+      if (urlMatch && !EMBED_SKIP_PATTERNS.test(urlMatch[0])) return urlMatch[0];
+    } catch {}
+  }
+  return null;
+}
+
+/**
+ * Extract a playable stream URL from HTML using multiple strategies.
+ */
+function extractStreamFromHtml(html: string): string | null {
+  const unpacked = tryUnpackPacker(html);
+  const sources = unpacked !== html ? [unpacked, html] : [html];
+
+  for (const src of sources) {
+    // JWPlayer sources array with file property
+    const jw1 = src.match(/sources\s*:\s*\[\s*\{[^{}]{0,300}["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i)
+      ?? src.match(/["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
+    if (jw1?.[1] && !EMBED_SKIP_PATTERNS.test(jw1[1])) return jw1[1];
+
+    // Named variable — m3u8
+    const nm3u8 = src.match(/(?:url|file|source|src|hlsUrl|streamUrl|videoUrl|hls_url|hls)\s*[=:]\s*["'`](https?:\/\/[^"'`\s<>]+\.m3u8[^"'`\s<>]*)["'`]/i);
+    if (nm3u8?.[1] && !EMBED_SKIP_PATTERNS.test(nm3u8[1])) return nm3u8[1];
+
+    // loadSource / playlistItem with m3u8
+    const ls = src.match(/(?:loadSource|playlistItem|setup)\s*\(\s*["'`]?(https?:\/\/[^"'`\s<>]+\.m3u8[^"'`\s<>]*)["'`]?/i);
+    if (ls?.[1] && !EMBED_SKIP_PATTERNS.test(ls[1])) return ls[1];
+
+    // Any quoted m3u8 URL
+    const anyM = src.match(/["'`](https?:\/\/[^"'`\s<>]+\.m3u8[^"'`\s<>]*)["'`]/);
+    if (anyM?.[1] && !EMBED_SKIP_PATTERNS.test(anyM[1])) return anyM[1];
+
+    // JWPlayer mp4 file
+    const jw2 = src.match(/["']file["']\s*:\s*["']([^"']+\.mp4[^"']*)["']/i);
+    if (jw2?.[1] && !EMBED_SKIP_PATTERNS.test(jw2[1])) return jw2[1];
+
+    // Named variable — mp4
+    const nmp4 = src.match(/(?:url|file|source|src|videoUrl|streamUrl)\s*[=:]\s*["'`](https?:\/\/[^"'`\s<>]+\.mp4[^"'`\s<>]*)["'`]/i);
+    if (nmp4?.[1] && !EMBED_SKIP_PATTERNS.test(nmp4[1])) return nmp4[1];
+
+    // Any quoted mp4 URL
+    const anyP = src.match(/["'`](https?:\/\/[^"'`\s<>]+\.mp4[^"'`\s<>]*)["'`]/);
+    if (anyP?.[1] && !EMBED_SKIP_PATTERNS.test(anyP[1])) return anyP[1];
+  }
+
+  // base64 atob() decoded URL
+  return extractAtobVideoUrl(html);
+}
+
+/**
  * Try to resolve an embed player URL to a direct m3u8/mp4 stream URL.
- * Returns null if resolution fails.
+ * Returns null if resolution fails — no embed fallback.
  */
 async function resolveEmbedToStream(
   embedUrl: string,
@@ -342,7 +417,7 @@ async function resolveEmbedToStream(
   try {
     const origin = (() => { try { return new URL(referer).origin; } catch { return referer; } })();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 9000);
+    const timer = setTimeout(() => controller.abort(), 10000);
 
     const res = await fetch(embedUrl, {
       headers: {
@@ -359,9 +434,9 @@ async function resolveEmbedToStream(
     if (!res.ok && res.status !== 206) return null;
 
     const contentType = res.headers.get("content-type") ?? "";
-    const finalUrl = res.url; // URL after any redirects
+    const finalUrl = res.url;
 
-    // If the URL or content-type signals this is already an m3u8 playlist, return it directly
+    // Direct m3u8 response
     if (
       contentType.includes("mpegurl") ||
       contentType.includes("x-mpegURL") ||
@@ -370,7 +445,7 @@ async function resolveEmbedToStream(
       return { url: finalUrl, isM3U8: true };
     }
 
-    // If it redirected to a video file, return it as-is
+    // Direct mp4 response
     const cleanFinal = finalUrl.split("?")[0].toLowerCase();
     if (cleanFinal.endsWith(".mp4") || contentType.includes("video/mp4")) {
       return { url: finalUrl, isM3U8: false };
@@ -378,22 +453,42 @@ async function resolveEmbedToStream(
 
     const html = await res.text();
 
-    // If the body is an m3u8 playlist (starts with #EXTM3U), use the resolved URL
+    // m3u8 playlist body
     if (html.trimStart().startsWith("#EXTM3U")) {
       return { url: finalUrl, isM3U8: true };
     }
 
-    // Search the HTML for embedded stream URLs
-    for (const pattern of EMBED_STREAM_PATTERNS) {
-      const m = html.match(pattern);
-      const candidate = m?.[1];
-      if (candidate && !EMBED_SKIP_PATTERNS.test(candidate)) {
-        return { url: candidate, isM3U8: candidate.includes(".m3u8") };
+    // Try to extract from HTML
+    const streamUrl = extractStreamFromHtml(html);
+    if (streamUrl) {
+      return { url: streamUrl, isM3U8: streamUrl.includes(".m3u8") };
+    }
+
+    // Try following an iframe src one level deeper
+    const iframeMatch = html.match(/<iframe[^>]+src=["']([^"']+)["']/i);
+    if (iframeMatch?.[1]) {
+      const iframeUrl = iframeMatch[1].startsWith("http")
+        ? iframeMatch[1]
+        : (() => { try { return new URL(iframeMatch[1], finalUrl).href; } catch { return null; } })();
+      if (iframeUrl) {
+        try {
+          const controller2 = new AbortController();
+          const timer2 = setTimeout(() => controller2.abort(), 7000);
+          const res2 = await fetch(iframeUrl, {
+            headers: { ...PAGE_HEADERS, "Referer": finalUrl },
+            redirect: "follow",
+            signal: controller2.signal,
+          });
+          clearTimeout(timer2);
+          if (res2.ok) {
+            const html2 = await res2.text();
+            const s2 = extractStreamFromHtml(html2);
+            if (s2) return { url: s2, isM3U8: s2.includes(".m3u8") };
+          }
+        } catch {}
       }
     }
-  } catch {
-    // ignore — fall back to embed URL
-  }
+  } catch {}
   return null;
 }
 
@@ -447,50 +542,51 @@ async function searchJkAnimeSlugs(query: string): Promise<string[]> {
   }
 }
 
-/**
- * Search JKAnime using the /directorio/ page as additional fallback.
- * Returns slugs found in the directory results.
- */
-async function searchJkAnimeDirectory(query: string): Promise<string[]> {
-  try {
-    const url = `${BASE}/directorio/?buscar=1&q=${encodeURIComponent(query)}`;
-    const html = await fetchPage(url, 12000);
-    const slugs: string[] = [];
-    const seen = new Set<string>();
 
-    const SKIP = new Set([
-      "search", "buscar", "api", "cdn", "assets", "static", "tag", "genero", "tipo",
-      "temporada", "directorio", "usuario", "dash", "notificaciones", "guardado",
-      "historial", "salir", "login", "registro", "perfil", "listas", "solicitudes",
-    ]);
+  /**
+   * Search JKAnime using the /directorio/ page as additional fallback.
+   * Returns slugs found in the directory results.
+   */
+  async function searchJkAnimeDirectory(query: string): Promise<string[]> {
+    try {
+      const url = `${BASE}/directorio/?buscar=1&q=${encodeURIComponent(query)}`;
+      const html = await fetchPage(url, 12000);
+      const slugs: string[] = [];
+      const seen = new Set<string>();
 
-    const addSlug = (candidate: string) => {
-      if (!SKIP.has(candidate) && !seen.has(candidate) && candidate.length >= 2) {
-        seen.add(candidate);
-        slugs.push(candidate);
+      const SKIP = new Set([
+        "search", "buscar", "api", "cdn", "assets", "static", "tag", "genero", "tipo",
+        "temporada", "directorio", "usuario", "dash", "notificaciones", "guardado",
+        "historial", "salir", "login", "registro", "perfil", "listas", "solicitudes",
+      ]);
+
+      const addSlug = (candidate: string) => {
+        if (!SKIP.has(candidate) && !seen.has(candidate) && candidate.length >= 2) {
+          seen.add(candidate);
+          slugs.push(candidate);
+        }
+      };
+
+      const re1 = /href="https?:\/\/jkanime\.net\/([a-z0-9][a-z0-9-]+)\/"/g;
+      let m: RegExpExecArray | null;
+      while ((m = re1.exec(html)) !== null) addSlug(m[1]);
+
+      const re2 = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
+      while ((m = re2.exec(html)) !== null) addSlug(m[1]);
+
+      const re3 = /href="\/([a-z0-9][a-z0-9-]{3,})\/"/g;
+      while ((m = re3.exec(html)) !== null) {
+        const candidate = m[1];
+        if (candidate.includes("-") || candidate.length >= 6) addSlug(candidate);
       }
-    };
 
-    const re1 = /href="https?:\/\/jkanime\.net\/([a-z0-9][a-z0-9-]+)\/"/g;
-    let m: RegExpExecArray | null;
-    while ((m = re1.exec(html)) !== null) addSlug(m[1]);
-
-    const re2 = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
-    while ((m = re2.exec(html)) !== null) addSlug(m[1]);
-
-    const re3 = /href="\/([a-z0-9][a-z0-9-]{3,})\/"/g;
-    while ((m = re3.exec(html)) !== null) {
-      const candidate = m[1];
-      if (candidate.includes("-") || candidate.length >= 6) addSlug(candidate);
+      return slugs;
+    } catch {
+      return [];
     }
-
-    return slugs;
-  } catch {
-    return [];
   }
-}
 
-const DOWNLOAD_ONLY_SERVERS = new Set([
+  const DOWNLOAD_ONLY_SERVERS = new Set([
   "mediafire", "mega", "google drive", "zippyshare", "pixeldrain",
   "terabox", "1fichier", "sendcm", "uptobox", "openload", "fembed",
 ]);
@@ -732,64 +828,65 @@ export async function getJkAnimeWatch(
     }
   }
 
-  // 4. Fallback: search via /directorio/ page (catches animes missed by /buscar/)
-  if (!slug) {
-    const triedSlugs2 = new Set<string>([
-      ...allTitles.flatMap(t => makeSlugs(t)),
-    ]);
 
-    const dirQueries: string[] = [];
-    const seenQ2 = new Set<string>();
-    const addDirQ = (q: string) => {
-      const qc = q.trim();
-      if (qc.length >= 3 && !seenQ2.has(qc)) { seenQ2.add(qc); dirQueries.push(qc); }
-    };
+    // 4. Fallback: search via /directorio/ page (catches animes missed by /buscar/)
+    if (!slug) {
+      const triedSlugs2 = new Set<string>([
+        ...allTitles.flatMap(t => makeSlugs(t)),
+      ]);
 
-    for (const t of allTitles) {
-      const base = stripSeasonSuffix(t);
-      addDirQ(t);
-      addDirQ(base);
-      addDirQ(t.split(":")[0].trim());
-      const words = t.split(" ").filter(Boolean);
-      if (words[0] && words[0].length >= 4) addDirQ(words[0]);
-      if (words.length >= 2) addDirQ(words.slice(0, 2).join(" "));
-    }
+      const dirQueries: string[] = [];
+      const seenQ2 = new Set<string>();
+      const addDirQ = (q: string) => {
+        const qc = q.trim();
+        if (qc.length >= 3 && !seenQ2.has(qc)) { seenQ2.add(qc); dirQueries.push(qc); }
+      };
 
-    const dirResults = await Promise.allSettled(dirQueries.map(q => searchJkAnimeDirectory(q)));
-    const dirCandidates: string[] = [];
-    const seenDir = new Set<string>();
+      for (const t of allTitles) {
+        const base = stripSeasonSuffix(t);
+        addDirQ(t);
+        addDirQ(base);
+        addDirQ(t.split(":")[0].trim());
+        const words = t.split(" ").filter(Boolean);
+        if (words[0] && words[0].length >= 4) addDirQ(words[0]);
+        if (words.length >= 2) addDirQ(words.slice(0, 2).join(" "));
+      }
 
-    for (const r of dirResults) {
-      if (r.status === "fulfilled") {
-        for (const s of r.value) {
-          if (!triedSlugs2.has(s) && !seenDir.has(s)) {
-            seenDir.add(s);
-            dirCandidates.push(s);
+      const dirResults = await Promise.allSettled(dirQueries.map(q => searchJkAnimeDirectory(q)));
+      const dirCandidates: string[] = [];
+      const seenDir = new Set<string>();
+
+      for (const r of dirResults) {
+        if (r.status === "fulfilled") {
+          for (const s of r.value) {
+            if (!triedSlugs2.has(s) && !seenDir.has(s)) {
+              seenDir.add(s);
+              dirCandidates.push(s);
+            }
           }
+        }
+      }
+
+      const sortedDir = dirCandidates
+        .map(s => ({ s, score: slugRelevanceScore(s, allTitles) }))
+        .sort((a, b) => b.score - a.score)
+        .map(({ s }) => s);
+
+      const BATCH2 = 6;
+      for (let i = 0; i < sortedDir.length && !slug; i += BATCH2) {
+        const batch = sortedDir.slice(i, i + BATCH2);
+        const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
+        const hit = results.find(r => r !== null);
+        if (hit) {
+          slug = hit.s;
+          episodeHtml = hit.h!;
+          slugCache.set(cacheKey, slug);
+          slugCacheTime.set(cacheKey, Date.now());
         }
       }
     }
 
-    const sortedDir = dirCandidates
-      .map(s => ({ s, score: slugRelevanceScore(s, allTitles) }))
-      .sort((a, b) => b.score - a.score)
-      .map(({ s }) => s);
-
-    const BATCH2 = 6;
-    for (let i = 0; i < sortedDir.length && !slug; i += BATCH2) {
-      const batch = sortedDir.slice(i, i + BATCH2);
-      const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
-      const hit = results.find(r => r !== null);
-      if (hit) {
-        slug = hit.s;
-        episodeHtml = hit.h!;
-        slugCache.set(cacheKey, slug);
-        slugCacheTime.set(cacheKey, Date.now());
-      }
-    }
-  }
-
-  if (!slug) throw new Error(`Anime not found on Jkanime: "${animeTitle}" ep ${episodeNum}`);
+    if (!slug) throw new Error(`Anime not found on Jkanime: "${animeTitle}" ep ${episodeNum}`);
 
   const episodePageUrl = `${BASE}/${slug}/${episodeNum}/`;
 
@@ -811,7 +908,7 @@ export async function getJkAnimeWatch(
 
   // Step 3: Try to resolve each embed player to a direct m3u8/mp4 stream server-side
   const resolveResults = await Promise.allSettled(
-    jkServers.slice(0, 4).map(async (s) => {
+    jkServers.slice(0, 6).map(async (s) => {
       const resolved = await resolveEmbedToStream(s.url, episodePageUrl);
       return { server: s.server, lang: s.lang, embedUrl: s.url, resolved };
     })
@@ -831,16 +928,8 @@ export async function getJkAnimeWatch(
         lang: langTag,
         referer: embedUrl,
       });
-    } else {
-      // Fallback: return embed URL for proxy serving
-      sources.push({
-        url: embedUrl,
-        quality: `${server} [embed]`,
-        isM3U8: false,
-        lang: langTag,
-        referer: episodePageUrl,
-      });
     }
+    // If resolution failed, skip this server (no embed fallback — avoids ads and broken players)
   }
 
   if (sources.length === 0) {
