@@ -340,7 +340,50 @@ async function resolveEmbedToStream(
   referer: string,
 ): Promise<{ url: string; isM3U8: boolean } | null> {
   try {
-    const html = await fetchPage(embedUrl, 9000, { Referer: referer, Origin: new URL(referer).origin });
+    const origin = (() => { try { return new URL(referer).origin; } catch { return referer; } })();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 9000);
+
+    const res = await fetch(embedUrl, {
+      headers: {
+        ...PAGE_HEADERS,
+        "Referer": referer,
+        "Origin": origin,
+        "Accept": "text/html,application/xhtml+xml,application/vnd.apple.mpegurl,*/*;q=0.8",
+      },
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok && res.status !== 206) return null;
+
+    const contentType = res.headers.get("content-type") ?? "";
+    const finalUrl = res.url; // URL after any redirects
+
+    // If the URL or content-type signals this is already an m3u8 playlist, return it directly
+    if (
+      contentType.includes("mpegurl") ||
+      contentType.includes("x-mpegURL") ||
+      finalUrl.split("?")[0].includes(".m3u8")
+    ) {
+      return { url: finalUrl, isM3U8: true };
+    }
+
+    // If it redirected to a video file, return it as-is
+    const cleanFinal = finalUrl.split("?")[0].toLowerCase();
+    if (cleanFinal.endsWith(".mp4") || contentType.includes("video/mp4")) {
+      return { url: finalUrl, isM3U8: false };
+    }
+
+    const html = await res.text();
+
+    // If the body is an m3u8 playlist (starts with #EXTM3U), use the resolved URL
+    if (html.trimStart().startsWith("#EXTM3U")) {
+      return { url: finalUrl, isM3U8: true };
+    }
+
+    // Search the HTML for embedded stream URLs
     for (const pattern of EMBED_STREAM_PATTERNS) {
       const m = html.match(pattern);
       const candidate = m?.[1];
