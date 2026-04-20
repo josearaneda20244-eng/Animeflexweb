@@ -756,7 +756,7 @@ function UsersSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err") 
                 </div>
                 {expanding === u.id && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <select value={u.role} onChange={e => confirm(`¿Cambiar rol de ${u.username} a ${e.target.value}?`, () => update(u.id, { role: e.target.value as AdminUser["role"] }))}
+                    <select value={u.role} onChange={e => { const newRole = e.target.value as AdminUser["role"]; confirm(`¿Cambiar rol de ${u.username} a ${newRole}?`, () => update(u.id, { role: newRole })); }}
                       style={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "7px 10px", color: "#F1F1F5", fontSize: 13, cursor: "pointer" }}>
                       <option value="user">Rol: User</option>
                       <option value="admin">Rol: Admin</option>
