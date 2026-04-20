@@ -187,6 +187,11 @@ export const consumet = {
       `/anime/animeflv-watch?title=${encodeURIComponent(title)}&episode=${encodeURIComponent(episode)}${animeId ? `&animeId=${encodeURIComponent(animeId)}` : ""}`,
       true
     ),
+  latWatch: (title: string, episode: number): Promise<StreamingData & { slug?: string }> =>
+    get<StreamingData & { slug?: string }>(
+      `/anime/lat-watch?title=${encodeURIComponent(title)}&episode=${encodeURIComponent(episode)}`,
+      true
+    ),
   byFormat: (format: "MOVIE" | "OVA" | "ONA" | "SPECIAL", page = 1): Promise<SearchResult> =>
     get<SearchResult>(`/anime/by-format?format=${format}&page=${page}`),
 };
