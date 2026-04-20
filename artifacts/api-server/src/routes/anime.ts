@@ -608,6 +608,59 @@ router.get("/anime/player-embed", (req, res) => {
 </html>`);
 });
 
+/**
+ * Embed proxy — fetches a third-party embed page and re-serves it without
+ * X-Frame-Options / CSP frame-ancestors so our <iframe> can load it.
+ */
+router.get("/anime/embed-proxy", async (req, res) => {
+  const rawUrl = req.query.url as string;
+  if (!rawUrl) { res.status(400).send("url is required"); return; }
+
+  let targetUrl: string;
+  try { targetUrl = decodeURIComponent(rawUrl); } catch { res.status(400).send("Invalid url"); return; }
+
+  const referer = (req.query.referer as string | undefined)
+    ? decodeURIComponent(req.query.referer as string) : undefined;
+
+  try {
+    const upstream = await fetch(targetUrl, {
+      headers: {
+        "User-Agent": DEFAULT_UA,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+        ...(referer ? { "Referer": referer, "Origin": new URL(referer).origin } : {}),
+      },
+      redirect: "follow",
+    });
+
+    if (!upstream.ok) { res.status(upstream.status).send(`Upstream error: ${upstream.status}`); return; }
+
+    let html = await upstream.text();
+
+    // Make all relative URLs absolute so resources load correctly
+    const base = new URL(targetUrl);
+    const origin = base.origin;
+    const basePath = targetUrl.slice(0, targetUrl.lastIndexOf("/") + 1);
+
+    html = html
+      // src="/..." → src="https://origin/..."
+      .replace(/(src|href|action)="\/([^"]*?)"/gi, `$1="${origin}/$2"`)
+      // src="//..." → src="https://..."
+      .replace(/(src|href|action)="\/\/([^"]*?)"/gi, `$1="https://$2"`)
+      // Inject a <base> tag as early fallback for any remaining relative URLs
+      .replace(/<head([^>]*)>/i, `<head$1><base href="${basePath}">`);
+
+    res.set("Content-Type", "text/html; charset=utf-8");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("X-Frame-Options", "ALLOWALL");
+    res.removeHeader("Content-Security-Policy");
+    res.set("Cache-Control", "no-store");
+    res.send(html);
+  } catch (err) {
+    res.status(500).send("Proxy error");
+  }
+});
+
 // Only show proper anime formats — exclude manga, novels and other non-anime
 const ANIME_FORMATS = ["TV", "MOVIE", "OVA", "ONA", "SPECIAL", "MUSIC"];
 
@@ -1832,15 +1885,21 @@ router.get("/anime/animeflv-search", async (req, res) => {
 router.get('/anime/lat-watch', optAuth, async (req: AuthReq, res) => {
   const title = (req.query.title as string | undefined)?.trim();
   const episode = parseInt(req.query.episode as string);
+  const animeId = (req.query.animeId as string | undefined)?.trim();
   if (!title || !episode || isNaN(episode)) {
     res.status(400).json({ error: "Query params 'title' and 'episode' are required" });
     return;
   }
   try {
-    const data = await getLatanimeStream(title, episode);
+    let extraTitles: string[] = [];
+    if (animeId && /^\d+$/.test(animeId)) {
+      const anilistTitles = await fetchAnilistTitles(animeId);
+      extraTitles = anilistTitles.filter(t => t.toLowerCase().trim() !== title.toLowerCase().trim());
+    }
+    const data = await getLatanimeStream(title, episode, extraTitles);
     res.json(data);
   } catch (err) {
-    req.log.warn({ err, title, episode }, 'Latanime (Latino dub) watch failed');
+    req.log.warn({ err, title, episode, animeId }, 'Latanime (Latino dub) watch failed');
     res.status(404).json({ error: 'No se encontró el episodio en español latino' });
   }
 });
