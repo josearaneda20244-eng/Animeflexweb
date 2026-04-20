@@ -886,7 +886,6 @@ export default function Player() {
   const nextEpisodeNum = nextEp ? String(nextEp.number) : "";
 
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [langMode, setLangMode] = useState<"LAT" | "SUB">("LAT");
   const [playbackFailureCount, setPlaybackFailureCount] = useState(0);
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [showAutoNext, setShowAutoNext] = useState(false);
@@ -983,29 +982,12 @@ export default function Player() {
     refetchOnWindowFocus: false,
   });
 
-  const latQuery = useQuery({
-    queryKey: ["lat", animeTitle, episodeNum, animeId],
-    queryFn: () => consumet.latWatch(animeTitle, parseInt(episodeNum || "1"), animeId || undefined),
-    enabled: !!animeTitle && !!episodeNum,
-    retry: 1,
-    staleTime: 1000 * 60 * 15,
-    gcTime: 1000 * 60 * 30,
-    refetchOnWindowFocus: false,
-  });
-
   const animeflvSources = animeflvQuery.data
     ? (animeflvQuery.data.sources ?? [])
         .map(s => ({ ...s, isDub: false, provider: "sub", isEmbed: !s.isM3U8 && (s.quality ?? "").includes("[embed]") }))
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
 
-  const latSources = latQuery.data
-    ? (latQuery.data.sources ?? [])
-        .map(s => ({ ...s, isDub: true, provider: "lat", isEmbed: (s as any).isEmbed ?? (!s.isM3U8) }))
-        .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
-    : [];
-
-  const latHeaders = (latQuery.data as any)?.headers ?? {};
   const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
   const streamHeaders = (streamQuery.data as any)?.headers ?? {};
   const streamReferer: string | undefined =
@@ -1018,20 +1000,14 @@ export default function Player() {
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
 
-  const sources = langMode === "LAT"
-    ? (latSources.length > 0 ? latSources : streamSources)
-    : (animeflvSources.length > 0 ? animeflvSources : streamSources);
+  const sources = animeflvSources.length > 0 ? animeflvSources : streamSources;
 
-  const latReferer = langMode === "LAT"
-    ? (latHeaders["Referer"] ?? latHeaders["referer"])
-    : (animeflvHeaders["Referer"] ?? animeflvHeaders["referer"]);
+  const latReferer = animeflvHeaders["Referer"] ?? animeflvHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
-  const selectedIsBackup = !!selected && ((selected as any).provider === "lat" || (selected as any).provider === "sub");
+  const selectedIsBackup = !!selected && (selected as any).provider === "sub";
 
-  const isLoadingLat = latQuery.isLoading;
-  const isLoadingSub = animeflvQuery.isLoading;
-  const isLoadingAny = (langMode === "LAT" ? isLoadingLat : isLoadingSub) && sources.length === 0;
-  const isErrorAll = (langMode === "LAT" ? (latQuery.isError && streamQuery.isError) : (animeflvQuery.isError && streamQuery.isError)) && sources.length === 0;
+  const isLoadingAny = animeflvQuery.isLoading && sources.length === 0;
+  const isErrorAll = (animeflvQuery.isError && streamQuery.isError) && sources.length === 0;
 
   useEffect(() => {
     setSelectedIdx(0);
@@ -1049,16 +1025,7 @@ export default function Player() {
     // El modal de límite lo gestiona el useEffect de /user/daily-access arriba
   }, [episodeId]);
 
-  // Reset source index when language mode changes
-  useEffect(() => {
-    setSelectedIdx(0);
-    setPlaybackFailureCount(0);
-    setHlsSubTracks([]);
-    setActiveHlsSubId(-1);
-    setHlsCueText(null);
-  }, [langMode]);
-
-  // Auto-select HLS embedded subtitle track (prefer Spanish for LAT)
+  // Auto-select HLS embedded subtitle track (prefer Spanish)
   useEffect(() => {
     if (hlsSubTracks.length === 0) return;
     const match =
@@ -1333,7 +1300,7 @@ export default function Player() {
                   <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>No se encontró este episodio en ningún servidor. Intenta de nuevo.</p>
                 </div>
                 <button
-                  onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); latQuery.refetch(); animeflvQuery.refetch(); streamQuery.refetch(); }}
+                  onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); streamQuery.refetch(); }}
                   style={{ padding: "10px 20px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                   Reintentar
                 </button>
@@ -1375,7 +1342,7 @@ export default function Player() {
               ) : (
                 proxyM3u8 ? (
                   <PlyrPlayer
-                    key={`${episodeId}-lat-${selectedIdx}`}
+                    key={`${episodeId}-sub-${selectedIdx}`}
                     m3u8Url={proxyM3u8}
                     playbackRate={playbackRate}
                     startAt={startAt}
@@ -1492,7 +1459,7 @@ export default function Player() {
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
                   <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Episodio {episodeNum}</span>
                   <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 12 }}>·</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 6, padding: "1px 7px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Español Latino</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 6, padding: "1px 7px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>💬 Sub Español</span>
                   {hlsSubTracks.length > 0 && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 6, padding: "1px 7px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC · Subs</span>
                   )}
@@ -1531,9 +1498,9 @@ export default function Player() {
                   {theaterMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                   <span className="hidden md:inline">{theaterMode ? "Normal" : "Modo Teatro"}</span>
                 </button>
-                {/* LAT badge */}
-                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 9, background: "linear-gradient(135deg,rgba(245,158,11,0.25),rgba(234,88,12,0.15))", border: "1px solid rgba(245,158,11,0.5)", color: "#F59E0B", fontSize: 12, fontWeight: 800 }}>
-                  🇪🇸 LAT
+                {/* SUB badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 9, background: "linear-gradient(135deg,rgba(34,197,94,0.2),rgba(16,185,129,0.12))", border: "1px solid rgba(34,197,94,0.45)", color: "#22C55E", fontSize: 12, fontWeight: 800 }}>
+                  💬 SUB
                   {animeflvQuery.isLoading && <span style={{ fontSize: 9, opacity: 0.6 }}>···</span>}
                 </div>
 
@@ -1607,53 +1574,18 @@ export default function Player() {
               </div>
             </div>
 
-            {/* Language Selector */}
-            <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 10 }}>Idioma</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => setLangMode("LAT")}
-                  style={{
-                    flex: 1, padding: "10px 12px", borderRadius: 12, cursor: "pointer", fontWeight: 800, fontSize: 13,
-                    background: langMode === "LAT" ? "linear-gradient(135deg,rgba(245,158,11,0.3),rgba(234,88,12,0.2))" : "rgba(255,255,255,0.04)",
-                    border: `1px solid ${langMode === "LAT" ? "rgba(245,158,11,0.65)" : "rgba(255,255,255,0.1)"}`,
-                    color: langMode === "LAT" ? "#F59E0B" : "rgba(255,255,255,0.4)",
-                    boxShadow: langMode === "LAT" ? "0 0 12px rgba(245,158,11,0.2)" : "none",
-                    transition: "all 0.15s ease",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>🇲🇽</span> Latino
-                  {latQuery.isLoading && <span style={{ fontSize: 10, opacity: 0.6 }}>...</span>}
-                  {latQuery.isError && !latSources.length && <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 2 }}>✗</span>}
-                </button>
-                <button
-                  onClick={() => setLangMode("SUB")}
-                  style={{
-                    flex: 1, padding: "10px 12px", borderRadius: 12, cursor: "pointer", fontWeight: 800, fontSize: 13,
-                    background: langMode === "SUB" ? "linear-gradient(135deg,rgba(34,197,94,0.25),rgba(16,185,129,0.15))" : "rgba(255,255,255,0.04)",
-                    border: `1px solid ${langMode === "SUB" ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.1)"}`,
-                    color: langMode === "SUB" ? "#22C55E" : "rgba(255,255,255,0.4)",
-                    boxShadow: langMode === "SUB" ? "0 0 12px rgba(34,197,94,0.18)" : "none",
-                    transition: "all 0.15s ease",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>💬</span> Sub Español
-                  {animeflvQuery.isLoading && <span style={{ fontSize: 10, opacity: 0.6 }}>...</span>}
-                  {animeflvQuery.isError && !animeflvSources.length && <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 2 }}>✗</span>}
-                </button>
+            {/* Idioma: siempre Sub Español */}
+            <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 14, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>💬</span>
+              <div>
+                <div style={{ color: "#22C55E", fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>Sub Español</div>
+                {animeflvSources.length === 0 && !animeflvQuery.isLoading && (
+                  <div style={{ color: "rgba(255,165,0,0.8)", fontSize: 11, marginTop: 2 }}>No disponible para este anime</div>
+                )}
+                {animeflvQuery.isLoading && (
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 2 }}>Buscando fuentes...</div>
+                )}
               </div>
-              {langMode === "LAT" && latSources.length === 0 && !latQuery.isLoading && (
-                <div style={{ marginTop: 8, color: "rgba(255,165,0,0.75)", fontSize: 11, textAlign: "center" }}>
-                  No disponible en Latino para este anime. Prueba Sub Español.
-                </div>
-              )}
-              {langMode === "SUB" && animeflvSources.length === 0 && !animeflvQuery.isLoading && (
-                <div style={{ marginTop: 8, color: "rgba(255,165,0,0.75)", fontSize: 11, textAlign: "center" }}>
-                  No disponible subtitulado para este anime. Prueba Latino.
-                </div>
-              )}
             </div>
 
             {/* Quality */}
@@ -1711,7 +1643,7 @@ export default function Player() {
                   {/* Video sources */}
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
-                      Video · {langMode === "LAT" ? "Latino" : "Sub Español"}
+                      Video · Sub Español
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {sources.map((src, i) => {
@@ -1825,11 +1757,7 @@ export default function Player() {
               </div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginBottom: 8 }}>Episodio {episodeNum}</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {langMode === "LAT" ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 20, padding: "3px 10px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇲🇽 Latino</span>
-                ) : (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 20, padding: "3px 10px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>💬 Sub Español</span>
-                )}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 20, padding: "3px 10px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>💬 Sub Español</span>
                 {hlsSubTracks.length > 0 && (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 20, padding: "3px 10px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC Subtítulos</span>
                 )}
