@@ -42,9 +42,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!token) { setLoading(false); return; }
+
+    let alive = true;
+
+    // Safety: never block the UI more than 6 seconds waiting for the server.
+    // If the server is slow/down, just show the app (user will appear logged out
+    // until the request eventually resolves).
+    const safetyTimer = setTimeout(() => {
+      if (alive) setLoading(false);
+    }, 6000);
+
     fetchUser()
       .catch(() => { localStorage.removeItem("af_token"); setToken(null); })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(safetyTimer);
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+      clearTimeout(safetyTimer);
+    };
   }, [token]);
 
   const login = async (email: string, password: string) => {
