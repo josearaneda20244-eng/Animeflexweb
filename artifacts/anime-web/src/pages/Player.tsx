@@ -1004,10 +1004,16 @@ export default function Player() {
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
 
+  const latHeaders = (latQuery.data as any)?.headers ?? {};
+  const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
+  const streamHeaders = (streamQuery.data as any)?.headers ?? {};
+  const streamReferer: string | undefined =
+    streamHeaders["Referer"] ?? streamHeaders["referer"];
+
   const streamSources = streamQuery.data
     ? (streamQuery.data.sources ?? [])
         .filter(s => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8")))
-        .map(s => ({ ...s, isDub: false, provider: "stream", isEmbed: false }))
+        .map(s => ({ ...s, isDub: false, provider: "stream", isEmbed: false, referer: streamReferer }))
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
 
@@ -1015,9 +1021,6 @@ export default function Player() {
     ? (latSources.length > 0 ? latSources : streamSources)
     : (animeflvSources.length > 0 ? animeflvSources : streamSources);
 
-  const latHeaders = (latQuery.data as any)?.headers ?? {};
-  const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
-  const streamHeaders = (streamQuery.data as any)?.headers ?? {};
   const latReferer = langMode === "LAT"
     ? (latHeaders["Referer"] ?? latHeaders["referer"])
     : (animeflvHeaders["Referer"] ?? animeflvHeaders["referer"]);
