@@ -1,10 +1,4 @@
-modules = ["nodejs-24", "postgresql-16"]
-
-[[artifacts]]
-id = "artifacts/api-server"
-
-[[artifacts]]
-id = "artifacts/mockup-sandbox"
+modules = ["nodejs-24"]
 
 [deployment]
 router = "application"
@@ -25,16 +19,18 @@ expertMode = true
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
-[userenv]
+[[ports]]
+localPort = 5000
+externalPort = 5000
 
-[userenv.shared]
-VITE_PAYPAL_CLIENT_ID = "AQkBIoCf0c4ENKlA67RZfJ2IxBUD5eIoP6EhXPpkL_Q3cKtKKdPqdFCHOdMJqwAQr8M4Y4C5uLah31dA"
-VITE_PAYPAL_PLAN_ID = "P-9KN958225R794443YNHHZ57Q"
-PAYPAL_CLIENT_ID = "AQkBIoCf0c4ENKlA67RZfJ2IxBUD5eIoP6EhXPpkL_Q3cKtKKdPqdFCHOdMJqwAQr8M4Y4C5uLah31dA"
-PAYPAL_MODE = "live"
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = "587"
-VITE_PAYPAL_PLAN_ID_ANNUAL = "P-847103769P0697742NHJDVIA"
+[[ports]]
+localPort = 8080
+externalPort = 8080
 
-[nix]
-channel = "stable-25_05"
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 8082
+externalPort = 3000
