@@ -447,6 +447,49 @@ async function searchJkAnimeSlugs(query: string): Promise<string[]> {
   }
 }
 
+/**
+ * Search JKAnime using the /directorio/ page as additional fallback.
+ * Returns slugs found in the directory results.
+ */
+async function searchJkAnimeDirectory(query: string): Promise<string[]> {
+  try {
+    const url = `${BASE}/directorio/?buscar=1&q=${encodeURIComponent(query)}`;
+    const html = await fetchPage(url, 12000);
+    const slugs: string[] = [];
+    const seen = new Set<string>();
+
+    const SKIP = new Set([
+      "search", "buscar", "api", "cdn", "assets", "static", "tag", "genero", "tipo",
+      "temporada", "directorio", "usuario", "dash", "notificaciones", "guardado",
+      "historial", "salir", "login", "registro", "perfil", "listas", "solicitudes",
+    ]);
+
+    const addSlug = (candidate: string) => {
+      if (!SKIP.has(candidate) && !seen.has(candidate) && candidate.length >= 2) {
+        seen.add(candidate);
+        slugs.push(candidate);
+      }
+    };
+
+    const re1 = /href="https?:\/\/jkanime\.net\/([a-z0-9][a-z0-9-]+)\/"/g;
+    let m: RegExpExecArray | null;
+    while ((m = re1.exec(html)) !== null) addSlug(m[1]);
+
+    const re2 = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
+    while ((m = re2.exec(html)) !== null) addSlug(m[1]);
+
+    const re3 = /href="\/([a-z0-9][a-z0-9-]{3,})\/"/g;
+    while ((m = re3.exec(html)) !== null) {
+      const candidate = m[1];
+      if (candidate.includes("-") || candidate.length >= 6) addSlug(candidate);
+    }
+
+    return slugs;
+  } catch {
+    return [];
+  }
+}
+
 const DOWNLOAD_ONLY_SERVERS = new Set([
   "mediafire", "mega", "google drive", "zippyshare", "pixeldrain",
   "terabox", "1fichier", "sendcm", "uptobox", "openload", "fembed",
@@ -678,6 +721,63 @@ export async function getJkAnimeWatch(
     const BATCH = 6;
     for (let i = 0; i < candidateSlugs.length && !slug; i += BATCH) {
       const batch = candidateSlugs.slice(i, i + BATCH);
+      const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
+      const hit = results.find(r => r !== null);
+      if (hit) {
+        slug = hit.s;
+        episodeHtml = hit.h!;
+        slugCache.set(cacheKey, slug);
+        slugCacheTime.set(cacheKey, Date.now());
+      }
+    }
+  }
+
+  // 4. Fallback: search via /directorio/ page (catches animes missed by /buscar/)
+  if (!slug) {
+    const triedSlugs2 = new Set<string>([
+      ...allTitles.flatMap(t => makeSlugs(t)),
+    ]);
+
+    const dirQueries: string[] = [];
+    const seenQ2 = new Set<string>();
+    const addDirQ = (q: string) => {
+      const qc = q.trim();
+      if (qc.length >= 3 && !seenQ2.has(qc)) { seenQ2.add(qc); dirQueries.push(qc); }
+    };
+
+    for (const t of allTitles) {
+      const base = stripSeasonSuffix(t);
+      addDirQ(t);
+      addDirQ(base);
+      addDirQ(t.split(":")[0].trim());
+      const words = t.split(" ").filter(Boolean);
+      if (words[0] && words[0].length >= 4) addDirQ(words[0]);
+      if (words.length >= 2) addDirQ(words.slice(0, 2).join(" "));
+    }
+
+    const dirResults = await Promise.allSettled(dirQueries.map(q => searchJkAnimeDirectory(q)));
+    const dirCandidates: string[] = [];
+    const seenDir = new Set<string>();
+
+    for (const r of dirResults) {
+      if (r.status === "fulfilled") {
+        for (const s of r.value) {
+          if (!triedSlugs2.has(s) && !seenDir.has(s)) {
+            seenDir.add(s);
+            dirCandidates.push(s);
+          }
+        }
+      }
+    }
+
+    const sortedDir = dirCandidates
+      .map(s => ({ s, score: slugRelevanceScore(s, allTitles) }))
+      .sort((a, b) => b.score - a.score)
+      .map(({ s }) => s);
+
+    const BATCH2 = 6;
+    for (let i = 0; i < sortedDir.length && !slug; i += BATCH2) {
+      const batch = sortedDir.slice(i, i + BATCH2);
       const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
       const hit = results.find(r => r !== null);
       if (hit) {
