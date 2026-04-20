@@ -73,12 +73,14 @@ async function searchLatanimeSlug(title: string): Promise<string | null> {
     const searchUrl = `${BASE}/buscar?q=${encodeURIComponent(title)}`;
     const html = await fetchPage(searchUrl);
 
-    // Extract all hrefs ending in -latino
-    const re = /href="https?:\/\/latanime\.org\/anime\/([a-z0-9][a-z0-9-]+-latino)"/g;
+    // Extract ALL anime hrefs from latanime.org — the site may use -latino, -castellano, or no suffix
+    const re = /href="https?:\/\/latanime\.org\/anime\/([a-z0-9][a-z0-9-]+)"/g;
     const candidates: string[] = [];
+    const skipSlugs = new Set(["animes", "emision", "calendario", "login", "register"]);
     let m: RegExpExecArray | null;
     while ((m = re.exec(html)) !== null) {
-      if (!candidates.includes(m[1])) candidates.push(m[1]);
+      const slug = m[1];
+      if (!candidates.includes(slug) && !skipSlugs.has(slug)) candidates.push(slug);
     }
 
     if (candidates.length === 0) return null;
@@ -86,23 +88,30 @@ async function searchLatanimeSlug(title: string): Promise<string | null> {
     const titleSlug = slugify(title);
     const titleWords = titleSlug.split("-").filter(w => w.length > 0);
 
-    // Priority 1: exact match (base slug === titleSlug)
+    // Priority 1: exact -latino match (classic format)
     for (const c of candidates) {
-      if (c.replace(/-latino$/, "") === titleSlug) return c;
+      if (c.replace(/-latino$/, "") === titleSlug && c.endsWith("-latino")) return c;
     }
 
-    // Priority 2: score by match quality
-    // score = (matching title words * 10) - (extra base words * 5) - (base length * 0.1)
-    // This strongly penalizes slugs with extra words (films, specials, etc.)
+    // Priority 2: exact match without any suffix
+    for (const c of candidates) {
+      if (c === titleSlug) return c;
+    }
+
+    // Priority 3: score by match quality
+    // Prefer -latino slugs, penalize -castellano (Spain dub), penalize extra words
     let best = candidates[0];
     let bestScore = -Infinity;
 
     for (const c of candidates) {
-      const base = c.replace(/-latino$/, "");
+      const isLatino = c.endsWith("-latino");
+      const isCastellano = c.endsWith("-castellano");
+      const base = c.replace(/-(latino|castellano)$/, "");
       const baseWords = base.split("-").filter(w => w.length > 0);
       const matchCount = titleWords.filter(w => baseWords.includes(w)).length;
       const extraWords = Math.max(0, baseWords.length - titleWords.length);
-      const score = matchCount * 10 - extraWords * 5 - base.length * 0.1;
+      const langBonus = isLatino ? 20 : isCastellano ? -10 : 0;
+      const score = matchCount * 10 - extraWords * 5 - base.length * 0.1 + langBonus;
       if (score > bestScore) {
         bestScore = score;
         best = c;
