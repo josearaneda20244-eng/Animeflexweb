@@ -11,6 +11,7 @@ import {
 import {
   consumet,
   proxyStreamUrl,
+  proxyEmbedUrl,
   downloadProxyUrl,
   type StreamingSource,
 } from "@/lib/consumet";
@@ -983,8 +984,8 @@ export default function Player() {
   });
 
   const latQuery = useQuery({
-    queryKey: ["lat", animeTitle, episodeNum],
-    queryFn: () => consumet.latWatch(animeTitle, parseInt(episodeNum || "1")),
+    queryKey: ["lat", animeTitle, episodeNum, animeId],
+    queryFn: () => consumet.latWatch(animeTitle, parseInt(episodeNum || "1"), animeId || undefined),
     enabled: !!animeTitle && !!episodeNum,
     retry: 1,
     staleTime: 1000 * 60 * 15,
@@ -1355,12 +1356,11 @@ export default function Player() {
                 (selected as any).isEmbed ? (
                   <iframe
                     key={`embed-${episodeId}-${selectedIdx}`}
-                    src={selected.url}
+                    src={proxyEmbedUrl(selected.url, (selected as any).referer)}
                     style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", background: "#000" }}
                     allowFullScreen
                     allow="autoplay; fullscreen; picture-in-picture"
-                    referrerPolicy="origin"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+                    referrerPolicy="no-referrer-when-downgrade"
                   />
                 ) : (
                   <video
