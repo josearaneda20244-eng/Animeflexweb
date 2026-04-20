@@ -1,7 +1,6 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
-import { getLatanimeStream } from "../lib/latanime.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -392,18 +391,9 @@ router.get("/anime/hls-proxy", async (req, res) => {
       if (cl) res.set("Content-Length", cl);
       if (cr) res.set("Content-Range", cr);
       res.set("Accept-Ranges", ar ?? "bytes");
-
-      // Detect MIME type: use video/mp4 for mp4 files, video/MP2T for HLS segments
-      const upstreamCt = upstream.headers.get("content-type") ?? "";
-      const isMp4File = targetUrl.split("?")[0].toLowerCase().endsWith(".mp4") || upstreamCt.includes("video/mp4");
-      if (isMp4File) {
-        res.set("Content-Type", "video/mp4");
-      } else {
-        // Force video/MP2T: CDNs disguise HLS segments with fake extensions (.gif, .png, etc.)
-        // HLS.js rejects segments with wrong MIME types, causing silent playback failure
-        res.set("Content-Type", "video/MP2T");
-      }
-
+      // Force video/MP2T: CDNs disguise HLS segments with fake extensions (.gif, .png, etc.)
+      // HLS.js rejects segments with wrong MIME types, causing silent playback failure
+      res.set("Content-Type", "video/MP2T");
       res.status(upstream.status); // preserve 206 Partial Content for range requests
       const nodeStream = Readable.fromWeb(upstream.body as any);
       nodeStream.pipe(res);
@@ -615,59 +605,6 @@ router.get("/anime/player-embed", (req, res) => {
 </script>
 </body>
 </html>`);
-});
-
-/**
- * Embed proxy — fetches a third-party embed page and re-serves it without
- * X-Frame-Options / CSP frame-ancestors so our <iframe> can load it.
- */
-router.get("/anime/embed-proxy", async (req, res) => {
-  const rawUrl = req.query.url as string;
-  if (!rawUrl) { res.status(400).send("url is required"); return; }
-
-  let targetUrl: string;
-  try { targetUrl = decodeURIComponent(rawUrl); } catch { res.status(400).send("Invalid url"); return; }
-
-  const referer = (req.query.referer as string | undefined)
-    ? decodeURIComponent(req.query.referer as string) : undefined;
-
-  try {
-    const upstream = await fetch(targetUrl, {
-      headers: {
-        "User-Agent": DEFAULT_UA,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-        ...(referer ? { "Referer": referer, "Origin": new URL(referer).origin } : {}),
-      },
-      redirect: "follow",
-    });
-
-    if (!upstream.ok) { res.status(upstream.status).send(`Upstream error: ${upstream.status}`); return; }
-
-    let html = await upstream.text();
-
-    // Make all relative URLs absolute so resources load correctly
-    const base = new URL(targetUrl);
-    const origin = base.origin;
-    const basePath = targetUrl.slice(0, targetUrl.lastIndexOf("/") + 1);
-
-    html = html
-      // src="/..." → src="https://origin/..."
-      .replace(/(src|href|action)="\/([^"]*?)"/gi, `$1="${origin}/$2"`)
-      // src="//..." → src="https://..."
-      .replace(/(src|href|action)="\/\/([^"]*?)"/gi, `$1="https://$2"`)
-      // Inject a <base> tag as early fallback for any remaining relative URLs
-      .replace(/<head([^>]*)>/i, `<head$1><base href="${basePath}">`);
-
-    res.set("Content-Type", "text/html; charset=utf-8");
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("X-Frame-Options", "ALLOWALL");
-    res.removeHeader("Content-Security-Policy");
-    res.set("Cache-Control", "no-store");
-    res.send(html);
-  } catch (err) {
-    res.status(500).send("Proxy error");
-  }
 });
 
 // Only show proper anime formats — exclude manga, novels and other non-anime
@@ -1883,33 +1820,6 @@ router.get("/anime/animeflv-search", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "AnimeFLV search failed");
     res.status(500).json({ error: "AnimeFLV search failed" });
-  }
-});
-
-
-/**
- * Latanime — episodios en español Latino (doblaje)
- * GET /api/anime/lat-watch?title=...&episode=N
- */
-router.get('/anime/lat-watch', optAuth, async (req: AuthReq, res) => {
-  const title = (req.query.title as string | undefined)?.trim();
-  const episode = parseInt(req.query.episode as string);
-  const animeId = (req.query.animeId as string | undefined)?.trim();
-  if (!title || !episode || isNaN(episode)) {
-    res.status(400).json({ error: "Query params 'title' and 'episode' are required" });
-    return;
-  }
-  try {
-    let extraTitles: string[] = [];
-    if (animeId && /^\d+$/.test(animeId)) {
-      const anilistTitles = await fetchAnilistTitles(animeId);
-      extraTitles = anilistTitles.filter(t => t.toLowerCase().trim() !== title.toLowerCase().trim());
-    }
-    const data = await getLatanimeStream(title, episode, extraTitles);
-    res.json(data);
-  } catch (err) {
-    req.log.warn({ err, title, episode, animeId }, 'Latanime (Latino dub) watch failed');
-    res.status(404).json({ error: 'No se encontró el episodio en español latino' });
   }
 });
 
