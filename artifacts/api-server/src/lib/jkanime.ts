@@ -308,11 +308,11 @@ function slugRelevanceScore(slug: string, titles: string[]): number {
   return best;
 }
 
-async function fetchPage(url: string, timeoutMs = 10000): Promise<string> {
+async function fetchPage(url: string, timeoutMs = 10000, extraHeaders?: Record<string, string>): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { headers: PAGE_HEADERS, redirect: "follow", signal: controller.signal });
+    const res = await fetch(url, { headers: { ...PAGE_HEADERS, ...extraHeaders }, redirect: "follow", signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) throw new Error(`JKAnime page HTTP ${res.status}: ${url}`);
     return res.text();
@@ -320,6 +320,38 @@ async function fetchPage(url: string, timeoutMs = 10000): Promise<string> {
     clearTimeout(timer);
     throw err;
   }
+}
+
+const EMBED_STREAM_PATTERNS: RegExp[] = [
+  /(?:file|src|hlsUrl|source|videoUrl|streamUrl)\s*[=:]\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/i,
+  /['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/,
+  /(?:file|src|videoUrl|streamUrl)\s*[=:]\s*['"`](https?:\/\/[^'"`\s<>]+\.mp4[^'"`\s<>]*)['"`]/i,
+  /['"`](https?:\/\/[^'"`\s<>]+\.mp4[^'"`\s<>]*)['"`]/,
+];
+
+const EMBED_SKIP_PATTERNS = /thumbnail|poster|banner|preview|\.jpg|\.jpeg|\.png|\.webp|\.gif|\.svg/i;
+
+/**
+ * Try to resolve an embed player URL to a direct m3u8/mp4 stream URL.
+ * Returns null if resolution fails.
+ */
+async function resolveEmbedToStream(
+  embedUrl: string,
+  referer: string,
+): Promise<{ url: string; isM3U8: boolean } | null> {
+  try {
+    const html = await fetchPage(embedUrl, 9000, { Referer: referer, Origin: new URL(referer).origin });
+    for (const pattern of EMBED_STREAM_PATTERNS) {
+      const m = html.match(pattern);
+      const candidate = m?.[1];
+      if (candidate && !EMBED_SKIP_PATTERNS.test(candidate)) {
+        return { url: candidate, isM3U8: candidate.includes(".m3u8") };
+      }
+    }
+  } catch {
+    // ignore — fall back to embed URL
+  }
+  return null;
 }
 
 /**
@@ -594,17 +626,48 @@ export async function getJkAnimeWatch(
     throw new Error(`No players found for ${slug} ep ${episodeNum}`);
   }
 
-  const sources: JkAnimeStreamData["sources"] = jkServers
-    .slice(0, 4)
-    .map((s) => ({
-      url: s.url,
-      quality: `${s.server} [embed]`,
-      isM3U8: false,
-      lang: s.lang === 2 ? "LAT" as const : "SUB" as const,
-      referer: episodePageUrl,
-    }));
+  // Try to resolve each embed URL to a direct m3u8/mp4 stream (parallel, up to 4)
+  const resolveResults = await Promise.allSettled(
+    jkServers.slice(0, 4).map(async (s) => {
+      const resolved = await resolveEmbedToStream(s.url, episodePageUrl);
+      return { server: s.server, lang: s.lang, embedUrl: s.url, resolved };
+    })
+  );
 
-  m3u8Cache.set(cachedM3u8Key, { sources, ts: Date.now() });
+  const sources: JkAnimeStreamData["sources"] = [];
+  for (const r of resolveResults) {
+    if (r.status !== "fulfilled") continue;
+    const { server, lang, embedUrl, resolved } = r.value;
+    const langTag = lang === 2 ? "LAT" as const : "SUB" as const;
+    if (resolved) {
+      sources.push({
+        url: resolved.url,
+        quality: `${server}`,
+        isM3U8: resolved.isM3U8,
+        lang: langTag,
+        referer: embedUrl,
+      });
+    } else {
+      // Fallback: keep embed URL so the proxy can serve it
+      sources.push({
+        url: embedUrl,
+        quality: `${server} [embed]`,
+        isM3U8: false,
+        lang: langTag,
+        referer: episodePageUrl,
+      });
+    }
+  }
+
+  if (sources.length === 0) {
+    throw new Error(`No playable sources for ${slug} ep ${episodeNum}`);
+  }
+
+  // Cache only resolved m3u8 sources (embed URLs change constantly)
+  const cacheable = sources.filter(s => s.isM3U8);
+  if (cacheable.length > 0) {
+    m3u8Cache.set(cachedM3u8Key, { sources: cacheable, ts: Date.now() });
+  }
 
   return {
     sources,
