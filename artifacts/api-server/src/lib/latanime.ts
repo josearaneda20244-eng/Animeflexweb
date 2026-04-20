@@ -40,20 +40,25 @@ async function fetchPage(url: string, referer?: string, timeoutMs = 8000): Promi
   }
 }
 
-function extractStreamUrl(html: string): string | null {
-  // mp4upload direct MP4
-  const mp4 = html.match(/src\s*:\s*['"`](https?:\/\/[^'"`\s<>]+\.mp4[^'"`\s<>]*)['"`]/);
-  if (mp4?.[1]) return mp4[1];
+const SKIP_URL_PATTERNS = /thumbnail|poster|banner|preview|\.jpg|\.jpeg|\.png|\.webp|\.gif|\.svg/i;
 
-  // Generic m3u8
-  const m3u8Patterns = [
-    /(?:url|file|source|src)\s*:\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/,
-    /loadSource\s*\(\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/,
+function extractStreamUrl(html: string): string | null {
+  const patterns: RegExp[] = [
+    // Named variable assignments: m3u8 first (higher quality)
+    /(?:url|file|source|src|hlsUrl|streamUrl|videoUrl|hls_url)\s*[=:]\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/i,
+    /loadSource\s*\(\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/i,
+    // Any m3u8 URL in quotes
     /['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/,
+    // Named variable assignments: mp4
+    /(?:url|file|source|src|videoUrl|streamUrl)\s*[=:]\s*['"`](https?:\/\/[^'"`\s<>]+\.mp4[^'"`\s<>]*)['"`]/i,
+    // mp4upload / direct mp4
+    /['"`](https?:\/\/[^'"`\s<>]+\.mp4[^'"`\s<>]*)['"`]/,
   ];
-  for (const re of m3u8Patterns) {
+
+  for (const re of patterns) {
     const m = html.match(re);
-    if (m?.[1]) return m[1];
+    const candidate = m?.[1];
+    if (candidate && !SKIP_URL_PATTERNS.test(candidate)) return candidate;
   }
 
   return null;
@@ -68,38 +73,46 @@ function isM3U8(url: string): boolean {
  * Uses a scoring system that heavily prefers slugs that exactly match the title
  * (fewer extra words = better score), avoiding films/specials with same title prefix.
  */
-async function searchLatanimeSlug(title: string): Promise<string | null> {
-  try {
-    const searchUrl = `${BASE}/buscar?q=${encodeURIComponent(title)}`;
-    const html = await fetchPage(searchUrl);
+async function searchLatanimeSlug(titles: string[]): Promise<string | null> {
+  const queries = [...new Set(titles.map(t => t.trim()).filter(t => t.length >= 3))];
+  const candidates: string[] = [];
+  const seenCandidates = new Set<string>();
+  const skipSlugs = new Set(["animes", "emision", "calendario", "login", "register"]);
 
-    // Extract ALL anime hrefs from latanime.org — the site may use -latino, -castellano, or no suffix
-    const re = /href="https?:\/\/latanime\.org\/anime\/([a-z0-9][a-z0-9-]+)"/g;
-    const candidates: string[] = [];
-    const skipSlugs = new Set(["animes", "emision", "calendario", "login", "register"]);
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(html)) !== null) {
-      const slug = m[1];
-      if (!candidates.includes(slug) && !skipSlugs.has(slug)) candidates.push(slug);
+  const addCandidate = (slug: string) => {
+    if (!seenCandidates.has(slug) && !skipSlugs.has(slug)) {
+      seenCandidates.add(slug);
+      candidates.push(slug);
+    }
+  };
+
+  try {
+    for (const query of queries) {
+      const searchUrl = `${BASE}/buscar?q=${encodeURIComponent(query)}`;
+      const html = await fetchPage(searchUrl);
+
+      const re = /href="https?:\/\/latanime\.org\/anime\/([a-z0-9][a-z0-9-]+)"/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(html)) !== null) addCandidate(m[1]);
     }
 
     if (candidates.length === 0) return null;
 
-    const titleSlug = slugify(title);
-    const titleWords = titleSlug.split("-").filter(w => w.length > 0);
+    const titleSlugs = queries.map(slugify).filter(Boolean);
+    const titleWordsList = titleSlugs.map(s => s.split("-").filter(w => w.length > 0));
 
-    // Priority 1: exact -latino match (classic format)
-    for (const c of candidates) {
-      if (c.replace(/-latino$/, "") === titleSlug && c.endsWith("-latino")) return c;
+    for (const titleSlug of titleSlugs) {
+      for (const c of candidates) {
+        if (c.replace(/-latino$/, "") === titleSlug && c.endsWith("-latino")) return c;
+      }
     }
 
-    // Priority 2: exact match without any suffix
-    for (const c of candidates) {
-      if (c === titleSlug) return c;
+    for (const titleSlug of titleSlugs) {
+      for (const c of candidates) {
+        if (c === titleSlug) return c;
+      }
     }
 
-    // Priority 3: score by match quality
-    // Prefer -latino slugs, penalize -castellano (Spain dub), penalize extra words
     let best = candidates[0];
     let bestScore = -Infinity;
 
@@ -108,8 +121,13 @@ async function searchLatanimeSlug(title: string): Promise<string | null> {
       const isCastellano = c.endsWith("-castellano");
       const base = c.replace(/-(latino|castellano)$/, "");
       const baseWords = base.split("-").filter(w => w.length > 0);
-      const matchCount = titleWords.filter(w => baseWords.includes(w)).length;
-      const extraWords = Math.max(0, baseWords.length - titleWords.length);
+      const bestTitleWords = titleWordsList.reduce((bestWords, words) => {
+        const currentMatch = words.filter(w => baseWords.includes(w)).length;
+        const bestMatch = bestWords.filter(w => baseWords.includes(w)).length;
+        return currentMatch > bestMatch ? words : bestWords;
+      }, titleWordsList[0] ?? []);
+      const matchCount = bestTitleWords.filter(w => baseWords.includes(w)).length;
+      const extraWords = Math.max(0, baseWords.length - bestTitleWords.length);
       const langBonus = isLatino ? 20 : isCastellano ? -10 : 0;
       const score = matchCount * 10 - extraWords * 5 - base.length * 0.1 + langBonus;
       if (score > bestScore) {
@@ -140,8 +158,9 @@ export interface LatanimeStreamData {
 /**
  * Get streaming sources for an anime episode from latanime.org (Latino dub).
  */
-export async function getLatanimeStream(animeTitle: string, episodeNum: number): Promise<LatanimeStreamData> {
+export async function getLatanimeStream(animeTitle: string, episodeNum: number, extraTitles: string[] = []): Promise<LatanimeStreamData> {
   const cacheKey = animeTitle.toLowerCase().trim();
+  const titleCandidates = [...new Set([animeTitle, ...extraTitles].map(t => t.trim()).filter(Boolean))];
 
   // Check slug cache
   let slug: string | null = slugCache.get(cacheKey) ?? null;
@@ -169,7 +188,7 @@ export async function getLatanimeStream(animeTitle: string, episodeNum: number):
 
   // If no cached slug or it failed, search for one
   if (!slug) {
-    slug = await searchLatanimeSlug(animeTitle);
+    slug = await searchLatanimeSlug(titleCandidates);
     if (!slug) throw new Error(`Anime not found on Latanime: "${animeTitle}"`);
 
     const url = `${BASE}/ver/${slug}-episodio-${episodeNum}`;
