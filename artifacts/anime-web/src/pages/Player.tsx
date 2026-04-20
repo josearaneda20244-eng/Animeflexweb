@@ -11,7 +11,6 @@ import {
 import {
   consumet,
   proxyStreamUrl,
-  proxyEmbedUrl,
   downloadProxyUrl,
   type StreamingSource,
 } from "@/lib/consumet";
@@ -984,30 +983,26 @@ export default function Player() {
 
   const animeflvSources = animeflvQuery.data
     ? (animeflvQuery.data.sources ?? [])
-        .map(s => ({ ...s, isDub: false, provider: "sub", isEmbed: !s.isM3U8 && (s.quality ?? "").includes("[embed]") }))
+        .map(s => ({ ...s, isDub: true, provider: "lat", isEmbed: !s.isM3U8 && (s.quality ?? "").includes("[embed]") }))
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
-
-  const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
-  const streamHeaders = (streamQuery.data as any)?.headers ?? {};
-  const streamReferer: string | undefined =
-    streamHeaders["Referer"] ?? streamHeaders["referer"];
 
   const streamSources = streamQuery.data
     ? (streamQuery.data.sources ?? [])
         .filter(s => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8")))
-        .map(s => ({ ...s, isDub: false, provider: "stream", isEmbed: false, referer: streamReferer }))
+        .map(s => ({ ...s, isDub: false, provider: "sub", isEmbed: false }))
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
 
-  const sources = animeflvSources.length > 0 ? animeflvSources : streamSources;
-
+  const sources = [...animeflvSources, ...streamSources];
+  const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
+  const streamHeaders = (streamQuery.data as any)?.headers ?? {};
   const latReferer = animeflvHeaders["Referer"] ?? animeflvHeaders["referer"];
   const selected = sources[selectedIdx] ?? null;
-  const selectedIsBackup = !!selected && (selected as any).provider === "sub";
+  const selectedIsBackup = !!selected && ((selected as any).provider === "lat" || (selected as any).provider === "sub");
 
-  const isLoadingAny = animeflvQuery.isLoading && sources.length === 0;
-  const isErrorAll = (animeflvQuery.isError && streamQuery.isError) && sources.length === 0;
+  const isLoadingAny = (animeflvQuery.isLoading && streamQuery.isLoading) || (sources.length === 0 && (animeflvQuery.isLoading || streamQuery.isLoading));
+  const isErrorAll = animeflvQuery.isError && streamQuery.isError && sources.length === 0;
 
   useEffect(() => {
     setSelectedIdx(0);
@@ -1025,7 +1020,7 @@ export default function Player() {
     // El modal de límite lo gestiona el useEffect de /user/daily-access arriba
   }, [episodeId]);
 
-  // Auto-select HLS embedded subtitle track (prefer Spanish)
+  // Auto-select HLS embedded subtitle track (prefer Spanish for LAT)
   useEffect(() => {
     if (hlsSubTracks.length === 0) return;
     const match =
@@ -1323,11 +1318,12 @@ export default function Player() {
                 (selected as any).isEmbed ? (
                   <iframe
                     key={`embed-${episodeId}-${selectedIdx}`}
-                    src={proxyEmbedUrl(selected.url, (selected as any).referer)}
+                    src={selected.url}
                     style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", background: "#000" }}
                     allowFullScreen
                     allow="autoplay; fullscreen; picture-in-picture"
-                    referrerPolicy="no-referrer-when-downgrade"
+                    referrerPolicy="origin"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
                   />
                 ) : (
                   <video
@@ -1342,7 +1338,7 @@ export default function Player() {
               ) : (
                 proxyM3u8 ? (
                   <PlyrPlayer
-                    key={`${episodeId}-sub-${selectedIdx}`}
+                    key={`${episodeId}-lat-${selectedIdx}`}
                     m3u8Url={proxyM3u8}
                     playbackRate={playbackRate}
                     startAt={startAt}
@@ -1459,7 +1455,7 @@ export default function Player() {
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
                   <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Episodio {episodeNum}</span>
                   <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 12 }}>·</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 6, padding: "1px 7px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>💬 Sub Español</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 6, padding: "1px 7px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Español Latino</span>
                   {hlsSubTracks.length > 0 && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 6, padding: "1px 7px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC · Subs</span>
                   )}
@@ -1498,9 +1494,9 @@ export default function Player() {
                   {theaterMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                   <span className="hidden md:inline">{theaterMode ? "Normal" : "Modo Teatro"}</span>
                 </button>
-                {/* SUB badge */}
-                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 9, background: "linear-gradient(135deg,rgba(34,197,94,0.2),rgba(16,185,129,0.12))", border: "1px solid rgba(34,197,94,0.45)", color: "#22C55E", fontSize: 12, fontWeight: 800 }}>
-                  💬 SUB
+                {/* LAT badge */}
+                <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 9, background: "linear-gradient(135deg,rgba(245,158,11,0.25),rgba(234,88,12,0.15))", border: "1px solid rgba(245,158,11,0.5)", color: "#F59E0B", fontSize: 12, fontWeight: 800 }}>
+                  🇪🇸 LAT
                   {animeflvQuery.isLoading && <span style={{ fontSize: 9, opacity: 0.6 }}>···</span>}
                 </div>
 
@@ -1574,20 +1570,6 @@ export default function Player() {
               </div>
             </div>
 
-            {/* Idioma: siempre Sub Español */}
-            <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 14, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 20 }}>💬</span>
-              <div>
-                <div style={{ color: "#22C55E", fontSize: 12, fontWeight: 800, letterSpacing: 0.5 }}>Sub Español</div>
-                {animeflvSources.length === 0 && !animeflvQuery.isLoading && (
-                  <div style={{ color: "rgba(255,165,0,0.8)", fontSize: 11, marginTop: 2 }}>No disponible para este anime</div>
-                )}
-                {animeflvQuery.isLoading && (
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 2 }}>Buscando fuentes...</div>
-                )}
-              </div>
-            </div>
-
             {/* Quality */}
             {sources.length > 0 && (
               <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
@@ -1643,7 +1625,7 @@ export default function Player() {
                   {/* Video sources */}
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
-                      Video · Sub Español
+                      Video · Latino
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {sources.map((src, i) => {
@@ -1757,7 +1739,7 @@ export default function Player() {
               </div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginBottom: 8 }}>Episodio {episodeNum}</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 20, padding: "3px 10px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>💬 Sub Español</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 20, padding: "3px 10px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Español Latino</span>
                 {hlsSubTracks.length > 0 && (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 20, padding: "3px 10px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC Subtítulos</span>
                 )}
