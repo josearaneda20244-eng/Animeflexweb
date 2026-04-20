@@ -16,6 +16,14 @@ const PAGE_HEADERS: Record<string, string> = {
   "Sec-Fetch-Site": "none",
 };
 
+const IFRAME_HEADERS: Record<string, string> = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+  "Sec-Fetch-Dest": "iframe",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "same-origin",
+};
 
 const ORDINAL_WORDS: Record<string, number> = {
   first: 1,
@@ -308,11 +316,11 @@ function slugRelevanceScore(slug: string, titles: string[]): number {
   return best;
 }
 
-async function fetchPage(url: string, timeoutMs = 10000, extraHeaders?: Record<string, string>): Promise<string> {
+async function fetchPage(url: string, timeoutMs = 10000): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { headers: { ...PAGE_HEADERS, ...extraHeaders }, redirect: "follow", signal: controller.signal });
+    const res = await fetch(url, { headers: PAGE_HEADERS, redirect: "follow", signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) throw new Error(`JKAnime page HTTP ${res.status}: ${url}`);
     return res.text();
@@ -322,174 +330,19 @@ async function fetchPage(url: string, timeoutMs = 10000, extraHeaders?: Record<s
   }
 }
 
-const EMBED_SKIP_PATTERNS = /thumbnail|poster|banner|preview|\.jpg|\.jpeg|\.png|\.webp|\.gif|\.svg/i;
-
-/**
- * Attempt to unpack Dean Edwards packer (eval(function(p,a,c,k,e,d){...})).
- * Returns original string if not packed or if unpacking fails.
- */
-function tryUnpackPacker(js: string): string {
-  if (!js.includes("eval(function(p,a,c,k,e")) return js;
+async function fetchIframe(url: string, referer: string, timeoutMs = 8000): Promise<string> {
+  const headers = { ...IFRAME_HEADERS, "Referer": referer };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const inner = js.match(/\)\s*\(\s*'([\s\S]+?)'\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*'([\s\S]+?)'\s*\.split/);
-    if (!inner) return js;
-    const [, p, radixStr, , kRaw] = inner;
-    const radix = parseInt(radixStr, 10);
-    const k = kRaw.split("|");
-    let result = p;
-    for (let i = k.length - 1; i >= 0; i--) {
-      if (k[i]) {
-        result = result.replace(new RegExp("\\b" + i.toString(radix) + "\\b", "g"), k[i]);
-      }
-    }
-    return result;
-  } catch {
-    return js;
-  }
-}
-
-/**
- * Scan for base64 atob() calls that decode to a video URL.
- */
-function extractAtobVideoUrl(html: string): string | null {
-  const atobRe = /atob\s*\(\s*["'`]([A-Za-z0-9+/]{20,}={0,2})["'`]\s*\)/g;
-  let m: RegExpExecArray | null;
-  while ((m = atobRe.exec(html)) !== null) {
-    try {
-      const decoded = Buffer.from(m[1], "base64").toString("utf8");
-      const urlMatch = decoded.match(/https?:\/\/[^\s"'<>]+\.(?:m3u8|mp4)[^\s"'<>]*/i);
-      if (urlMatch && !EMBED_SKIP_PATTERNS.test(urlMatch[0])) return urlMatch[0];
-    } catch {}
-  }
-  return null;
-}
-
-/**
- * Extract a playable stream URL from HTML using multiple strategies.
- */
-function extractStreamFromHtml(html: string): string | null {
-  const unpacked = tryUnpackPacker(html);
-  const sources = unpacked !== html ? [unpacked, html] : [html];
-
-  for (const src of sources) {
-    // JWPlayer sources array with file property
-    const jw1 = src.match(/sources\s*:\s*\[\s*\{[^{}]{0,300}["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i)
-      ?? src.match(/["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
-    if (jw1?.[1] && !EMBED_SKIP_PATTERNS.test(jw1[1])) return jw1[1];
-
-    // Named variable — m3u8
-    const nm3u8 = src.match(/(?:url|file|source|src|hlsUrl|streamUrl|videoUrl|hls_url|hls)\s*[=:]\s*["'`](https?:\/\/[^"'`\s<>]+\.m3u8[^"'`\s<>]*)["'`]/i);
-    if (nm3u8?.[1] && !EMBED_SKIP_PATTERNS.test(nm3u8[1])) return nm3u8[1];
-
-    // loadSource / playlistItem with m3u8
-    const ls = src.match(/(?:loadSource|playlistItem|setup)\s*\(\s*["'`]?(https?:\/\/[^"'`\s<>]+\.m3u8[^"'`\s<>]*)["'`]?/i);
-    if (ls?.[1] && !EMBED_SKIP_PATTERNS.test(ls[1])) return ls[1];
-
-    // Any quoted m3u8 URL
-    const anyM = src.match(/["'`](https?:\/\/[^"'`\s<>]+\.m3u8[^"'`\s<>]*)["'`]/);
-    if (anyM?.[1] && !EMBED_SKIP_PATTERNS.test(anyM[1])) return anyM[1];
-
-    // JWPlayer mp4 file
-    const jw2 = src.match(/["']file["']\s*:\s*["']([^"']+\.mp4[^"']*)["']/i);
-    if (jw2?.[1] && !EMBED_SKIP_PATTERNS.test(jw2[1])) return jw2[1];
-
-    // Named variable — mp4
-    const nmp4 = src.match(/(?:url|file|source|src|videoUrl|streamUrl)\s*[=:]\s*["'`](https?:\/\/[^"'`\s<>]+\.mp4[^"'`\s<>]*)["'`]/i);
-    if (nmp4?.[1] && !EMBED_SKIP_PATTERNS.test(nmp4[1])) return nmp4[1];
-
-    // Any quoted mp4 URL
-    const anyP = src.match(/["'`](https?:\/\/[^"'`\s<>]+\.mp4[^"'`\s<>]*)["'`]/);
-    if (anyP?.[1] && !EMBED_SKIP_PATTERNS.test(anyP[1])) return anyP[1];
-  }
-
-  // base64 atob() decoded URL
-  return extractAtobVideoUrl(html);
-}
-
-/**
- * Try to resolve an embed player URL to a direct m3u8/mp4 stream URL.
- * Returns null if resolution fails — no embed fallback.
- */
-async function resolveEmbedToStream(
-  embedUrl: string,
-  referer: string,
-): Promise<{ url: string; isM3U8: boolean } | null> {
-  try {
-    const origin = (() => { try { return new URL(referer).origin; } catch { return referer; } })();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
-
-    const res = await fetch(embedUrl, {
-      headers: {
-        ...PAGE_HEADERS,
-        "Referer": referer,
-        "Origin": origin,
-        "Accept": "text/html,application/xhtml+xml,application/vnd.apple.mpegurl,*/*;q=0.8",
-      },
-      redirect: "follow",
-      signal: controller.signal,
-    });
+    const res = await fetch(url, { headers, redirect: "follow", signal: controller.signal });
     clearTimeout(timer);
-
-    if (!res.ok && res.status !== 206) return null;
-
-    const contentType = res.headers.get("content-type") ?? "";
-    const finalUrl = res.url;
-
-    // Direct m3u8 response
-    if (
-      contentType.includes("mpegurl") ||
-      contentType.includes("x-mpegURL") ||
-      finalUrl.split("?")[0].includes(".m3u8")
-    ) {
-      return { url: finalUrl, isM3U8: true };
-    }
-
-    // Direct mp4 response
-    const cleanFinal = finalUrl.split("?")[0].toLowerCase();
-    if (cleanFinal.endsWith(".mp4") || contentType.includes("video/mp4")) {
-      return { url: finalUrl, isM3U8: false };
-    }
-
-    const html = await res.text();
-
-    // m3u8 playlist body
-    if (html.trimStart().startsWith("#EXTM3U")) {
-      return { url: finalUrl, isM3U8: true };
-    }
-
-    // Try to extract from HTML
-    const streamUrl = extractStreamFromHtml(html);
-    if (streamUrl) {
-      return { url: streamUrl, isM3U8: streamUrl.includes(".m3u8") };
-    }
-
-    // Try following an iframe src one level deeper
-    const iframeMatch = html.match(/<iframe[^>]+src=["']([^"']+)["']/i);
-    if (iframeMatch?.[1]) {
-      const iframeUrl = iframeMatch[1].startsWith("http")
-        ? iframeMatch[1]
-        : (() => { try { return new URL(iframeMatch[1], finalUrl).href; } catch { return null; } })();
-      if (iframeUrl) {
-        try {
-          const controller2 = new AbortController();
-          const timer2 = setTimeout(() => controller2.abort(), 7000);
-          const res2 = await fetch(iframeUrl, {
-            headers: { ...PAGE_HEADERS, "Referer": finalUrl },
-            redirect: "follow",
-            signal: controller2.signal,
-          });
-          clearTimeout(timer2);
-          if (res2.ok) {
-            const html2 = await res2.text();
-            const s2 = extractStreamFromHtml(html2);
-            if (s2) return { url: s2, isM3U8: s2.includes(".m3u8") };
-          }
-        } catch {}
-      }
-    }
-  } catch {}
-  return null;
+    if (!res.ok) throw new Error(`JKAnime iframe HTTP ${res.status}: ${url}`);
+    return res.text();
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
 }
 
 /**
@@ -542,145 +395,52 @@ async function searchJkAnimeSlugs(query: string): Promise<string[]> {
   }
 }
 
-
-  /**
-   * Search JKAnime using the /directorio/ page as additional fallback.
-   * Returns slugs found in the directory results.
-   */
-  async function searchJkAnimeDirectory(query: string): Promise<string[]> {
-    try {
-      const url = `${BASE}/directorio/?buscar=1&q=${encodeURIComponent(query)}`;
-      const html = await fetchPage(url, 12000);
-      const slugs: string[] = [];
-      const seen = new Set<string>();
-
-      const SKIP = new Set([
-        "search", "buscar", "api", "cdn", "assets", "static", "tag", "genero", "tipo",
-        "temporada", "directorio", "usuario", "dash", "notificaciones", "guardado",
-        "historial", "salir", "login", "registro", "perfil", "listas", "solicitudes",
-      ]);
-
-      const addSlug = (candidate: string) => {
-        if (!SKIP.has(candidate) && !seen.has(candidate) && candidate.length >= 2) {
-          seen.add(candidate);
-          slugs.push(candidate);
-        }
-      };
-
-      const re1 = /href="https?:\/\/jkanime\.net\/([a-z0-9][a-z0-9-]+)\/"/g;
-      let m: RegExpExecArray | null;
-      while ((m = re1.exec(html)) !== null) addSlug(m[1]);
-
-      const re2 = /href="\/([a-z0-9][a-z0-9-]+)\/" title=/g;
-      while ((m = re2.exec(html)) !== null) addSlug(m[1]);
-
-      const re3 = /href="\/([a-z0-9][a-z0-9-]{3,})\/"/g;
-      while ((m = re3.exec(html)) !== null) {
-        const candidate = m[1];
-        if (candidate.includes("-") || candidate.length >= 6) addSlug(candidate);
-      }
-
-      return slugs;
-    } catch {
-      return [];
-    }
+function extractM3u8(html: string): string | null {
+  const patterns = [
+    /(?:url|file|source|src)\s*:\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/,
+    /loadSource\s*\(\s*['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/,
+    /['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/,
+  ];
+  for (const p of patterns) {
+    const m = html.match(p);
+    if (m?.[1]) return m[1];
   }
-
-  const DOWNLOAD_ONLY_SERVERS = new Set([
-  "mediafire", "mega", "google drive", "zippyshare", "pixeldrain",
-  "terabox", "1fichier", "sendcm", "uptobox", "openload", "fembed",
-]);
-
-interface JkServer {
-  url: string;
-  server: string;
-  lang: number;
+  return null;
 }
 
-/**
- * JKAnime now embeds player info as `var servers = [...]` in the page HTML.
- * Each entry has `remote` (base64-encoded URL), `server` (provider name),
- * `lang` (1=Sub, 2=Lat), `slug` (internal ID), and `append` (0=direct, 1=via CDN).
- */
-function extractServersFromPage(html: string): JkServer[] {
-  const cdnBaseMatch = html.match(/var\s+remote\s*=\s*['"]([^'"]+)['"]/);
-  const cdnBase = cdnBaseMatch?.[1] ?? "https://c1.jkplayers.com";
-
-  const m = html.match(/var\s+servers\s*=\s*(\[[\s\S]*?\]);/);
-  if (!m) return [];
-
-  let parsed: Array<{ remote: string; server: string; lang: number; slug: string; append: number }>;
-  try {
-    parsed = JSON.parse(m[1]);
-  } catch {
-    return [];
-  }
-
-  const results: JkServer[] = [];
-  for (const s of parsed) {
-    const serverName = (s.server ?? "").toLowerCase().trim();
-    if (DOWNLOAD_ONLY_SERVERS.has(serverName)) continue;
-
-    let url = "";
-    try {
-      if (s.append === 1) {
-        url = `${cdnBase}/${s.slug}`;
-      } else {
-        url = Buffer.from(s.remote, "base64").toString("utf8").trim();
-      }
-    } catch {
-      continue;
-    }
-
-    if (url.startsWith("http")) {
-      results.push({ url, server: s.server, lang: s.lang });
-    }
-  }
-
-  return results;
-}
-
-/**
- * Try to extract m3u8 or mp4 stream URLs directly from a jkanime episode page HTML.
- * This avoids having to open embed player pages (which often show ads).
- */
-function extractDirectStreamsFromEpisodePage(
-  html: string,
-  episodePageUrl: string,
-): Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB"; referer: string }> {
-  const results: Array<{ url: string; quality: string; isM3U8: boolean; lang: "LAT" | "SUB"; referer: string }> = [];
+function extractIframeUrls(html: string, episodePageUrl: string): string[] {
+  const urls: string[] = [];
   const seen = new Set<string>();
 
-  const addIfNew = (url: string, isM3U8: boolean, lang: "LAT" | "SUB", label: string) => {
-    if (!url || seen.has(url) || EMBED_SKIP_PATTERNS.test(url)) return;
-    seen.add(url);
-    results.push({ url, quality: label, isM3U8, lang, referer: episodePageUrl });
+  const addUrl = (u: string) => {
+    if (!seen.has(u) && !u.includes("'+val.") && !u.includes("undefined")) {
+      seen.add(u);
+      urls.push(u);
+    }
   };
 
-  // Look for m3u8 URLs tagged with language info
-  const m3u8Re = /['"`](https?:\/\/[^'"`\s<>]+\.m3u8[^'"`\s<>]*)['"`]/g;
+  const re1 = /src="(https?:\/\/jkanime\.net\/jkplayer\/[^"]+)"/g;
   let m: RegExpExecArray | null;
-  while ((m = m3u8Re.exec(html)) !== null) {
-    const url = m[1];
-    // Guess language from surrounding context (50 chars before)
-    const ctx = html.slice(Math.max(0, m.index - 80), m.index).toLowerCase();
-    const lang: "LAT" | "SUB" = ctx.includes("lat") || ctx.includes("esp") || ctx.includes("dub") ? "LAT" : "SUB";
-    addIfNew(url, true, lang, `Directo ${lang}`);
-  }
+  while ((m = re1.exec(html)) !== null) addUrl(m[1]);
+  const re2 = /src='(https?:\/\/jkanime\.net\/jkplayer\/[^']+)'/g;
+  while ((m = re2.exec(html)) !== null) addUrl(m[1]);
+  const re3 = /data-src=["'](https?:\/\/jkanime\.net\/jkplayer\/[^"']+)["']/g;
+  while ((m = re3.exec(html)) !== null) addUrl(m[1]);
+  const re4 = /src="(https?:\/\/jkanime\.net\/(?:jkplayer|player|cdn)[^"]+)"/g;
+  while ((m = re4.exec(html)) !== null) addUrl(m[1]);
 
-  return results;
+  return urls;
 }
 
 function isValidEpisodePage(html: string): boolean {
   if (html.length < 3000) return false;
   const lower = html.toLowerCase();
   if (lower.includes("404 not found") || lower.includes("página no encontrada") || lower.includes("page not found")) return false;
-  const hasServers = lower.includes("var servers") || lower.includes("jkplayer") || lower.includes("jwplayer") ||
-    lower.includes(".m3u8") || lower.includes("videojs") || lower.includes("video/mp4") ||
-    lower.includes("hlsurl") || lower.includes("data-video") ||
-    (lower.includes("player") && lower.includes("source"));
+  const hasPlayer = lower.includes("jkplayer") || lower.includes("jwplayer") || lower.includes(".m3u8") ||
+    lower.includes("videojs") || lower.includes("video/mp4") || lower.includes("hlsurl") ||
+    lower.includes("data-video") || lower.includes("player") && lower.includes("source");
   const hasEpisodeContent = lower.includes("episodio") || lower.includes("capítulo") || lower.includes("episode");
-  return hasServers || (hasEpisodeContent && html.length > 8000);
+  return hasPlayer || (hasEpisodeContent && html.length > 8000);
 }
 
 async function trySlug(slug: string, episodeNum: number): Promise<string | null> {
@@ -828,119 +588,46 @@ export async function getJkAnimeWatch(
     }
   }
 
-
-    // 4. Fallback: search via /directorio/ page (catches animes missed by /buscar/)
-    if (!slug) {
-      const triedSlugs2 = new Set<string>([
-        ...allTitles.flatMap(t => makeSlugs(t)),
-      ]);
-
-      const dirQueries: string[] = [];
-      const seenQ2 = new Set<string>();
-      const addDirQ = (q: string) => {
-        const qc = q.trim();
-        if (qc.length >= 3 && !seenQ2.has(qc)) { seenQ2.add(qc); dirQueries.push(qc); }
-      };
-
-      for (const t of allTitles) {
-        const base = stripSeasonSuffix(t);
-        addDirQ(t);
-        addDirQ(base);
-        addDirQ(t.split(":")[0].trim());
-        const words = t.split(" ").filter(Boolean);
-        if (words[0] && words[0].length >= 4) addDirQ(words[0]);
-        if (words.length >= 2) addDirQ(words.slice(0, 2).join(" "));
-      }
-
-      const dirResults = await Promise.allSettled(dirQueries.map(q => searchJkAnimeDirectory(q)));
-      const dirCandidates: string[] = [];
-      const seenDir = new Set<string>();
-
-      for (const r of dirResults) {
-        if (r.status === "fulfilled") {
-          for (const s of r.value) {
-            if (!triedSlugs2.has(s) && !seenDir.has(s)) {
-              seenDir.add(s);
-              dirCandidates.push(s);
-            }
-          }
-        }
-      }
-
-      const sortedDir = dirCandidates
-        .map(s => ({ s, score: slugRelevanceScore(s, allTitles) }))
-        .sort((a, b) => b.score - a.score)
-        .map(({ s }) => s);
-
-      const BATCH2 = 6;
-      for (let i = 0; i < sortedDir.length && !slug; i += BATCH2) {
-        const batch = sortedDir.slice(i, i + BATCH2);
-        const results = await Promise.all(batch.map(s => trySlug(s, episodeNum).then(h => h ? { s, h } : null)));
-        const hit = results.find(r => r !== null);
-        if (hit) {
-          slug = hit.s;
-          episodeHtml = hit.h!;
-          slugCache.set(cacheKey, slug);
-          slugCacheTime.set(cacheKey, Date.now());
-        }
-      }
-    }
-
-    if (!slug) throw new Error(`Anime not found on Jkanime: "${animeTitle}" ep ${episodeNum}`);
+  if (!slug) throw new Error(`Anime not found on Jkanime: "${animeTitle}" ep ${episodeNum}`);
 
   const episodePageUrl = `${BASE}/${slug}/${episodeNum}/`;
+  const iframeUrls = extractIframeUrls(episodeHtml, episodePageUrl);
 
-  // Step 1: Try to extract direct m3u8 streams from the episode page HTML (no ads, no embed)
-  const directStreams = extractDirectStreamsFromEpisodePage(episodeHtml, episodePageUrl);
-  if (directStreams.length > 0) {
-    const cacheable = directStreams.filter(s => s.isM3U8);
-    if (cacheable.length > 0) {
-      m3u8Cache.set(cachedM3u8Key, { sources: cacheable, ts: Date.now() });
-    }
-    return { sources: directStreams, slug, headers: { "Referer": episodePageUrl } };
-  }
-
-  // Step 2: Extract embed player URLs from `var servers = [...]`
-  const jkServers = extractServersFromPage(episodeHtml);
-  if (jkServers.length === 0) {
+  if (iframeUrls.length === 0) {
     throw new Error(`No players found for ${slug} ep ${episodeNum}`);
   }
 
-  // Step 3: Try to resolve each embed player to a direct m3u8/mp4 stream server-side
   const resolveResults = await Promise.allSettled(
-    jkServers.slice(0, 6).map(async (s) => {
-      const resolved = await resolveEmbedToStream(s.url, episodePageUrl);
-      return { server: s.server, lang: s.lang, embedUrl: s.url, resolved };
+    iframeUrls.slice(0, 4).map(async (iframeUrl) => {
+      const html = await fetchIframe(iframeUrl, episodePageUrl);
+      const m3u8 = extractM3u8(html);
+      return m3u8 ? { m3u8, iframeUrl } : null;
     })
   );
 
   const sources: JkAnimeStreamData["sources"] = [];
-  for (const r of resolveResults) {
-    if (r.status !== "fulfilled") continue;
-    const { server, lang, embedUrl, resolved } = r.value;
-    const langTag = lang === 2 ? "LAT" as const : "SUB" as const;
-    if (resolved) {
-      // Got a direct stream URL — no embed needed, no ads
+  let serverNum = 1;
+
+  for (const result of resolveResults) {
+    if (result.status === "fulfilled" && result.value) {
+      const { m3u8, iframeUrl } = result.value;
       sources.push({
-        url: resolved.url,
-        quality: `${server}`,
-        isM3U8: resolved.isM3U8,
-        lang: langTag,
-        referer: embedUrl,
+        url: m3u8,
+        quality: `Servidor ${serverNum} (Sub español)`,
+        isM3U8: true,
+        lang: "SUB",
+        referer: iframeUrl,
       });
+      serverNum++;
     }
-    // If resolution failed, skip this server (no embed fallback — avoids ads and broken players)
+    if (sources.length >= 3) break;
   }
 
   if (sources.length === 0) {
-    throw new Error(`No playable sources for ${slug} ep ${episodeNum}`);
+    throw new Error(`No se pudieron resolver fuentes m3u8 para ${slug} ep ${episodeNum}`);
   }
 
-  // Cache only direct m3u8 sources
-  const cacheable = sources.filter(s => s.isM3U8);
-  if (cacheable.length > 0) {
-    m3u8Cache.set(cachedM3u8Key, { sources: cacheable, ts: Date.now() });
-  }
+  m3u8Cache.set(cachedM3u8Key, { sources, ts: Date.now() });
 
   return {
     sources,
