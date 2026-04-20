@@ -24,12 +24,6 @@ export function downloadProxyUrl(directUrl: string, filename: string, referer?: 
   return url;
 }
 
-export function proxyEmbedUrl(embedUrl: string, referer?: string): string {
-  let url = `${BASE_URL}/anime/embed-proxy?url=${encodeURIComponent(embedUrl)}`;
-  if (referer) url += `&referer=${encodeURIComponent(referer)}`;
-  return url;
-}
-
 export function resolveTitle(
   title:
     | string
@@ -191,11 +185,6 @@ export const consumet = {
   animeflvWatch: (title: string, episode: number, animeId?: string | number): Promise<StreamingData & { slug?: string }> =>
     get<StreamingData & { slug?: string }>(
       `/anime/animeflv-watch?title=${encodeURIComponent(title)}&episode=${encodeURIComponent(episode)}${animeId ? `&animeId=${encodeURIComponent(animeId)}` : ""}`,
-      true
-    ),
-  latWatch: (title: string, episode: number, animeId?: string | number): Promise<StreamingData & { slug?: string }> =>
-    get<StreamingData & { slug?: string }>(
-      `/anime/lat-watch?title=${encodeURIComponent(title)}&episode=${encodeURIComponent(episode)}${animeId ? `&animeId=${encodeURIComponent(animeId)}` : ""}`,
       true
     ),
   byFormat: (format: "MOVIE" | "OVA" | "ONA" | "SPECIAL", page = 1): Promise<SearchResult> =>
