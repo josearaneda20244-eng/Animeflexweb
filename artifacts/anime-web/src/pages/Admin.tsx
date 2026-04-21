@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
@@ -119,13 +120,19 @@ function SectionHeader({ icon, title, subtitle, action }: { icon: ReactNode; tit
   );
 }
 
-function InsightCard({ label, value, tone, helper }: { label: string; value: string | number; tone: string; helper: string }) {
+function InsightCard({ label, value, tone, helper, index = 0 }: { label: string; value: string | number; tone: string; helper: string; index?: number }) {
   return (
-    <div style={{ background: `linear-gradient(135deg,${tone}1f,rgba(255,255,255,0.015))`, border: `1px solid ${tone}35`, borderRadius: 16, padding: "16px 18px", minHeight: 92, display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: `0 18px 50px ${tone}10` }}>
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.45, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -4, transition: { type: "spring", stiffness: 320, damping: 22 } }}
+      style={{ background: `linear-gradient(135deg,${tone}1f,rgba(255,255,255,0.015))`, border: `1px solid ${tone}35`, borderRadius: 16, padding: "16px 18px", minHeight: 92, display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: `0 18px 50px ${tone}10`, cursor: "default" }}
+    >
       <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6 }}>{label}</div>
       <div style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 950, letterSpacing: -1 }}>{value}</div>
       <div style={{ color: tone, fontSize: 12, fontWeight: 700 }}>{helper}</div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -326,9 +333,15 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           </h2>
           <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 14, marginTop: 4 }}>Aquí está el resumen de tu plataforma</div>
         </div>
-        <button onClick={load} style={{ display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(244,63,94,0.14), rgba(244,63,94,0.04))", border: "1px solid rgba(244,63,94,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(244,63,94,0.12)", transition: "transform 0.25s ease, background 0.25s ease" }} onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; }} onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}>
+        <motion.button
+          onClick={load}
+          whileHover={{ y: -2, boxShadow: "0 20px 48px rgba(244,63,94,0.22)" }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 320, damping: 22 }}
+          style={{ display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(244,63,94,0.14), rgba(244,63,94,0.04))", border: "1px solid rgba(244,63,94,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(244,63,94,0.12)" }}
+        >
           <Activity size={14} /> Actualizar
-        </button>
+        </motion.button>
       </div>
 
       {/* Alert: inactive users */}
@@ -345,13 +358,20 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
-        {INSIGHTS.map(item => <InsightCard key={item.label} {...item} />)}
+        {INSIGHTS.map((item, i) => <InsightCard key={item.label} {...item} index={i} />)}
       </div>
 
       <SectionHeader icon={<LayoutDashboard size={16} />} title="Métricas clave" subtitle="Indicadores principales para revisar el estado de AnimeFlex de un vistazo" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         {CARDS.map((c, index) => (
-          <div key={c.label} style={{ background: c.gradient, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden", transition: "transform 0.3s ease, box-shadow 0.3s ease", cursor: "pointer", animation: `fadeUp 0.45s ease ${0.05 * index}s forwards`, opacity: 0, boxShadow: "0 18px 45px rgba(12,14,30,0.14)" }} onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-6px)"; e.currentTarget.style.boxShadow = "0 24px 60px rgba(12,14,30,0.18)"; }} onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 18px 45px rgba(12,14,30,0.14)"; }}>
+          <motion.div
+            key={c.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.05 * index, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -6, boxShadow: "0 24px 60px rgba(12,14,30,0.28)", transition: { type: "spring", stiffness: 280, damping: 20 } }}
+            style={{ background: c.gradient, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden", cursor: "pointer", boxShadow: "0 18px 45px rgba(12,14,30,0.14)" }}
+          >
             <div style={{ position: "absolute", top: -16, right: -16, width: 64, height: 64, borderRadius: "50%", background: `${c.color}10` }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: `${c.color}20`, display: "flex", alignItems: "center", justifyContent: "center", color: c.color }}>
@@ -364,7 +384,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             </div>
             <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 700, marginTop: 6 }}>{c.label}</div>
             <div style={{ color: c.color, fontSize: 11, marginTop: 3, fontWeight: 600 }}>{c.sub}</div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
@@ -1809,11 +1829,27 @@ export default function Admin() {
           </div>
         </div>
         <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
-          {NAV.map(n => (
-            <button key={n.key} onClick={() => handleNavigate(n.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left", fontSize: 14, fontWeight: 600, background: section === n.key ? "rgba(244,63,94,0.18)" : "transparent", color: section === n.key ? "#f3f4f6" : "rgba(255,255,255,0.68)", transition: "background 0.2s ease, transform 0.2s ease, color 0.2s ease", borderLeft: section === n.key ? "3px solid #FF3355" : "3px solid transparent" }} onMouseEnter={(e) => { if (section !== n.key) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)"; }} onMouseLeave={(e) => { if (section !== n.key) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
-              {n.icon} {n.label}
-            </button>
-          ))}
+          {NAV.map(n => {
+            const active = section === n.key;
+            return (
+              <button
+                key={n.key}
+                onClick={() => handleNavigate(n.key)}
+                style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left", fontSize: 14, fontWeight: 600, background: "transparent", color: active ? "#fff" : "rgba(255,255,255,0.68)", transition: "color 0.2s ease" }}
+                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
+                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.68)"; }}
+              >
+                {active && (
+                  <motion.div
+                    layoutId="admin-nav-pill"
+                    transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                    style={{ position: "absolute", inset: 0, borderRadius: 10, background: "linear-gradient(135deg, rgba(244,63,94,0.22), rgba(244,63,94,0.08))", borderLeft: "3px solid #FF3355", boxShadow: "0 8px 24px rgba(244,63,94,0.18) inset", zIndex: 0 }}
+                  />
+                )}
+                <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 10 }}>{n.icon} {n.label}</span>
+              </button>
+            );
+          })}
         </nav>
         <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 10, border: "none", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 13 }}>
@@ -1836,7 +1872,11 @@ export default function Admin() {
           </div>
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 6px #22C55E" }} />
+            <motion.div
+              animate={{ scale: [1, 1.35, 1], opacity: [0.85, 1, 0.85] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 8px #22C55E" }}
+            />
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Online</span>
             <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.08)" }} />
             <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#FF3355,#E11D48)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 900 }}>
@@ -1848,14 +1888,24 @@ export default function Admin() {
 
         {/* Content */}
         <div style={{ flex: 1, padding: "28px 24px", maxWidth: 1180, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-          {section === "dashboard"    && <DashboardSection toast={showToast} user={user} onNavigate={handleNavigate} />}
-          {section === "users"        && <UsersSection toast={showToast} confirm={showConfirm} />}
-          {section === "content"      && <ContentSection toast={showToast} confirm={showConfirm} />}
-          {section === "comments"     && <CommentsSection toast={showToast} confirm={showConfirm} />}
-          {section === "monetization" && <MonetizationSection toast={showToast} refreshConfig={refreshConfig} />}
-          {section === "transactions" && <TransactionsSection toast={showToast} />}
-          {section === "emails"       && <EmailsSection toast={showToast} confirm={showConfirm} />}
-          {section === "config"       && <ConfigSection toast={showToast} refreshConfig={refreshConfig} />}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={section}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {section === "dashboard"    && <DashboardSection toast={showToast} user={user} onNavigate={handleNavigate} />}
+              {section === "users"        && <UsersSection toast={showToast} confirm={showConfirm} />}
+              {section === "content"      && <ContentSection toast={showToast} confirm={showConfirm} />}
+              {section === "comments"     && <CommentsSection toast={showToast} confirm={showConfirm} />}
+              {section === "monetization" && <MonetizationSection toast={showToast} refreshConfig={refreshConfig} />}
+              {section === "transactions" && <TransactionsSection toast={showToast} />}
+              {section === "emails"       && <EmailsSection toast={showToast} confirm={showConfirm} />}
+              {section === "config"       && <ConfigSection toast={showToast} refreshConfig={refreshConfig} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
