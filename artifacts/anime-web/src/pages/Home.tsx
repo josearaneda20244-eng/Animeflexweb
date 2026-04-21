@@ -156,7 +156,7 @@ import { useQuery } from "@tanstack/react-query";
           <p style={{ maxWidth: 520, color: "rgba(248,251,255,0.74)", fontSize: 15, lineHeight: 1.8, margin: "16px 0 0" }}>{anime.description ? anime.description.replace(/<[^>]+>/g, '').slice(0, 140) + '…' : 'Descubre por qué este anime está arrasando entre la comunidad.'}</p>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
             <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #FF3355, #E11D48)", border: "none", borderRadius: 30, padding: "11px 24px", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(244,63,94,0.45)" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(99,102,241,0.6)"; }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(244,63,94,0.6)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(244,63,94,0.45)"; }}>
               <Play size={18} fill="#fff" color="#fff" /> Ver Ahora
             </button>
@@ -198,7 +198,7 @@ import { useQuery } from "@tanstack/react-query";
         </div>
         {onSeeAll && (
           <button onClick={onSeeAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.22)", borderRadius: 20, color: "#FCA5B5", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(96,165,250,0.16)"; e.currentTarget.style.borderColor = "rgba(96,165,250,0.35)"; }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(244,63,94,0.16)"; e.currentTarget.style.borderColor = "rgba(244,63,94,0.35)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "rgba(244,63,94,0.08)"; e.currentTarget.style.borderColor = "rgba(244,63,94,0.22)"; }}>
             <span>Ver todo</span>
             <ChevronRight size={13} color="#FCA5B5" />
@@ -403,14 +403,14 @@ import { useQuery } from "@tanstack/react-query";
     { label: "Adventure",  icon: "🗺️",  bg: "rgba(249,115,22,0.12)",  border: "rgba(249,115,22,0.3)",  color: "#FDBA74" },
     { label: "Comedy",     icon: "😂",  bg: "rgba(234,179,8,0.12)",   border: "rgba(234,179,8,0.3)",   color: "#FDE68A" },
     { label: "Drama",      icon: "🎭",  bg: "rgba(168,85,247,0.12)",  border: "rgba(168,85,247,0.3)",  color: "#D8B4FE" },
-    { label: "Fantasy",    icon: "✨",  bg: "rgba(99,102,241,0.12)",  border: "rgba(99,102,241,0.3)",  color: "#A5B4FC" },
+    { label: "Fantasy",    icon: "✨",  bg: "rgba(244,63,94,0.12)",  border: "rgba(244,63,94,0.3)",  color: "#A5B4FC" },
     { label: "Horror",     icon: "💀",  bg: "rgba(17,24,39,0.6)",     border: "rgba(239,68,68,0.3)",   color: "#F87171" },
     { label: "Romance",    icon: "💖",  bg: "rgba(236,72,153,0.12)",  border: "rgba(236,72,153,0.3)",  color: "#F9A8D4" },
     { label: "Sci-Fi",     icon: "🚀",  bg: "rgba(6,182,212,0.12)",   border: "rgba(6,182,212,0.3)",   color: "#67E8F9" },
     { label: "Shounen",    icon: "💪",  bg: "rgba(251,146,60,0.12)",  border: "rgba(251,146,60,0.3)",  color: "#FED7AA" },
-    { label: "Isekai",     icon: "🌀",  bg: "rgba(139,92,246,0.12)",  border: "rgba(139,92,246,0.3)",  color: "#C4B5FD" },
+    { label: "Isekai",     icon: "🌀",  bg: "rgba(255,92,122,0.12)",  border: "rgba(255,92,122,0.3)",  color: "#FCA5B5" },
     { label: "Thriller",   icon: "🔪",  bg: "rgba(75,85,99,0.25)",    border: "rgba(156,163,175,0.3)", color: "#D1D5DB" },
-    { label: "Mystery",    icon: "🔍",  bg: "rgba(30,58,138,0.2)",    border: "rgba(96,165,250,0.3)",  color: "#FCA5B5" },
+    { label: "Mystery",    icon: "🔍",  bg: "rgba(30,58,138,0.2)",    border: "rgba(244,63,94,0.3)",  color: "#FCA5B5" },
   ];
 
   function GenresSection() {
@@ -454,7 +454,7 @@ import { useQuery } from "@tanstack/react-query";
 
   /* ── SECTION DIVIDER ── */
   function SectionDivider() {
-    return <div style={{ height: 1, margin: "4px 18px 0", background: "linear-gradient(90deg, transparent, rgba(96,165,250,0.15), rgba(129,140,248,0.15), transparent)" }} />;
+    return <div style={{ height: 1, margin: "4px 18px 0", background: "linear-gradient(90deg, transparent, rgba(244,63,94,0.15), rgba(129,140,248,0.15), transparent)" }} />;
   }
 
   function SkeletonP() { return <div className="skeleton" style={{ width: 130, height: 197, borderRadius: 8, flexShrink: 0, border: "1px solid #222" }} />; }
@@ -604,7 +604,7 @@ import { useQuery } from "@tanstack/react-query";
             style={{
               cursor: "pointer",
               borderRadius: 20,
-              background: "linear-gradient(135deg, rgba(236,72,153,0.15) 0%, rgba(168,85,247,0.15) 50%, rgba(99,102,241,0.1) 100%)",
+              background: "linear-gradient(135deg, rgba(236,72,153,0.15) 0%, rgba(168,85,247,0.15) 50%, rgba(244,63,94,0.1) 100%)",
               border: "1px solid rgba(236,72,153,0.2)",
               padding: "28px 32px",
               display: "flex",

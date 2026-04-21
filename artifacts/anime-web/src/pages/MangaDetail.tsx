@@ -228,7 +228,7 @@ export default function MangaDetail() {
             {manga.genres && manga.genres.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 16 }}>
                 {manga.genres.slice(0, 8).map(g => (
-                  <span key={g} style={{ background: "rgba(168,85,247,0.1)", color: "#C4B5FD", border: "1px solid rgba(168,85,247,0.18)", fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 20 }}>{g}</span>
+                  <span key={g} style={{ background: "rgba(168,85,247,0.1)", color: "#FCA5B5", border: "1px solid rgba(168,85,247,0.18)", fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 20 }}>{g}</span>
                 ))}
               </div>
             )}

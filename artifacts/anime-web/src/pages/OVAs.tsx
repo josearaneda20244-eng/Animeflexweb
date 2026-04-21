@@ -21,7 +21,7 @@ function OVACard({ anime }: { anime: AnimeResult }) {
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(-5px)";
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 14px 32px rgba(124,111,255,0.3)";
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 14px 32px rgba(244,63,94,0.3)";
         const overlay = (e.currentTarget as HTMLDivElement).querySelector(".hover-overlay") as HTMLDivElement;
         if (overlay) overlay.style.opacity = "1";
       }}
@@ -54,13 +54,13 @@ function OVACard({ anime }: { anime: AnimeResult }) {
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         gap: 10, opacity: 0, transition: "opacity 0.2s",
       }}>
-        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#7C6FFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#FF3355", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Play size={20} color="#fff" fill="#fff" />
         </div>
         {anime.genres && anime.genres.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", padding: "0 12px" }}>
             {anime.genres.slice(0, 3).map((g) => (
-              <span key={g} style={{ background: "rgba(124,111,255,0.3)", border: "1px solid rgba(124,111,255,0.5)", borderRadius: 6, padding: "2px 6px", color: "#B39DFF", fontSize: 9, fontWeight: 700 }}>{g}</span>
+              <span key={g} style={{ background: "rgba(244,63,94,0.3)", border: "1px solid rgba(244,63,94,0.5)", borderRadius: 6, padding: "2px 6px", color: "#FCA5B5", fontSize: 9, fontWeight: 700 }}>{g}</span>
             ))}
           </div>
         )}
@@ -144,7 +144,7 @@ export default function OVAs() {
               <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>Hubo un problema al conectarse. Intenta de nuevo.</div>
               <button
                 onClick={() => { ovaP1.refetch(); ovaP2.refetch(); onaP1.refetch(); onaP2.refetch(); spP1.refetch(); }}
-                style={{ marginTop: 8, padding: "10px 24px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+                style={{ marginTop: 8, padding: "10px 24px", borderRadius: 12, background: "#FF3355", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
               >
                 Reintentar
               </button>
@@ -156,7 +156,7 @@ export default function OVAs() {
               <div style={{ color: "#F1F1F5", fontWeight: 600 }}>No se encontraron OVAs/ONAs</div>
               <button
                 onClick={() => navigate("/search?q=OVA")}
-                style={{ marginTop: 8, padding: "10px 24px", borderRadius: 12, background: "#7C6FFF", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+                style={{ marginTop: 8, padding: "10px 24px", borderRadius: 12, background: "#FF3355", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
               >
                 Buscar OVAs
               </button>

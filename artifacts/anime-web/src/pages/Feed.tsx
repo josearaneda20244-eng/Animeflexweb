@@ -18,7 +18,7 @@ interface FeedActivity {
   activity_at: string;
 }
 
-const AVATAR_COLORS = ["#7C6FFF", "#EC4899", "#22C55E", "#F59E0B", "#fff", "#EF4444", "#fff"];
+const AVATAR_COLORS = ["#FF3355", "#EC4899", "#22C55E", "#F59E0B", "#fff", "#EF4444", "#fff"];
 function getAvatarColor(name: string) {
   let hash = 0;
   for (const ch of name) hash = ch.charCodeAt(0) + ((hash << 5) - hash);
@@ -27,11 +27,11 @@ function getAvatarColor(name: string) {
 
 function statusLabel(status: string): { text: string; color: string; icon: React.ReactNode } {
   switch (status) {
-    case "watching":     return { text: "está viendo",      color: "#7C6FFF", icon: <Tv2 size={13} /> };
+    case "watching":     return { text: "está viendo",      color: "#FF3355", icon: <Tv2 size={13} /> };
     case "completed":    return { text: "completó",         color: "#22C55E", icon: <CheckCircle2 size={13} /> };
     case "plan_to_watch":return { text: "quiere ver",       color: "#F59E0B", icon: <BookOpen size={13} /> };
     case "dropped":      return { text: "abandonó",         color: "#EF4444", icon: <Clock size={13} /> };
-    default:             return { text: "actualizó",        color: "#B39DFF", icon: <Rss size={13} /> };
+    default:             return { text: "actualizó",        color: "#FCA5B5", icon: <Rss size={13} /> };
   }
 }
 
@@ -66,8 +66,8 @@ export default function Feed() {
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "72px 16px 48px" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <div style={{ width: 4, height: 24, borderRadius: 2, background: "linear-gradient(180deg,#7C6FFF,#EC4899)" }} />
-          <Rss size={20} color="#7C6FFF" />
+          <div style={{ width: 4, height: 24, borderRadius: 2, background: "linear-gradient(180deg,#FF3355,#EC4899)" }} />
+          <Rss size={20} color="#FF3355" />
           <h1 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, margin: 0 }}>Feed de actividad</h1>
         </div>
 
@@ -80,17 +80,17 @@ export default function Feed() {
             </div>
             <button
               onClick={() => navigate("/")}
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12, background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 12, background: "linear-gradient(135deg,#FF3355,#E11D48)", border: "none", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
               Ir al inicio
             </button>
           </div>
         ) : loading ? (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
-            <Loader2 size={28} color="rgba(124,111,255,0.5)" style={{ margin: "0 auto", animation: "spin 1s linear infinite" }} />
+            <Loader2 size={28} color="rgba(244,63,94,0.5)" style={{ margin: "0 auto", animation: "spin 1s linear infinite" }} />
           </div>
         ) : activities.length === 0 ? (
           <div style={{ background: "#0a0a0a", borderRadius: 20, padding: "48px 24px", textAlign: "center", border: "1px solid rgba(255,255,255,0.07)" }}>
-            <UserPlus size={48} color="rgba(124,111,255,0.3)" style={{ margin: "0 auto 16px", display: "block" }} />
+            <UserPlus size={48} color="rgba(244,63,94,0.3)" style={{ margin: "0 auto 16px", display: "block" }} />
             <div style={{ color: "#F1F1F5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Sin actividad reciente</div>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, lineHeight: 1.7 }}>
               Sigue a otros usuarios desde sus perfiles<br />para ver su actividad aquí
@@ -130,7 +130,7 @@ export default function Feed() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <span
-                          style={{ color: "#B39DFF", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                          style={{ color: "#FCA5B5", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
                           onClick={(e) => { e.stopPropagation(); navigate(`/profile/${a.user_id}`); }}>
                           {a.username}
                         </span>

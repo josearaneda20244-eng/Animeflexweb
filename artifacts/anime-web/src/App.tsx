@@ -59,21 +59,21 @@ function AnimatedBackground() {
 function NotFound() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0, padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(124,111,255,0.14) 0%,transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(244,63,94,0.14) 0%,transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: "10%", right: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(244,114,182,0.08) 0%,transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", top: 40, left: 24, color: "rgba(124,111,255,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>迷</div>
-      <div style={{ position: "absolute", bottom: 40, right: 24, color: "rgba(124,111,255,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>子</div>
+      <div style={{ position: "absolute", top: 40, left: 24, color: "rgba(244,63,94,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>迷</div>
+      <div style={{ position: "absolute", bottom: 40, right: 24, color: "rgba(244,63,94,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>子</div>
       <div style={{ position: "relative", marginBottom: 20 }}>
         <div style={{
           width: 110, height: 110, borderRadius: "50%",
-          background: "linear-gradient(135deg, rgba(124,111,255,0.22), rgba(255,255,255,0.08))",
-          border: "2px solid rgba(124,111,255,0.35)",
+          background: "linear-gradient(135deg, rgba(244,63,94,0.22), rgba(255,255,255,0.08))",
+          border: "2px solid rgba(244,63,94,0.35)",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52,
-          boxShadow: "0 0 40px rgba(124,111,255,0.3)",
+          boxShadow: "0 0 40px rgba(244,63,94,0.3)",
         }}>🎌</div>
         <div style={{ position: "absolute", top: -8, right: -8, background: "linear-gradient(135deg,#EF4444,#DC2626)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid #000", boxShadow: "0 0 12px rgba(239,68,68,0.4)" }}>！</div>
       </div>
-      <div style={{ color: "transparent", fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: -6, background: "linear-gradient(135deg,#7C6FFF,#B39DFF,#F472B6)", WebkitBackgroundClip: "text", backgroundClip: "text", marginBottom: 12 } as any}>404</div>
+      <div style={{ color: "transparent", fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: -6, background: "linear-gradient(135deg,#FF3355,#B39DFF,#F472B6)", WebkitBackgroundClip: "text", backgroundClip: "text", marginBottom: 12 } as any}>404</div>
       <div style={{ color: "#F0F0FA", fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Página no encontrada</div>
       <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 14, textAlign: "center", maxWidth: 300, lineHeight: 1.7, marginBottom: 24 }}>
         El capitán no encontró este episodio. Puede que haya sido movido o eliminado del servidor.
@@ -81,9 +81,9 @@ function NotFound() {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
         <a href="/" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
-          background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", borderRadius: 14,
+          background: "linear-gradient(135deg,#FF3355,#E11D48)", borderRadius: 14,
           padding: "12px 24px", color: "#fff", fontSize: 14, fontWeight: 800,
-          textDecoration: "none", boxShadow: "0 8px 28px rgba(124,111,255,0.4)",
+          textDecoration: "none", boxShadow: "0 8px 28px rgba(244,63,94,0.4)",
         }}>▶ Volver al inicio</a>
         <a href="/search" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
@@ -223,11 +223,11 @@ function MaintenanceCard({
   const countdown = endTime && remaining > 0 ? formatMaintenanceTime(remaining) : "Pronto volveremos";
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at 50% 20%, rgba(124,111,255,0.28), transparent 28%), rgba(0,0,0,0.94)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, flexDirection: "column", gap: 0 }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at 50% 20%, rgba(244,63,94,0.28), transparent 28%), rgba(0,0,0,0.94)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, flexDirection: "column", gap: 0 }}>
       {isAdminPreview && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-          background: "linear-gradient(90deg,#7C6FFF,#5B52F5)",
+          background: "linear-gradient(90deg,#FF3355,#E11D48)",
           padding: "10px 20px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           gap: 12, flexWrap: "wrap",
@@ -248,10 +248,10 @@ function MaintenanceCard({
           </button>
         </div>
       )}
-      <div style={{ width: "min(92vw, 540px)", background: "linear-gradient(145deg, rgba(15,15,30,0.98), rgba(4,4,10,0.98))", border: "1px solid rgba(124,111,255,0.32)", borderRadius: 28, padding: isAdminPreview ? "80px 28px 34px" : "34px 28px", textAlign: "center", boxShadow: "0 32px 100px rgba(0,0,0,0.72), 0 0 70px rgba(124,111,255,0.18)", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(124,111,255,0.12), transparent 45%, rgba(245,158,11,0.08))", pointerEvents: "none" }} />
+      <div style={{ width: "min(92vw, 540px)", background: "linear-gradient(145deg, rgba(15,15,30,0.98), rgba(4,4,10,0.98))", border: "1px solid rgba(244,63,94,0.32)", borderRadius: 28, padding: isAdminPreview ? "80px 28px 34px" : "34px 28px", textAlign: "center", boxShadow: "0 32px 100px rgba(0,0,0,0.72), 0 0 70px rgba(244,63,94,0.18)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(244,63,94,0.12), transparent 45%, rgba(245,158,11,0.08))", pointerEvents: "none" }} />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ width: 76, height: 76, borderRadius: 24, margin: "0 auto 20px", background: "linear-gradient(135deg,#7C6FFF,#5B52F5)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 48px rgba(124,111,255,0.42)", fontSize: 34 }}>
+          <div style={{ width: 76, height: 76, borderRadius: 24, margin: "0 auto 20px", background: "linear-gradient(135deg,#FF3355,#E11D48)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 48px rgba(244,63,94,0.42)", fontSize: 34 }}>
             🛠️
           </div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#FBBF24", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.24)", borderRadius: 999, padding: "7px 12px", fontSize: 12, fontWeight: 900, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
@@ -329,10 +329,10 @@ function MaintenanceGate({ children }: { children: ReactNode }) {
       {config.maintenanceMode && isAdminOrOwner && adminBypass && !isAdminRoute && (
         <div style={{
           position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
-          zIndex: 9999, background: "linear-gradient(90deg,#7C6FFF,#5B52F5)",
+          zIndex: 9999, background: "linear-gradient(90deg,#FF3355,#E11D48)",
           borderRadius: 999, padding: "10px 20px",
           display: "flex", alignItems: "center", gap: 10,
-          boxShadow: "0 8px 32px rgba(124,111,255,0.5)",
+          boxShadow: "0 8px 32px rgba(244,63,94,0.5)",
           fontSize: 13, color: "#fff", fontWeight: 800,
           whiteSpace: "nowrap",
         }}>

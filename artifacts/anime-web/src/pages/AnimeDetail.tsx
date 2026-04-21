@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Heart, HeartOff, Star, Play, ChevronDown, ChevronUp,
   Tv, Calendar, Film, List, Share2, BookOpen, CheckCircle2, Clock3,
@@ -17,7 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import AdBanner from "@/components/AdBanner";
 
 const STATUS_OPTIONS: { value: WatchStatus; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#7C6FFF" },
+  { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#FF3355" },
   { value: "completed", label: "Completado", icon: <CheckCircle2 size={13} />, color: "#22C55E" },
   { value: "plan_to_watch", label: "Pendiente", icon: <Clock3 size={13} />, color: "#F59E0B" },
   { value: "dropped", label: "Abandonado", icon: <XCircle size={13} />, color: "#EF4444" },
@@ -133,7 +134,7 @@ function UserRatingWidget({ animeId }: { animeId: string }) {
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
         <div className="section-accent" />
-        <Star size={14} className="text-[#7C6FFF]" />
+        <Star size={14} className="text-[#FF3355]" />
         <h2 className="text-sm font-bold text-[#F0F0FF]">Tu valoración</h2>
         {communityTotal > 0 && (
           <span style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.3)", fontSize: 11, marginLeft: "auto" }}>
@@ -382,7 +383,7 @@ export default function AnimeDetail() {
     return (
       <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#000" }}>
         <div className="flex flex-col items-center gap-3 text-[#4A4A6A]">
-          <div className="w-8 h-8 border-2 border-[#7C6FFF] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#FF3355] border-t-transparent rounded-full animate-spin" />
           <p className="text-sm">Cargando...</p>
         </div>
       </div>
@@ -394,7 +395,7 @@ export default function AnimeDetail() {
       <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#000" }}>
         <div className="text-center text-[#4A4A6A]">
           <p className="text-[#F0F0FF] font-medium mb-2">No se pudo cargar el anime</p>
-          <button onClick={() => navigate("/")} className="text-sm text-[#7C6FFF] hover:underline">
+          <button onClick={() => navigate("/")} className="text-sm text-[#FF3355] hover:underline">
             Volver al inicio
           </button>
         </div>
@@ -408,25 +409,34 @@ export default function AnimeDetail() {
         <TrailerModal trailerId={trailer!.id} onClose={() => setShowTrailer(false)} />
       )}
 
-      {/* Cover */}
-      <div className="relative w-full" style={{ height: "min(380px, 55vw)" }}>
-        <img
+      {/* Cover with Ken Burns + cinematic gradient */}
+      <div className="relative w-full overflow-hidden" style={{ height: "min(420px, 60vw)" }}>
+        <motion.img
           src={cover || image}
           alt={title}
           loading="lazy"
+          initial={{ scale: 1.12, opacity: 0 }}
+          animate={{ scale: 1.02, opacity: 1 }}
+          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
           className="w-full h-full object-cover"
+          style={{ objectPosition: "center 30%" }}
         />
-        <div className="absolute inset-0 hero-overlay" />
-        <div
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(to right, rgba(9,10,18,0.8) 0%, transparent 60%)" }}
-        />
-        <button
+        {/* Bottom fade to black */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.35) 55%, #000 100%)" }} />
+        {/* Side fade */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.7) 0%, transparent 50%, rgba(0,0,0,0.4) 100%)" }} />
+        {/* Crimson vignette */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 80% 0%, rgba(244,63,94,0.18) 0%, transparent 60%)" }} />
+
+        <motion.button
           onClick={() => navigate("/")}
-          className="absolute top-16 left-4 md:left-8 p-2 rounded-xl bg-black/50 text-white hover:bg-black/70 transition-colors"
+          whileHover={{ scale: 1.08, x: -2 }}
+          whileTap={{ scale: 0.92 }}
+          className="absolute top-16 left-4 md:left-8 p-2.5 rounded-full text-white"
+          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.12)" }}
         >
-          <ArrowLeft size={20} />
-        </button>
+          <ArrowLeft size={18} />
+        </motion.button>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-8">
@@ -461,38 +471,52 @@ export default function AnimeDetail() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-wrap gap-3 mb-6">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ visible: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } } }}
+          className="flex flex-wrap gap-2.5 mb-6"
+        >
           {animeProgress ? (
-            <button
+            <motion.button
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => {
                 const ep = episodes.find((e) => e.number === animeProgress.episodeNum);
                 if (ep) handleEpisode(ep);
               }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white justify-center transition-opacity hover:opacity-90"
-              style={{ background: "linear-gradient(135deg,#8B7FFF,#6C63FF,#5B52F5)", boxShadow: "0 4px 20px rgba(108,99,255,0.4)" }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold text-white justify-center"
+              style={{ background: "linear-gradient(135deg,#FF5C7A 0%,#FF3355 50%,#E11D48 100%)", boxShadow: "0 8px 24px rgba(244,63,94,0.5), inset 0 1px 0 rgba(255,255,255,0.25)" }}
             >
-              <Play size={16} fill="currentColor" />
+              <Play size={15} fill="currentColor" />
               Continuar Ep. {animeProgress.episodeNum}
-            </button>
+            </motion.button>
           ) : episodes.length > 0 ? (
-            <button
+            <motion.button
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => handleEpisode(episodes[0])}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white justify-center transition-opacity hover:opacity-90"
-              style={{ background: "linear-gradient(135deg,#7C6FFF,#EC4899)" }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold text-white justify-center"
+              style={{ background: "linear-gradient(135deg,#FF5C7A 0%,#FF3355 50%,#E11D48 100%)", boxShadow: "0 8px 24px rgba(244,63,94,0.5), inset 0 1px 0 rgba(255,255,255,0.25)" }}
             >
-              <Play size={16} fill="currentColor" />
+              <Play size={15} fill="currentColor" />
               Reproducir
-            </button>
+            </motion.button>
           ) : null}
 
           {hasYouTubeTrailer && (
-            <button
+            <motion.button
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => setShowTrailer(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-colors"
-              style={{ color: "#F87171", borderColor: "rgba(248,113,113,0.3)", background: "rgba(248,113,113,0.08)" }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold border"
+              style={{ color: "#FCA5B5", borderColor: "rgba(244,63,94,0.35)", background: "rgba(244,63,94,0.08)", backdropFilter: "blur(10px)" }}
             >
               <Clapperboard size={15} /> Trailer
-            </button>
+            </motion.button>
           )}
 
           <WatchStatusButton
@@ -510,47 +534,57 @@ export default function AnimeDetail() {
             }}
           />
 
-          <button
+          <motion.button
+            variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+            whileHover={{ scale: 1.04, y: -2 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => {
               const wasNotFav = !fav;
               toggleFavorite(animeForFav);
-              if (wasNotFav) {
-                // addNotification({
-                //   title: "Añadido a favoritos",
-                //   message: `${title} fue añadido a tu lista de favoritos.`,
-                //   animeId: id,
-                //   animeImage: image,
-                // });
-              }
+              if (wasNotFav) { /* notification omitted */ }
             }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
-              fav
-                ? "text-pink-400 border-pink-400/40 bg-pink-400/10"
-                : "text-[#9090B0] border-[#2A2A42] hover:text-[#F0F0FF] hover:border-[#3A3A5A]"
-            }`}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold border"
+            style={fav
+              ? { color: "#FCA5B5", borderColor: "rgba(244,63,94,0.5)", background: "rgba(244,63,94,0.12)", backdropFilter: "blur(10px)" }
+              : { color: "#B8B8D1", borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", backdropFilter: "blur(10px)" }
+            }
           >
-            {fav ? <HeartOff size={16} /> : <Heart size={16} />}
+            <motion.span animate={fav ? { scale: [1, 1.3, 1] } : { scale: 1 }} transition={{ duration: 0.4 }} style={{ display: "inline-flex" }}>
+              {fav ? <HeartOff size={15} /> : <Heart size={15} fill={fav ? "currentColor" : "none"} />}
+            </motion.span>
             {fav ? "Quitar" : "Favorito"}
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
+            variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+            whileHover={{ scale: 1.04, y: -2 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => {
               navigator.clipboard.writeText(window.location.href).then(() => {
                 setShareToast(true);
                 setTimeout(() => setShareToast(false), 2500);
               });
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border text-[#9090B0] border-[#2A2A42] hover:text-[#F0F0FF] hover:border-[#3A3A5A] transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold border"
+            style={{ color: "#B8B8D1", borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", backdropFilter: "blur(10px)" }}
           >
-            <Share2 size={16} /> Compartir
-          </button>
-        </div>
+            <Share2 size={15} /> Compartir
+          </motion.button>
+        </motion.div>
 
-        {shareToast && (
-          <div style={{ position: "fixed", top: 70, right: 16, background: "#22C55E", color: "#fff", fontSize: 13, fontWeight: 700, borderRadius: 10, padding: "10px 16px", zIndex: 200 }}>
-            ✓ Enlace copiado al portapapeles
-          </div>
-        )}
+        <AnimatePresence>
+          {shareToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 360, damping: 24 }}
+              style={{ position: "fixed", top: 70, right: 16, background: "linear-gradient(135deg,#22C55E,#16A34A)", color: "#fff", fontSize: 13, fontWeight: 700, borderRadius: 12, padding: "10px 16px", zIndex: 200, boxShadow: "0 12px 32px rgba(34,197,94,0.45)" }}
+            >
+              ✓ Enlace copiado al portapapeles
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Description */}
         {rawDesc && (
@@ -561,7 +595,7 @@ export default function AnimeDetail() {
             {rawDesc.length > 200 && (
               <button
                 onClick={() => setDescExpanded(!descExpanded)}
-                className="flex items-center gap-1 mt-2 text-xs text-[#7C6FFF] hover:underline"
+                className="flex items-center gap-1 mt-2 text-xs text-[#FF3355] hover:underline"
               >
                 {descExpanded ? <><ChevronUp size={12} />Menos</> : <><ChevronDown size={12} />Más</>}
               </button>
@@ -577,7 +611,7 @@ export default function AnimeDetail() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <div className="section-accent" />
-              <Users size={14} className="text-[#7C6FFF]" />
+              <Users size={14} className="text-[#FF3355]" />
               <h2 className="text-sm font-bold text-[#F0F0FF]">Personajes</h2>
             </div>
             <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
@@ -585,7 +619,7 @@ export default function AnimeDetail() {
                 <div key={char.id} style={{ flexShrink: 0, textAlign: "center", width: 72 }}>
                   <div style={{
                     width: 64, height: 64, borderRadius: "50%", overflow: "hidden",
-                    margin: "0 auto 6px", border: "2px solid rgba(124,111,255,0.3)",
+                    margin: "0 auto 6px", border: "2px solid rgba(244,63,94,0.3)",
                     background: "#100e22",
                   }}>
                     <img
@@ -598,7 +632,7 @@ export default function AnimeDetail() {
                   <div style={{ color: "#F1F1F5", fontSize: 9, fontWeight: 700, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as any}>
                     {char.name}
                   </div>
-                  <div style={{ color: char.role === "MAIN" ? "#B39DFF" : "rgba(255,255,255,0.3)", fontSize: 8, fontWeight: 600, marginTop: 2 }}>
+                  <div style={{ color: char.role === "MAIN" ? "#FCA5B5" : "rgba(255,255,255,0.3)", fontSize: 8, fontWeight: 600, marginTop: 2 }}>
                     {char.role === "MAIN" ? "Principal" : "Secundario"}
                   </div>
                 </div>
@@ -612,7 +646,7 @@ export default function AnimeDetail() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="section-accent" />
-              <List size={14} className="text-[#7C6FFF]" />
+              <List size={14} className="text-[#FF3355]" />
               <h2 className="text-sm font-bold text-[#F0F0FF]">
                 Episodios ({episodes.length})
               </h2>
@@ -621,13 +655,13 @@ export default function AnimeDetail() {
               <div className="flex rounded-lg overflow-hidden border border-[#1E1E32] text-xs">
                 <button
                   onClick={() => setEpFilter("all")}
-                  className={`px-3 py-1.5 transition-colors ${epFilter === "all" ? "bg-[#7C6FFF] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
+                  className={`px-3 py-1.5 transition-colors ${epFilter === "all" ? "bg-[#FF3355] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
                 >
                   Todos
                 </button>
                 <button
                   onClick={() => setEpFilter("unwatched")}
-                  className={`px-3 py-1.5 transition-colors ${epFilter === "unwatched" ? "bg-[#7C6FFF] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
+                  className={`px-3 py-1.5 transition-colors ${epFilter === "unwatched" ? "bg-[#FF3355] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
                 >
                   Sin ver
                 </button>
@@ -642,7 +676,7 @@ export default function AnimeDetail() {
                 onChange={(e) => setEpSearch(e.target.value)}
                 placeholder="Buscar episodio o número"
                 inputMode="numeric"
-                className="flex-1 min-w-0 rounded-xl border border-[#1E1E32] bg-[#100e22] px-3 py-2.5 text-sm text-[#F0F0FF] outline-none placeholder:text-[#4A4A6A] focus:border-[#7C6FFF80]"
+                className="flex-1 min-w-0 rounded-xl border border-[#1E1E32] bg-[#100e22] px-3 py-2.5 text-sm text-[#F0F0FF] outline-none placeholder:text-[#4A4A6A] focus:border-[#FF335580]"
               />
               {epSearch && (
                 <button
@@ -657,7 +691,7 @@ export default function AnimeDetail() {
 
           {paheQuery.isLoading && (
             <div className="flex items-center gap-2 text-xs text-[#4A4A6A] mb-3">
-              <div className="w-3 h-3 border border-[#7C6FFF] border-t-transparent rounded-full animate-spin" />
+              <div className="w-3 h-3 border border-[#FF3355] border-t-transparent rounded-full animate-spin" />
               Cargando fuentes...
             </div>
           )}
@@ -668,37 +702,53 @@ export default function AnimeDetail() {
               <p className="text-sm">Sin episodios disponibles</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-1.5 max-h-[600px] overflow-y-auto pr-1">
-              {filteredEps.map((ep) => {
+            <div className="grid grid-cols-1 gap-2 max-h-[600px] overflow-y-auto pr-1">
+              {filteredEps.map((ep, idx) => {
                 const watched = watchedEps.has(ep.id);
                 return (
-                  <button
+                  <motion.button
                     key={ep.id}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min(idx * 0.025, 0.4), ease: [0.16, 1, 0.3, 1] }}
+                    whileHover={{ x: 4, borderColor: "rgba(244,63,94,0.4)" }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => handleEpisode(ep)}
-                    className={`flex items-center gap-3 p-3 rounded-xl text-left transition-colors group w-full ${watched ? "opacity-60" : ""}`}
-                    style={{ background: "#100e22", border: "1px solid #1E1E32" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7C6FFF40")}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#1E1E32")}
+                    className={`flex items-center gap-3 p-3 rounded-xl text-left group w-full ${watched ? "opacity-55" : ""}`}
+                    style={{
+                      background: "linear-gradient(135deg, #100e22 0%, #0d0c1c 100%)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                    }}
                   >
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                      style={watched ? { background: "#1A1A27", color: "#4A4A6A" } : { background: "rgba(124,111,255,0.15)", color: "#7C6FFF" }}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-black"
+                      style={watched
+                        ? { background: "#1A1A27", color: "#4A4A6A" }
+                        : { background: "linear-gradient(135deg, rgba(244,63,94,0.22), rgba(225,29,72,0.12))", color: "#FF5C7A", boxShadow: "inset 0 0 0 1px rgba(244,63,94,0.25)" }
+                      }
                     >
                       {ep.number}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#F0F0FF] line-clamp-1">
+                      <p className="text-sm font-semibold text-[#F0F0FF] line-clamp-1">
                         {ep.title ?? `Episodio ${ep.number}`}
                       </p>
                       {ep.airDate && (
-                        <p className="text-xs text-[#4A4A6A] mt-0.5">{ep.airDate}</p>
+                        <p className="text-xs text-[#5A5A7A] mt-0.5">{ep.airDate}</p>
                       )}
                     </div>
-                    <Play
-                      size={14}
-                      className="text-[#7C6FFF] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                    />
-                  </button>
+                    {watched && (
+                      <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 700, letterSpacing: 0.5 }}>VISTO</span>
+                    )}
+                    <motion.div
+                      initial={{ x: -4, opacity: 0 }}
+                      whileHover={{ x: 0, opacity: 1 }}
+                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: "linear-gradient(135deg,#FF3355,#E11D48)", boxShadow: "0 4px 12px rgba(244,63,94,0.45)" }}
+                    >
+                      <Play size={12} fill="#fff" color="#fff" />
+                    </motion.div>
+                  </motion.button>
                 );
               })}
             </div>
@@ -710,7 +760,7 @@ export default function AnimeDetail() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
               <div className="section-accent" />
-              <Sparkles size={14} className="text-[#7C6FFF]" />
+              <Sparkles size={14} className="text-[#FF3355]" />
               <h2 className="text-sm font-bold text-[#F0F0FF]">Animes similares</h2>
               <ChevronRight size={14} className="text-[#4A4A6A]" />
             </div>

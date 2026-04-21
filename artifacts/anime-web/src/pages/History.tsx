@@ -52,7 +52,7 @@ function HistoryItem({ entry, onRemove }: { entry: HistoryEntry; onRemove: () =>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
         <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, lineHeight: 1.35 }} className="line-clamp-2">{title}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {entry.type && <span style={{ color: "#7C6FFF", fontSize: 10, fontWeight: 700, background: "rgba(124,111,255,0.18)", padding: "1px 5px", borderRadius: 4 }}>{entry.type}</span>}
+          {entry.type && <span style={{ color: "#FF3355", fontSize: 10, fontWeight: 700, background: "rgba(244,63,94,0.18)", padding: "1px 5px", borderRadius: 4 }}>{entry.type}</span>}
           {entry.episodeNum && (
             <span style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.005)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 10, fontWeight: 800 }}>
               <Play size={9} color="#fff" /> EP {entry.episodeNum}
@@ -93,7 +93,7 @@ export default function History() {
       <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 14, paddingTop: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 4, height: 28, borderRadius: 2, background: "#7C6FFF" }} />
+            <div style={{ width: 4, height: 28, borderRadius: 2, background: "#FF3355" }} />
             <div>
               <div style={{ color: "#F1F1F5", fontSize: 24, fontWeight: 900, letterSpacing: -0.5 }}>Historial</div>
               <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 1 }}>
@@ -117,8 +117,8 @@ export default function History() {
 
         {history.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 14 }}>
-            <div style={{ width: 110, height: 110, borderRadius: 55, background: "rgba(124,111,255,0.1)", border: "1px solid rgba(124,111,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Clock size={48} color="#7C6FFF" />
+            <div style={{ width: 110, height: 110, borderRadius: 55, background: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Clock size={48} color="#FF3355" />
             </div>
             <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 800 }}>Sin historial todavía</div>
             <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 14, textAlign: "center", lineHeight: 1.6, maxWidth: 280 }}>
@@ -126,7 +126,7 @@ export default function History() {
             </div>
             <button
               onClick={() => navigate("/")}
-              style={{ background: "rgba(124,111,255,0.15)", border: "1px solid rgba(124,111,255,0.3)", borderRadius: 20, padding: "9px 16px", color: "#7C6FFF", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 4 }}
+              style={{ background: "rgba(244,63,94,0.15)", border: "1px solid rgba(244,63,94,0.3)", borderRadius: 20, padding: "9px 16px", color: "#FF3355", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 4 }}
             >
               Explorar anime
             </button>

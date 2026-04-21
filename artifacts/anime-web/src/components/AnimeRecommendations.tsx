@@ -79,7 +79,7 @@
           }} />
           <div style={{
             position: 'absolute', top: 7, left: 7,
-            background: 'linear-gradient(135deg, #3B82F6, #6366F1)',
+            background: 'linear-gradient(135deg, #FF3355, #E11D48)',
             borderRadius: 4, padding: '2px 6px',
             color: '#fff', fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
           }}>LAT</div>

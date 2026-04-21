@@ -58,14 +58,14 @@ export default function Schedule() {
                   style={{
                     flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                     padding: "12px 20px", borderRadius: 16,
-                    border: `1px solid ${isActive ? "#7C6FFF" : "rgba(255,255,255,0.1)"}`,
-                    background: isActive ? "rgba(124,111,255,0.2)" : "rgba(255,255,255,0.04)",
-                    color: isActive ? "#B39DFF" : "rgba(255,255,255,0.55)",
+                    border: `1px solid ${isActive ? "#FF3355" : "rgba(255,255,255,0.1)"}`,
+                    background: isActive ? "rgba(244,63,94,0.2)" : "rgba(255,255,255,0.04)",
+                    color: isActive ? "#FCA5B5" : "rgba(255,255,255,0.55)",
                     cursor: "pointer", position: "relative",
                   }}
                 >
                   <span style={{ fontSize: 13, fontWeight: 800 }}>{d}</span>
-                  <span style={{ fontSize: 10, color: isActive ? "#B39DFF" : "rgba(255,255,255,0.35)" }}>{count} ep</span>
+                  <span style={{ fontSize: 10, color: isActive ? "#FCA5B5" : "rgba(255,255,255,0.35)" }}>{count} ep</span>
                   {isToday && (
                     <span style={{
                       position: "absolute", top: -4, right: -4, width: 10, height: 10,
@@ -158,7 +158,7 @@ export default function Schedule() {
                     <button
                       style={{
                         flexShrink: 0, width: 40, height: 40, borderRadius: "50%",
-                        background: isPast ? "#7C6FFF" : "rgba(255,255,255,0.07)",
+                        background: isPast ? "#FF3355" : "rgba(255,255,255,0.07)",
                         border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                       }}
                     >
