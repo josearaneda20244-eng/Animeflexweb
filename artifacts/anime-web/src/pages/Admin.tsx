@@ -235,9 +235,83 @@ function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") =
 }
 
 /* ── Dashboard Section ── */
+/* ── Solo-Leveling style "SYSTEM" intro overlay ── */
+function SystemIntro({ username, onDone }: { username: string; onDone: () => void }) {
+  const lines = [
+    "> INICIANDO PROTOCOLO DE ENLACE...",
+    "> AUTENTICANDO HUNTER...",
+    "> ACCESO CONCEDIDO",
+    `> BIENVENIDO, ${username.toUpperCase()}`,
+  ];
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    if (shown >= lines.length) {
+      const t = setTimeout(onDone, 650);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => setShown(s => s + 1), 320);
+    return () => clearTimeout(t);
+  }, [shown]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }}
+      style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontFamily: "'Courier New', ui-monospace, monospace" }}
+    >
+      {/* grid bg */}
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(244,63,94,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.08) 1px, transparent 1px)", backgroundSize: "32px 32px", maskImage: "radial-gradient(circle at center, black 30%, transparent 75%)" }} />
+      {/* scanlines */}
+      <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, rgba(244,63,94,0.04) 0px, rgba(244,63,94,0.04) 1px, transparent 1px, transparent 4px)", pointerEvents: "none" }} />
+      {/* hex glow */}
+      <motion.div
+        animate={{ rotate: 360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+        style={{ position: "absolute", width: 460, height: 460, border: "1px solid rgba(244,63,94,0.18)", borderRadius: 12, transform: "rotate(45deg)" }}
+      />
+      <motion.div
+        animate={{ rotate: -360 }} transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
+        style={{ position: "absolute", width: 320, height: 320, border: "1px solid rgba(244,63,94,0.32)", borderRadius: 12, transform: "rotate(45deg)" }}
+      />
+
+      <div style={{ position: "relative", zIndex: 2, padding: "32px 44px", border: "1px solid rgba(244,63,94,0.5)", background: "rgba(15,4,8,0.7)", boxShadow: "0 0 40px rgba(244,63,94,0.4) inset, 0 0 60px rgba(244,63,94,0.4)", maxWidth: 520, width: "85%", clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%)" }}>
+        {/* corner brackets */}
+        <CornerBrackets color="#FF3355" />
+        <div style={{ color: "#FF3355", fontSize: 11, letterSpacing: 4, fontWeight: 900, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+          <motion.span animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 0.8, repeat: Infinity }} style={{ width: 8, height: 8, background: "#FF3355", display: "inline-block" }} />
+          [ SISTEMA · ANIMEFLEX OS ]
+        </div>
+        <div style={{ color: "#FCA5B5", fontSize: 14, lineHeight: 2, minHeight: 4 * 28 }}>
+          {lines.slice(0, shown).map((l, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25 }}
+              style={{ textShadow: "0 0 8px rgba(244,63,94,0.6)" }}
+            >
+              {l}{i === shown - 1 && <motion.span animate={{ opacity: [1, 0, 1] }} transition={{ duration: 0.6, repeat: Infinity }}>▌</motion.span>}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function CornerBrackets({ color = "#FF3355", size = 14 }: { color?: string; size?: number }) {
+  const s = { position: "absolute" as const, width: size, height: size, borderColor: color, borderStyle: "solid" as const, borderWidth: 0 };
+  return (
+    <>
+      <span style={{ ...s, top: -1, left: -1, borderTopWidth: 2, borderLeftWidth: 2 }} />
+      <span style={{ ...s, top: -1, right: -1, borderTopWidth: 2, borderRightWidth: 2 }} />
+      <span style={{ ...s, bottom: -1, left: -1, borderBottomWidth: 2, borderLeftWidth: 2 }} />
+      <span style={{ ...s, bottom: -1, right: -1, borderBottomWidth: 2, borderRightWidth: 2 }} />
+    </>
+  );
+}
+
 function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "ok" | "err") => void; user: { username: string }; onNavigate: (s: Section) => void }) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem("af_admin_intro_seen"));
 
   const load = () => {
     setLoading(true);
@@ -247,6 +321,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
+  useEffect(() => { if (!showIntro) sessionStorage.setItem("af_admin_intro_seen", "1"); }, [showIntro]);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
@@ -323,14 +398,22 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, position: "relative", animation: "fadeUp 0.45s ease forwards", opacity: 0, zIndex: 1 }}>
+      <AnimatePresence>
+        {showIntro && <SystemIntro key="sys-intro" username={user.username} onDone={() => setShowIntro(false)} />}
+      </AnimatePresence>
 
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg,rgba(244,63,94,0.18),rgba(245,158,11,0.08) 55%,rgba(255,255,255,0.015))", border: "1px solid rgba(244,63,94,0.22)", borderRadius: 24, padding: "22px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 22px 70px rgba(244,63,94,0.18)" }}
+        style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg,rgba(244,63,94,0.18),rgba(245,158,11,0.08) 55%,rgba(255,255,255,0.015))", border: "1px solid rgba(244,63,94,0.35)", borderRadius: 4, padding: "22px 26px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 22px 70px rgba(244,63,94,0.18), 0 0 30px rgba(244,63,94,0.18) inset", clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%)" }}
       >
+        <CornerBrackets color="#FF3355" size={16} />
+        {/* hex grid bg */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(244,63,94,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(244,63,94,0.06) 1px, transparent 1px)", backgroundSize: "28px 28px", maskImage: "linear-gradient(180deg, black, transparent)", pointerEvents: "none", zIndex: 0 }} />
+        {/* scanlines */}
+        <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, rgba(244,63,94,0.025) 0px, rgba(244,63,94,0.025) 1px, transparent 1px, transparent 3px)", pointerEvents: "none", zIndex: 0 }} />
         {/* animated rotating aurora */}
         <motion.div
           animate={{ rotate: 360 }}
@@ -344,11 +427,17 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           style={{ position: "absolute", top: 0, bottom: 0, width: "55%", background: "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.08) 50%, transparent 65%)", pointerEvents: "none", zIndex: 0 }}
         />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 4, textTransform: "capitalize" }}>{dateStr}</div>
-          <h2 style={{ color: "#F1F1F5", fontSize: 26, fontWeight: 900, margin: 0, letterSpacing: -0.5 }}>
-            Hola, <span style={{ color: "#FCA5B5" }}>{user.username}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontFamily: "'Courier New', ui-monospace, monospace" }}>
+            <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ width: 8, height: 8, background: "#FF3355", boxShadow: "0 0 10px #FF3355" }} />
+            <span style={{ color: "#FF3355", fontSize: 10, letterSpacing: 4, fontWeight: 900 }}>[ SISTEMA · ANIMEFLEX OS ]</span>
+            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" }}>· {dateStr}</span>
+          </div>
+          <h2 style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: -0.5, textShadow: "0 0 20px rgba(244,63,94,0.35)" }}>
+            BIENVENIDO, <span style={{ color: "#FCA5B5", fontFamily: "'Courier New', ui-monospace, monospace", textTransform: "uppercase" }}>{user.username}</span>
           </h2>
-          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 14, marginTop: 4 }}>Aquí está el resumen de tu plataforma</div>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 6, fontFamily: "'Courier New', ui-monospace, monospace", letterSpacing: 1 }}>
+            &gt; Estado de la plataforma operativo. Todas las funciones en línea.
+          </div>
         </div>
         <motion.button
           onClick={load}
