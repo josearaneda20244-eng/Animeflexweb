@@ -325,8 +325,25 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
     <div style={{ display: "flex", flexDirection: "column", gap: 24, position: "relative", animation: "fadeUp 0.45s ease forwards", opacity: 0, zIndex: 1 }}>
 
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg,rgba(244,63,94,0.14),rgba(245,158,11,0.06) 55%,rgba(255,255,255,0.015))", border: "1px solid rgba(244,63,94,0.18)", borderRadius: 24, padding: "22px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 22px 70px rgba(0,0,0,0.22)" }}>
-        <div>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg,rgba(244,63,94,0.18),rgba(245,158,11,0.08) 55%,rgba(255,255,255,0.015))", border: "1px solid rgba(244,63,94,0.22)", borderRadius: 24, padding: "22px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 22px 70px rgba(244,63,94,0.18)" }}
+      >
+        {/* animated rotating aurora */}
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+          style={{ position: "absolute", top: "-60%", right: "-20%", width: 420, height: 420, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(244,63,94,0.22), rgba(245,158,11,0.12), rgba(244,63,94,0.04), rgba(244,63,94,0.22))", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }}
+        />
+        {/* shimmer sheen */}
+        <motion.div
+          animate={{ x: ["-120%", "220%"] }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
+          style={{ position: "absolute", top: 0, bottom: 0, width: "55%", background: "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.08) 50%, transparent 65%)", pointerEvents: "none", zIndex: 0 }}
+        />
+        <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 4, textTransform: "capitalize" }}>{dateStr}</div>
           <h2 style={{ color: "#F1F1F5", fontSize: 26, fontWeight: 900, margin: 0, letterSpacing: -0.5 }}>
             Hola, <span style={{ color: "#FCA5B5" }}>{user.username}</span>
@@ -338,11 +355,11 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           whileHover={{ y: -2, boxShadow: "0 20px 48px rgba(244,63,94,0.22)" }}
           whileTap={{ scale: 0.96 }}
           transition={{ type: "spring", stiffness: 320, damping: 22 }}
-          style={{ display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(244,63,94,0.14), rgba(244,63,94,0.04))", border: "1px solid rgba(244,63,94,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(244,63,94,0.12)" }}
+          style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(244,63,94,0.14), rgba(244,63,94,0.04))", border: "1px solid rgba(244,63,94,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(244,63,94,0.12)" }}
         >
           <Activity size={14} /> Actualizar
         </motion.button>
-      </div>
+      </motion.div>
 
       {/* Alert: inactive users */}
       {(stats?.inactiveUsers ?? 0) > 0 && (
@@ -398,7 +415,12 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           <div style={{ color: "#F59E0B", fontSize: 38, fontWeight: 900, letterSpacing: -1, marginBottom: 6 }}>{conversionRate}%</div>
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginBottom: 12 }}>Free → MegaFan</div>
           <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(parseFloat(conversionRate), 100)}%`, background: "linear-gradient(90deg,#F59E0B,#FCD34D)", borderRadius: 99, transition: "width 1s ease" }} />
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(parseFloat(conversionRate), 100)}%` }}
+              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+              style={{ height: "100%", background: "linear-gradient(90deg,#F59E0B,#FCD34D)", borderRadius: 99 }}
+            />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
             <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>0%</span>
@@ -422,7 +444,12 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                 <span style={{ color: row.color, fontSize: 12, fontWeight: 700 }}>{row.pct.toFixed(0)}%</span>
               </div>
               <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 99, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${row.pct}%`, background: row.color, borderRadius: 99, transition: "width 1s ease", opacity: 0.85 }} />
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${row.pct}%` }}
+                  transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+                  style={{ height: "100%", background: row.color, borderRadius: 99, opacity: 0.85 }}
+                />
               </div>
             </div>
           ))}
@@ -446,7 +473,13 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             return stats.topAnime.map((a, i) => {
               const pct = (parseInt(a.views) / maxViews) * 100;
               return (
-                <div key={a.anime_id} style={{ marginBottom: i < stats.topAnime.length - 1 ? 16 : 0 }}>
+                <motion.div
+                  key={a.anime_id}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ marginBottom: i < stats.topAnime.length - 1 ? 16 : 0 }}
+                >
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
                     <span style={{ width: 22, height: 22, borderRadius: 6, background: `${BAR_COLORS[i]}22`, color: BAR_COLORS[i], fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       {i + 1}
@@ -462,9 +495,14 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                     </span>
                   </div>
                   <div style={{ height: 6, background: "rgba(255,255,255,0.04)", borderRadius: 99, overflow: "hidden", marginLeft: 34 }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg,${BAR_COLORS[i]},${BAR_COLORS[i]}88)`, borderRadius: 99, transition: "width 1.2s ease" }} />
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.3 + i * 0.07 }}
+                      style={{ height: "100%", background: `linear-gradient(90deg,${BAR_COLORS[i]},${BAR_COLORS[i]}88)`, borderRadius: 99 }}
+                    />
                   </div>
-                </div>
+                </motion.div>
               );
             });
           })()}
@@ -484,9 +522,16 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             { label: "Monetización", icon: <Crown size={14} />, color: "#F59E0B", section: "monetization" as Section },
             { label: "Configuración", icon: <Settings size={14} />, color: "#fff", section: "config" as Section },
           ].map(q => (
-            <button key={q.label} onClick={() => onNavigate(q.section)} style={{ display: "flex", alignItems: "center", gap: 7, background: `${q.color}14`, border: `1px solid ${q.color}30`, borderRadius: 12, padding: "11px 16px", color: q.color, cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease", boxShadow: "0 12px 24px rgba(0,0,0,0.08)" }} onMouseEnter={(e) => { e.currentTarget.style.background = `${q.color}24`; e.currentTarget.style.transform = "scale(1.03)"; e.currentTarget.style.boxShadow = "0 18px 30px rgba(0,0,0,0.12)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = `${q.color}14`; e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.08)"; }}>
+            <motion.button
+              key={q.label}
+              onClick={() => onNavigate(q.section)}
+              whileHover={{ scale: 1.05, backgroundColor: `${q.color}28`, boxShadow: `0 18px 36px ${q.color}25` }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 380, damping: 22 }}
+              style={{ display: "flex", alignItems: "center", gap: 7, background: `${q.color}14`, border: `1px solid ${q.color}30`, borderRadius: 12, padding: "11px 16px", color: q.color, cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 12px 24px rgba(0,0,0,0.08)" }}
+            >
               {q.icon} {q.label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
@@ -508,7 +553,13 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           {(stats?.recentUsers ?? []).length === 0 ? (
             <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, textAlign: "center", padding: "16px 0" }}>Sin usuarios aún</div>
           ) : (stats?.recentUsers ?? []).map((u, i) => (
-            <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < (stats!.recentUsers.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+            <motion.div
+              key={u.id}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.35, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ backgroundColor: "rgba(244,63,94,0.06)", x: 4 }}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", marginLeft: -10, marginRight: -10, borderRadius: 10, borderBottom: i < (stats!.recentUsers.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none", cursor: "pointer" }}>
               <div style={{ width: 32, height: 32, borderRadius: 9, background: u.membership_tier === "megafan" ? "linear-gradient(135deg,#F59E0B,#D97706)" : "linear-gradient(135deg,#FF3355,#E11D48)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
                 {u.username.charAt(0).toUpperCase()}
               </div>
@@ -524,7 +575,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
               <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, textAlign: "right", flexShrink: 0 }}>
                 {new Date(u.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -544,7 +595,13 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           {(stats?.megafanList ?? []).length === 0 ? (
             <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, textAlign: "center", padding: "16px 0" }}>Sin suscriptores aún</div>
           ) : (stats?.megafanList ?? []).map((u, i) => (
-            <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < (stats!.megafanList.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+            <motion.div
+              key={u.id}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.35, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ backgroundColor: "rgba(245,158,11,0.08)", x: 4 }}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", marginLeft: -10, marginRight: -10, borderRadius: 10, borderBottom: i < (stats!.megafanList.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none", cursor: "pointer" }}>
               <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#F59E0B,#D97706)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
                 {u.username.charAt(0).toUpperCase()}
               </div>
@@ -558,7 +615,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                   {new Date(u.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" })}
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
