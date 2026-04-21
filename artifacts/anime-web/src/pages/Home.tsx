@@ -142,7 +142,7 @@ import { useQuery } from "@tanstack/react-query";
         <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(270deg, transparent 40%, rgba(0,0,0,0.54) 80%)" }} />
         <div style={{ position: "absolute", bottom: 34, left: 34, maxWidth: 560, zIndex: 2 }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.85), rgba(59,130,246,0.85))", backdropFilter: "blur(6px)", borderRadius: 999, padding: "4px 12px", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: 1, border: "1px solid rgba(165,180,252,0.3)" }}>✦ DESTACADO</span>
+              <span style={{ background: "linear-gradient(135deg, rgba(255,92,122,0.9), rgba(244,63,94,0.85))", backdropFilter: "blur(6px)", borderRadius: 999, padding: "4px 12px", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: 1, border: "1px solid rgba(252,165,181,0.35)" }}>✦ DESTACADO</span>
               {anime.status === "Ongoing" && (
                 <span style={{ background: "rgba(34,197,94,0.18)", borderRadius: 999, padding: "4px 10px", color: "#86EFAC", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%" }} /> EN EMISIÓN
@@ -155,9 +155,9 @@ import { useQuery } from "@tanstack/react-query";
           <h1 style={{ color: "#F8FBFF", fontSize: "clamp(28px, 4.2vw, 46px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: -1, margin: 0, textShadow: "0 2px 24px rgba(0,0,0,0.85)" }}>{title}</h1>
           <p style={{ maxWidth: 520, color: "rgba(248,251,255,0.74)", fontSize: 15, lineHeight: 1.8, margin: "16px 0 0" }}>{anime.description ? anime.description.replace(/<[^>]+>/g, '').slice(0, 140) + '…' : 'Descubre por qué este anime está arrasando entre la comunidad.'}</p>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-            <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #3B82F6, #6366F1)", border: "none", borderRadius: 30, padding: "11px 24px", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(99,102,241,0.45)" }}
+            <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #FF3355, #E11D48)", border: "none", borderRadius: 30, padding: "11px 24px", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(244,63,94,0.45)" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(99,102,241,0.6)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(99,102,241,0.45)"; }}>
+              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(244,63,94,0.45)"; }}>
               <Play size={18} fill="#fff" color="#fff" /> Ver Ahora
             </button>
             <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.1)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 30, padding: "10px 22px", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "all 0.22s" }}
@@ -193,15 +193,15 @@ import { useQuery } from "@tanstack/react-query";
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #7C6FFF, #5B52F5)", flexShrink: 0 }} />
+          <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #FF3355, #E11D48)", flexShrink: 0 }} />
           <span style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: -0.3 }}>{title}</span>
         </div>
         {onSeeAll && (
-          <button onClick={onSeeAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.18)", borderRadius: 20, color: "#93C5FD", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
+          <button onClick={onSeeAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.22)", borderRadius: 20, color: "#FCA5B5", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
             onMouseEnter={e => { e.currentTarget.style.background = "rgba(96,165,250,0.16)"; e.currentTarget.style.borderColor = "rgba(96,165,250,0.35)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(96,165,250,0.08)"; e.currentTarget.style.borderColor = "rgba(96,165,250,0.18)"; }}>
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(244,63,94,0.08)"; e.currentTarget.style.borderColor = "rgba(244,63,94,0.22)"; }}>
             <span>Ver todo</span>
-            <ChevronRight size={13} color="#93C5FD" />
+            <ChevronRight size={13} color="#FCA5B5" />
           </button>
         )}
       </div>
@@ -225,7 +225,7 @@ import { useQuery } from "@tanstack/react-query";
         <img src={anime.image} alt={title} loading="lazy" decoding="async" />
         <div className="p-card-grad" />
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-          <span style={{ background: "linear-gradient(135deg,#3B82F6,#6366F1)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>LAT</span>
+          <span style={{ background: "linear-gradient(135deg,#FF3355,#E11D48)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>LAT</span>
           {anime.totalEpisodes && <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.totalEpisodes}</span>}
         </div>
         {anime.rating != null && anime.rating > 0 && (
@@ -410,7 +410,7 @@ import { useQuery } from "@tanstack/react-query";
     { label: "Shounen",    icon: "💪",  bg: "rgba(251,146,60,0.12)",  border: "rgba(251,146,60,0.3)",  color: "#FED7AA" },
     { label: "Isekai",     icon: "🌀",  bg: "rgba(139,92,246,0.12)",  border: "rgba(139,92,246,0.3)",  color: "#C4B5FD" },
     { label: "Thriller",   icon: "🔪",  bg: "rgba(75,85,99,0.25)",    border: "rgba(156,163,175,0.3)", color: "#D1D5DB" },
-    { label: "Mystery",    icon: "🔍",  bg: "rgba(30,58,138,0.2)",    border: "rgba(96,165,250,0.3)",  color: "#93C5FD" },
+    { label: "Mystery",    icon: "🔍",  bg: "rgba(30,58,138,0.2)",    border: "rgba(96,165,250,0.3)",  color: "#FCA5B5" },
   ];
 
   function GenresSection() {
