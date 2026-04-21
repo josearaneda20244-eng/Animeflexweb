@@ -63,10 +63,13 @@ export default function AuthModal({ onClose }: AuthModalProps) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "100%", maxWidth: 400, background: "#0D0D1A",
-          border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20,
-          overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(124,111,255,0.1)",
+          width: "100%", maxWidth: 410,
+          background: "linear-gradient(180deg, #0e0e1c 0%, #0a0a14 100%)",
+          border: "1px solid rgba(255,255,255,0.08)", borderRadius: 22,
+          overflow: "hidden",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(124,111,255,0.18), 0 0 60px rgba(124,111,255,0.12)",
           margin: "auto", position: "relative",
+          animation: "fadeInUp 0.32s cubic-bezier(0.16,1,0.3,1) both",
         }}
       >
         {/* Header */}
@@ -80,11 +83,17 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                 <ArrowLeft size={14} color="rgba(255,255,255,0.6)" />
               </button>
             )}
-            <div style={{ width: 26, height: 26, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#7C6FFF,#5B52F5)" }}>
-              <span style={{ color: "#fff", fontSize: 11, fontWeight: 900 }}>▶</span>
+            <div style={{
+              width: 28, height: 28, borderRadius: 8,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "linear-gradient(135deg,#8B7FFF,#7C6FFF 50%,#5B52F5)",
+              boxShadow: "0 4px 12px rgba(124,111,255,0.4), inset 0 1px 0 rgba(255,255,255,0.22)",
+            }}>
+              <span style={{ color: "#fff", fontSize: 11, fontWeight: 900, marginLeft: 1 }}>▶</span>
             </div>
-            <span style={{ fontSize: 15, fontWeight: 900 }}>
-              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#7C6FFF" }}>FLEX</span>
+            <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: -0.3 }}>
+              <span style={{ color: "#F1F1F5" }}>Anime</span>
+              <span style={{ background: "linear-gradient(135deg,#B39DFF,#7C6FFF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
             </span>
           </div>
           <button onClick={onClose} style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer", display: "flex" }}>
@@ -172,8 +181,13 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             <button type="submit" disabled={loading} style={{
               marginTop: 4, padding: "13px 0", borderRadius: 12, border: "none", cursor: loading ? "not-allowed" : "pointer",
               background: loading ? "rgba(124,111,255,0.4)" : "linear-gradient(135deg,#8B7FFF,#6C63FF,#5B52F5)",
-              color: "#fff", fontSize: 14, fontWeight: 800, transition: "opacity 0.2s",
-            }}>
+              color: "#fff", fontSize: 14, fontWeight: 800,
+              transition: "transform 0.2s cubic-bezier(.22,.68,0,1.2), box-shadow 0.2s, filter 0.2s",
+              boxShadow: loading ? "none" : "0 8px 24px rgba(124,111,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
+              letterSpacing: "-0.01em",
+            }}
+            onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.filter = "brightness(1.06)"; } }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.filter = "brightness(1)"; }}>
               {loading ? "Cargando..." : tab === "login" ? "Entrar" : tab === "register" ? "Crear cuenta" : "Enviar enlace"}
             </button>
 

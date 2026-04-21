@@ -132,16 +132,21 @@ export default function Navbar() {
     <>
       <nav
         className="fixed top-0 left-0 right-0 z-50"
-        style={{ background: "rgba(5,5,12,0.88)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)", borderBottom: "1px solid rgba(124,111,255,0.12)", boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
+        style={{ background: "rgba(7,7,11,0.78)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderBottom: "1px solid rgba(124,111,255,0.14)", boxShadow: "0 6px 28px rgba(0,0,0,0.45)" }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 56 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 58 }}>
           {/* Logo */}
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: "#1a365d" }}>
-              <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>▶</span>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 10,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "linear-gradient(135deg,#8B7FFF 0%,#7C6FFF 50%,#5B52F5 100%)",
+              boxShadow: "0 6px 18px rgba(124,111,255,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
+            }}>
+              <span style={{ color: "#fff", fontSize: 13, fontWeight: 900, lineHeight: 1, marginLeft: 1 }}>▶</span>
             </div>
-            <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1 }}>
-              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#fff" }}>FLEX</span>
+            <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1 }}>
+              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ background: "linear-gradient(135deg,#B39DFF,#7C6FFF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
             </span>
           </Link>
 
@@ -309,8 +314,10 @@ export default function Navbar() {
                       }}
                     >
                       <div style={{
-                        width: 28, height: 28, borderRadius: 8, background: "#1a365d",
+                        width: 28, height: 28, borderRadius: 8,
+                        background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
                         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
                       }}>
                         {resolveAvatarUrl(user.avatar_url)
                           ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "cover" }} />
@@ -347,7 +354,7 @@ export default function Navbar() {
                             title="Cambiar foto de perfil"
                             style={{
                               position: "relative", width: 56, height: 56, borderRadius: 16, padding: 0, border: "none",
-                              background: "#1a365d",
+                              background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
                               boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
                               overflow: "hidden", flexShrink: 0, cursor: "pointer",
                               outline: "3px solid #14122a",

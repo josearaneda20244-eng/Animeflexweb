@@ -37,10 +37,16 @@ export default function Footer() {
 
   return (
     <footer style={{
-      background: "#000",
-      borderTop: "1px solid rgba(124,111,255,0.1)",
-      marginTop: 56,
+      background: "linear-gradient(180deg, #050509 0%, #000 100%)",
+      borderTop: "1px solid rgba(124,111,255,0.14)",
+      marginTop: 64,
+      position: "relative",
     }}>
+      <div style={{
+        position: "absolute", top: -1, left: "10%", right: "10%", height: 1,
+        background: "linear-gradient(90deg, transparent, rgba(124,111,255,0.5), transparent)",
+        pointerEvents: "none",
+      }} />
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "52px 24px 28px" }}>
 
         {/* Main grid */}
@@ -57,10 +63,11 @@ export default function Footer() {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <div style={{
-                width: 34, height: 34, borderRadius: 8,
-                background: "linear-gradient(135deg,#7C6FFF,#5B52F5)",
+                width: 36, height: 36, borderRadius: 10,
+                background: "linear-gradient(135deg,#8B7FFF,#7C6FFF 50%,#5B52F5)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0,
+                boxShadow: "0 8px 24px rgba(124,111,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                   <polygon points="5,3 19,12 5,21" />
