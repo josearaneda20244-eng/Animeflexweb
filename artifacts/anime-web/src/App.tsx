@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FavoritesProvider } from "@/context/FavoritesContext";
@@ -104,6 +105,101 @@ function formatMaintenanceTime(ms: number) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function SplashLoader() {
+  return (
+    <div style={{
+      minHeight: "100vh",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      flexDirection: "column", gap: 28,
+      background: "radial-gradient(ellipse at center, #14060c 0%, #07070b 70%)",
+      position: "relative", overflow: "hidden",
+    }}>
+      {/* Ambient glow */}
+      <motion.div
+        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          position: "absolute", width: 520, height: 520, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(244,63,94,0.22) 0%, transparent 70%)",
+          filter: "blur(60px)", pointerEvents: "none",
+        }}
+      />
+
+      {/* Logo */}
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 220, damping: 18 }}
+        style={{
+          display: "flex", alignItems: "center", gap: 12, zIndex: 1,
+        }}
+      >
+        <motion.div
+          animate={{ boxShadow: [
+            "0 8px 24px rgba(244,63,94,0.4), inset 0 1px 0 rgba(255,255,255,0.22)",
+            "0 12px 36px rgba(244,63,94,0.7), inset 0 1px 0 rgba(255,255,255,0.22)",
+            "0 8px 24px rgba(244,63,94,0.4), inset 0 1px 0 rgba(255,255,255,0.22)",
+          ] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            width: 56, height: 56, borderRadius: 16,
+            background: "linear-gradient(135deg, #FF5C7A 0%, #FF3355 50%, #E11D48 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <span style={{ color: "#fff", fontSize: 24, fontWeight: 900, marginLeft: 3, lineHeight: 1 }}>▶</span>
+        </motion.div>
+        <span style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, lineHeight: 1 }}>
+          <span style={{ color: "#F1F1F5" }}>Anime</span>
+          <span style={{ background: "linear-gradient(135deg,#FCA5B5,#FF3355)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
+        </span>
+      </motion.div>
+
+      {/* Spinner ring */}
+      <div style={{ position: "relative", width: 48, height: 48, zIndex: 1 }}>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+          style={{
+            position: "absolute", inset: 0,
+            borderRadius: "50%",
+            border: "3px solid rgba(255,255,255,0.06)",
+            borderTopColor: "#FF3355",
+            borderRightColor: "#FF5C7A",
+          }}
+        />
+        <motion.div
+          animate={{ rotate: -360 }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}
+          style={{
+            position: "absolute", inset: 8,
+            borderRadius: "50%",
+            border: "2px solid rgba(255,255,255,0.04)",
+            borderBottomColor: "rgba(244,63,94,0.6)",
+          }}
+        />
+      </div>
+
+      {/* Animated dots */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, fontWeight: 500, letterSpacing: 2, zIndex: 1, display: "flex", gap: 4 }}
+      >
+        <span>CARGANDO</span>
+        {[0, 1, 2].map(i => (
+          <motion.span
+            key={i}
+            animate={{ opacity: [0.2, 1, 0.2] }}
+            transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.18, ease: "easeInOut" }}
+          >.</motion.span>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
 function MaintenanceCard({
   message,
   until,
@@ -205,7 +301,7 @@ function MaintenanceGate({ children }: { children: ReactNode }) {
   }, [config.maintenanceMode]);
 
   if (authLoading || configLoading) {
-    return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.45)", fontSize: 15 }}>Cargando...</div>;
+    return <SplashLoader />;
   }
 
   if (shouldBlock) {
@@ -260,7 +356,7 @@ function MaintenanceGate({ children }: { children: ReactNode }) {
 
 function Router() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "rgba(255,255,255,0.45)", fontSize: 15 }}>Cargando...</div></div>}>
+    <Suspense fallback={<SplashLoader />}>
       <Switch>
         <Route path="/"><Home /></Route>
         <Route path="/search"><Search /></Route>

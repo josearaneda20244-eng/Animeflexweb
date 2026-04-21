@@ -38,13 +38,13 @@ export default function Footer() {
   return (
     <footer style={{
       background: "linear-gradient(180deg, #050509 0%, #000 100%)",
-      borderTop: "1px solid rgba(124,111,255,0.14)",
+      borderTop: "1px solid rgba(244,63,94,0.14)",
       marginTop: 64,
       position: "relative",
     }}>
       <div style={{
         position: "absolute", top: -1, left: "10%", right: "10%", height: 1,
-        background: "linear-gradient(90deg, transparent, rgba(124,111,255,0.5), transparent)",
+        background: "linear-gradient(90deg, transparent, rgba(244,63,94,0.5), transparent)",
         pointerEvents: "none",
       }} />
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "52px 24px 28px" }}>
@@ -64,17 +64,17 @@ export default function Footer() {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 10,
-                background: "linear-gradient(135deg,#8B7FFF,#7C6FFF 50%,#5B52F5)",
+                background: "linear-gradient(135deg,#FF5C7A,#FF3355 50%,#E11D48)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0,
-                boxShadow: "0 8px 24px rgba(124,111,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
+                boxShadow: "0 8px 24px rgba(244,63,94,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                   <polygon points="5,3 19,12 5,21" />
                 </svg>
               </div>
               <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", letterSpacing: -0.3 }}>
-                Anime<span style={{ background: "linear-gradient(135deg,#7C6FFF,#B39DFF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
+                Anime<span style={{ background: "linear-gradient(135deg,#FF3355,#FCA5B5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
               </span>
             </div>
 
