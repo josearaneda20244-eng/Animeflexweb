@@ -10,9 +10,9 @@ interface AnimeCardProps {
   progress?: number;
 }
 
-const ACCENT = "#FF3355";
-const ACCENT_DEEP = "#E11D48";
-const ACCENT_LIGHT = "#FF5C7A";
+const ACCENT = "#DC2626";
+const ACCENT_DEEP = "#991B1B";
+const ACCENT_LIGHT = "#FCA5A5";
 
 export default function AnimeCard({ anime, progress }: AnimeCardProps) {
   const title = resolveTitle(anime.title);
@@ -34,10 +34,10 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
             borderRadius: 14,
             overflow: "hidden",
             background: "#0c0c14",
-            border: `1px solid ${hovered ? "rgba(244,63,94,0.45)" : "rgba(255,255,255,0.06)"}`,
+            border: `1px solid ${hovered ? "rgba(220,38,38,0.45)" : "rgba(255,255,255,0.06)"}`,
             cursor: "pointer",
             boxShadow: hovered
-              ? "0 22px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(244,63,94,0.22), 0 0 28px rgba(244,63,94,0.22)"
+              ? "0 22px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(220,38,38,0.22), 0 0 28px rgba(220,38,38,0.22)"
               : "0 2px 8px rgba(0,0,0,0.35)",
             transition: "border-color 0.25s ease, box-shadow 0.32s ease",
           }}
@@ -86,7 +86,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
                       width: 56, height: 56, borderRadius: "50%",
                       background: `linear-gradient(135deg, ${ACCENT_LIGHT}, ${ACCENT_DEEP})`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: `0 10px 28px rgba(244,63,94,0.6), 0 0 0 4px rgba(244,63,94,0.18), inset 0 1px 0 rgba(255,255,255,0.25)`,
+                      boxShadow: `0 10px 28px rgba(220,38,38,0.6), 0 0 0 4px rgba(220,38,38,0.18), inset 0 1px 0 rgba(255,255,255,0.25)`,
                     }}
                   >
                     <Play size={22} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />
@@ -102,10 +102,10 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
                     >
                       {anime.genres.slice(0, 2).map((g) => (
                         <span key={g} style={{
-                          background: "rgba(244,63,94,0.32)", backdropFilter: "blur(8px)",
+                          background: "rgba(220,38,38,0.32)", backdropFilter: "blur(8px)",
                           borderRadius: 6, padding: "3px 8px",
                           color: "#FFE2E8", fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4,
-                          border: "1px solid rgba(244,63,94,0.4)",
+                          border: "1px solid rgba(220,38,38,0.4)",
                         }}>{g}</span>
                       ))}
                     </motion.div>
@@ -120,7 +120,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
                 background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT_DEEP})`,
                 borderRadius: 6, padding: "2.5px 7px", color: "#fff",
                 fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6,
-                boxShadow: "0 2px 10px rgba(244,63,94,0.5)",
+                boxShadow: "0 2px 10px rgba(220,38,38,0.5)",
               }}>LAT</span>
               {anime.type && (
                 <span style={{
@@ -143,7 +143,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
                     height: "100%",
                     background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT_LIGHT})`,
                     borderRadius: 2,
-                    boxShadow: "0 0 10px rgba(244,63,94,0.7)",
+                    boxShadow: "0 0 10px rgba(220,38,38,0.7)",
                   }}
                 />
               </div>
@@ -196,12 +196,12 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
         style={{
           position: "absolute", top: 38, right: 8, zIndex: 10,
           width: 32, height: 32, borderRadius: "50%",
-          background: fav ? "rgba(244,63,94,0.95)" : "rgba(7,7,11,0.7)",
+          background: fav ? "rgba(220,38,38,0.95)" : "rgba(7,7,11,0.7)",
           backdropFilter: "blur(10px)",
-          border: fav ? "1px solid rgba(244,63,94,0.6)" : "1px solid rgba(255,255,255,0.18)",
+          border: fav ? "1px solid rgba(220,38,38,0.6)" : "1px solid rgba(255,255,255,0.18)",
           display: "flex", alignItems: "center", justifyContent: "center",
           cursor: "pointer",
-          boxShadow: fav ? "0 4px 16px rgba(244,63,94,0.55)" : "0 2px 8px rgba(0,0,0,0.4)",
+          boxShadow: fav ? "0 4px 16px rgba(220,38,38,0.55)" : "0 2px 8px rgba(0,0,0,0.4)",
         }}
         aria-label={fav ? "Quitar de favoritos" : "Añadir a favoritos"}
       >

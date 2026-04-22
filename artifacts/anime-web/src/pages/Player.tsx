@@ -142,7 +142,7 @@ function SubtitleOverlay({
         {display}
       </div>
       {/* Footer gradient — prevents abrupt end */}
-      <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(244,63,94,0.15),transparent)", margin: "0 16px 20px" }} />
+      <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(220,38,38,0.15),transparent)", margin: "0 16px 20px" }} />
     </div>
   );
 }
@@ -156,14 +156,14 @@ function AutoNextOverlay({ nextNum, onSkip, onCancel }: { nextNum: string; onSki
     return () => clearTimeout(t);
   }, [secs, onSkip]);
   return (
-    <div style={{ position: "absolute", bottom: 80, right: 16, zIndex: 50, background: "rgba(9,10,18,0.92)", border: "1px solid rgba(244,63,94,0.3)", borderRadius: 16, padding: "16px 20px", minWidth: 220, backdropFilter: "blur(8px)" }}>
+    <div style={{ position: "absolute", bottom: 80, right: 16, zIndex: 50, background: "rgba(9,10,18,0.92)", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 16, padding: "16px 20px", minWidth: 220, backdropFilter: "blur(8px)" }}>
       <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, marginBottom: 6, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase" }}>Siguiente episodio en {secs}s</div>
       <div style={{ color: "#F1F1F5", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Episodio {nextNum}</div>
       <div style={{ height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, marginBottom: 12, overflow: "hidden" }}>
-        <div style={{ height: "100%", background: "#FF3355", borderRadius: 2, width: `${(secs / 10) * 100}%`, transition: "width 1s linear" }} />
+        <div style={{ height: "100%", background: "#DC2626", borderRadius: 2, width: `${(secs / 10) * 100}%`, transition: "width 1s linear" }} />
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={onSkip} style={{ flex: 1, background: "linear-gradient(135deg,#FF3355,#E11D48)", border: "none", borderRadius: 10, padding: "9px 0", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+        <button onClick={onSkip} style={{ flex: 1, background: "linear-gradient(135deg,#DC2626,#991B1B)", border: "none", borderRadius: 10, padding: "9px 0", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
           <Play size={12} fill="#fff" /> Ver ahora
         </button>
         <button onClick={onCancel} style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", color: "rgba(255,255,255,0.5)", cursor: "pointer", display: "flex", alignItems: "center" }}>
@@ -583,7 +583,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
           className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none"
           style={{ background: loading ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.35)" }}
         >
-          <Loader2 size={40} className="animate-spin" style={{ color: "#FF3355" }} />
+          <Loader2 size={40} className="animate-spin" style={{ color: "#DC2626" }} />
           <p style={{ color: "#9090B0", fontSize: 13 }}>
             {loading ? "Cargando episodio..." : "Cargando..."}
           </p>
@@ -634,7 +634,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
             {/* Buffered fill */}
             <div style={{ position: "absolute", inset: 0, width: `${bufferedFrac * 100}%`, background: "rgba(255,255,255,0.28)", borderRadius: 3 }} />
             {/* Played fill */}
-            <div style={{ position: "absolute", inset: 0, width: `${dur ? (currentSec / dur) * 100 : 0}%`, background: "#FF3355", borderRadius: 3 }} />
+            <div style={{ position: "absolute", inset: 0, width: `${dur ? (currentSec / dur) * 100 : 0}%`, background: "#DC2626", borderRadius: 3 }} />
           </div>
           {/* Thumb */}
           <div style={{
@@ -643,8 +643,8 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
             top: "50%",
             transform: "translate(-50%, -50%)",
             width: 13, height: 13, borderRadius: "50%",
-            background: "#FF3355",
-            boxShadow: "0 0 6px rgba(244,63,94,0.85)",
+            background: "#DC2626",
+            boxShadow: "0 0 6px rgba(220,38,38,0.85)",
             transition: "transform 0.1s",
             pointerEvents: "none",
           }} />
@@ -729,9 +729,9 @@ function EpisodePanel({
     <div style={{ background: "#0E0E1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <List size={15} color="#FF3355" />
+          <List size={15} color="#DC2626" />
           <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Episodios</span>
-          {episodes.length > 0 && <span style={{ background: "rgba(244,63,94,0.15)", color: "#FCA5B5", borderRadius: 20, padding: "1px 8px", fontSize: 11, fontWeight: 700 }}>{episodes.length}</span>}
+          {episodes.length > 0 && <span style={{ background: "rgba(220,38,38,0.15)", color: "#FECACA", borderRadius: 20, padding: "1px 8px", fontSize: 11, fontWeight: 700 }}>{episodes.length}</span>}
         </div>
         {totalPages > 1 && (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -749,7 +749,7 @@ function EpisodePanel({
       </div>
 
       {episodes.length > PAGE_SIZE && (
-        <div style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "linear-gradient(180deg,rgba(244,63,94,0.08),rgba(14,14,26,0))" }}>
+        <div style={{ padding: "12px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "linear-gradient(180deg,rgba(220,38,38,0.08),rgba(14,14,26,0))" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 8 }}>
             <input
               value={jumpEpisode}
@@ -757,11 +757,11 @@ function EpisodePanel({
               onKeyDown={(e) => { if (e.key === "Enter") jumpToEpisode(); }}
               placeholder="Número de episodio"
               inputMode="numeric"
-              style={{ minWidth: 0, background: "rgba(5,5,12,0.7)", border: "1px solid rgba(244,63,94,0.22)", borderRadius: 12, padding: "10px 12px", color: "#F1F1F5", fontSize: 12, outline: "none" }}
+              style={{ minWidth: 0, background: "rgba(5,5,12,0.7)", border: "1px solid rgba(220,38,38,0.22)", borderRadius: 12, padding: "10px 12px", color: "#F1F1F5", fontSize: 12, outline: "none" }}
             />
             <button
               onClick={jumpToEpisode}
-              style={{ background: "linear-gradient(135deg,#FF3355,#E11D48)", border: "none", color: "#fff", borderRadius: 12, padding: "0 15px", fontSize: 12, fontWeight: 900, cursor: "pointer", boxShadow: "0 8px 20px rgba(244,63,94,0.22)" }}
+              style={{ background: "linear-gradient(135deg,#DC2626,#991B1B)", border: "none", color: "#fff", borderRadius: 12, padding: "0 15px", fontSize: 12, fontWeight: 900, cursor: "pointer", boxShadow: "0 8px 20px rgba(220,38,38,0.22)" }}
             >
               Ir
             </button>
@@ -789,7 +789,7 @@ function EpisodePanel({
       <div style={{ padding: "8px 10px" }}>
         {episodesQuery.isLoading && (
           <div style={{ display: "flex", justifyContent: "center", padding: 24 }}>
-            <Loader2 size={20} className="animate-spin" style={{ color: "#FF3355" }} />
+            <Loader2 size={20} className="animate-spin" style={{ color: "#DC2626" }} />
           </div>
         )}
         {!episodesQuery.isLoading && episodes.length === 0 && (
@@ -819,8 +819,8 @@ function EpisodePanel({
               style={{
                 display: "flex", alignItems: "center", gap: 10, width: "100%",
                 padding: "9px 10px", borderRadius: 10, marginBottom: 2, textAlign: "left",
-                background: isCurrent ? "rgba(244,63,94,0.18)" : "transparent",
-                border: `1px solid ${isCurrent ? "rgba(244,63,94,0.4)" : "transparent"}`,
+                background: isCurrent ? "rgba(220,38,38,0.18)" : "transparent",
+                border: `1px solid ${isCurrent ? "rgba(220,38,38,0.4)" : "transparent"}`,
                 cursor: isCurrent ? "default" : "pointer",
                 transition: "background 0.12s",
               }}
@@ -829,20 +829,20 @@ function EpisodePanel({
             >
               <div style={{
                 width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                background: isCurrent ? "rgba(244,63,94,0.3)" : "rgba(255,255,255,0.06)",
+                background: isCurrent ? "rgba(220,38,38,0.3)" : "rgba(255,255,255,0.06)",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
                 {isCurrent
-                  ? <Play size={14} color="#FCA5B5" fill="#FCA5B5" />
+                  ? <Play size={14} color="#FECACA" fill="#FECACA" />
                   : <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 700 }}>{ep.number}</span>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: isCurrent ? "#FCA5B5" : "#F1F1F5", fontSize: 12, fontWeight: isCurrent ? 800 : 600 }} className="line-clamp-1">
+                <div style={{ color: isCurrent ? "#FECACA" : "#F1F1F5", fontSize: 12, fontWeight: isCurrent ? 800 : 600 }} className="line-clamp-1">
                   {ep.title ? ep.title : `Episodio ${ep.number}`}
                 </div>
                 {pct > 0 && (
                   <div style={{ height: 2, background: "rgba(255,255,255,0.1)", borderRadius: 1, marginTop: 4, overflow: "hidden" }}>
-                    <div style={{ height: "100%", background: isCurrent ? "#FF3355" : "#22C55E", width: `${Math.round(pct * 100)}%`, borderRadius: 1 }} />
+                    <div style={{ height: "100%", background: isCurrent ? "#DC2626" : "#22C55E", width: `${Math.round(pct * 100)}%`, borderRadius: 1 }} />
                   </div>
                 )}
               </div>
@@ -1201,11 +1201,11 @@ export default function Player() {
   return (
     <div style={{ background: "#090A12", minHeight: "100vh" }}>
       {/* Top bar — SISTEMA HUD */}
-      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(244,63,94,0.18)", background: "linear-gradient(180deg, rgba(13,13,26,0.98), rgba(9,10,18,0.98))", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 0% 50%, rgba(244,63,94,0.10), transparent 55%)", pointerEvents: "none" }} />
-        <CornerBrackets color="#FF3355" size={12} thickness={1.5} inset={4} />
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(220,38,38,0.18)", background: "linear-gradient(180deg, rgba(13,13,26,0.98), rgba(9,10,18,0.98))", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 0% 50%, rgba(220,38,38,0.10), transparent 55%)", pointerEvents: "none" }} />
+        <CornerBrackets color="#DC2626" size={12} thickness={1.5} inset={4} />
         <button onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
-          style={{ position: "relative", padding: 8, borderRadius: 10, background: "rgba(244,63,94,0.10)", border: "1px solid rgba(244,63,94,0.25)", cursor: "pointer", display: "flex", color: "#FCA5B5", flexShrink: 0 }}>
+          style={{ position: "relative", padding: 8, borderRadius: 10, background: "rgba(220,38,38,0.10)", border: "1px solid rgba(220,38,38,0.25)", cursor: "pointer", display: "flex", color: "#FECACA", flexShrink: 0 }}>
           <ArrowLeft size={18} />
         </button>
         <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
@@ -1227,7 +1227,7 @@ export default function Player() {
           </button>
           {nextEpisodeId && (
             <button onClick={handleNextEpisode}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, background: "linear-gradient(135deg,#FF3355,#E11D48)", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, background: "linear-gradient(135deg,#DC2626,#991B1B)", border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
               Ep. {nextEpisodeNum} <SkipForward size={13} />
             </button>
           )}
@@ -1245,10 +1245,10 @@ export default function Player() {
         {/* Player column */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
-          <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9", boxShadow: "inset 0 0 0 1px rgba(244,63,94,0.18), 0 0 60px rgba(244,63,94,0.12)" }}>
+          <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9", boxShadow: "inset 0 0 0 1px rgba(220,38,38,0.18), 0 0 60px rgba(220,38,38,0.12)" }}>
             {/* SISTEMA frame on player */}
             <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 6 }}>
-              <CornerBrackets color="#FF3355" size={18} thickness={2} inset={8} />
+              <CornerBrackets color="#DC2626" size={18} thickness={2} inset={8} />
             </div>
 
             {/* ── Límite de episodios — Modal premium ── */}
@@ -1263,8 +1263,8 @@ export default function Player() {
               }}>
                 <div style={{
                   width: 80, height: 80, borderRadius: "50%",
-                  background: "linear-gradient(135deg,rgba(244,63,94,0.25),rgba(79,70,229,0.15))",
-                  border: "2px solid rgba(244,63,94,0.4)",
+                  background: "linear-gradient(135deg,rgba(220,38,38,0.25),rgba(153,27,27,0.15))",
+                  border: "2px solid rgba(220,38,38,0.4)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 36,
                 }}>😢</div>
@@ -1273,22 +1273,22 @@ export default function Player() {
                     {limitsConfig.limitMessage.split('.')[0] || "Has alcanzado el límite diario"}
                   </div>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.5, maxWidth: 320 }}>
-                    Solo puedes ver <strong style={{ color: "#FCA5B5" }}>{limitsConfig.dailyLimit} episodios por día</strong> con la cuenta gratuita.
+                    Solo puedes ver <strong style={{ color: "#FECACA" }}>{limitsConfig.dailyLimit} episodios por día</strong> con la cuenta gratuita.
                     <br />El límite se reinicia automáticamente cada día.
                   </div>
                 </div>
                 <Link href="/membership" style={{
                   display: "inline-flex", alignItems: "center", gap: 10,
-                  background: "linear-gradient(135deg,#FF3355,#E11D48)",
+                  background: "linear-gradient(135deg,#DC2626,#991B1B)",
                   borderRadius: 16, padding: "14px 28px",
                   color: "#fff", fontSize: 16, fontWeight: 900,
-                  textDecoration: "none", boxShadow: "0 8px 32px rgba(244,63,94,0.35)",
+                  textDecoration: "none", boxShadow: "0 8px 32px rgba(220,38,38,0.35)",
                 }}>
                   👑 {limitsConfig.megafanMessage}
                 </Link>
                 <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, lineHeight: 1.5 }}>
                   Acceso ilimitado · Sin interrupciones · Mejor calidad
-                  <br />Solo <strong style={{ color: "#FCA5B5" }}>$4/mes</strong> · Cancela cuando quieras
+                  <br />Solo <strong style={{ color: "#FECACA" }}>$4/mes</strong> · Cancela cuando quieras
                 </div>
               </div>
             )}
@@ -1304,7 +1304,7 @@ export default function Player() {
                 </div>
                 <button
                   onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); streamQuery.refetch(); }}
-                  style={{ padding: "10px 20px", borderRadius: 12, background: "#FF3355", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  style={{ padding: "10px 20px", borderRadius: 12, background: "#DC2626", border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                   Reintentar
                 </button>
               </div>
@@ -1457,7 +1457,7 @@ export default function Player() {
           {/* Controls below video — hidden when fullscreen + mouse inactive */}
           <div style={{ padding: "16px 16px 28px", display: isFullscreen && !fullscreenControlsVisible ? "none" : "flex", flexDirection: "column", gap: 12, transition: "opacity 0.3s", opacity: isFullscreen && !fullscreenControlsVisible ? 0 : 1, background: "linear-gradient(180deg,#0A0B16 0%,#090A12 100%)" }}>
             {/* Episode title row */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, padding: "12px 16px", background: "linear-gradient(135deg,rgba(244,63,94,0.07),rgba(225,29,72,0.04))", border: "1px solid rgba(244,63,94,0.15)", borderRadius: 16, borderLeft: "3px solid rgba(244,63,94,0.6)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, padding: "12px 16px", background: "linear-gradient(135deg,rgba(220,38,38,0.07),rgba(153,27,27,0.04))", border: "1px solid rgba(220,38,38,0.15)", borderRadius: 16, borderLeft: "3px solid rgba(220,38,38,0.6)" }}>
               <div>
                 <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>{animeTitle}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
@@ -1494,9 +1494,9 @@ export default function Player() {
                   style={{
                     display: "flex", alignItems: "center", gap: 6, padding: "8px 12px",
                     borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
-                    background: theaterMode ? "rgba(244,63,94,0.2)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${theaterMode ? "rgba(244,63,94,0.4)" : "rgba(255,255,255,0.1)"}`,
-                    color: theaterMode ? "#FCA5B5" : "rgba(255,255,255,0.4)",
+                    background: theaterMode ? "rgba(220,38,38,0.2)" : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${theaterMode ? "rgba(220,38,38,0.4)" : "rgba(255,255,255,0.1)"}`,
+                    color: theaterMode ? "#FECACA" : "rgba(255,255,255,0.4)",
                   }}
                 >
                   {theaterMode ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -1517,7 +1517,7 @@ export default function Player() {
                       if (navigator.share) { try { await navigator.share(shareData); return; } catch {} }
                       setShowShare(v => !v);
                     }}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, background: showShare ? "rgba(244,63,94,0.2)" : "rgba(255,255,255,0.05)", border: `1px solid ${showShare ? "rgba(244,63,94,0.4)" : "rgba(255,255,255,0.1)"}`, color: showShare ? "#FCA5B5" : "rgba(255,255,255,0.4)" }}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, background: showShare ? "rgba(220,38,38,0.2)" : "rgba(255,255,255,0.05)", border: `1px solid ${showShare ? "rgba(220,38,38,0.4)" : "rgba(255,255,255,0.1)"}`, color: showShare ? "#FECACA" : "rgba(255,255,255,0.4)" }}
                   >
                     <Share2 size={14} />
                     <span className="hidden md:inline">Compartir</span>
@@ -1536,7 +1536,7 @@ export default function Player() {
                           onClick: () => { const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`; window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Estoy viendo ${animeTitle} en AnimeFlex 🎌`)}&url=${encodeURIComponent(url)}`); setShowShare(false); }
                         },
                         {
-                          label: shareCopied ? "¡Copiado!" : "Copiar enlace", color: "#FCA5B5",
+                          label: shareCopied ? "¡Copiado!" : "Copiar enlace", color: "#FECACA",
                           emoji: shareCopied ? "✅" : "🔗",
                           onClick: () => {
                             const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`;
@@ -1565,10 +1565,10 @@ export default function Player() {
                     <button key={s} onClick={() => setPlaybackRate(s)}
                       style={{
                         padding: "5px 13px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        background: playbackRate === s ? "linear-gradient(135deg,rgba(244,63,94,0.35),rgba(225,29,72,0.25))" : "rgba(255,255,255,0.04)",
-                        border: `1px solid ${playbackRate === s ? "rgba(244,63,94,0.7)" : "rgba(255,255,255,0.07)"}`,
-                        color: playbackRate === s ? "#FCA5B5" : "rgba(255,255,255,0.3)",
-                        boxShadow: playbackRate === s ? "0 0 10px rgba(244,63,94,0.25)" : "none",
+                        background: playbackRate === s ? "linear-gradient(135deg,rgba(220,38,38,0.35),rgba(153,27,27,0.25))" : "rgba(255,255,255,0.04)",
+                        border: `1px solid ${playbackRate === s ? "rgba(220,38,38,0.7)" : "rgba(255,255,255,0.07)"}`,
+                        color: playbackRate === s ? "#FECACA" : "rgba(255,255,255,0.3)",
+                        boxShadow: playbackRate === s ? "0 0 10px rgba(220,38,38,0.25)" : "none",
                         transition: "all 0.12s ease",
                       }}>
                       {s}x
@@ -1615,7 +1615,7 @@ export default function Player() {
             {sources.length > 0 && (
               <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <Download size={14} color="#FF3355" />
+                  <Download size={14} color="#DC2626" />
                   <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Descargar</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1625,7 +1625,7 @@ export default function Player() {
                     <div style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "10px 12px" }}>
                       <div style={{ color: "#22C55E", fontSize: 12, fontWeight: 700, marginBottom: 3 }}>✓ Enlace copiado</div>
                       <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, lineHeight: 1.5 }}>
-                        Abre <span style={{ color: "#FF3355", fontWeight: 700 }}>1DM</span> o <span style={{ color: "#FF3355", fontWeight: 700 }}>ADM</span>, pega el enlace y descarga el episodio completo.
+                        Abre <span style={{ color: "#DC2626", fontWeight: 700 }}>1DM</span> o <span style={{ color: "#DC2626", fontWeight: 700 }}>ADM</span>, pega el enlace y descarga el episodio completo.
                       </div>
                     </div>
                   )}
@@ -1652,8 +1652,8 @@ export default function Player() {
                               style={{
                                 display: "inline-flex", alignItems: "center", gap: 5,
                                 padding: "6px 13px", borderRadius: 9,
-                                background: "rgba(244,63,94,0.22)", border: "1px solid rgba(244,63,94,0.45)",
-                                color: "#FCA5B5", fontSize: 12, fontWeight: 700, textDecoration: "none",
+                                background: "rgba(220,38,38,0.22)", border: "1px solid rgba(220,38,38,0.45)",
+                                color: "#FECACA", fontSize: 12, fontWeight: 700, textDecoration: "none",
                               }}
                             >
                               <Download size={11} /> {label} MP4
@@ -1678,9 +1678,9 @@ export default function Player() {
                             style={{
                               display: "inline-flex", alignItems: "center", gap: 5,
                               padding: "6px 13px", borderRadius: 9,
-                              background: isCopied ? "rgba(34,197,94,0.15)" : (i === selectedIdx ? "rgba(244,63,94,0.22)" : "rgba(255,255,255,0.07)"),
-                              border: `1px solid ${isCopied ? "rgba(34,197,94,0.4)" : (i === selectedIdx ? "rgba(244,63,94,0.45)" : "rgba(255,255,255,0.1)")}`,
-                              color: isCopied ? "#22C55E" : (i === selectedIdx ? "#FCA5B5" : "rgba(255,255,255,0.55)"),
+                              background: isCopied ? "rgba(34,197,94,0.15)" : (i === selectedIdx ? "rgba(220,38,38,0.22)" : "rgba(255,255,255,0.07)"),
+                              border: `1px solid ${isCopied ? "rgba(34,197,94,0.4)" : (i === selectedIdx ? "rgba(220,38,38,0.45)" : "rgba(255,255,255,0.1)")}`,
+                              color: isCopied ? "#22C55E" : (i === selectedIdx ? "#FECACA" : "rgba(255,255,255,0.55)"),
                               fontSize: 12, fontWeight: 700, cursor: "pointer",
                             }}
                           >
@@ -1692,7 +1692,7 @@ export default function Player() {
                     </div>
                     {sources.every(s => s.isM3U8 !== false) && !dlCopied && (
                       <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, marginTop: 6, lineHeight: 1.5 }}>
-                        Toca una calidad para copiar el enlace → ábrelo en <span style={{ color: "#FF3355" }}>1DM</span> o <span style={{ color: "#FF3355" }}>ADM</span>
+                        Toca una calidad para copiar el enlace → ábrelo en <span style={{ color: "#DC2626" }}>1DM</span> o <span style={{ color: "#DC2626" }}>ADM</span>
                       </div>
                     )}
                   </div>
@@ -1730,7 +1730,7 @@ export default function Player() {
             filter: "blur(22px) brightness(0.25) saturate(1.4)",
             transform: "scale(1.1)",
           }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,rgba(9,10,18,0.55),rgba(244,63,94,0.08))" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg,rgba(9,10,18,0.55),rgba(220,38,38,0.08))" }} />
           <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14, padding: "16px 16px" }}>
             {/* Poster */}
             <img
@@ -1738,9 +1738,9 @@ export default function Player() {
               style={{ width: 72, height: 100, objectFit: "cover", borderRadius: 12, flexShrink: 0, boxShadow: "0 8px 24px rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.12)" }}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(244,63,94,0.2)", border: "1px solid rgba(244,63,94,0.35)", borderRadius: 6, padding: "2px 8px", marginBottom: 7 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#FF3355", boxShadow: "0 0 6px #FF3355" }} />
-                <span style={{ color: "#FCA5B5", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>REPRODUCIENDO</span>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(220,38,38,0.2)", border: "1px solid rgba(220,38,38,0.35)", borderRadius: 6, padding: "2px 8px", marginBottom: 7 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#DC2626", boxShadow: "0 0 6px #DC2626" }} />
+                <span style={{ color: "#FECACA", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>REPRODUCIENDO</span>
               </div>
               <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 900, lineHeight: 1.25, marginBottom: 5 }} className="line-clamp-2">
                 {animeTitle}
@@ -1792,7 +1792,7 @@ export default function Player() {
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <HelpCircle size={18} color="#FCA5B5" />
+                <HelpCircle size={18} color="#FECACA" />
                 <span style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>Atajos de teclado</span>
               </div>
               <button onClick={() => setShowShortcuts(false)}
@@ -1814,7 +1814,7 @@ export default function Player() {
               ].map(([key, desc]) => (
                 <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
                   <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>{desc}</span>
-                  <kbd style={{ background: "rgba(244,63,94,0.2)", color: "#FCA5B5", border: "1px solid rgba(244,63,94,0.35)", borderRadius: 7, padding: "3px 10px", fontSize: 12, fontWeight: 700, fontFamily: "monospace", whiteSpace: "nowrap" }}>
+                  <kbd style={{ background: "rgba(220,38,38,0.2)", color: "#FECACA", border: "1px solid rgba(220,38,38,0.35)", borderRadius: 7, padding: "3px 10px", fontSize: 12, fontWeight: 700, fontFamily: "monospace", whiteSpace: "nowrap" }}>
                     {key}
                   </kbd>
                 </div>

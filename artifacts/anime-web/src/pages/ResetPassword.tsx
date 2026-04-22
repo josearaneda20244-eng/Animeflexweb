@@ -42,17 +42,17 @@ export default function ResetPassword() {
       padding: 16, position: "relative", overflow: "hidden",
     }}>
       {/* Background glow */}
-      <div style={{ position: "absolute", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(244,63,94,0.06) 0%, transparent 70%)", top: "20%", left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(220,38,38,0.06) 0%, transparent 70%)", top: "20%", left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }} />
 
       <div style={{ width: "100%", maxWidth: 400, background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: "32px 28px", boxShadow: "0 24px 60px rgba(0,0,0,0.6)", position: "relative", zIndex: 1 }}>
 
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#FF3355,#E11D48)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#DC2626,#991B1B)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>▶</span>
           </div>
           <span style={{ fontSize: 16, fontWeight: 900 }}>
-            <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#FF3355" }}>FLEX</span>
+            <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#DC2626" }}>FLEX</span>
           </span>
         </div>
 
@@ -67,7 +67,7 @@ export default function ResetPassword() {
             </p>
             <button
               onClick={() => navigate("/")}
-              style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#FF3355,#E11D48)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}
+              style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#DC2626,#991B1B)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}
             >
               Ir al inicio
             </button>
@@ -75,8 +75,8 @@ export default function ResetPassword() {
         ) : (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(244,63,94,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <KeyRound size={18} color="#FCA5B5" />
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <KeyRound size={18} color="#FECACA" />
               </div>
               <div>
                 <h1 style={{ color: "#F1F1F5", fontSize: 18, fontWeight: 800, margin: 0 }}>Nueva contraseña</h1>
@@ -103,7 +103,7 @@ export default function ResetPassword() {
                     required
                     minLength={6}
                     style={{ width: "100%", paddingLeft: 40, paddingRight: 42, paddingTop: 11, paddingBottom: 11, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit" }}
-                    onFocus={(e) => (e.target.style.borderColor = "rgba(244,63,94,0.6)")}
+                    onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.6)")}
                     onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
                   />
                   <button type="button" onClick={() => setShowPass(v => !v)} style={{ position: "absolute", right: 12, background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}>
@@ -121,7 +121,7 @@ export default function ResetPassword() {
                   onChange={(e) => setConfirm(e.target.value)}
                   required
                   style={{ width: "100%", paddingLeft: 40, paddingRight: 14, paddingTop: 11, paddingBottom: 11, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit" }}
-                  onFocus={(e) => (e.target.style.borderColor = "rgba(244,63,94,0.6)")}
+                  onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.6)")}
                   onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
                 />
               </div>
@@ -133,7 +133,7 @@ export default function ResetPassword() {
               <button
                 type="submit"
                 disabled={loading || !token}
-                style={{ marginTop: 4, padding: "13px 0", borderRadius: 12, border: "none", background: loading ? "rgba(244,63,94,0.5)" : "linear-gradient(135deg,#FF3355,#E11D48)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer" }}
+                style={{ marginTop: 4, padding: "13px 0", borderRadius: 12, border: "none", background: loading ? "rgba(220,38,38,0.5)" : "linear-gradient(135deg,#DC2626,#991B1B)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer" }}
               >
                 {loading ? "Guardando..." : "Guardar contraseña"}
               </button>

@@ -19,20 +19,20 @@ export default function ScrollToTop() {
       style={{
         position: "fixed", bottom: 24, right: 20, zIndex: 999,
         width: 44, height: 44, borderRadius: "50%",
-        background: "linear-gradient(135deg,#FF3355,#E11D48)",
+        background: "linear-gradient(135deg,#DC2626,#991B1B)",
         border: "none", cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 4px 20px rgba(244,63,94,0.45)",
+        boxShadow: "0 4px 20px rgba(220,38,38,0.45)",
         transition: "transform 0.18s, box-shadow 0.18s",
         animation: "fadeInUp 0.25s ease",
       }}
       onMouseEnter={e => {
         (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.12) translateY(-2px)";
-        (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 28px rgba(244,63,94,0.6)";
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 8px 28px rgba(220,38,38,0.6)";
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLButtonElement).style.transform = "";
-        (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 20px rgba(244,63,94,0.45)";
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 20px rgba(220,38,38,0.45)";
       }}
     >
       <ChevronUp size={22} color="#fff" strokeWidth={2.5} />

@@ -19,13 +19,13 @@ function SearchCard({ anime }: { anime: AnimeResult }) {
     <div
       onClick={() => navigate(`/anime/${anime.id}`)}
       style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#100e22", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer", aspectRatio: "2/3", transition: "transform 0.18s, box-shadow 0.18s" }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 28px rgba(244,63,94,0.28)"; }}
+      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 10px 28px rgba(220,38,38,0.28)"; }}
       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}
     >
       <img src={anime.image} alt={title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 48%, rgba(9,10,18,0.97) 100%)" }} />
       <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-        <span style={{ background: "linear-gradient(135deg,#FF3355,#E11D48)", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>LAT</span>
+        <span style={{ background: "linear-gradient(135deg,#DC2626,#991B1B)", borderRadius: 4, padding: "2px 5px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>LAT</span>
         {anime.totalEpisodes && (
           <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.totalEpisodes}</span>
         )}

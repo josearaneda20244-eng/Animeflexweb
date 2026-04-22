@@ -114,7 +114,7 @@ export default function MangaReader() {
 
         {/* Chapter list */}
         {sortedChapters.length > 0 && (
-          <button onClick={() => setShowChapterList(v => !v)} style={{ background: "rgba(236,72,153,0.15)", border: "1px solid rgba(236,72,153,0.3)", borderRadius: 8, padding: "6px 10px", color: "#F9A8D4", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12, flexShrink: 0 }}>
+          <button onClick={() => setShowChapterList(v => !v)} style={{ background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 8, padding: "6px 10px", color: "#FECACA", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12, flexShrink: 0 }}>
             <List size={14} /> Capítulos
           </button>
         )}
@@ -136,9 +136,9 @@ export default function MangaReader() {
                 onClick={() => { navigate(`/manga/${mangaId}/leer/${ch.id}`); setShowChapterList(false); }}
                 style={{
                   padding: "10px 12px", borderRadius: 10, cursor: "pointer",
-                  background: ch.id === chapterId ? "rgba(236,72,153,0.15)" : "none",
-                  border: ch.id === chapterId ? "1px solid rgba(236,72,153,0.3)" : "1px solid transparent",
-                  color: ch.id === chapterId ? "#F9A8D4" : "rgba(255,255,255,0.6)",
+                  background: ch.id === chapterId ? "rgba(220,38,38,0.15)" : "none",
+                  border: ch.id === chapterId ? "1px solid rgba(220,38,38,0.3)" : "1px solid transparent",
+                  color: ch.id === chapterId ? "#FECACA" : "rgba(255,255,255,0.6)",
                   fontSize: 13, fontWeight: ch.id === chapterId ? 700 : 500,
                   marginBottom: 2, transition: "background 0.15s",
                 }}
@@ -157,7 +157,7 @@ export default function MangaReader() {
         {isLoading && (
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
             <div style={{ textAlign: "center" }}>
-              <Loader2 size={36} color="#EC4899" style={{ animation: "spin 1s linear infinite", marginBottom: 12 }} />
+              <Loader2 size={36} color="#DC2626" style={{ animation: "spin 1s linear infinite", marginBottom: 12 }} />
               <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Cargando páginas...</p>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function MangaReader() {
           <div style={{ textAlign: "center", padding: "60px 20px", color: "rgba(255,255,255,0.4)" }}>
             <BookOpen size={48} style={{ marginBottom: 16, opacity: 0.2 }} />
             <p>No se pudo cargar este capítulo.</p>
-            <button onClick={() => navigate(`/manga/${mangaId}`)} style={{ marginTop: 12, padding: "8px 20px", background: "rgba(236,72,153,0.2)", border: "1px solid rgba(236,72,153,0.3)", borderRadius: 10, color: "#F9A8D4", cursor: "pointer" }}>
+            <button onClick={() => navigate(`/manga/${mangaId}`)} style={{ marginTop: 12, padding: "8px 20px", background: "rgba(220,38,38,0.2)", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 10, color: "#FECACA", cursor: "pointer" }}>
               Volver al manga
             </button>
           </div>
@@ -204,7 +204,7 @@ export default function MangaReader() {
                   <List size={14} /> Lista
                 </button>
                 {nextChapter && (
-                  <button onClick={() => navigate(`/manga/${mangaId}/leer/${nextChapter.id}`)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 12, background: "linear-gradient(135deg,#EC4899,#A855F7)", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+                  <button onClick={() => navigate(`/manga/${mangaId}/leer/${nextChapter.id}`)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 12, background: "linear-gradient(135deg,#DC2626,#F97316)", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
                     Cap. {nextChapter.chapterNumber} <ChevronRight size={14} />
                   </button>
                 )}
@@ -231,7 +231,7 @@ export default function MangaReader() {
         <button
           disabled={!nextChapter}
           onClick={() => nextChapter && navigate(`/manga/${mangaId}/leer/${nextChapter.id}`)}
-          style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 14px", borderRadius: 10, background: nextChapter ? "linear-gradient(135deg,#EC4899,#A855F7)" : "rgba(255,255,255,0.02)", border: "none", color: nextChapter ? "#fff" : "rgba(255,255,255,0.2)", cursor: nextChapter ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 14px", borderRadius: 10, background: nextChapter ? "linear-gradient(135deg,#DC2626,#F97316)" : "rgba(255,255,255,0.02)", border: "none", color: nextChapter ? "#fff" : "rgba(255,255,255,0.2)", cursor: nextChapter ? "pointer" : "default", fontSize: 13, fontWeight: 600 }}
         >
           Siguiente <ChevronRight size={14} />
         </button>

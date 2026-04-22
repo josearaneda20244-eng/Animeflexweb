@@ -79,7 +79,7 @@
           }} />
           <div style={{
             position: 'absolute', top: 7, left: 7,
-            background: 'linear-gradient(135deg, #FF3355, #E11D48)',
+            background: 'linear-gradient(135deg, #DC2626, #991B1B)',
             borderRadius: 4, padding: '2px 6px',
             color: '#fff', fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
           }}>LAT</div>
@@ -89,7 +89,7 @@
               background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
               borderRadius: 5, padding: '2px 5px',
               display: 'flex', alignItems: 'center', gap: 2,
-              border: '1px solid rgba(168,85,247,0.4)',
+              border: '1px solid rgba(249,115,22,0.4)',
             }}>
               <Star size={7} color="#a855f7" fill="#a855f7" />
               <span style={{ color: '#c084fc', fontSize: 8, fontWeight: 800 }}>

@@ -35,7 +35,7 @@ interface AdvancedStatsProps {
   userId: string;
 }
 
-const COLORS = ['#FF3355', '#7C73FF', '#8C83FF', '#9C93FF', '#FCA5B5', '#B7A3FB'];
+const COLORS = ['#DC2626', '#7C73FF', '#8C83FF', '#9C93FF', '#FECACA', '#B7A3FB'];
 
 export default function AdvancedStats({ userId }: AdvancedStatsProps) {
   const { data: stats, isLoading } = useQuery({
@@ -134,8 +134,8 @@ export default function AdvancedStats({ userId }: AdvancedStatsProps) {
               <Area
                 type="monotone"
                 dataKey="episodes"
-                stroke="#FF3355"
-                fill="#FF3355"
+                stroke="#DC2626"
+                fill="#DC2626"
                 fillOpacity={0.3}
               />
             </AreaChart>

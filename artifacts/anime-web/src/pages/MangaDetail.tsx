@@ -90,7 +90,7 @@ export default function MangaDetail() {
       <div style={{ minHeight: "100vh", background: "#09090F", display: "flex", flexDirection: "column" }}>
         <Navbar />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-          <Loader2 size={40} color="#EC4899" style={{ animation: "spin 1s linear infinite" }} />
+          <Loader2 size={40} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} />
           <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>Cargando manga...</p>
         </div>
       </div>
@@ -108,7 +108,7 @@ export default function MangaDetail() {
             onClick={() => navigate("/manga")}
             style={{
               display: "flex", alignItems: "center", gap: 8,
-              padding: "10px 24px", background: "linear-gradient(135deg,#EC4899,#A855F7)",
+              padding: "10px 24px", background: "linear-gradient(135deg,#DC2626,#F97316)",
               border: "none", borderRadius: 12, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
             }}
           >
@@ -142,7 +142,7 @@ export default function MangaDetail() {
             borderRadius: 10, padding: "7px 16px", color: "#F1F1F5", cursor: "pointer", fontSize: 13, fontWeight: 600,
             transition: "background 0.2s",
           }}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(236,72,153,0.15)")}
+          onMouseEnter={e => (e.currentTarget.style.background = "rgba(220,38,38,0.15)")}
           onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
         >
           <ArrowLeft size={14} /> Volver al catálogo
@@ -204,9 +204,9 @@ export default function MangaDetail() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 14 }}>
               {manga.status && (
                 <span style={{
-                  background: manga.status === "Completed" ? "rgba(34,197,94,0.15)" : "rgba(236,72,153,0.15)",
-                  color: manga.status === "Completed" ? "#4ADE80" : "#F9A8D4",
-                  border: `1px solid ${manga.status === "Completed" ? "rgba(34,197,94,0.3)" : "rgba(236,72,153,0.3)"}`,
+                  background: manga.status === "Completed" ? "rgba(34,197,94,0.15)" : "rgba(220,38,38,0.15)",
+                  color: manga.status === "Completed" ? "#4ADE80" : "#FECACA",
+                  border: `1px solid ${manga.status === "Completed" ? "rgba(34,197,94,0.3)" : "rgba(220,38,38,0.3)"}`,
                   fontSize: 11, fontWeight: 700, padding: "3px 11px", borderRadius: 20,
                 }}>
                   {manga.status === "Completed" ? "Completo" : manga.status === "Ongoing" ? "En curso" : manga.status}
@@ -228,7 +228,7 @@ export default function MangaDetail() {
             {manga.genres && manga.genres.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 16 }}>
                 {manga.genres.slice(0, 8).map(g => (
-                  <span key={g} style={{ background: "rgba(168,85,247,0.1)", color: "#FCA5B5", border: "1px solid rgba(168,85,247,0.18)", fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 20 }}>{g}</span>
+                  <span key={g} style={{ background: "rgba(249,115,22,0.1)", color: "#FECACA", border: "1px solid rgba(249,115,22,0.18)", fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 20 }}>{g}</span>
                 ))}
               </div>
             )}
@@ -242,7 +242,7 @@ export default function MangaDetail() {
                 {needsExpand && (
                   <button
                     onClick={() => setDescExpanded(v => !v)}
-                    style={{ background: "none", border: "none", color: "#EC4899", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "4px 0", marginTop: 4 }}
+                    style={{ background: "none", border: "none", color: "#DC2626", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "4px 0", marginTop: 4 }}
                   >
                     {descExpanded ? "Ver menos" : "Leer más"}
                   </button>
@@ -258,7 +258,7 @@ export default function MangaDetail() {
                   style={{
                     display: "flex", alignItems: "center", gap: 7,
                     padding: "10px 20px", borderRadius: 12,
-                    background: "linear-gradient(135deg,#EC4899,#A855F7)",
+                    background: "linear-gradient(135deg,#DC2626,#F97316)",
                     border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
                   }}
                 >
@@ -291,7 +291,7 @@ export default function MangaDetail() {
               background: "rgba(255,255,255,0.02)",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <List size={16} color="#EC4899" />
+                <List size={16} color="#DC2626" />
                 <span style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>Capítulos</span>
                 <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>({chapters.length})</span>
               </div>
@@ -351,12 +351,12 @@ export default function MangaDetail() {
                     cursor: "pointer", transition: "background 0.12s",
                     gap: 12,
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(236,72,153,0.07)")}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(220,38,38,0.07)")}
                   onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 12, overflow: "hidden" }}>
                     <span style={{
-                      color: "#EC4899", fontSize: 11, fontWeight: 800,
+                      color: "#DC2626", fontSize: 11, fontWeight: 800,
                       minWidth: 44, fontFamily: "monospace", flexShrink: 0,
                     }}>
                       #{ch.chapterNumber}
@@ -385,8 +385,8 @@ export default function MangaDetail() {
                   onClick={() => setShowCount(c => c + 100)}
                   style={{
                     padding: "9px 24px", borderRadius: 10,
-                    background: "rgba(236,72,153,0.1)", border: "1px solid rgba(236,72,153,0.25)",
-                    color: "#F9A8D4", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.25)",
+                    color: "#FECACA", fontSize: 13, fontWeight: 700, cursor: "pointer",
                   }}
                 >
                   Ver {Math.min(100, filteredChapters.length - showCount)} capítulos más

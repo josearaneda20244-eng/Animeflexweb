@@ -137,16 +137,16 @@ export default function PublicProfile() {
             {/* Profile header */}
             <div style={{
               background: "linear-gradient(135deg,#0a0a0a,#1a1a2e)",
-              border: "1px solid rgba(244,63,94,0.15)", borderRadius: 20,
+              border: "1px solid rgba(220,38,38,0.15)", borderRadius: 20,
               padding: "24px", marginBottom: 16,
               display: "flex", alignItems: "center", gap: 18,
             }}>
               <div style={{
                 width: 70, height: 70, borderRadius: 18, flexShrink: 0,
-                background: "linear-gradient(135deg,#FF3355,#E11D48)",
+                background: "linear-gradient(135deg,#DC2626,#991B1B)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
-                boxShadow: "0 4px 20px rgba(244,63,94,0.4)",
+                boxShadow: "0 4px 20px rgba(220,38,38,0.4)",
               }}>
                 {resolveAvatarUrl(data.user.avatar_url)
                   ? <img src={resolveAvatarUrl(data.user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -163,7 +163,7 @@ export default function PublicProfile() {
                       <Crown size={11} /> MegaFan
                     </div>
                   ) : (
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(244,63,94,0.1)", border: "1px solid rgba(244,63,94,0.25)", borderRadius: 20, padding: "4px 12px", color: "#FCA5B5", fontSize: 12, fontWeight: 800 }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.25)", borderRadius: 20, padding: "4px 12px", color: "#FECACA", fontSize: 12, fontWeight: 800 }}>
                       ✦ Gratuito
                     </div>
                   )}
@@ -178,9 +178,9 @@ export default function PublicProfile() {
                 <button onClick={handleFollow} disabled={followLoading}
                   style={{
                     display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 12,
-                    background: isFollowing ? "rgba(244,63,94,0.12)" : "linear-gradient(135deg,#FF3355,#E11D48)",
-                    border: isFollowing ? "1px solid rgba(244,63,94,0.3)" : "none",
-                    color: isFollowing ? "#FCA5B5" : "#fff",
+                    background: isFollowing ? "rgba(220,38,38,0.12)" : "linear-gradient(135deg,#DC2626,#991B1B)",
+                    border: isFollowing ? "1px solid rgba(220,38,38,0.3)" : "none",
+                    color: isFollowing ? "#FECACA" : "#fff",
                     fontSize: 13, fontWeight: 700, cursor: followLoading ? "not-allowed" : "pointer",
                     flexShrink: 0, opacity: followLoading ? 0.6 : 1, transition: "all 0.2s",
                   }}>
@@ -193,10 +193,10 @@ export default function PublicProfile() {
             {/* Stats grid */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
               {[
-                { icon: <Tv2 size={18} color="#FF3355" />, label: "Episodios", value: data.stats.totalEpisodes },
+                { icon: <Tv2 size={18} color="#DC2626" />, label: "Episodios", value: data.stats.totalEpisodes },
                 { icon: <CheckCircle2 size={18} color="#22C55E" />, label: "Completados", value: data.stats.completed },
                 { icon: <Flame size={18} color="#F59E0B" />, label: "Racha", value: `${data.stats.streak}d` },
-                { icon: <Clock size={18} color="#EC4899" />, label: "Horas vistas", value: `${data.stats.estimatedHours}h` },
+                { icon: <Clock size={18} color="#DC2626" />, label: "Horas vistas", value: `${data.stats.estimatedHours}h` },
                 { icon: <Clapperboard size={18} color="#fff" />, label: "Series", value: data.stats.totalAnimes },
                 {
                   icon: <Tag size={18} color="#fff" />,
@@ -217,7 +217,7 @@ export default function PublicProfile() {
             {data.stats.weeklyActivity && data.stats.weeklyActivity.some((d) => d.episodes > 0) && (
               <div style={{ ...cardStyle, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <div style={{ width: 3, height: 16, borderRadius: 2, background: "#FF3355" }} />
+                  <div style={{ width: 3, height: 16, borderRadius: 2, background: "#DC2626" }} />
                   <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Actividad semanal</span>
                 </div>
                 <ResponsiveContainer width="100%" height={100}>
@@ -225,7 +225,7 @@ export default function PublicProfile() {
                     <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 11 }} axisLine={false} tickLine={false} />
                     <YAxis hide allowDecimals={false} />
                     <Tooltip
-                      contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(244,63,94,0.3)", borderRadius: 8, color: "#F1F1F5", fontSize: 12 }}
+                      contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 8, color: "#F1F1F5", fontSize: 12 }}
                       formatter={(v: number) => [`${v} ep`, "Episodios"]}
                       labelStyle={{ color: "rgba(255,255,255,0.5)" }}
                     />
@@ -233,7 +233,7 @@ export default function PublicProfile() {
                       {data.stats.weeklyActivity.map((entry) => (
                         <Cell
                           key={entry.date}
-                          fill={entry.episodes === maxEpisodes && entry.episodes > 0 ? "#FF3355" : "rgba(244,63,94,0.3)"}
+                          fill={entry.episodes === maxEpisodes && entry.episodes > 0 ? "#DC2626" : "rgba(220,38,38,0.3)"}
                         />
                       ))}
                     </Bar>
@@ -246,7 +246,7 @@ export default function PublicProfile() {
             {data.watchlist.length > 0 && (
               <div style={cardStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <BookOpen size={14} color="#FF3355" />
+                  <BookOpen size={14} color="#DC2626" />
                   <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Viendo / Completados</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(58px, 1fr))", gap: 8 }}>
@@ -268,7 +268,7 @@ export default function PublicProfile() {
             {data.favorites.length > 0 && (
               <div style={cardStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <Heart size={14} color="#EC4899" />
+                  <Heart size={14} color="#DC2626" />
                   <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Favoritos</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(58px, 1fr))", gap: 8 }}>

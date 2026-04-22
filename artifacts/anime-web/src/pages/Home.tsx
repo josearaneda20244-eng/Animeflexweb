@@ -143,18 +143,18 @@ import { useQuery } from "@tanstack/react-query";
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7) 65%, #000 100%), linear-gradient(180deg, rgba(0,0,0,0.55), transparent 35%)" }} />
         <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(270deg, transparent 40%, rgba(0,0,0,0.54) 80%)" }} />
         {/* SL system frame: scanlines + corner brackets + crimson vignette */}
-        <ScanLines color="rgba(244,63,94,0.05)" />
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 85% 0%, rgba(244,63,94,0.22) 0%, transparent 55%)", pointerEvents: "none", zIndex: 1 }} />
-        <CornerBrackets color="#FF3355" size={22} thickness={2} inset={14} />
+        <ScanLines color="rgba(220,38,38,0.05)" />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 85% 0%, rgba(220,38,38,0.22) 0%, transparent 55%)", pointerEvents: "none", zIndex: 1 }} />
+        <CornerBrackets color="#DC2626" size={22} thickness={2} inset={14} />
         <div style={{ position: "absolute", bottom: "clamp(20px, 5vw, 38px)", left: "clamp(16px, 4vw, 38px)", right: "clamp(16px, 4vw, 38px)", maxWidth: 620, zIndex: 2 }}>
             <motion.div
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
               style={{ marginBottom: 10 }}
             >
-              <SystemTag color="#FF3355">[ SISTEMA · DESTACADO ]</SystemTag>
+              <SystemTag color="#DC2626">[ SISTEMA · DESTACADO ]</SystemTag>
             </motion.div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ background: "linear-gradient(135deg, rgba(255,92,122,0.9), rgba(244,63,94,0.85))", backdropFilter: "blur(6px)", borderRadius: 999, padding: "4px 12px", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: 1, border: "1px solid rgba(252,165,181,0.35)" }}>✦ DESTACADO</span>
+              <span style={{ background: "linear-gradient(135deg, rgba(255,92,122,0.9), rgba(220,38,38,0.85))", backdropFilter: "blur(6px)", borderRadius: 999, padding: "4px 12px", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: 1, border: "1px solid rgba(252,165,181,0.35)" }}>✦ DESTACADO</span>
               {anime.status === "Ongoing" && (
                 <span style={{ background: "rgba(34,197,94,0.18)", borderRadius: 999, padding: "4px 10px", color: "#86EFAC", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%" }} /> EN EMISIÓN
@@ -167,9 +167,9 @@ import { useQuery } from "@tanstack/react-query";
           <h1 style={{ color: "#F8FBFF", fontSize: "clamp(28px, 4.2vw, 46px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: -1, margin: 0, textShadow: "0 2px 24px rgba(0,0,0,0.85)" }}>{title}</h1>
           <p style={{ maxWidth: 520, color: "rgba(248,251,255,0.74)", fontSize: 15, lineHeight: 1.8, margin: "16px 0 0" }}>{anime.description ? anime.description.replace(/<[^>]+>/g, '').slice(0, 140) + '…' : 'Descubre por qué este anime está arrasando entre la comunidad.'}</p>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-            <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #FF3355, #E11D48)", border: "none", borderRadius: 30, padding: "11px 24px", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(244,63,94,0.45)" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(244,63,94,0.6)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(244,63,94,0.45)"; }}>
+            <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #DC2626, #991B1B)", border: "none", borderRadius: 30, padding: "11px 24px", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(220,38,38,0.45)" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(220,38,38,0.6)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(220,38,38,0.45)"; }}>
               <Play size={18} fill="#fff" color="#fff" /> Ver Ahora
             </button>
             <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.1)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 30, padding: "10px 22px", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "all 0.22s" }}
@@ -205,18 +205,18 @@ import { useQuery } from "@tanstack/react-query";
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #FF3355, #E11D48)", flexShrink: 0, boxShadow: "0 0 14px rgba(244,63,94,0.55)" }} />
+          <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #DC2626, #991B1B)", flexShrink: 0, boxShadow: "0 0 14px rgba(220,38,38,0.55)" }} />
           <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
             <span style={{ fontSize: 9, fontWeight: 800, color: "#FF6680", letterSpacing: 2, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", textTransform: "uppercase", lineHeight: 1, marginBottom: 3 }}>[ SISTEMA ]</span>
             <span style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: -0.3, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
           </div>
         </div>
         {onSeeAll && (
-          <button onClick={onSeeAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.22)", borderRadius: 20, color: "#FCA5B5", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(244,63,94,0.16)"; e.currentTarget.style.borderColor = "rgba(244,63,94,0.35)"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(244,63,94,0.08)"; e.currentTarget.style.borderColor = "rgba(244,63,94,0.22)"; }}>
+          <button onClick={onSeeAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.22)", borderRadius: 20, color: "#FECACA", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(220,38,38,0.16)"; e.currentTarget.style.borderColor = "rgba(220,38,38,0.35)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(220,38,38,0.08)"; e.currentTarget.style.borderColor = "rgba(220,38,38,0.22)"; }}>
             <span>Ver todo</span>
-            <ChevronRight size={13} color="#FCA5B5" />
+            <ChevronRight size={13} color="#FECACA" />
           </button>
         )}
       </div>
@@ -240,7 +240,7 @@ import { useQuery } from "@tanstack/react-query";
         <img src={anime.image} alt={title} loading="lazy" decoding="async" />
         <div className="p-card-grad" />
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-          <span style={{ background: "linear-gradient(135deg,#FF3355,#E11D48)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>LAT</span>
+          <span style={{ background: "linear-gradient(135deg,#DC2626,#991B1B)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>LAT</span>
           {anime.totalEpisodes && <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.totalEpisodes}</span>}
         </div>
         {anime.rating != null && anime.rating > 0 && (
@@ -417,15 +417,15 @@ import { useQuery } from "@tanstack/react-query";
     { label: "Action",     icon: "⚔️",  bg: "rgba(239,68,68,0.12)",   border: "rgba(239,68,68,0.3)",   color: "#FCA5A5" },
     { label: "Adventure",  icon: "🗺️",  bg: "rgba(249,115,22,0.12)",  border: "rgba(249,115,22,0.3)",  color: "#FDBA74" },
     { label: "Comedy",     icon: "😂",  bg: "rgba(234,179,8,0.12)",   border: "rgba(234,179,8,0.3)",   color: "#FDE68A" },
-    { label: "Drama",      icon: "🎭",  bg: "rgba(168,85,247,0.12)",  border: "rgba(168,85,247,0.3)",  color: "#D8B4FE" },
-    { label: "Fantasy",    icon: "✨",  bg: "rgba(244,63,94,0.12)",  border: "rgba(244,63,94,0.3)",  color: "#A5B4FC" },
+    { label: "Drama",      icon: "🎭",  bg: "rgba(249,115,22,0.12)",  border: "rgba(249,115,22,0.3)",  color: "#D8B4FE" },
+    { label: "Fantasy",    icon: "✨",  bg: "rgba(220,38,38,0.12)",  border: "rgba(220,38,38,0.3)",  color: "#A5B4FC" },
     { label: "Horror",     icon: "💀",  bg: "rgba(17,24,39,0.6)",     border: "rgba(239,68,68,0.3)",   color: "#F87171" },
-    { label: "Romance",    icon: "💖",  bg: "rgba(236,72,153,0.12)",  border: "rgba(236,72,153,0.3)",  color: "#F9A8D4" },
-    { label: "Sci-Fi",     icon: "🚀",  bg: "rgba(6,182,212,0.12)",   border: "rgba(6,182,212,0.3)",   color: "#67E8F9" },
+    { label: "Romance",    icon: "💖",  bg: "rgba(220,38,38,0.12)",  border: "rgba(220,38,38,0.3)",  color: "#FECACA" },
+    { label: "Sci-Fi",     icon: "🚀",  bg: "rgba(249,115,22,0.12)",   border: "rgba(249,115,22,0.3)",   color: "#FDBA74" },
     { label: "Shounen",    icon: "💪",  bg: "rgba(251,146,60,0.12)",  border: "rgba(251,146,60,0.3)",  color: "#FED7AA" },
-    { label: "Isekai",     icon: "🌀",  bg: "rgba(255,92,122,0.12)",  border: "rgba(255,92,122,0.3)",  color: "#FCA5B5" },
+    { label: "Isekai",     icon: "🌀",  bg: "rgba(255,92,122,0.12)",  border: "rgba(255,92,122,0.3)",  color: "#FECACA" },
     { label: "Thriller",   icon: "🔪",  bg: "rgba(75,85,99,0.25)",    border: "rgba(156,163,175,0.3)", color: "#D1D5DB" },
-    { label: "Mystery",    icon: "🔍",  bg: "rgba(30,58,138,0.2)",    border: "rgba(244,63,94,0.3)",  color: "#FCA5B5" },
+    { label: "Mystery",    icon: "🔍",  bg: "rgba(30,58,138,0.2)",    border: "rgba(220,38,38,0.3)",  color: "#FECACA" },
   ];
 
   function GenresSection() {
@@ -469,7 +469,7 @@ import { useQuery } from "@tanstack/react-query";
 
   /* ── SECTION DIVIDER ── */
   function SectionDivider() {
-    return <div style={{ height: 1, margin: "4px 18px 0", background: "linear-gradient(90deg, transparent, rgba(244,63,94,0.15), rgba(129,140,248,0.15), transparent)" }} />;
+    return <div style={{ height: 1, margin: "4px 18px 0", background: "linear-gradient(90deg, transparent, rgba(220,38,38,0.15), rgba(129,140,248,0.15), transparent)" }} />;
   }
 
   function SkeletonP() { return <div className="skeleton" style={{ width: 130, height: 197, borderRadius: 8, flexShrink: 0, border: "1px solid #222" }} />; }
@@ -619,8 +619,8 @@ import { useQuery } from "@tanstack/react-query";
             style={{
               cursor: "pointer",
               borderRadius: 20,
-              background: "linear-gradient(135deg, rgba(236,72,153,0.15) 0%, rgba(168,85,247,0.15) 50%, rgba(244,63,94,0.1) 100%)",
-              border: "1px solid rgba(236,72,153,0.2)",
+              background: "linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(249,115,22,0.15) 50%, rgba(220,38,38,0.1) 100%)",
+              border: "1px solid rgba(220,38,38,0.2)",
               padding: "28px 32px",
               display: "flex",
               alignItems: "center",
@@ -632,7 +632,7 @@ import { useQuery } from "@tanstack/react-query";
             }}
             onMouseEnter={e => {
               (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px rgba(236,72,153,0.2)";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px rgba(220,38,38,0.2)";
             }}
             onMouseLeave={e => {
               (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
@@ -642,8 +642,8 @@ import { useQuery } from "@tanstack/react-query";
             <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
               <div style={{
                 width: 56, height: 56, borderRadius: 16,
-                background: "linear-gradient(135deg, rgba(236,72,153,0.3), rgba(168,85,247,0.3))",
-                border: "1px solid rgba(236,72,153,0.3)",
+                background: "linear-gradient(135deg, rgba(220,38,38,0.3), rgba(249,115,22,0.3))",
+                border: "1px solid rgba(220,38,38,0.3)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 26, flexShrink: 0,
               }}>📚</div>
@@ -653,10 +653,10 @@ import { useQuery } from "@tanstack/react-query";
               </div>
             </div>
             <div style={{
-              background: "linear-gradient(135deg, #EC4899, #A855F7)",
+              background: "linear-gradient(135deg, #DC2626, #F97316)",
               color: "#fff", fontSize: 14, fontWeight: 700,
               padding: "10px 22px", borderRadius: 12, whiteSpace: "nowrap",
-              boxShadow: "0 6px 20px rgba(236,72,153,0.35)",
+              boxShadow: "0 6px 20px rgba(220,38,38,0.35)",
             }}>
               Explorar Manga →
             </div>

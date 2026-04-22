@@ -138,17 +138,17 @@ export default function Membership() {
 
         {/* ── Hero banner ── */}
         <div style={{ position: "relative", overflow: "hidden", padding: "72px 16px 56px", textAlign: "center" }}>
-          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(244,63,94,0.18) 0%, transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(244,63,94,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(220,38,38,0.18) 0%, transparent 70%)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: -60, left: "50%", transform: "translateX(-50%)", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(220,38,38,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(244,63,94,0.15)", border: "1px solid rgba(244,63,94,0.3)", borderRadius: 100, padding: "6px 16px", marginBottom: 20 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 100, padding: "6px 16px", marginBottom: 20 }}>
             <span style={{ fontSize: 12 }}>👑</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#FCA5B5", letterSpacing: 1 }}>PLAN PREMIUM</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#FECACA", letterSpacing: 1 }}>PLAN PREMIUM</span>
           </div>
 
           <h1 style={{ fontSize: "clamp(28px,6vw,48px)", fontWeight: 900, margin: "0 0 12px", lineHeight: 1.15 }}>
             <span style={{ color: "#F1F1F5" }}>Eleva tu experiencia</span><br />
-            <span style={{ background: "linear-gradient(135deg,#FCA5B5,#FF3355)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>con MegaFan</span>
+            <span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>con MegaFan</span>
           </h1>
           <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 16, margin: 0, maxWidth: 380, marginLeft: "auto", marginRight: "auto" }}>
             Anime sin límites, sin interrupciones, con beneficios exclusivos
@@ -166,7 +166,7 @@ export default function Membership() {
                   style={{
                     padding: "10px 24px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 700,
                     transition: "all 0.2s",
-                    background: plan === p ? "linear-gradient(135deg,#FF3355,#E11D48)" : "transparent",
+                    background: plan === p ? "linear-gradient(135deg,#DC2626,#991B1B)" : "transparent",
                     color: plan === p ? "#fff" : "rgba(255,255,255,0.4)",
                     display: "flex", alignItems: "center", gap: 8,
                   }}
@@ -188,14 +188,14 @@ export default function Membership() {
           <div style={{
             position: "relative",
             background: "linear-gradient(160deg, #13133a 0%, #0d0d25 100%)",
-            border: "1px solid rgba(244,63,94,0.35)",
+            border: "1px solid rgba(220,38,38,0.35)",
             borderRadius: 24,
             overflow: "hidden",
-            boxShadow: "0 0 0 1px rgba(244,63,94,0.1), 0 32px 80px rgba(244,63,94,0.2), 0 8px 32px rgba(0,0,0,0.6)",
+            boxShadow: "0 0 0 1px rgba(220,38,38,0.1), 0 32px 80px rgba(220,38,38,0.2), 0 8px 32px rgba(0,0,0,0.6)",
           }}>
             {/* Glow top */}
-            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "100%", height: 2, background: "linear-gradient(90deg,transparent,rgba(244,63,94,0.8),transparent)" }} />
-            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "60%", height: 60, background: "radial-gradient(ellipse, rgba(244,63,94,0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "100%", height: 2, background: "linear-gradient(90deg,transparent,rgba(220,38,38,0.8),transparent)" }} />
+            <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "60%", height: 60, background: "radial-gradient(ellipse, rgba(220,38,38,0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
 
             {/* Popular badge */}
             <div style={{ position: "absolute", top: 18, right: 18 }}>
@@ -207,7 +207,7 @@ export default function Membership() {
             <div style={{ padding: "32px 28px 28px" }}>
               {/* Plan name */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,rgba(244,63,94,0.3),rgba(79,70,229,0.2))", border: "1px solid rgba(244,63,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,rgba(220,38,38,0.3),rgba(153,27,27,0.2))", border: "1px solid rgba(220,38,38,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
                   👑
                 </div>
                 <div>
@@ -256,7 +256,7 @@ export default function Membership() {
               </p>
 
               {/* Divider */}
-              <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(244,63,94,0.2),transparent)", marginBottom: 22 }} />
+              <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(220,38,38,0.2),transparent)", marginBottom: 22 }} />
 
               {/* Features */}
               <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
@@ -264,8 +264,8 @@ export default function Membership() {
                   <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{
                       width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                      background: f.free ? "rgba(255,255,255,0.04)" : "rgba(244,63,94,0.15)",
-                      border: `1px solid ${f.free ? "rgba(255,255,255,0.06)" : "rgba(244,63,94,0.25)"}`,
+                      background: f.free ? "rgba(255,255,255,0.04)" : "rgba(220,38,38,0.15)",
+                      border: `1px solid ${f.free ? "rgba(255,255,255,0.06)" : "rgba(220,38,38,0.25)"}`,
                       display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12,
                     }}>
                       {f.free ? (
@@ -274,7 +274,7 @@ export default function Membership() {
                         </svg>
                       ) : (
                         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M2 6l3 3 5-5" stroke="#FCA5B5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M2 6l3 3 5-5" stroke="#FECACA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
                     </div>
@@ -282,7 +282,7 @@ export default function Membership() {
                       {f.label}
                     </span>
                     {!f.free && (
-                      <span style={{ marginLeft: "auto", fontSize: 11, background: "rgba(244,63,94,0.15)", color: "#FCA5B5", padding: "2px 7px", borderRadius: 6, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <span style={{ marginLeft: "auto", fontSize: 11, background: "rgba(220,38,38,0.15)", color: "#FECACA", padding: "2px 7px", borderRadius: 6, fontWeight: 700, whiteSpace: "nowrap" }}>
                         MegaFan
                       </span>
                     )}
@@ -291,7 +291,7 @@ export default function Membership() {
               </div>
 
               {/* Divider */}
-              <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(244,63,94,0.2),transparent)", marginBottom: 22 }} />
+              <div style={{ height: 1, background: "linear-gradient(90deg,transparent,rgba(220,38,38,0.2),transparent)", marginBottom: 22 }} />
 
               {/* Coupon */}
               {!isMegaFan && !success && user && (
@@ -336,15 +336,15 @@ export default function Membership() {
                 </div>
               ) : isMegaFan ? (
                 <div>
-                  <div style={{ background: "linear-gradient(135deg,rgba(244,63,94,0.15),rgba(79,70,229,0.08))", border: "1px solid rgba(244,63,94,0.3)", borderRadius: 14, padding: "18px 20px", textAlign: "center", marginBottom: 14 }}>
+                  <div style={{ background: "linear-gradient(135deg,rgba(220,38,38,0.15),rgba(153,27,27,0.08))", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 14, padding: "18px 20px", textAlign: "center", marginBottom: 14 }}>
                     <div style={{ fontSize: 24, marginBottom: 6 }}>👑</div>
-                    <p style={{ color: "#FCA5B5", fontWeight: 800, fontSize: 15, margin: "0 0 4px" }}>¡Ya eres MegaFan!</p>
+                    <p style={{ color: "#FECACA", fontWeight: 800, fontSize: 15, margin: "0 0 4px" }}>¡Ya eres MegaFan!</p>
                     <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, margin: 0 }}>Gracias por apoyar AnimeFlex</p>
                   </div>
                   <button
                     onClick={handleManage}
                     disabled={loading}
-                    style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "1px solid rgba(244,63,94,0.4)", background: "transparent", color: "#FCA5B5", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+                    style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "1px solid rgba(220,38,38,0.4)", background: "transparent", color: "#FECACA", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
                   >
                     {loading ? "Cargando..." : "Gestionar en PayPal"}
                   </button>
@@ -359,7 +359,7 @@ export default function Membership() {
                 <div>
                   {loading && (
                     <div style={{ textAlign: "center", padding: "14px 0", color: "rgba(255,255,255,0.4)", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                      <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #FF3355", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                      <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #DC2626", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                       Procesando pago...
                     </div>
                   )}
@@ -421,7 +421,7 @@ export default function Membership() {
         {/* ── Highlights ── */}
         <div style={{ maxWidth: 700, margin: "0 auto 60px", padding: "0 16px" }}>
           <h2 style={{ textAlign: "center", fontSize: 20, fontWeight: 800, color: "#F1F1F5", marginBottom: 24 }}>
-            ¿Por qué elegir <span style={{ color: "#FCA5B5" }}>MegaFan</span>?
+            ¿Por qué elegir <span style={{ color: "#FECACA" }}>MegaFan</span>?
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
             {[
@@ -442,13 +442,13 @@ export default function Membership() {
         {/* ── Comparison table ── */}
         <div style={{ maxWidth: 560, margin: "0 auto 60px", padding: "0 16px" }}>
           <h2 style={{ textAlign: "center", fontSize: 20, fontWeight: 800, color: "#F1F1F5", marginBottom: 24 }}>
-            Gratis vs <span style={{ color: "#FCA5B5" }}>MegaFan</span>
+            Gratis vs <span style={{ color: "#FECACA" }}>MegaFan</span>
           </h2>
           <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, overflow: "hidden" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <div style={{ padding: "12px 18px" }} />
               <div style={{ padding: "12px 8px", textAlign: "center", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.3)" }}>GRATIS</div>
-              <div style={{ padding: "12px 8px", textAlign: "center", fontSize: 12, fontWeight: 700, color: "#FCA5B5", background: "rgba(244,63,94,0.08)" }}>MEGAFAN 👑</div>
+              <div style={{ padding: "12px 8px", textAlign: "center", fontSize: 12, fontWeight: 700, color: "#FECACA", background: "rgba(220,38,38,0.08)" }}>MEGAFAN 👑</div>
             </div>
             {[
               { label: "Streaming de anime", free: true, pro: true },
@@ -463,8 +463,8 @@ export default function Membership() {
                 <div style={{ padding: "13px 8px", textAlign: "center" }}>
                   {row.free ? <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>✓</span> : <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 14 }}>—</span>}
                 </div>
-                <div style={{ padding: "13px 8px", textAlign: "center", background: "rgba(244,63,94,0.05)" }}>
-                  {row.pro ? <span style={{ color: "#FCA5B5", fontSize: 14, fontWeight: 700 }}>✓</span> : <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 14 }}>—</span>}
+                <div style={{ padding: "13px 8px", textAlign: "center", background: "rgba(220,38,38,0.05)" }}>
+                  {row.pro ? <span style={{ color: "#FECACA", fontSize: 14, fontWeight: 700 }}>✓</span> : <span style={{ color: "rgba(255,255,255,0.12)", fontSize: 14 }}>—</span>}
                 </div>
               </div>
             ))}
@@ -478,7 +478,7 @@ export default function Membership() {
           </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {FAQS.map((faq, i) => (
-              <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${openFaq === i ? "rgba(244,63,94,0.3)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, overflow: "hidden", transition: "border 0.2s" }}>
+              <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${openFaq === i ? "rgba(220,38,38,0.3)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, overflow: "hidden", transition: "border 0.2s" }}>
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", background: "transparent", border: "none", cursor: "pointer", color: "#F1F1F5", fontSize: 14, fontWeight: 700, textAlign: "left", gap: 12 }}
@@ -534,7 +534,7 @@ export default function Membership() {
                           <td style={{ padding: "11px 16px", color: "rgba(255,255,255,0.55)" }}>
                             {new Date(p.created_at).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" })}
                           </td>
-                          <td style={{ padding: "11px 16px", color: "#FCA5B5", fontWeight: 700, textTransform: "capitalize" }}>{p.plan}</td>
+                          <td style={{ padding: "11px 16px", color: "#FECACA", fontWeight: 700, textTransform: "capitalize" }}>{p.plan}</td>
                           <td style={{ padding: "11px 16px", color: "#22C55E", fontWeight: 800 }}>${Number(p.amount_usd).toFixed(2)}</td>
                           <td style={{ padding: "11px 16px" }}>
                             <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, background: p.status === "completed" ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.12)", color: p.status === "completed" ? "#22C55E" : "#F59E0B" }}>

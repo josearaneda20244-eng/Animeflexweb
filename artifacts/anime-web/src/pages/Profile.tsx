@@ -56,10 +56,10 @@ const DAY_ES: Record<string, string> = {
   Dom: "Do", Lun: "Lu", Mar: "Ma", "Mié": "Mi", Jue: "Ju", Vie: "Vi", "Sáb": "Sá",
 };
 
-const COLORS_BAR = ["#FF3355", "#7C73FF", "#8C83FF", "#9C93FF", "#FCA5B5", "#B7A3FB", "#C7B3FC"];
+const COLORS_BAR = ["#DC2626", "#7C73FF", "#8C83FF", "#9C93FF", "#FECACA", "#B7A3FB", "#C7B3FC"];
 
 const GENRE_COLORS = [
-  "#FF3355", "#EC4899", "#22C55E", "#F59E0B", "#FF3355",
+  "#DC2626", "#DC2626", "#22C55E", "#F59E0B", "#DC2626",
 ];
 
 function getLevelInfo(episodes: number) {
@@ -86,11 +86,11 @@ function getAchievements(stats: UserStats | null, isMegaFan: boolean): Achieveme
   const streak = stats?.streak ?? 0;
   const completed = stats?.completed ?? 0;
   return [
-    { id: "inicio", icon: "🎌", label: "Primer episodio", desc: "Viste tu primer episodio", color: "#FF3355", unlocked: eps >= 1 },
+    { id: "inicio", icon: "🎌", label: "Primer episodio", desc: "Viste tu primer episodio", color: "#DC2626", unlocked: eps >= 1 },
     { id: "dedicado", icon: "📺", label: "Dedicado", desc: "50 episodios vistos", color: "#22C55E", unlocked: eps >= 50 },
     { id: "maraton", icon: "🏃", label: "Maratonista", desc: "200 episodios vistos", color: "#F59E0B", unlocked: eps >= 200 },
-    { id: "legend", icon: "⚡", label: "Leyenda", desc: "500 episodios vistos", color: "#EC4899", unlocked: eps >= 500 },
-    { id: "colec", icon: "🗂️", label: "Coleccionista", desc: "10 animes distintos", color: "#FF3355", unlocked: animes >= 10 },
+    { id: "legend", icon: "⚡", label: "Leyenda", desc: "500 episodios vistos", color: "#DC2626", unlocked: eps >= 500 },
+    { id: "colec", icon: "🗂️", label: "Coleccionista", desc: "10 animes distintos", color: "#DC2626", unlocked: animes >= 10 },
     { id: "racha", icon: "🔥", label: "Racha semanal", desc: "7 días consecutivos", color: "#EF4444", unlocked: streak >= 7 },
     { id: "finish", icon: "✅", label: "Completista", desc: "5 animes completados", color: "#10B981", unlocked: completed >= 5 },
     { id: "mega", icon: "👑", label: "MegaFan", desc: "Plan premium activo", color: "#F59E0B", unlocked: isMegaFan },
@@ -193,28 +193,28 @@ export default function Profile() {
         {/* ── Hero card ── */}
         <div style={{
           borderRadius: 22, marginBottom: 14,
-          border: "1px solid rgba(244,63,94,0.2)",
+          border: "1px solid rgba(220,38,38,0.2)",
           background: "linear-gradient(180deg,#13112b,#0d0b1e)",
           position: "relative",
         }}>
           {/* Banner */}
           <div style={{ height: 90, borderRadius: "20px 20px 0 0", position: "relative", overflow: "hidden", background: "linear-gradient(135deg,#1a1250,#2d1569,#130f2e)" }}>
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 25% 60%,rgba(244,63,94,0.5),transparent 60%)" }} />
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 30%,rgba(236,72,153,0.25),transparent 55%)" }} />
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 55% 90%,rgba(244,63,94,0.15),transparent 50%)" }} />
-            <div style={{ position: "absolute", top: 12, right: 55, width: 36, height: 36, borderRadius: "50%", background: "rgba(244,63,94,0.12)", border: "1px solid rgba(244,63,94,0.2)" }} />
-            <div style={{ position: "absolute", top: 28, right: 95, width: 18, height: 18, borderRadius: "50%", background: "rgba(236,72,153,0.1)", border: "1px solid rgba(236,72,153,0.2)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 25% 60%,rgba(220,38,38,0.5),transparent 60%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 30%,rgba(220,38,38,0.25),transparent 55%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 55% 90%,rgba(220,38,38,0.15),transparent 50%)" }} />
+            <div style={{ position: "absolute", top: 12, right: 55, width: 36, height: 36, borderRadius: "50%", background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.2)" }} />
+            <div style={{ position: "absolute", top: 28, right: 95, width: 18, height: 18, borderRadius: "50%", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }} />
           </div>
 
           {/* Avatar — absolutely positioned so it always overlaps the banner correctly */}
           <div style={{
             position: "absolute", top: 52, left: 18,
             width: 72, height: 72, borderRadius: 20,
-            background: "linear-gradient(135deg,#FF3355,#E11D48)",
+            background: "linear-gradient(135deg,#DC2626,#991B1B)",
             border: "4px solid #13112b",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
-            boxShadow: "0 0 24px rgba(244,63,94,0.5)",
+            boxShadow: "0 0 24px rgba(220,38,38,0.5)",
             zIndex: 2,
           }}>
             {resolveAvatarUrl(user?.avatar_url)
@@ -244,16 +244,16 @@ export default function Profile() {
                   )}
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(244,63,94,0.1)",
-                    border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.4)" : "rgba(244,63,94,0.3)"}`,
+                    background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(220,38,38,0.1)",
+                    border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.4)" : "rgba(220,38,38,0.3)"}`,
                     borderRadius: 20, padding: "3px 8px",
-                    color: isMegaFan ? "#FCD34D" : "#FCA5B5", fontSize: 10, fontWeight: 800,
+                    color: isMegaFan ? "#FCD34D" : "#FECACA", fontSize: 10, fontWeight: 800,
                   }}>
                     {isMegaFan ? <><Crown size={9} /> MegaFan</> : "✦ Gratuito"}
                   </span>
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    background: "rgba(244,63,94,0.12)", border: "1px solid rgba(244,63,94,0.25)",
+                    background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.25)",
                     borderRadius: 20, padding: "3px 8px", color: "#9D8FFF", fontSize: 10, fontWeight: 700,
                   }}>
                     <Zap size={9} /> Nv. {levelInfo.level}
@@ -265,10 +265,10 @@ export default function Profile() {
                 <div style={{ display: "flex", gap: 6, flexShrink: 0, paddingTop: 2 }}>
                   <button onClick={handleCopyLink} style={{
                     display: "flex", alignItems: "center", gap: 4,
-                    background: copied ? "rgba(34,197,94,0.15)" : "rgba(244,63,94,0.1)",
-                    border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(244,63,94,0.3)"}`,
+                    background: copied ? "rgba(34,197,94,0.15)" : "rgba(220,38,38,0.1)",
+                    border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(220,38,38,0.3)"}`,
                     borderRadius: 10, padding: "6px 10px",
-                    color: copied ? "#22C55E" : "#FCA5B5",
+                    color: copied ? "#22C55E" : "#FECACA",
                     cursor: "pointer", fontSize: 11, fontWeight: 700,
                   }}>
                     <Share2 size={11} /> {copied ? "✓" : ""}
@@ -293,15 +293,15 @@ export default function Profile() {
                 <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600 }}>
                   Nivel {levelInfo.level} · {levelInfo.currentXp}/{levelInfo.neededXp} ep.
                 </span>
-                <span style={{ color: "#FCA5B5", fontSize: 11, fontWeight: 700 }}>{levelInfo.progress}%</span>
+                <span style={{ color: "#FECACA", fontSize: 11, fontWeight: 700 }}>{levelInfo.progress}%</span>
               </div>
               <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 99, overflow: "hidden" }}>
                 <div style={{
                   height: "100%", borderRadius: 99,
                   width: `${levelInfo.progress}%`,
-                  background: "linear-gradient(90deg,#E11D48,#FF3355,#FCA5B5)",
+                  background: "linear-gradient(90deg,#991B1B,#DC2626,#FECACA)",
                   transition: "width 0.6s ease",
-                  boxShadow: "0 0 8px rgba(244,63,94,0.5)",
+                  boxShadow: "0 0 8px rgba(220,38,38,0.5)",
                 }} />
               </div>
             </div>
@@ -309,9 +309,9 @@ export default function Profile() {
             {/* Quick stats row */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
               {[
-                { label: "Episodios", value: loadingStats ? "–" : stats?.totalEpisodes ?? 0, color: "#FF3355", icon: <Tv2 size={13} />, bg: "rgba(244,63,94,0.1)" },
+                { label: "Episodios", value: loadingStats ? "–" : stats?.totalEpisodes ?? 0, color: "#DC2626", icon: <Tv2 size={13} />, bg: "rgba(220,38,38,0.1)" },
                 { label: "Horas", value: loadingStats ? "–" : `${stats?.estimatedHours ?? 0}h`, color: "#22C55E", icon: <Clock size={13} />, bg: "rgba(34,197,94,0.1)" },
-                { label: "Completados", value: loadingStats ? "–" : stats?.completed ?? 0, color: "#EC4899", icon: <CheckCircle2 size={13} />, bg: "rgba(236,72,153,0.1)" },
+                { label: "Completados", value: loadingStats ? "–" : stats?.completed ?? 0, color: "#DC2626", icon: <CheckCircle2 size={13} />, bg: "rgba(220,38,38,0.1)" },
                 { label: "Racha", value: loadingStats ? "–" : `${stats?.streak ?? 0}d`, color: "#F59E0B", icon: <Flame size={13} />, bg: "rgba(245,158,11,0.1)" },
               ].map(({ label, value, color, icon, bg }) => (
                 <div key={label} style={{ textAlign: "center", background: bg, borderRadius: 14, padding: "12px 6px", border: `1px solid ${color}22`, position: "relative", overflow: "hidden" }}>
@@ -326,8 +326,8 @@ export default function Profile() {
             {!isMegaFan && user && (
               <button onClick={() => navigate("/membership")} style={{
                 marginTop: 14, width: "100%",
-                background: "linear-gradient(135deg,rgba(244,63,94,0.2),rgba(236,72,153,0.12))",
-                border: "1px solid rgba(244,63,94,0.3)",
+                background: "linear-gradient(135deg,rgba(220,38,38,0.2),rgba(220,38,38,0.12))",
+                border: "1px solid rgba(220,38,38,0.3)",
                 borderRadius: 12, padding: "10px 16px",
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 cursor: "pointer",
@@ -336,7 +336,7 @@ export default function Profile() {
                   <Crown size={14} color="#F59E0B" />
                   <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 800 }}>Hazte MegaFan · Sin límites</span>
                 </div>
-                <ChevronRight size={14} color="#FCA5B5" />
+                <ChevronRight size={14} color="#FECACA" />
               </button>
             )}
           </div>
@@ -352,9 +352,9 @@ export default function Profile() {
                 flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 padding: "9px 10px", borderRadius: 12, border: "none", cursor: "pointer",
                 fontSize: 13, fontWeight: 700, transition: "all 0.15s",
-                background: tab === key ? "rgba(244,63,94,0.25)" : "transparent",
-                color: tab === key ? "#FCA5B5" : "rgba(255,255,255,0.35)",
-                boxShadow: tab === key ? "0 0 0 1px rgba(244,63,94,0.3)" : "none",
+                background: tab === key ? "rgba(220,38,38,0.25)" : "transparent",
+                color: tab === key ? "#FECACA" : "rgba(255,255,255,0.35)",
+                boxShadow: tab === key ? "0 0 0 1px rgba(220,38,38,0.3)" : "none",
               }}
             >
               {icon} {label}
@@ -372,7 +372,7 @@ export default function Profile() {
                   <Trophy size={14} color="#F59E0B" />
                   <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Logros</span>
                 </div>
-                <span style={{ color: "#FCA5B5", fontSize: 12, fontWeight: 700 }}>{unlockedCount}/{achievements.length}</span>
+                <span style={{ color: "#FECACA", fontSize: 12, fontWeight: 700 }}>{unlockedCount}/{achievements.length}</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
                 {achievements.map((a) => (
@@ -400,7 +400,7 @@ export default function Profile() {
             {stats && (
               <div style={{ ...card, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <BarChart2 size={14} color="#FF3355" />
+                  <BarChart2 size={14} color="#DC2626" />
                   <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Actividad esta semana</span>
                   <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 11 }}>últimos 7 días</span>
                 </div>
@@ -414,8 +414,8 @@ export default function Profile() {
                     />
                     <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
                     <Tooltip
-                      contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(244,63,94,0.3)", borderRadius: 10, fontSize: 12 }}
-                      labelStyle={{ color: "#FCA5B5", fontWeight: 700 }}
+                      contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 10, fontSize: 12 }}
+                      labelStyle={{ color: "#FECACA", fontWeight: 700 }}
                       itemStyle={{ color: "#F1F1F5" }}
                       formatter={(v: number) => [`${v} ep.`, "Episodios"]}
                       labelFormatter={(label: string) => DAY_ES[label] ?? label}
@@ -434,7 +434,7 @@ export default function Profile() {
             {topGenres.length > 0 && (
               <div style={{ ...card, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <Sparkles size={14} color="#EC4899" />
+                  <Sparkles size={14} color="#DC2626" />
                   <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Géneros favoritos</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -466,7 +466,7 @@ export default function Profile() {
             {stats && stats.topAnime.length > 0 && (
               <div style={{ ...card, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <TrendingUp size={14} color="#FF3355" />
+                  <TrendingUp size={14} color="#DC2626" />
                   <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Más vistos</span>
                 </div>
                 {stats.topAnime.map((a, i) => (
@@ -491,12 +491,12 @@ export default function Profile() {
             {/* Daily limit for free users */}
             {!isMegaFan && user && (
               <div style={{
-                background: "rgba(244,63,94,0.07)", border: "1px solid rgba(244,63,94,0.18)",
+                background: "rgba(220,38,38,0.07)", border: "1px solid rgba(220,38,38,0.18)",
                 borderRadius: 16, padding: "16px 18px", marginBottom: 14,
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>Episodios gratis hoy</div>
-                  <div style={{ color: "#FCA5B5", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{limitsConfig.dailyLimit}</div>
+                  <div style={{ color: "#FECACA", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{limitsConfig.dailyLimit}</div>
                 </div>
                 <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
                   <div style={{
@@ -504,7 +504,7 @@ export default function Profile() {
                     width: `${Math.min(100, (watchedToday / limitsConfig.dailyLimit) * 100)}%`,
                     background: watchedToday >= limitsConfig.dailyLimit
                       ? "linear-gradient(90deg,#EF4444,#F87171)"
-                      : "linear-gradient(90deg,#FF3355,#FCA5B5)",
+                      : "linear-gradient(90deg,#DC2626,#FECACA)",
                     transition: "width 0.4s",
                   }} />
                 </div>
@@ -526,7 +526,7 @@ export default function Profile() {
         {tab === "favoritos" && (
           <div style={card}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <Heart size={14} color="#EC4899" />
+              <Heart size={14} color="#DC2626" />
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Favoritos</span>
               <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{favorites.length} animes</span>
             </div>
@@ -562,9 +562,9 @@ export default function Profile() {
         {tab === "lista" && (
           <div style={card}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <List size={14} color="#FF3355" />
+              <List size={14} color="#DC2626" />
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Mi lista</span>
-              <button onClick={() => navigate("/watchlist")} style={{ marginLeft: "auto", background: "none", border: "none", color: "#FF3355", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              <button onClick={() => navigate("/watchlist")} style={{ marginLeft: "auto", background: "none", border: "none", color: "#DC2626", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                 Ver lista completa →
               </button>
             </div>
@@ -583,7 +583,7 @@ export default function Profile() {
                       </div>
                     )}
                     {a.status === "watching" && (
-                      <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(244,63,94,0.9)", borderRadius: 5, padding: "2px 5px" }}>
+                      <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(220,38,38,0.9)", borderRadius: 5, padding: "2px 5px" }}>
                         <span style={{ color: "#fff", fontSize: 8, fontWeight: 700 }}>▶</span>
                       </div>
                     )}

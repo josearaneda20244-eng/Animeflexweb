@@ -132,7 +132,7 @@ export default function Navbar() {
     <>
       <nav
         className="fixed top-0 left-0 right-0 z-50"
-        style={{ background: "rgba(7,7,11,0.78)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderBottom: "1px solid rgba(244,63,94,0.14)", boxShadow: "0 6px 28px rgba(0,0,0,0.45)" }}
+        style={{ background: "rgba(7,7,11,0.78)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderBottom: "1px solid rgba(220,38,38,0.14)", boxShadow: "0 6px 28px rgba(0,0,0,0.45)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 58 }}>
           {/* Logo */}
@@ -140,13 +140,13 @@ export default function Navbar() {
             <div style={{
               width: 32, height: 32, borderRadius: 10,
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: "linear-gradient(135deg,#FF5C7A 0%,#FF3355 50%,#E11D48 100%)",
-              boxShadow: "0 6px 18px rgba(244,63,94,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
+              background: "linear-gradient(135deg,#FCA5A5 0%,#DC2626 50%,#991B1B 100%)",
+              boxShadow: "0 6px 18px rgba(220,38,38,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
             }}>
               <span style={{ color: "#fff", fontSize: 13, fontWeight: 900, lineHeight: 1, marginLeft: 1 }}>▶</span>
             </div>
             <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1 }}>
-              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ background: "linear-gradient(135deg,#FCA5B5,#FF3355)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
+              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
             </span>
           </Link>
 
@@ -315,7 +315,7 @@ export default function Navbar() {
                     >
                       <div style={{
                         width: 28, height: 28, borderRadius: 8,
-                        background: "linear-gradient(135deg,#FF3355,#E11D48)",
+                        background: "linear-gradient(135deg,#DC2626,#991B1B)",
                         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
                       }}>
@@ -354,7 +354,7 @@ export default function Navbar() {
                             title="Cambiar foto de perfil"
                             style={{
                               position: "relative", width: 56, height: 56, borderRadius: 16, padding: 0, border: "none",
-                              background: "linear-gradient(135deg,#FF3355,#E11D48)",
+                              background: "linear-gradient(135deg,#DC2626,#991B1B)",
                               boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
                               overflow: "hidden", flexShrink: 0, cursor: "pointer",
                               outline: "3px solid #14122a",

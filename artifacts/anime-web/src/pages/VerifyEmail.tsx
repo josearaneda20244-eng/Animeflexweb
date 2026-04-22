@@ -44,18 +44,18 @@ export default function VerifyEmail() {
 
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 32 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#FF3355,#E11D48)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#DC2626,#991B1B)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>▶</span>
           </div>
           <span style={{ fontSize: 16, fontWeight: 900 }}>
-            <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#FF3355" }}>FLEX</span>
+            <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ color: "#DC2626" }}>FLEX</span>
           </span>
         </div>
 
         {status === "loading" && (
           <>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(244,63,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-              <Loader2 size={28} color="#FCA5B5" style={{ animation: "spin 1s linear infinite" }} />
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(220,38,38,0.12)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+              <Loader2 size={28} color="#FECACA" style={{ animation: "spin 1s linear infinite" }} />
             </div>
             <h2 style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 800, margin: "0 0 8px" }}>Verificando...</h2>
             <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 14 }}>Estamos confirmando tu correo electrónico</p>
@@ -91,7 +91,7 @@ export default function VerifyEmail() {
             </p>
             <button
               onClick={() => navigate("/settings")}
-              style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#FF3355,#E11D48)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}
+              style={{ width: "100%", padding: "13px 0", borderRadius: 12, border: "none", background: "linear-gradient(135deg,#DC2626,#991B1B)", color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer" }}
             >
               Ir a Ajustes
             </button>

@@ -17,7 +17,7 @@ interface Comment {
   reply_count: number;
 }
 
-const AVATAR_COLORS = ["#FF3355", "#EC4899", "#22C55E", "#F59E0B", "#fff", "#EF4444", "#fff"];
+const AVATAR_COLORS = ["#DC2626", "#DC2626", "#22C55E", "#F59E0B", "#fff", "#EF4444", "#fff"];
 
 function getAvatarColor(name: string) {
   let hash = 0;
@@ -117,10 +117,10 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
   };
 
   return (
-    <div style={{ marginTop: 8, marginLeft: 40, borderLeft: "2px solid rgba(244,63,94,0.2)", paddingLeft: 12 }}>
+    <div style={{ marginTop: 8, marginLeft: 40, borderLeft: "2px solid rgba(220,38,38,0.2)", paddingLeft: 12 }}>
       {loading ? (
         <div style={{ padding: "8px 0" }}>
-          <Loader2 size={14} color="rgba(244,63,94,0.5)" style={{ animation: "spin 1s linear infinite" }} />
+          <Loader2 size={14} color="rgba(220,38,38,0.5)" style={{ animation: "spin 1s linear infinite" }} />
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
@@ -153,7 +153,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
                 )}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <button onClick={() => toggleLike(r.id)} disabled={!token}
-                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 6, background: r.likedByMe ? "rgba(236,72,153,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${r.likedByMe ? "rgba(236,72,153,0.3)" : "rgba(255,255,255,0.07)"}`, color: r.likedByMe ? "#EC4899" : "rgba(255,255,255,0.35)", cursor: token ? "pointer" : "default", fontSize: 11, fontWeight: 600 }}>
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 6, background: r.likedByMe ? "rgba(220,38,38,0.12)" : "rgba(255,255,255,0.04)", border: `1px solid ${r.likedByMe ? "rgba(220,38,38,0.3)" : "rgba(255,255,255,0.07)"}`, color: r.likedByMe ? "#DC2626" : "rgba(255,255,255,0.35)", cursor: token ? "pointer" : "default", fontSize: 11, fontWeight: 600 }}>
                     <Heart size={10} fill={r.likedByMe ? "currentColor" : "none"} />
                     {r.likes > 0 && r.likes}
                   </button>
@@ -183,7 +183,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
               maxLength={500}
               rows={2}
               style={{ width: "100%", padding: "7px 10px", borderRadius: 8, background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", color: "#F1F1F5", fontSize: 12, outline: "none", fontFamily: "inherit", resize: "none", boxSizing: "border-box" }}
-              onFocus={(e) => (e.target.style.borderColor = "rgba(244,63,94,0.4)")}
+              onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.4)")}
               onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
             />
             {error && <div style={{ color: "#EF4444", fontSize: 11, marginTop: 3 }}>{error}</div>}
@@ -193,7 +193,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
                 Cancelar
               </button>
               <button type="submit" disabled={!replyText.trim() || posting}
-                style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 7, background: replyText.trim() && !posting ? "linear-gradient(135deg,#FF3355,#E11D48)" : "rgba(255,255,255,0.07)", border: "none", color: replyText.trim() && !posting ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 11, fontWeight: 700, cursor: replyText.trim() && !posting ? "pointer" : "not-allowed" }}>
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 7, background: replyText.trim() && !posting ? "linear-gradient(135deg,#DC2626,#991B1B)" : "rgba(255,255,255,0.07)", border: "none", color: replyText.trim() && !posting ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 11, fontWeight: 700, cursor: replyText.trim() && !posting ? "pointer" : "not-allowed" }}>
                 {posting ? <Loader2 size={11} style={{ animation: "spin 1s linear infinite" }} /> : <Send size={11} />}
                 {posting ? "..." : "Responder"}
               </button>
@@ -314,8 +314,8 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
     <div style={{ marginTop: 32, padding: "0 0 16px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 3, height: 20, borderRadius: 2, background: "#FF3355" }} />
-          <MessageCircle size={16} color="#FF3355" />
+          <div style={{ width: 3, height: 20, borderRadius: 2, background: "#DC2626" }} />
+          <MessageCircle size={16} color="#DC2626" />
           <span style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>
             Comentarios <span style={{ color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>({comments.length})</span>
           </span>
@@ -324,7 +324,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
           <div style={{ display: "flex", background: "#0a0a0a", borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
             {(["new", "top"] as const).map((s) => (
               <button key={s} onClick={() => setSortBy(s)}
-                style={{ padding: "6px 14px", background: sortBy === s ? "rgba(244,63,94,0.2)" : "transparent", border: "none", color: sortBy === s ? "#FCA5B5" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                style={{ padding: "6px 14px", background: sortBy === s ? "rgba(220,38,38,0.2)" : "transparent", border: "none", color: sortBy === s ? "#FECACA" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                 {s === "new" ? "Recientes" : "Populares"}
               </button>
             ))}
@@ -346,7 +346,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
               maxLength={500}
               rows={3}
               style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
-              onFocus={(e) => (e.target.style.borderColor = "rgba(244,63,94,0.4)")}
+              onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.4)")}
               onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
             />
             <span style={{ position: "absolute", bottom: 8, right: 10, color: "rgba(255,255,255,0.2)", fontSize: 10 }}>{text.length}/500</span>
@@ -354,13 +354,13 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 10 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}>
               <div onClick={() => setIsSpoiler((v) => !v)}
-                style={{ width: 32, height: 18, borderRadius: 9, background: isSpoiler ? "#FF3355" : "rgba(255,255,255,0.1)", position: "relative", cursor: "pointer", transition: "background 0.2s" }}>
+                style={{ width: 32, height: 18, borderRadius: 9, background: isSpoiler ? "#DC2626" : "rgba(255,255,255,0.1)", position: "relative", cursor: "pointer", transition: "background 0.2s" }}>
                 <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: isSpoiler ? 16 : 2, transition: "left 0.2s" }} />
               </div>
-              <span style={{ color: isSpoiler ? "#FCA5B5" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600 }}>Spoiler</span>
+              <span style={{ color: isSpoiler ? "#FECACA" : "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: 600 }}>Spoiler</span>
             </label>
             <button type="submit" disabled={!text.trim() || posting}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: text.trim() && !posting ? "linear-gradient(135deg,#FF3355,#E11D48)" : "rgba(255,255,255,0.07)", border: "none", color: text.trim() && !posting ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 13, fontWeight: 700, cursor: text.trim() && !posting ? "pointer" : "not-allowed" }}>
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: text.trim() && !posting ? "linear-gradient(135deg,#DC2626,#991B1B)" : "rgba(255,255,255,0.07)", border: "none", color: text.trim() && !posting ? "#fff" : "rgba(255,255,255,0.25)", fontSize: 13, fontWeight: 700, cursor: text.trim() && !posting ? "pointer" : "not-allowed" }}>
               {posting ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <Send size={13} />}
               {posting ? "Publicando..." : "Publicar"}
             </button>
@@ -375,7 +375,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: "32px 0" }}>
-          <Loader2 size={24} color="rgba(244,63,94,0.5)" style={{ margin: "0 auto", animation: "spin 1s linear infinite" }} />
+          <Loader2 size={24} color="rgba(220,38,38,0.5)" style={{ margin: "0 auto", animation: "spin 1s linear infinite" }} />
         </div>
       ) : sorted.length === 0 ? (
         <div style={{ textAlign: "center", padding: "32px 0" }}>
@@ -420,14 +420,14 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
 
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                   <button onClick={() => toggleLike(c.id)} disabled={!token}
-                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8, background: c.likedByMe ? "rgba(236,72,153,0.12)" : "rgba(255,255,255,0.05)", border: `1px solid ${c.likedByMe ? "rgba(236,72,153,0.3)" : "rgba(255,255,255,0.08)"}`, color: c.likedByMe ? "#EC4899" : "rgba(255,255,255,0.4)", cursor: token ? "pointer" : "default", fontSize: 12, fontWeight: 600 }}>
+                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8, background: c.likedByMe ? "rgba(220,38,38,0.12)" : "rgba(255,255,255,0.05)", border: `1px solid ${c.likedByMe ? "rgba(220,38,38,0.3)" : "rgba(255,255,255,0.08)"}`, color: c.likedByMe ? "#DC2626" : "rgba(255,255,255,0.4)", cursor: token ? "pointer" : "default", fontSize: 12, fontWeight: 600 }}>
                     <Heart size={11} fill={c.likedByMe ? "currentColor" : "none"} />
                     {c.likes > 0 && c.likes}
                   </button>
 
                   {token && (
                     <button onClick={() => { setReplyingTo(isReplying ? null : c.id); if (!repliesExpanded && !isReplying) setExpandedReplies((p) => new Set([...p, c.id])); }}
-                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8, background: isReplying ? "rgba(244,63,94,0.12)" : "rgba(255,255,255,0.05)", border: `1px solid ${isReplying ? "rgba(244,63,94,0.3)" : "rgba(255,255,255,0.08)"}`, color: isReplying ? "#FCA5B5" : "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                      style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8, background: isReplying ? "rgba(220,38,38,0.12)" : "rgba(255,255,255,0.05)", border: `1px solid ${isReplying ? "rgba(220,38,38,0.3)" : "rgba(255,255,255,0.08)"}`, color: isReplying ? "#FECACA" : "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                       <Reply size={11} />
                       Responder
                     </button>
@@ -435,7 +435,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
 
                   {c.reply_count > 0 && (
                     <button onClick={() => toggleReplies(c.id)}
-                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: repliesExpanded ? "rgba(244,63,94,0.08)" : "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+                      style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 8, background: repliesExpanded ? "rgba(220,38,38,0.08)" : "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
                       {repliesExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                       {repliesExpanded ? "Ocultar" : `${c.reply_count} respuesta${c.reply_count > 1 ? "s" : ""}`}
                     </button>
