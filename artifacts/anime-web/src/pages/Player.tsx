@@ -16,6 +16,7 @@ import {
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
 import { useAuth } from "@/context/AuthContext";
+import { CornerBrackets, SystemTag, ScanLines } from "@/components/SystemUI";
 import { apiClient } from "@/lib/apiClient";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
 import {
@@ -1199,16 +1200,19 @@ export default function Player() {
 
   return (
     <div style={{ background: "#090A12", minHeight: "100vh" }}>
-      {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(9,10,18,0.98)" }}>
+      {/* Top bar — SISTEMA HUD */}
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(244,63,94,0.18)", background: "linear-gradient(180deg, rgba(13,13,26,0.98), rgba(9,10,18,0.98))", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 0% 50%, rgba(244,63,94,0.10), transparent 55%)", pointerEvents: "none" }} />
+        <CornerBrackets color="#FF3355" size={12} thickness={1.5} inset={4} />
         <button onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
-          style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex", color: "rgba(255,255,255,0.65)", flexShrink: 0 }}>
+          style={{ position: "relative", padding: 8, borderRadius: 10, background: "rgba(244,63,94,0.10)", border: "1px solid rgba(244,63,94,0.25)", cursor: "pointer", display: "flex", color: "#FCA5B5", flexShrink: 0 }}>
           <ArrowLeft size={18} />
         </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{animeTitle}</div>
-          <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>
-            Episodio {episodeNum}
+        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+          <div style={{ color: "#FF6680", fontSize: 9, fontWeight: 800, letterSpacing: 2, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", marginBottom: 1, textTransform: "uppercase" }}>[ SISTEMA · REPRODUCIENDO ]</div>
+          <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: 0.2 }}>{animeTitle}</div>
+          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
+            &gt; EP_{String(episodeNum).padStart(2, "0")}
             {!isMegaFan && remaining <= 2 && remaining > 0 && (
               <span style={{ marginLeft: 8, color: "#F59E0B", fontSize: 10, fontWeight: 700 }}>
                 · {remaining} ep. gratis {remaining === 1 ? "restante" : "restantes"} hoy
@@ -1241,7 +1245,11 @@ export default function Player() {
         {/* Player column */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
-          <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9" }}>
+          <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9", boxShadow: "inset 0 0 0 1px rgba(244,63,94,0.18), 0 0 60px rgba(244,63,94,0.12)" }}>
+            {/* SISTEMA frame on player */}
+            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 6 }}>
+              <CornerBrackets color="#FF3355" size={18} thickness={2} inset={8} />
+            </div>
 
             {/* ── Límite de episodios — Modal premium ── */}
             {showLimitModal && (

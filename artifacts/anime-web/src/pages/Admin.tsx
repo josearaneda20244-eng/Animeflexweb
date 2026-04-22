@@ -1948,10 +1948,17 @@ export default function Admin() {
         @keyframes fadeUp { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes glowPulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.75; } }
         @media (max-width: 768px) {
-          .admin-sidebar { transform: translateX(-100%) !important; }
+          .admin-sidebar { transform: translateX(-100%) !important; width: 80% !important; max-width: 280px !important; }
           .admin-sidebar.open { transform: translateX(0) !important; }
           .sidebar-toggle { display: flex !important; }
           .admin-main { margin-left: 0 !important; }
+          .admin-content { padding: 16px 12px !important; }
+          .admin-topbar { padding: 0 14px !important; height: 56px !important; }
+          .admin-topbar-crumbs { font-size: 12px !important; }
+          .admin-topbar-username { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .admin-content { padding: 14px 10px !important; }
         }
       `}</style>
 
@@ -2007,14 +2014,14 @@ export default function Admin() {
       {/* Main */}
       <div className="admin-main" style={{ flex: 1, marginLeft: 230, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         {/* Topbar */}
-        <div style={{ height: 60, background: "rgba(13,13,26,0.96)", borderBottom: "1px solid rgba(244,63,94,0.12)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, boxShadow: "0 18px 40px rgba(0,0,0,0.18)" }}>
+        <div className="admin-topbar" style={{ height: 60, background: "rgba(13,13,26,0.96)", borderBottom: "1px solid rgba(244,63,94,0.12)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, boxShadow: "0 18px 40px rgba(0,0,0,0.18)" }}>
           <button onClick={() => setSidebarOpen(true)} className="sidebar-toggle" style={{ display: "none", background: "none", border: "none", cursor: "pointer", color: "#F1F1F5", padding: 4 }}>
             <Menu size={20} />
           </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="admin-topbar-crumbs" style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden" }}>
             <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}>AnimeFlex</span>
             <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>
-            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>{NAV.find(n => n.key === section)?.label}</span>
+            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{NAV.find(n => n.key === section)?.label}</span>
           </div>
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2028,12 +2035,12 @@ export default function Admin() {
             <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#FF3355,#E11D48)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 900 }}>
               {user.username.charAt(0).toUpperCase()}
             </div>
-            <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600 }}>{user.username}</span>
+            <span className="admin-topbar-username" style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600 }}>{user.username}</span>
           </div>
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, padding: "28px 24px", maxWidth: 1180, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+        <div className="admin-content" style={{ flex: 1, padding: "28px 24px", maxWidth: 1180, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={section}

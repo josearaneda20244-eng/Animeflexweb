@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
   import { useLocation } from "wouter";
+  import { motion } from "framer-motion";
+  import { CornerBrackets, SystemTag, ScanLines } from "@/components/SystemUI";
   import { Play, Info, Star, ChevronLeft, ChevronRight, Tv } from "lucide-react";
   import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
   import { fetchAiringSchedule, fetchSeasonalAnime, getCurrentSeason, seasonLabel, type AiringEntry, type SeasonAnime } from "@/lib/anilist";
@@ -137,10 +139,20 @@ import { useQuery } from "@tanstack/react-query";
 
     return (
       <div style={{ position: "relative", height: "min(70vw, 580px)", overflow: "hidden", margin: "0" }}>
-        <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", filter: "saturate(1.03) brightness(0.9)", transition: "opacity 0.6s" }} />
+        <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", filter: "saturate(1.03) brightness(0.88)", transition: "opacity 0.6s" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7) 65%, #000 100%), linear-gradient(180deg, rgba(0,0,0,0.55), transparent 35%)" }} />
         <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(270deg, transparent 40%, rgba(0,0,0,0.54) 80%)" }} />
-        <div style={{ position: "absolute", bottom: 34, left: 34, maxWidth: 560, zIndex: 2 }}>
+        {/* SL system frame: scanlines + corner brackets + crimson vignette */}
+        <ScanLines color="rgba(244,63,94,0.05)" />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 85% 0%, rgba(244,63,94,0.22) 0%, transparent 55%)", pointerEvents: "none", zIndex: 1 }} />
+        <CornerBrackets color="#FF3355" size={22} thickness={2} inset={14} />
+        <div style={{ position: "absolute", bottom: "clamp(20px, 5vw, 38px)", left: "clamp(16px, 4vw, 38px)", right: "clamp(16px, 4vw, 38px)", maxWidth: 620, zIndex: 2 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+              style={{ marginBottom: 10 }}
+            >
+              <SystemTag color="#FF3355">[ SISTEMA · DESTACADO ]</SystemTag>
+            </motion.div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
               <span style={{ background: "linear-gradient(135deg, rgba(255,92,122,0.9), rgba(244,63,94,0.85))", backdropFilter: "blur(6px)", borderRadius: 999, padding: "4px 12px", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: 1, border: "1px solid rgba(252,165,181,0.35)" }}>✦ DESTACADO</span>
               {anime.status === "Ongoing" && (
@@ -192,9 +204,12 @@ import { useQuery } from "@tanstack/react-query";
   function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #FF3355, #E11D48)", flexShrink: 0 }} />
-          <span style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: -0.3 }}>{title}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #FF3355, #E11D48)", flexShrink: 0, boxShadow: "0 0 14px rgba(244,63,94,0.55)" }} />
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <span style={{ fontSize: 9, fontWeight: 800, color: "#FF6680", letterSpacing: 2, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", textTransform: "uppercase", lineHeight: 1, marginBottom: 3 }}>[ SISTEMA ]</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: -0.3, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
+          </div>
         </div>
         {onSeeAll && (
           <button onClick={onSeeAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.22)", borderRadius: 20, color: "#FCA5B5", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}

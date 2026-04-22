@@ -14,6 +14,7 @@ import { useHistory } from "@/context/HistoryContext";
 import { useWatchProgress } from "@/context/WatchProgressContext";
 import { useWatchList, type WatchStatus } from "@/context/WatchListContext";
 import CommentsSection from "@/components/CommentsSection";
+import { CornerBrackets, SystemTag, ScanLines } from "@/components/SystemUI";
 import { useAuth } from "@/context/AuthContext";
 import AdBanner from "@/components/AdBanner";
 
@@ -426,7 +427,13 @@ export default function AnimeDetail() {
         {/* Side fade */}
         <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.7) 0%, transparent 50%, rgba(0,0,0,0.4) 100%)" }} />
         {/* Crimson vignette */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 80% 0%, rgba(244,63,94,0.18) 0%, transparent 60%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 80% 0%, rgba(244,63,94,0.22) 0%, transparent 60%)" }} />
+        {/* SL system frame */}
+        <ScanLines color="rgba(244,63,94,0.045)" />
+        <CornerBrackets color="#FF3355" size={20} thickness={2} inset={12} />
+        <div className="absolute" style={{ top: 14, right: 16, zIndex: 4 }}>
+          <SystemTag color="#FF3355">[ EXPEDIENTE · ANIMEFLEX ]</SystemTag>
+        </div>
 
         <motion.button
           onClick={() => navigate("/")}
