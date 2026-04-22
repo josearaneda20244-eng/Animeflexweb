@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
-import { X, Mail, Lock, User, Eye, EyeOff, LogIn, UserPlus, KeyRound, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Mail, Lock, User, Eye, EyeOff, KeyRound, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
+import { CornerBrackets, MagicCircle, HexGrid } from "@/components/SystemUI";
 
 interface AuthModalProps {
   onClose: () => void;
@@ -51,6 +52,11 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     }
   };
 
+  const tabLabel =
+    tab === "login" ? "ACCESO · NIVEL 01" :
+    tab === "register" ? "REGISTRO · NUEVO CAZADOR" :
+    "RECUPERACIÓN · CONTRASEÑA";
+
   return createPortal(
     <motion.div
       onClick={onClose}
@@ -59,8 +65,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.22 }}
       style={{
-        position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
-        background: "rgba(0,0,0,0.82)", backdropFilter: "blur(12px) saturate(150%)",
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "radial-gradient(ellipse at center, rgba(40,8,8,0.6), rgba(0,0,0,0.92))",
+        backdropFilter: "blur(14px) saturate(140%)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 16, overflowY: "auto",
       }}
@@ -72,179 +79,372 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         exit={{ opacity: 0, scale: 0.92, y: 20 }}
         transition={{ type: "spring", stiffness: 320, damping: 26 }}
         style={{
-          width: "100%", maxWidth: 410,
-          background: "linear-gradient(180deg, #0e0e1c 0%, #0a0a14 100%)",
-          border: "1px solid rgba(255,255,255,0.08)", borderRadius: 22,
-          overflow: "hidden",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(220,38,38,0.18), 0 0 60px rgba(220,38,38,0.12)",
-          margin: "auto", position: "relative",
+          width: "100%", maxWidth: 440,
+          position: "relative", margin: "auto",
         }}
       >
-        {/* Header */}
-        <div style={{ padding: "20px 24px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {tab === "forgot" && (
-              <button
-                onClick={() => switchTab("login")}
-                style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex", marginRight: 2 }}
-              >
-                <ArrowLeft size={14} color="rgba(255,255,255,0.6)" />
-              </button>
-            )}
-            <div style={{
-              width: 28, height: 28, borderRadius: 8,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "linear-gradient(135deg,#FCA5A5,#DC2626 50%,#991B1B)",
-              boxShadow: "0 4px 12px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.22)",
-            }}>
-              <span style={{ color: "#fff", fontSize: 11, fontWeight: 900, marginLeft: 1 }}>▶</span>
-            </div>
-            <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: -0.3 }}>
-              <span style={{ color: "#F1F1F5" }}>Anime</span>
-              <span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
-            </span>
-          </div>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.07)", border: "none", cursor: "pointer", display: "flex" }}>
-            <X size={15} color="rgba(255,255,255,0.6)" />
-          </button>
+        {/* Floating magic circles in background */}
+        <div style={{ position: "absolute", top: -80, left: "50%", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 0 }}>
+          <MagicCircle size={300} color="#DC2626" opacity={0.35} />
         </div>
 
-        {/* Tabs (only login/register) */}
-        {tab !== "forgot" && (
-          <div style={{ display: "flex", margin: "20px 24px 0", background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: 4 }}>
-            {(["login", "register"] as const).map((t) => (
-              <button key={t} onClick={() => switchTab(t)} style={{
-                flex: 1, padding: "9px 0", borderRadius: 9, border: "none", cursor: "pointer",
-                background: tab === t ? "linear-gradient(135deg,#DC2626,#991B1B)" : "transparent",
-                color: tab === t ? "#fff" : "rgba(255,255,255,0.5)",
-                fontSize: 13, fontWeight: 700, transition: "all 0.2s",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        {/* Main system panel */}
+        <div style={{
+          position: "relative",
+          background: "linear-gradient(180deg, rgba(20,8,18,0.96) 0%, rgba(8,3,12,0.98) 100%)",
+          border: "1px solid rgba(220,38,38,0.55)",
+          clipPath: "polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px)",
+          boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 80px rgba(0,0,0,0.85), 0 0 60px rgba(220,38,38,0.35), 0 0 120px rgba(249,115,22,0.18)",
+          overflow: "hidden",
+        }}>
+          {/* Hex grid background */}
+          <HexGrid color="rgba(220,38,38,0.06)" size={26} fade />
+
+          {/* Scan lines */}
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "repeating-linear-gradient(0deg, rgba(249,115,22,0.025) 0px, rgba(249,115,22,0.025) 1px, transparent 1px, transparent 4px)",
+            pointerEvents: "none", zIndex: 1,
+          }} />
+
+          {/* Top accent line */}
+          <div style={{
+            position: "absolute", top: 0, left: 18, right: 18, height: 1,
+            background: "linear-gradient(90deg, transparent, #F97316 30%, #DC2626 50%, #F97316 70%, transparent)",
+            boxShadow: "0 0 12px #F97316",
+          }} />
+
+          {/* Corner brackets */}
+          <CornerBrackets color="#F97316" size={18} thickness={2} inset={6} />
+
+          {/* Close btn */}
+          <button onClick={onClose} style={{
+            position: "absolute", top: 16, right: 16, zIndex: 5,
+            width: 28, height: 28,
+            background: "rgba(220,38,38,0.15)",
+            border: "1px solid rgba(220,38,38,0.5)",
+            color: "#FECACA",
+            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
+          }}>
+            <X size={14} />
+          </button>
+
+          <div style={{ position: "relative", zIndex: 2, padding: "30px 26px 26px" }}>
+            {/* Header */}
+            <div style={{ textAlign: "center", marginBottom: 22 }}>
+              {/* Sys label */}
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 8,
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                fontSize: 9.5, fontWeight: 800, letterSpacing: 3,
+                color: "#FDBA74", textShadow: "0 0 10px rgba(249,115,22,0.7)",
+                marginBottom: 14,
               }}>
-                {t === "login" ? <><LogIn size={13} /> Iniciar sesión</> : <><UserPlus size={13} /> Registrarse</>}
-              </button>
-            ))}
-          </div>
-        )}
+                <motion.span
+                  animate={{ opacity: [1, 0.2, 1] }}
+                  transition={{ duration: 1.4, repeat: Infinity }}
+                  style={{ width: 7, height: 7, background: "#F97316", boxShadow: "0 0 10px #F97316" }}
+                />
+                {`[ ${tabLabel} ]`}
+              </div>
 
-        {/* Forgot password title */}
-        {tab === "forgot" && (
-          <div style={{ padding: "20px 24px 0" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(220,38,38,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <KeyRound size={15} color="#FECACA" />
+              {/* Brand */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 10 }}>
+                {tab === "forgot" && (
+                  <button
+                    onClick={() => switchTab("login")}
+                    style={{
+                      background: "rgba(249,115,22,0.12)",
+                      border: "1px solid rgba(249,115,22,0.4)",
+                      width: 26, height: 26, color: "#FDBA74",
+                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                      clipPath: "polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px)",
+                    }}
+                  >
+                    <ArrowLeft size={13} />
+                  </button>
+                )}
+                <motion.div
+                  animate={{
+                    boxShadow: [
+                      "0 0 18px rgba(220,38,38,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
+                      "0 0 36px rgba(220,38,38,0.85), inset 0 1px 0 rgba(255,255,255,0.22)",
+                      "0 0 18px rgba(220,38,38,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
+                    ],
+                  }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                  style={{
+                    width: 38, height: 38,
+                    background: "linear-gradient(135deg, #FCA5A5 0%, #DC2626 50%, #991B1B 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    clipPath: "polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px)",
+                  }}
+                >
+                  <span style={{ color: "#fff", fontSize: 17, fontWeight: 900, marginLeft: 2, lineHeight: 1 }}>▶</span>
+                </motion.div>
+                <span style={{ fontSize: 24, fontWeight: 900, letterSpacing: -0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+                  <span style={{ color: "#F1F1F5" }}>Anime</span>
+                  <span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
+                </span>
               </div>
-              <div>
-                <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>Recuperar contraseña</div>
-                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>Te enviaremos un enlace por email</div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Forgot sent success state */}
-        {forgotSent ? (
-          <div style={{ padding: "24px 24px 28px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
-            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <CheckCircle2 size={26} color="#22C55E" />
+              {tab === "forgot" && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>
+                  <KeyRound size={12} color="#FDBA74" />
+                  <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11.5, letterSpacing: 0.4 }}>
+                    Te enviaremos un enlace al correo
+                  </span>
+                </div>
+              )}
             </div>
-            <div>
-              <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800, marginBottom: 6 }}>¡Revisa tu bandeja!</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>
-                Si el correo está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos.
-              </div>
-            </div>
-            <button
-              onClick={() => switchTab("login")}
-              style={{ padding: "11px 24px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#F1F1F5", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
-            >
-              Volver al inicio de sesión
-            </button>
-          </div>
-        ) : (
-          /* Form */
-          <form onSubmit={handleSubmit} style={{ padding: "20px 24px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-            {tab === "register" && (
-              <Field icon={<User size={15} />} placeholder="Nombre de usuario" value={username}
-                onChange={setUsername} type="text" required />
-            )}
-            <Field icon={<Mail size={15} />} placeholder="Correo electrónico" value={email}
-              onChange={setEmail} type="email" required />
+
+            {/* Tab switcher */}
             {tab !== "forgot" && (
-              <div style={{ position: "relative" }}>
-                <Field icon={<Lock size={15} />} placeholder="Contraseña" value={password}
-                  onChange={setPassword} type={showPass ? "text" : "password"} required />
-                <button type="button" onClick={() => setShowPass(v => !v)}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}>
-                  {showPass ? <EyeOff size={15} color="rgba(255,255,255,0.35)" /> : <Eye size={15} color="rgba(255,255,255,0.35)" />}
-                </button>
+              <div style={{
+                display: "flex", marginBottom: 22,
+                background: "rgba(4,3,10,0.75)",
+                border: "1px solid rgba(249,115,22,0.25)",
+                clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
+                padding: 4,
+              }}>
+                {(["login", "register"] as const).map((t) => {
+                  const active = tab === t;
+                  return (
+                    <button key={t} onClick={() => switchTab(t)} style={{
+                      flex: 1, padding: "9px 6px",
+                      border: "none", cursor: "pointer",
+                      background: active
+                        ? "linear-gradient(135deg, rgba(220,38,38,0.85), rgba(153,27,27,0.85))"
+                        : "transparent",
+                      color: active ? "#fff" : "rgba(255,255,255,0.45)",
+                      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                      fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase",
+                      transition: "all 0.2s",
+                      clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
+                      textShadow: active ? "0 0 8px rgba(255,255,255,0.4)" : "none",
+                      boxShadow: active ? "0 0 16px rgba(220,38,38,0.5)" : "none",
+                    }}>
+                      {t === "login" ? "// ACCESO" : "// REGISTRO"}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
-            {error && (
-              <div style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10, padding: "10px 14px", color: "#FCA5A5", fontSize: 13 }}>
-                {error}
-              </div>
-            )}
+            <AnimatePresence mode="wait">
+              {forgotSent ? (
+                <motion.div
+                  key="sent"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center", padding: "12px 4px 4px" }}
+                >
+                  <div style={{
+                    width: 56, height: 56,
+                    background: "rgba(34,197,94,0.12)",
+                    border: "1px solid rgba(34,197,94,0.4)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
+                    boxShadow: "0 0 24px rgba(34,197,94,0.35)",
+                  }}>
+                    <CheckCircle2 size={26} color="#22C55E" />
+                  </div>
+                  <div>
+                    <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 900, marginBottom: 6, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, textTransform: "uppercase" }}>
+                      &gt; Mensaje enviado
+                    </div>
+                    <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 12, lineHeight: 1.6 }}>
+                      Si el correo está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => switchTab("login")}
+                    className="sys-btn"
+                    style={{ marginTop: 4 }}
+                  >
+                    ← Volver al acceso
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.form
+                  key={tab}
+                  onSubmit={handleSubmit}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22 }}
+                  style={{ display: "flex", flexDirection: "column", gap: 12 }}
+                >
+                  {tab === "register" && (
+                    <SysField icon={<User size={14} />} label="// USUARIO" placeholder="Nombre de cazador" value={username}
+                      onChange={setUsername} type="text" required />
+                  )}
+                  <SysField icon={<Mail size={14} />} label="// IDENT_EMAIL" placeholder="correo@dominio.com" value={email}
+                    onChange={setEmail} type="email" required />
+                  {tab !== "forgot" && (
+                    <SysField
+                      icon={<Lock size={14} />}
+                      label="// CLAVE_ACCESO"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={setPassword}
+                      type={showPass ? "text" : "password"}
+                      required
+                      adornment={
+                        <button type="button" onClick={() => setShowPass(v => !v)}
+                          style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 4, color: "#FDBA74" }}>
+                          {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      }
+                    />
+                  )}
 
-            <button type="submit" disabled={loading} style={{
-              marginTop: 4, padding: "13px 0", borderRadius: 12, border: "none", cursor: loading ? "not-allowed" : "pointer",
-              background: loading ? "rgba(220,38,38,0.4)" : "linear-gradient(135deg,#FCA5A5,#F43F5E,#991B1B)",
-              color: "#fff", fontSize: 14, fontWeight: 800,
-              transition: "transform 0.2s cubic-bezier(.22,.68,0,1.2), box-shadow 0.2s, filter 0.2s",
-              boxShadow: loading ? "none" : "0 8px 24px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
-              letterSpacing: "-0.01em",
-            }}
-            onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.filter = "brightness(1.06)"; } }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.filter = "brightness(1)"; }}>
-              {loading ? "Cargando..." : tab === "login" ? "Entrar" : tab === "register" ? "Crear cuenta" : "Enviar enlace"}
-            </button>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      style={{
+                        background: "rgba(239,68,68,0.12)",
+                        border: "1px solid rgba(239,68,68,0.5)",
+                        padding: "10px 14px",
+                        color: "#FCA5A5",
+                        fontSize: 12,
+                        fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                        clipPath: "polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px)",
+                        boxShadow: "0 0 16px rgba(239,68,68,0.25)",
+                      }}
+                    >
+                      <span style={{ color: "#F87171", fontWeight: 800 }}>! ERROR &gt; </span>{error}
+                    </motion.div>
+                  )}
 
-            {tab === "login" && (
-              <button
-                type="button"
-                onClick={() => switchTab("forgot")}
-                style={{ background: "none", border: "none", color: "rgba(167,139,250,0.7)", fontSize: 12, cursor: "pointer", padding: 0, textAlign: "center" }}
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-            )}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="sys-btn primary"
+                    style={{
+                      marginTop: 6,
+                      width: "100%", justifyContent: "center",
+                      padding: "13px 0",
+                      fontSize: 13, letterSpacing: 3,
+                      cursor: loading ? "not-allowed" : "pointer",
+                      opacity: loading ? 0.7 : 1,
+                    }}
+                  >
+                    {loading ? ">>> PROCESANDO..." :
+                     tab === "login" ? ">>> ENTRAR AL SISTEMA" :
+                     tab === "register" ? ">>> CREAR CAZADOR" :
+                     ">>> ENVIAR ENLACE"}
+                  </button>
 
-            {tab !== "forgot" && (
-              <p style={{ textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 12, margin: 0 }}>
-                {tab === "login" ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
-                <button type="button" onClick={() => switchTab(tab === "login" ? "register" : "login")}
-                  style={{ background: "none", border: "none", color: "#FECACA", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}>
-                  {tab === "login" ? "Regístrate" : "Inicia sesión"}
-                </button>
-              </p>
-            )}
-          </form>
-        )}
+                  {tab === "login" && (
+                    <button
+                      type="button"
+                      onClick={() => switchTab("forgot")}
+                      style={{
+                        background: "none", border: "none",
+                        color: "#FDBA74",
+                        fontSize: 11.5,
+                        fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                        letterSpacing: 0.5,
+                        cursor: "pointer", padding: 0,
+                        textAlign: "center",
+                        textShadow: "0 0 8px rgba(249,115,22,0.5)",
+                      }}
+                    >
+                      ¿Olvidaste tu clave de acceso?
+                    </button>
+                  )}
+
+                  {tab !== "forgot" && (
+                    <p style={{
+                      textAlign: "center",
+                      color: "rgba(255,255,255,0.4)",
+                      fontSize: 11.5,
+                      margin: 0,
+                      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                      letterSpacing: 0.4,
+                    }}>
+                      {tab === "login" ? "¿Sin registro? " : "¿Ya tienes acceso? "}
+                      <button
+                        type="button"
+                        onClick={() => switchTab(tab === "login" ? "register" : "login")}
+                        style={{
+                          background: "none", border: "none",
+                          color: "#FECACA", fontSize: 11.5, fontWeight: 800,
+                          cursor: "pointer", padding: 0,
+                          fontFamily: "inherit",
+                          textShadow: "0 0 8px rgba(220,38,38,0.6)",
+                        }}
+                      >
+                        {tab === "login" ? "→ REGISTRARSE" : "→ INICIAR SESIÓN"}
+                      </button>
+                    </p>
+                  )}
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Bottom accent line */}
+          <div style={{
+            position: "absolute", bottom: 0, left: 18, right: 18, height: 1,
+            background: "linear-gradient(90deg, transparent, #DC2626 30%, #F97316 50%, #DC2626 70%, transparent)",
+            boxShadow: "0 0 12px #DC2626",
+          }} />
+        </div>
       </motion.div>
     </motion.div>,
     document.body
   );
 }
 
-function Field({ icon, placeholder, value, onChange, type, required }: {
-  icon: React.ReactNode; placeholder: string; value: string;
-  onChange: (v: string) => void; type: string; required?: boolean;
+function SysField({
+  icon, label, placeholder, value, onChange, type, required, adornment,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  type: string;
+  required?: boolean;
+  adornment?: React.ReactNode;
 }) {
   return (
-    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-      <span style={{ position: "absolute", left: 13, color: "rgba(255,255,255,0.3)", display: "flex" }}>{icon}</span>
-      <input
-        type={type} placeholder={placeholder} value={value} required={required}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%", paddingLeft: 40, paddingRight: 14, paddingTop: 11, paddingBottom: 11,
-          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 12, color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit",
-          transition: "border-color 0.2s",
-        }}
-        onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.6)")}
-        onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
-      />
+    <div>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6,
+        fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+        fontSize: 9.5, fontWeight: 800, letterSpacing: 1.5,
+        color: "#FDBA74",
+        marginBottom: 5,
+        opacity: 0.85,
+      }}>
+        {label}
+      </div>
+      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+        <span style={{ position: "absolute", left: 12, color: "#FDBA74", display: "flex", zIndex: 2, opacity: 0.7 }}>{icon}</span>
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          required={required}
+          onChange={(e) => onChange(e.target.value)}
+          className="sys-input"
+          style={{
+            paddingLeft: 36,
+            paddingRight: adornment ? 40 : 14,
+            paddingTop: 11, paddingBottom: 11,
+            fontSize: 13.5,
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            letterSpacing: 0.3,
+          }}
+        />
+        {adornment && (
+          <div style={{ position: "absolute", right: 10, zIndex: 2 }}>{adornment}</div>
+        )}
+      </div>
     </div>
   );
 }

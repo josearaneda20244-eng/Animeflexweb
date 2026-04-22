@@ -13,6 +13,7 @@ import { getEpisodesWatchedToday } from "@/lib/accessControl";
 import { apiClient } from "@/lib/apiClient";
 import { resolveAvatarUrl } from "@/lib/utils";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
+import { CornerBrackets, MagicCircle, HexGrid } from "@/components/SystemUI";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -147,11 +148,13 @@ export default function Profile() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const card = {
-    background: "#0d0b1e",
-    border: "1px solid rgba(255,255,255,0.07)",
-    borderRadius: 20,
+  const card: React.CSSProperties = {
+    position: "relative",
+    background: "linear-gradient(180deg, rgba(20,8,18,0.92), rgba(8,3,12,0.96))",
+    border: "1px solid rgba(220,38,38,0.32)",
     padding: "20px",
+    clipPath: "polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px)",
+    boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 0 20px rgba(220,38,38,0.15), inset 0 1px 0 rgba(255,255,255,0.04)",
   };
 
   const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
@@ -190,40 +193,64 @@ export default function Profile() {
           </div>
         )}
 
-        {/* ── Hero card ── */}
+        {/* ── Hero card (System) ── */}
         <div style={{
-          borderRadius: 22, marginBottom: 14,
-          border: "1px solid rgba(220,38,38,0.2)",
-          background: "linear-gradient(180deg,#13112b,#0d0b1e)",
+          marginBottom: 14,
+          border: "1px solid rgba(220,38,38,0.5)",
+          background: "linear-gradient(180deg, rgba(28,8,18,0.95), rgba(10,4,14,0.98))",
           position: "relative",
+          clipPath: "polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px)",
+          boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 0 32px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.05)",
+          overflow: "hidden",
         }}>
+          {/* Top accent line */}
+          <div style={{
+            position: "absolute", top: 0, left: 18, right: 18, height: 1,
+            background: "linear-gradient(90deg, transparent, #F97316 30%, #DC2626 50%, #F97316 70%, transparent)",
+            boxShadow: "0 0 12px #F97316",
+            zIndex: 5,
+          }} />
+          <CornerBrackets color="#F97316" size={18} thickness={2} inset={6} />
+
           {/* Banner */}
-          <div style={{ height: 90, borderRadius: "20px 20px 0 0", position: "relative", overflow: "hidden", background: "linear-gradient(135deg,#1a1250,#2d1569,#130f2e)" }}>
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 25% 60%,rgba(220,38,38,0.5),transparent 60%)" }} />
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 30%,rgba(220,38,38,0.25),transparent 55%)" }} />
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 55% 90%,rgba(220,38,38,0.15),transparent 50%)" }} />
-            <div style={{ position: "absolute", top: 12, right: 55, width: 36, height: 36, borderRadius: "50%", background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.2)" }} />
-            <div style={{ position: "absolute", top: 28, right: 95, width: 18, height: 18, borderRadius: "50%", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }} />
+          <div style={{ height: 110, position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #200810, #350a18 50%, #15040c)" }}>
+            <HexGrid color="rgba(249,115,22,0.10)" size={22} fade={false} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 25% 60%,rgba(220,38,38,0.6),transparent 55%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 30%,rgba(249,115,22,0.35),transparent 55%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, rgba(249,115,22,0.04) 0px, rgba(249,115,22,0.04) 1px, transparent 1px, transparent 4px)" }} />
+
+            {/* Magic circle */}
+            <div style={{ position: "absolute", top: -50, right: -50 }}>
+              <MagicCircle size={180} color="#DC2626" opacity={0.55} />
+            </div>
+
+            {/* Sys label top */}
+            <div style={{ position: "absolute", top: 12, left: 18, zIndex: 3 }}>
+              <span className="sys-label" style={{ fontSize: 9.5, letterSpacing: 2.5 }}>
+                CAZADOR · PERFIL_01
+              </span>
+            </div>
           </div>
 
           {/* Avatar — absolutely positioned so it always overlaps the banner correctly */}
           <div style={{
-            position: "absolute", top: 52, left: 18,
-            width: 72, height: 72, borderRadius: 20,
-            background: "linear-gradient(135deg,#DC2626,#991B1B)",
-            border: "4px solid #13112b",
+            position: "absolute", top: 64, left: 18,
+            width: 76, height: 76,
+            background: "linear-gradient(135deg,#FCA5A5,#DC2626 50%,#991B1B)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 28, fontWeight: 900, color: "#fff", overflow: "hidden",
-            boxShadow: "0 0 24px rgba(220,38,38,0.5)",
-            zIndex: 2,
+            fontSize: 30, fontWeight: 900, color: "#fff", overflow: "hidden",
+            boxShadow: "0 0 0 3px #0a040e, 0 0 0 4px #F97316, 0 0 28px rgba(249,115,22,0.7)",
+            zIndex: 4,
+            clipPath: "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
           }}>
             {resolveAvatarUrl(user?.avatar_url)
               ? <img src={resolveAvatarUrl(user?.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : (user?.username?.charAt(0)?.toUpperCase() ?? "?")}
           </div>
 
-          {/* Content — paddingTop clears the avatar (90px banner + 34px overflow = 124px total, minus 90 = 34 + buffer) */}
-          <div style={{ padding: "42px 18px 20px" }}>
+          {/* Content — paddingTop clears the avatar (banner 110 + avatar overflow 30) */}
+          <div style={{ padding: "44px 18px 20px", position: "relative", zIndex: 2 }}>
             {/* Name + badges + action buttons */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
               {/* Left: name + badges */}
@@ -253,10 +280,13 @@ export default function Profile() {
                   </span>
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.25)",
-                    borderRadius: 20, padding: "3px 8px", color: "#9D8FFF", fontSize: 10, fontWeight: 700,
+                    background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.45)",
+                    padding: "3px 8px", color: "#FDBA74", fontSize: 10, fontWeight: 800,
+                    fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 0.5,
+                    clipPath: "polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px)",
+                    textShadow: "0 0 8px rgba(249,115,22,0.6)",
                   }}>
-                    <Zap size={9} /> Nv. {levelInfo.level}
+                    <Zap size={9} /> NV.{levelInfo.level}
                   </span>
                 </div>
               </div>
@@ -289,19 +319,25 @@ export default function Profile() {
 
             {/* Level progress */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600 }}>
-                  Nivel {levelInfo.level} · {levelInfo.currentXp}/{levelInfo.neededXp} ep.
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ color: "#FDBA74", fontSize: 10, fontWeight: 800, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1.5 }}>
+                  EXP · NV.{levelInfo.level} · {levelInfo.currentXp}/{levelInfo.neededXp}
                 </span>
-                <span style={{ color: "#FECACA", fontSize: 11, fontWeight: 700 }}>{levelInfo.progress}%</span>
+                <span style={{ color: "#FECACA", fontSize: 10, fontWeight: 900, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textShadow: "0 0 8px rgba(220,38,38,0.6)" }}>
+                  [ {levelInfo.progress}% ]
+                </span>
               </div>
-              <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{
+                height: 8, background: "rgba(4,3,10,0.85)", overflow: "hidden",
+                border: "1px solid rgba(249,115,22,0.3)",
+                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
+              }}>
                 <div style={{
-                  height: "100%", borderRadius: 99,
+                  height: "100%",
                   width: `${levelInfo.progress}%`,
-                  background: "linear-gradient(90deg,#991B1B,#DC2626,#FECACA)",
+                  background: "linear-gradient(90deg,#991B1B,#DC2626,#F97316,#FDBA74)",
                   transition: "width 0.6s ease",
-                  boxShadow: "0 0 8px rgba(220,38,38,0.5)",
+                  boxShadow: "0 0 14px rgba(249,115,22,0.7), inset 0 0 8px rgba(255,255,255,0.2)",
                 }} />
               </div>
             </div>
@@ -314,52 +350,83 @@ export default function Profile() {
                 { label: "Completados", value: loadingStats ? "–" : stats?.completed ?? 0, color: "#DC2626", icon: <CheckCircle2 size={13} />, bg: "rgba(220,38,38,0.1)" },
                 { label: "Racha", value: loadingStats ? "–" : `${stats?.streak ?? 0}d`, color: "#F59E0B", icon: <Flame size={13} />, bg: "rgba(245,158,11,0.1)" },
               ].map(({ label, value, color, icon, bg }) => (
-                <div key={label} style={{ textAlign: "center", background: bg, borderRadius: 14, padding: "12px 6px", border: `1px solid ${color}22`, position: "relative", overflow: "hidden" }}>
-                  <div style={{ color, fontSize: 11, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.8 }}>{icon}</div>
-                  <div style={{ color, fontSize: 18, fontWeight: 900, lineHeight: 1 }}>{value}</div>
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, marginTop: 4, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase" }}>{label}</div>
+                <div key={label} style={{
+                  textAlign: "center", background: bg,
+                  padding: "12px 6px",
+                  border: `1px solid ${color}66`,
+                  position: "relative", overflow: "hidden",
+                  clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
+                  boxShadow: `0 0 12px ${color}22, inset 0 1px 0 rgba(255,255,255,0.04)`,
+                }}>
+                  <div style={{ color, fontSize: 11, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.85 }}>{icon}</div>
+                  <div style={{
+                    color, fontSize: 18, fontWeight: 900, lineHeight: 1,
+                    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                    textShadow: `0 0 10px ${color}aa`,
+                  }}>{value}</div>
+                  <div style={{
+                    color: "rgba(255,255,255,0.5)", fontSize: 8.5, marginTop: 5,
+                    fontWeight: 800, letterSpacing: 1, textTransform: "uppercase",
+                    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                  }}>{label}</div>
                 </div>
               ))}
             </div>
 
             {/* MegaFan CTA */}
             {!isMegaFan && user && (
-              <button onClick={() => navigate("/membership")} style={{
-                marginTop: 14, width: "100%",
-                background: "linear-gradient(135deg,rgba(220,38,38,0.2),rgba(220,38,38,0.12))",
-                border: "1px solid rgba(220,38,38,0.3)",
-                borderRadius: 12, padding: "10px 16px",
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                cursor: "pointer",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Crown size={14} color="#F59E0B" />
-                  <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 800 }}>Hazte MegaFan · Sin límites</span>
-                </div>
-                <ChevronRight size={14} color="#FECACA" />
+              <button
+                onClick={() => navigate("/membership")}
+                className="sys-btn primary"
+                style={{
+                  marginTop: 14, width: "100%",
+                  padding: "12px 18px",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  fontSize: 12,
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Crown size={14} /> &gt;&gt; HAZTE MEGAFAN · SIN LÍMITES
+                </span>
+                <ChevronRight size={14} />
               </button>
             )}
           </div>
         </div>
 
-        {/* ── Tabs ── */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 14, background: "rgba(255,255,255,0.04)", padding: 4, borderRadius: 16, border: "1px solid rgba(255,255,255,0.07)" }}>
-          {TABS.map(({ key, label, icon }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              style={{
-                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "9px 10px", borderRadius: 12, border: "none", cursor: "pointer",
-                fontSize: 13, fontWeight: 700, transition: "all 0.15s",
-                background: tab === key ? "rgba(220,38,38,0.25)" : "transparent",
-                color: tab === key ? "#FECACA" : "rgba(255,255,255,0.35)",
-                boxShadow: tab === key ? "0 0 0 1px rgba(220,38,38,0.3)" : "none",
-              }}
-            >
-              {icon} {label}
-            </button>
-          ))}
+        {/* ── Tabs (System) ── */}
+        <div style={{
+          display: "flex", gap: 4, marginBottom: 14,
+          background: "rgba(4,3,10,0.85)",
+          padding: 4,
+          border: "1px solid rgba(249,115,22,0.3)",
+          clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
+        }}>
+          {TABS.map(({ key, label, icon }) => {
+            const active = tab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                style={{
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "10px 8px", border: "none", cursor: "pointer",
+                  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                  fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase",
+                  transition: "all 0.18s",
+                  background: active
+                    ? "linear-gradient(180deg, rgba(220,38,38,0.85), rgba(153,27,27,0.85))"
+                    : "transparent",
+                  color: active ? "#fff" : "rgba(255,255,255,0.4)",
+                  textShadow: active ? "0 0 10px rgba(255,255,255,0.5)" : "none",
+                  boxShadow: active ? "0 0 18px rgba(220,38,38,0.55)" : "none",
+                  clipPath: "polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px)",
+                }}
+              >
+                {icon} {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* ══ TAB: RESUMEN ══ */}
@@ -368,27 +435,37 @@ export default function Profile() {
             {/* Achievements */}
             <div style={{ ...card, marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Trophy size={14} color="#F59E0B" />
-                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Logros</span>
-                </div>
-                <span style={{ color: "#FECACA", fontSize: 12, fontWeight: 700 }}>{unlockedCount}/{achievements.length}</span>
+                <span className="sys-label" style={{ fontSize: 11 }}>
+                  <Trophy size={12} style={{ marginRight: 2 }} /> LOGROS · CAZADOR
+                </span>
+                <span style={{
+                  color: "#FDBA74", fontSize: 11, fontWeight: 900,
+                  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                  textShadow: "0 0 8px rgba(249,115,22,0.6)",
+                }}>[ {unlockedCount}/{achievements.length} ]</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
                 {achievements.map((a) => (
                   <div key={a.id} style={{
                     position: "relative", textAlign: "center",
-                    background: a.unlocked ? `rgba(${hexToRgb(a.color)},0.1)` : "rgba(255,255,255,0.03)",
-                    border: `1px solid ${a.unlocked ? `rgba(${hexToRgb(a.color)},0.3)` : "rgba(255,255,255,0.06)"}`,
-                    borderRadius: 14, padding: "12px 8px",
+                    background: a.unlocked ? `rgba(${hexToRgb(a.color)},0.12)` : "rgba(8,3,12,0.6)",
+                    border: `1px solid ${a.unlocked ? `rgba(${hexToRgb(a.color)},0.5)` : "rgba(255,255,255,0.07)"}`,
+                    padding: "12px 6px",
                     opacity: a.unlocked ? 1 : 0.45,
-                    transition: "opacity 0.2s",
+                    transition: "opacity 0.2s, transform 0.2s",
+                    clipPath: "polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px)",
+                    boxShadow: a.unlocked ? `0 0 12px ${a.color}33` : "none",
                   }}>
-                    <div style={{ fontSize: 22, marginBottom: 4, filter: a.unlocked ? "none" : "grayscale(1)" }}>{a.icon}</div>
-                    <div style={{ color: a.unlocked ? "#F1F1F5" : "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 700, lineHeight: 1.3 }}>{a.label}</div>
+                    <div style={{ fontSize: 22, marginBottom: 4, filter: a.unlocked ? `drop-shadow(0 0 6px ${a.color})` : "grayscale(1)" }}>{a.icon}</div>
+                    <div style={{
+                      color: a.unlocked ? "#F1F1F5" : "rgba(255,255,255,0.35)",
+                      fontSize: 9.5, fontWeight: 800, lineHeight: 1.3,
+                      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                      letterSpacing: 0.3,
+                    }}>{a.label}</div>
                     {!a.unlocked && (
-                      <div style={{ position: "absolute", top: 6, right: 6 }}>
-                        <Lock size={9} color="rgba(255,255,255,0.2)" />
+                      <div style={{ position: "absolute", top: 5, right: 5 }}>
+                        <Lock size={9} color="rgba(255,255,255,0.25)" />
                       </div>
                     )}
                   </div>
@@ -400,9 +477,10 @@ export default function Profile() {
             {stats && (
               <div style={{ ...card, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <BarChart2 size={14} color="#DC2626" />
-                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Actividad esta semana</span>
-                  <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 11 }}>últimos 7 días</span>
+                  <span className="sys-label" style={{ fontSize: 11 }}>
+                    <BarChart2 size={12} style={{ marginRight: 2 }} /> ACTIVIDAD · 7D
+                  </span>
+                  <span style={{ marginLeft: "auto", color: "rgba(253,186,116,0.55)", fontSize: 10, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1 }}>// LOG</span>
                 </div>
                 <ResponsiveContainer width="100%" height={110}>
                   <BarChart data={stats.weeklyActivity} margin={{ top: 0, right: 0, left: -32, bottom: 0 }} barCategoryGap="30%">
@@ -434,8 +512,9 @@ export default function Profile() {
             {topGenres.length > 0 && (
               <div style={{ ...card, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <Sparkles size={14} color="#DC2626" />
-                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Géneros favoritos</span>
+                  <span className="sys-label" style={{ fontSize: 11 }}>
+                    <Sparkles size={12} style={{ marginRight: 2 }} /> GÉNEROS · TOP
+                  </span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {topGenres.map(({ genre, count }, i) => {
@@ -466,8 +545,9 @@ export default function Profile() {
             {stats && stats.topAnime.length > 0 && (
               <div style={{ ...card, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <TrendingUp size={14} color="#DC2626" />
-                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Más vistos</span>
+                  <span className="sys-label" style={{ fontSize: 11 }}>
+                    <TrendingUp size={12} style={{ marginRight: 2 }} /> RANKING · MÁS VISTOS
+                  </span>
                 </div>
                 {stats.topAnime.map((a, i) => (
                   <div key={a.anime_id} onClick={() => navigate(`/anime/${a.anime_id}`)} style={{
@@ -491,25 +571,41 @@ export default function Profile() {
             {/* Daily limit for free users */}
             {!isMegaFan && user && (
               <div style={{
-                background: "rgba(220,38,38,0.07)", border: "1px solid rgba(220,38,38,0.18)",
-                borderRadius: 16, padding: "16px 18px", marginBottom: 14,
+                position: "relative",
+                background: "linear-gradient(180deg, rgba(28,8,18,0.92), rgba(8,3,12,0.96))",
+                border: "1px solid rgba(220,38,38,0.45)",
+                padding: "16px 18px", marginBottom: 14,
+                clipPath: "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
+                boxShadow: "0 0 16px rgba(220,38,38,0.18), inset 0 1px 0 rgba(255,255,255,0.04)",
               }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>Episodios gratis hoy</div>
-                  <div style={{ color: "#FECACA", fontSize: 16, fontWeight: 900 }}>{watchedToday}/{limitsConfig.dailyLimit}</div>
-                </div>
-                <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span className="sys-label" style={{ fontSize: 10.5 }}>CUOTA · EPISODIOS_HOY</span>
                   <div style={{
-                    height: "100%", borderRadius: 99,
+                    color: "#FDBA74", fontSize: 15, fontWeight: 900,
+                    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                    textShadow: "0 0 10px rgba(249,115,22,0.6)",
+                  }}>[ {watchedToday}/{limitsConfig.dailyLimit} ]</div>
+                </div>
+                <div style={{
+                  height: 8, background: "rgba(4,3,10,0.85)", overflow: "hidden",
+                  border: "1px solid rgba(249,115,22,0.3)",
+                  clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
+                }}>
+                  <div style={{
+                    height: "100%",
                     width: `${Math.min(100, (watchedToday / limitsConfig.dailyLimit) * 100)}%`,
                     background: watchedToday >= limitsConfig.dailyLimit
-                      ? "linear-gradient(90deg,#EF4444,#F87171)"
-                      : "linear-gradient(90deg,#DC2626,#FECACA)",
+                      ? "linear-gradient(90deg,#EF4444,#F87171,#FECACA)"
+                      : "linear-gradient(90deg,#991B1B,#DC2626,#F97316)",
+                    boxShadow: "0 0 12px rgba(249,115,22,0.6)",
                     transition: "width 0.4s",
                   }} />
                 </div>
-                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 6 }}>
-                  {remaining > 0 ? `${remaining} episodios restantes hoy` : "Límite diario alcanzado — se reinicia mañana"}
+                <div style={{
+                  color: "rgba(253,186,116,0.7)", fontSize: 10.5, marginTop: 8,
+                  fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 0.5,
+                }}>
+                  &gt; {remaining > 0 ? `${remaining} episodios restantes hoy` : "LÍMITE ALCANZADO · reinicio en 24h"}
                 </div>
               </div>
             )}
@@ -526,9 +622,10 @@ export default function Profile() {
         {tab === "favoritos" && (
           <div style={card}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <Heart size={14} color="#DC2626" />
-              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Favoritos</span>
-              <span style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>{favorites.length} animes</span>
+              <span className="sys-label" style={{ fontSize: 11 }}>
+                <Heart size={12} style={{ marginRight: 2 }} /> FAVORITOS
+              </span>
+              <span style={{ marginLeft: "auto", color: "#FDBA74", fontSize: 11, fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontWeight: 800, textShadow: "0 0 8px rgba(249,115,22,0.5)" }}>[ {favorites.length} ]</span>
             </div>
             {favorites.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>
@@ -562,10 +659,16 @@ export default function Profile() {
         {tab === "lista" && (
           <div style={card}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <List size={14} color="#DC2626" />
-              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Mi lista</span>
-              <button onClick={() => navigate("/watchlist")} style={{ marginLeft: "auto", background: "none", border: "none", color: "#DC2626", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                Ver lista completa →
+              <span className="sys-label" style={{ fontSize: 11 }}>
+                <List size={12} style={{ marginRight: 2 }} /> MI LISTA
+              </span>
+              <button onClick={() => navigate("/watchlist")} style={{
+                marginLeft: "auto", background: "none", border: "none",
+                color: "#FDBA74", fontSize: 11, fontWeight: 800, cursor: "pointer",
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 0.5,
+                textShadow: "0 0 8px rgba(249,115,22,0.5)",
+              }}>
+                VER COMPLETA →
               </button>
             </div>
             {watchlist.length === 0 ? (
