@@ -7,6 +7,73 @@ import { apiClient } from "@/lib/apiClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
+const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const CLIP_8 = "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)";
+const CLIP_10 = "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)";
+const CLIP_14 = "polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px)";
+const CLIP_6 = "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)";
+
+const cardStyle = (accent: "carmesi" | "ambar" | "neutro" = "carmesi"): React.CSSProperties => {
+  const colors = {
+    carmesi: { border: "rgba(220,38,38,0.4)", glow: "rgba(220,38,38,0.18)" },
+    ambar:   { border: "rgba(249,115,22,0.45)", glow: "rgba(249,115,22,0.18)" },
+    neutro:  { border: "rgba(249,115,22,0.18)", glow: "rgba(0,0,0,0)" },
+  }[accent];
+  return {
+    background: "linear-gradient(160deg, rgba(20,6,16,0.92), rgba(8,4,18,0.96))",
+    border: `1px solid ${colors.border}`,
+    clipPath: CLIP_14,
+    padding: 22,
+    marginBottom: 14,
+    position: "relative",
+    boxShadow: `0 0 24px ${colors.glow}`,
+  };
+};
+
+const sectionHeader = (icon: React.ReactNode, tag: string, title: string) => (
+  <div style={{ marginBottom: 16 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{
+        width: 34, height: 34,
+        background: "linear-gradient(135deg, rgba(220,38,38,0.2), rgba(249,115,22,0.15))",
+        border: "1px solid rgba(249,115,22,0.4)",
+        clipPath: CLIP_6,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>{icon}</div>
+      <div>
+        <div style={{ color: "#F97316", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 4, height: 4, background: "#F97316", borderRadius: "50%", boxShadow: "0 0 6px #F97316" }} />
+          {tag}
+        </div>
+        <div style={{ color: "#FECACA", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>{title}</div>
+      </div>
+    </div>
+  </div>
+);
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "11px 14px", boxSizing: "border-box",
+  background: "rgba(8,4,18,0.7)",
+  border: "1px solid rgba(249,115,22,0.35)",
+  clipPath: CLIP_8,
+  color: "#FECACA", fontSize: 13, outline: "none",
+  fontFamily: "inherit",
+};
+
+const primaryBtn = (success = false): React.CSSProperties => ({
+  width: "100%", padding: "12px", border: "1px solid rgba(253,186,116,0.5)",
+  background: success
+    ? "linear-gradient(135deg,#16A34A,#15803D)"
+    : "linear-gradient(135deg,#DC2626,#991B1B)",
+  color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: 2,
+  fontFamily: MONO,
+  clipPath: CLIP_8,
+  cursor: "pointer",
+  display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+  boxShadow: success ? "0 0 16px rgba(34,197,94,0.4)" : "0 0 16px rgba(220,38,38,0.4)",
+  transition: "all 0.2s",
+});
+
 export default function Settings() {
   const { user, isMegaFan, isOwner, updateProfile } = useAuth();
   const [, navigate] = useLocation();
@@ -32,7 +99,6 @@ export default function Settings() {
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [privacySuccess, setPrivacySuccess] = useState(false);
 
-  /* Change password state */
   const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
@@ -41,7 +107,6 @@ export default function Settings() {
   const [passSuccess, setPassSuccess] = useState(false);
   const [passError, setPassError] = useState("");
 
-  /* Email verification state */
   const [sendingVerif, setSendingVerif] = useState(false);
   const [verifSent, setVerifSent] = useState(false);
   const [verifError, setVerifError] = useState("");
@@ -50,8 +115,8 @@ export default function Settings() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>Debes iniciar sesión para ver esta página.</div>
+      <div style={{ minHeight: "100vh", background: "#07060b", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO }}>
+        <div style={{ color: "#FDBA74", fontSize: 13, letterSpacing: 2, fontWeight: 800 }}>// SISTEMA: SESION_REQUERIDA</div>
       </div>
     );
   }
@@ -104,36 +169,29 @@ export default function Settings() {
     setAvatarSuccess(false);
     try {
       let finalAvatarUrl: string | null = null;
-
       if (avatarMode === "upload" && selectedFile) {
         const token = localStorage.getItem("af_token");
-
         const formData = new FormData();
         formData.append("file", selectedFile);
-
         const uploadRes = await fetch(`${API_BASE}/user/avatar/upload`, {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,
         });
-
         if (!uploadRes.ok) {
           const err = await uploadRes.json().catch(() => ({}));
           throw new Error((err as { error?: string }).error ?? "Error al subir imagen");
         }
-
         const { avatarUrl: cloudinaryUrl } = await uploadRes.json() as { avatarUrl: string };
         finalAvatarUrl = cloudinaryUrl;
       } else if (avatarMode === "url") {
         finalAvatarUrl = avatarUrl.trim() || null;
       }
-
       await updateProfile({ avatar_url: finalAvatarUrl ?? "" });
       setAvatarSuccess(true);
       setTimeout(() => setAvatarSuccess(false), 2500);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al guardar avatar";
-      setAvatarError(message);
+      setAvatarError(err instanceof Error ? err.message : "Error al guardar avatar");
     } finally {
       setSavingAvatar(false);
     }
@@ -152,8 +210,7 @@ export default function Settings() {
       setUsernameSuccess(true);
       setTimeout(() => setUsernameSuccess(false), 2500);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al guardar nombre";
-      setUsernameError(message);
+      setUsernameError(err instanceof Error ? err.message : "Error al guardar nombre");
     } finally {
       setSavingUsername(false);
     }
@@ -211,75 +268,149 @@ export default function Settings() {
     : null;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000" }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at top, #14060c 0%, #07060b 60%)", position: "relative" }}>
       <Navbar />
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "80px 16px 48px" }}>
+
+      {/* Background scan lines */}
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
+        background: "repeating-linear-gradient(0deg, rgba(249,115,22,0.025) 0px, rgba(249,115,22,0.025) 1px, transparent 1px, transparent 4px)",
+      }} />
+
+      {/* Hex grid bg */}
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
+        backgroundImage: "linear-gradient(rgba(220,38,38,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.04) 1px, transparent 1px)",
+        backgroundSize: "32px 32px",
+        maskImage: "radial-gradient(ellipse at top, black 10%, transparent 70%)",
+        WebkitMaskImage: "radial-gradient(ellipse at top, black 10%, transparent 70%)",
+      }} />
+
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "80px 16px 48px", position: "relative", zIndex: 1 }}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
           <button
             onClick={() => navigate("/")}
-            style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", display: "flex" }}
+            style={{
+              background: "rgba(220,38,38,0.1)",
+              border: "1px solid rgba(249,115,22,0.4)",
+              clipPath: CLIP_6,
+              padding: "9px 12px", cursor: "pointer", display: "flex", alignItems: "center",
+              color: "#FDBA74",
+            }}
           >
-            <ArrowLeft size={18} color="rgba(255,255,255,0.7)" />
+            <ArrowLeft size={16} />
           </button>
           <div>
-            <h1 style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900, margin: 0, letterSpacing: -0.3 }}>Configuración</h1>
-            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, margin: 0, marginTop: 2 }}>Personaliza tu perfil</p>
+            <div style={{ color: "#F97316", fontSize: 9, fontWeight: 900, letterSpacing: 3, fontFamily: MONO, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 5, height: 5, background: "#F97316", borderRadius: "50%", boxShadow: "0 0 6px #F97316", animation: "syspulse 1.6s ease-in-out infinite" }} />
+              [ SISTEMA · PANEL_DE_CONTROL ]
+            </div>
+            <h1 style={{
+              color: "#FECACA", fontSize: 24, fontWeight: 900, margin: "4px 0 0", letterSpacing: 0.5,
+              fontFamily: MONO,
+              textShadow: "0 0 16px rgba(220,38,38,0.4)",
+            }}>
+              CONFIGURACION
+            </h1>
+            <p style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, margin: "2px 0 0", letterSpacing: 1, fontFamily: MONO }}>
+              &gt; Personaliza tu rango y datos de cazador
+            </p>
           </div>
         </div>
 
         {/* Profile card */}
-        <div style={{
-          background: "linear-gradient(180deg,#14122a,#111220)",
-          border: "1px solid rgba(220,38,38,0.2)",
-          borderRadius: 20, marginBottom: 16,
-          position: "relative",
-        }}>
-          {/* Banner — overflow only on banner, NOT on outer card */}
-          <div style={{ height: 80, borderRadius: "18px 18px 0 0", background: "linear-gradient(135deg,#2D1B69,#1A1A3E,#0D0D1F)", position: "relative", overflow: "hidden" }}>
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 60%,rgba(220,38,38,0.4),transparent 65%)" }} />
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 40%,rgba(245,158,11,0.15),transparent 65%)" }} />
+        <div style={{ ...cardStyle("carmesi"), padding: 0, overflow: "visible" }}>
+          {/* Banner */}
+          <div style={{
+            height: 90,
+            background: "linear-gradient(135deg, #2D0A14 0%, #14060c 50%, #1A0E1F 100%)",
+            position: "relative",
+            clipPath: "polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px)",
+            overflow: "hidden",
+          }}>
+            {/* Magic circle in banner */}
+            <svg width={90} height={90} viewBox="0 0 100 100" style={{ position: "absolute", right: 12, top: -8, opacity: 0.35, animation: "spin 30s linear infinite", filter: "drop-shadow(0 0 8px #DC2626)" }}>
+              <circle cx="50" cy="50" r="46" fill="none" stroke="#DC2626" strokeWidth="0.6" strokeDasharray="2 4" />
+              <circle cx="50" cy="50" r="34" fill="none" stroke="#F97316" strokeWidth="0.5" />
+              <polygon points="50,12 82,68 18,68" fill="none" stroke="#FDBA74" strokeWidth="0.5" />
+            </svg>
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 60%, rgba(220,38,38,0.4), transparent 65%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 40%, rgba(249,115,22,0.25), transparent 65%)" }} />
+            {/* Top accent line */}
+            <div style={{ position: "absolute", top: 0, left: 14, right: 0, height: 1, background: "linear-gradient(90deg, transparent, #F97316, #DC2626, transparent)", boxShadow: "0 0 8px #F97316" }} />
           </div>
 
-          {/* Avatar — absolutely positioned, never clipped */}
+          {/* Avatar */}
           <div style={{
-            position: "absolute", top: 44, left: 20, zIndex: 2,
-            width: 72, height: 72, borderRadius: 20,
-            background: "linear-gradient(135deg,#DC2626,#991B1B)",
-            border: "4px solid #111220",
+            position: "absolute", top: 50, left: 22, zIndex: 2,
+            width: 78, height: 78,
+            background: "linear-gradient(135deg,#DC2626,#F97316)",
+            border: "3px solid #07060b",
+            clipPath: CLIP_8,
             display: "flex", alignItems: "center", justifyContent: "center",
             overflow: "hidden",
-            boxShadow: "0 4px 20px rgba(220,38,38,0.5)",
+            boxShadow: "0 4px 24px rgba(220,38,38,0.6), 0 0 0 1px rgba(253,186,116,0.5)",
           }}>
             {avatarPreview
               ? <img src={avatarPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setAvatarPreview("")} />
-              : <span style={{ color: "#fff", fontSize: 28, fontWeight: 900 }}>{initials}</span>
+              : <span style={{ color: "#fff", fontSize: 32, fontWeight: 900, fontFamily: MONO }}>{initials}</span>
             }
           </div>
 
-          {/* Content — paddingTop clears avatar (banner 80 + avatar overflow 36 = 116, minus 80 = 36 + buffer) */}
-          <div style={{ padding: "40px 20px 18px" }}>
-            <div style={{ color: "#F1F1F5", fontSize: 17, fontWeight: 900, marginBottom: 6 }}>{user.username}</div>
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
+          {/* Content */}
+          <div style={{ padding: "44px 22px 22px" }}>
+            <div style={{ color: "#FECACA", fontSize: 18, fontWeight: 900, marginBottom: 8, letterSpacing: 0.3, textShadow: "0 0 12px rgba(220,38,38,0.4)" }}>
+              {user.username}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
               {isOwner && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.5)", borderRadius: 100, padding: "2px 8px", fontSize: 9, fontWeight: 900, color: "#FCA5A5" }}>
-                  <Shield size={8} /> DUEÑO
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  background: "linear-gradient(135deg, rgba(239,68,68,0.3), rgba(153,27,27,0.2))",
+                  border: "1px solid rgba(252,165,165,0.5)",
+                  clipPath: CLIP_6,
+                  padding: "3px 10px", fontSize: 9, fontWeight: 900, color: "#FCA5A5",
+                  letterSpacing: 1.5, fontFamily: MONO,
+                }}>
+                  <Shield size={9} /> MONARCA
                 </span>
               )}
               {isMegaFan && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.2)", border: "1px solid rgba(245,158,11,0.5)", borderRadius: 100, padding: "2px 8px", fontSize: 9, fontWeight: 900, color: "#FCD34D" }}>
-                  <Crown size={8} /> MEGAFAN
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  background: "linear-gradient(135deg, rgba(249,115,22,0.3), rgba(180,83,9,0.2))",
+                  border: "1px solid rgba(253,186,116,0.6)",
+                  clipPath: CLIP_6,
+                  padding: "3px 10px", fontSize: 9, fontWeight: 900, color: "#FDBA74",
+                  letterSpacing: 1.5, fontFamily: MONO,
+                  boxShadow: "0 0 10px rgba(249,115,22,0.3)",
+                }}>
+                  <Crown size={9} /> MEGAFAN
                 </span>
               )}
             </div>
-            {/* Info chips */}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "5px 10px", fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                background: "rgba(8,4,18,0.5)",
+                border: "1px solid rgba(249,115,22,0.25)",
+                clipPath: CLIP_6,
+                padding: "5px 10px", fontSize: 10, color: "rgba(253,186,116,0.7)",
+                fontFamily: MONO, letterSpacing: 0.5,
+              }}>
                 <Mail size={11} /> {user.email}
               </span>
               {memberSince && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "5px 10px", fontSize: 11, color: "rgba(255,255,255,0.45)" }}>
-                  Miembro desde {memberSince}
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  background: "rgba(8,4,18,0.5)",
+                  border: "1px solid rgba(249,115,22,0.25)",
+                  clipPath: CLIP_6,
+                  padding: "5px 10px", fontSize: 10, color: "rgba(253,186,116,0.7)",
+                  fontFamily: MONO, letterSpacing: 0.5,
+                }}>
+                  &gt; DESDE {memberSince.toUpperCase()}
                 </span>
               )}
             </div>
@@ -287,24 +418,27 @@ export default function Settings() {
         </div>
 
         {/* Avatar section */}
-        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(220,38,38,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Camera size={14} color="#FECACA" />
-            </div>
-            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Foto de perfil</span>
-          </div>
+        <div style={cardStyle("carmesi")}>
+          {sectionHeader(<Camera size={14} color="#FDBA74" />, "// MODULO_01", "Foto de perfil")}
 
           {/* Tab selector */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 14, background: "rgba(255,255,255,0.04)", padding: 4, borderRadius: 12 }}>
-            {([["url", "URL de imagen", <LinkIcon size={12} />], ["upload", "Subir foto", <Upload size={12} />]] as const).map(([mode, label, icon]) => (
+          <div style={{
+            display: "flex", gap: 4, marginBottom: 14,
+            background: "rgba(8,4,18,0.7)",
+            border: "1px solid rgba(249,115,22,0.25)",
+            padding: 4, clipPath: CLIP_6,
+          }}>
+            {([["url", "URL_REMOTA", <LinkIcon size={11} key="l" />], ["upload", "SUBIR_LOCAL", <Upload size={11} key="u" />]] as const).map(([mode, label, icon]) => (
               <button key={mode} onClick={() => { setAvatarMode(mode as "url" | "upload"); setAvatarError(""); }}
                 style={{
                   flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                  padding: "8px 12px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
-                  background: avatarMode === mode ? "rgba(220,38,38,0.25)" : "none",
-                  color: avatarMode === mode ? "#FECACA" : "rgba(255,255,255,0.4)",
+                  padding: "8px 10px", border: "none", cursor: "pointer", fontSize: 10, fontWeight: 900,
+                  letterSpacing: 1.5, fontFamily: MONO,
+                  background: avatarMode === mode ? "linear-gradient(135deg,#DC2626,#991B1B)" : "transparent",
+                  color: avatarMode === mode ? "#fff" : "rgba(253,186,116,0.5)",
+                  clipPath: CLIP_6,
                   transition: "all 0.15s",
+                  boxShadow: avatarMode === mode ? "0 0 10px rgba(220,38,38,0.4)" : "none",
                 }}
               >
                 {icon}{label}
@@ -318,60 +452,46 @@ export default function Settings() {
               value={avatarUrl}
               onChange={(e) => { setAvatarUrl(e.target.value); setAvatarPreview(e.target.value); }}
               placeholder="https://ejemplo.com/mi-foto.jpg"
-              style={{
-                width: "100%", padding: "11px 14px", borderRadius: 12, boxSizing: "border-box",
-                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(220,38,38,0.3)",
-                color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit",
-              }}
+              style={inputStyle}
             />
           ) : (
             <div>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} />
               <button onClick={() => fileRef.current?.click()}
                 style={{
-                  width: "100%", padding: "24px 14px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.04)", border: "2px dashed rgba(220,38,38,0.35)",
-                  color: "rgba(255,255,255,0.5)", fontSize: 13, cursor: "pointer",
+                  width: "100%", padding: "26px 14px",
+                  background: "rgba(8,4,18,0.5)",
+                  border: "2px dashed rgba(249,115,22,0.4)",
+                  clipPath: CLIP_8,
+                  color: "#FDBA74", fontSize: 11, cursor: "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                  fontFamily: MONO, letterSpacing: 1, fontWeight: 700,
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(220,38,38,0.6)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(220,38,38,0.35)"; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(249,115,22,0.7)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(249,115,22,0.4)"; }}
               >
-                <Upload size={22} color="#DC2626" />
-                <span>{selectedFile ? `${selectedFile.name} ✓ — Click para cambiar` : "Click para seleccionar imagen (máx. 2 MB)"}</span>
+                <Upload size={22} color="#F97316" />
+                <span>{selectedFile ? `> ${selectedFile.name} ✓` : "> CLICK_PARA_SELECCIONAR (max 2MB)"}</span>
               </button>
             </div>
           )}
 
           {avatarError && (
-            <div style={{ color: "#FCA5A5", fontSize: 12, marginTop: 8, display: "flex", alignItems: "center", gap: 5 }}>
-              <X size={12} /> {avatarError}
+            <div style={{ color: "#FCA5A5", fontSize: 11, marginTop: 8, display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, letterSpacing: 1 }}>
+              <X size={12} /> [ERR] {avatarError}
             </div>
           )}
 
-          <button onClick={handleSaveAvatar} disabled={savingAvatar}
-            style={{
-              marginTop: 12, width: "100%", padding: "11px", borderRadius: 12, border: "none",
-              background: avatarSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#DC2626,#991B1B)",
-              color: "#fff", fontSize: 13, fontWeight: 800, cursor: savingAvatar ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-              opacity: savingAvatar ? 0.7 : 1, transition: "all 0.2s",
-            }}
-          >
-            {savingAvatar ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Guardando...</>
-              : avatarSuccess ? <><Check size={14} /> ¡Foto actualizada!</>
-              : <><Camera size={14} /> Guardar foto de perfil</>}
+          <button onClick={handleSaveAvatar} disabled={savingAvatar} style={{ ...primaryBtn(avatarSuccess), marginTop: 12, opacity: savingAvatar ? 0.7 : 1 }}>
+            {savingAvatar ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
+              : avatarSuccess ? <><Check size={13} /> AVATAR_ACTUALIZADO</>
+              : <><Camera size={13} /> &gt;&gt;&gt; GUARDAR AVATAR</>}
           </button>
         </div>
 
         {/* Username section */}
-        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(220,38,38,0.15)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <User size={14} color="#FECACA" />
-            </div>
-            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Nombre de usuario</span>
-          </div>
+        <div style={cardStyle("carmesi")}>
+          {sectionHeader(<User size={14} color="#FDBA74" />, "// MODULO_02", "Nombre de cazador")}
 
           <input
             type="text"
@@ -379,187 +499,216 @@ export default function Settings() {
             onChange={(e) => setUsername(e.target.value)}
             maxLength={30}
             placeholder="Tu nombre de usuario"
-            style={{
-              width: "100%", padding: "11px 14px", borderRadius: 12, boxSizing: "border-box",
-              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(220,38,38,0.3)",
-              color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit",
-            }}
+            style={inputStyle}
           />
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 10, letterSpacing: 0.5 }}>
             {usernameError
-              ? <span style={{ color: "#FCA5A5", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}><X size={11} />{usernameError}</span>
-              : <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11 }}>Entre 2 y 30 caracteres</span>
+              ? <span style={{ color: "#FCA5A5", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {usernameError}</span>
+              : <span style={{ color: "rgba(253,186,116,0.4)" }}>&gt; ENTRE 2 Y 30 CARACTERES</span>
             }
-            <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>{username.length}/30</span>
+            <span style={{ color: "rgba(253,186,116,0.5)" }}>{username.length}/30</span>
           </div>
 
-          <button onClick={handleSaveUsername} disabled={savingUsername || username.trim() === user.username}
+          <button
+            onClick={handleSaveUsername}
+            disabled={savingUsername || username.trim() === user.username}
             style={{
-              marginTop: 12, width: "100%", padding: "11px", borderRadius: 12, border: "none",
-              background: usernameSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#DC2626,#991B1B)",
-              color: "#fff", fontSize: 13, fontWeight: 800,
+              ...primaryBtn(usernameSuccess),
+              marginTop: 12,
+              opacity: (savingUsername || username.trim() === user.username) ? 0.5 : 1,
               cursor: (savingUsername || username.trim() === user.username) ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-              opacity: (savingUsername || username.trim() === user.username) ? 0.5 : 1, transition: "all 0.2s",
             }}
           >
-            {savingUsername ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Guardando...</>
-              : usernameSuccess ? <><Check size={14} /> ¡Nombre actualizado!</>
-              : <><User size={14} /> Guardar nombre</>}
+            {savingUsername ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
+              : usernameSuccess ? <><Check size={13} /> NOMBRE_ACTUALIZADO</>
+              : <><User size={13} /> &gt;&gt;&gt; GUARDAR NOMBRE</>}
           </button>
         </div>
 
         {/* Email (read-only) */}
-        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Mail size={14} color="rgba(255,255,255,0.4)" />
-            </div>
-            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Correo electrónico</span>
-          </div>
+        <div style={cardStyle("neutro")}>
+          {sectionHeader(<Mail size={14} color="rgba(253,186,116,0.6)" />, "// CANAL_RAIZ", "Correo electronico")}
           <div style={{
-            padding: "11px 14px", borderRadius: 12,
-            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-            color: "rgba(255,255,255,0.4)", fontSize: 13,
+            padding: "11px 14px",
+            background: "rgba(8,4,18,0.5)",
+            border: "1px solid rgba(249,115,22,0.15)",
+            clipPath: CLIP_6,
+            color: "rgba(253,186,116,0.6)", fontSize: 13, fontFamily: MONO,
+            letterSpacing: 0.5,
           }}>
             {user.email}
           </div>
-          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, marginTop: 6 }}>El correo no se puede cambiar por seguridad.</div>
+          <div style={{ color: "rgba(253,186,116,0.35)", fontSize: 10, marginTop: 6, fontFamily: MONO, letterSpacing: 1 }}>
+            &gt; CAMPO_INMUTABLE · SEGURIDAD_CRITICA
+          </div>
         </div>
 
         {/* Privacy section */}
-        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(220,38,38,0.15)", borderRadius: 20, padding: 20, marginTop: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {isProfilePublic ? <Eye size={14} color="#FECACA" /> : <EyeOff size={14} color="#FECACA" />}
-            </div>
-            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Privacidad del perfil</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", background: "rgba(255,255,255,0.04)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={cardStyle("carmesi")}>
+          {sectionHeader(
+            isProfilePublic ? <Eye size={14} color="#FDBA74" /> : <EyeOff size={14} color="#FDBA74" />,
+            "// MODULO_03", "Privacidad del perfil"
+          )}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 14px",
+            background: "rgba(8,4,18,0.5)",
+            border: "1px solid rgba(249,115,22,0.25)",
+            clipPath: CLIP_8,
+          }}>
             <div>
-              <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>Perfil público</div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>
-                {isProfilePublic ? "Cualquiera puede ver tus favoritos y watchlist" : "Tu lista y favoritos están ocultos"}
+              <div style={{ color: "#FECACA", fontSize: 12, fontWeight: 900, fontFamily: MONO, letterSpacing: 1 }}>
+                PERFIL_PUBLICO
+              </div>
+              <div style={{ color: "rgba(253,186,116,0.55)", fontSize: 10, marginTop: 3, fontFamily: MONO, letterSpacing: 0.5 }}>
+                &gt; {isProfilePublic ? "VISIBLE: favoritos y watchlist" : "OCULTO: lista privada"}
               </div>
             </div>
             <button
               onClick={() => !savingPrivacy && handleSavePrivacy(!isProfilePublic)}
               style={{
-                width: 44, height: 24, borderRadius: 99, border: "none", cursor: savingPrivacy ? "not-allowed" : "pointer",
-                background: isProfilePublic ? "linear-gradient(135deg,#DC2626,#991B1B)" : "rgba(255,255,255,0.12)",
-                position: "relative", transition: "background 0.2s", flexShrink: 0,
+                width: 50, height: 26,
+                border: `1px solid ${isProfilePublic ? "rgba(253,186,116,0.6)" : "rgba(255,255,255,0.15)"}`,
+                cursor: savingPrivacy ? "not-allowed" : "pointer",
+                background: isProfilePublic ? "linear-gradient(135deg,#DC2626,#F97316)" : "rgba(8,4,18,0.7)",
+                position: "relative", transition: "all 0.2s", flexShrink: 0,
+                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
+                boxShadow: isProfilePublic ? "0 0 10px rgba(220,38,38,0.5)" : "none",
               }}
             >
               <div style={{
-                position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%", background: "#fff",
-                transition: "left 0.2s", left: isProfilePublic ? 23 : 3,
+                position: "absolute", top: 3, width: 18, height: 18,
+                background: "#fff",
+                clipPath: "polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px)",
+                transition: "left 0.2s", left: isProfilePublic ? 27 : 3,
               }} />
             </button>
           </div>
           {privacySuccess && (
-            <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#22C55E", fontSize: 12, marginTop: 8 }}>
-              <Check size={12} /> Privacidad actualizada
+            <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#22C55E", fontSize: 11, marginTop: 8, fontFamily: MONO, letterSpacing: 1 }}>
+              <Check size={12} /> [ OK ] PRIVACIDAD_ACTUALIZADA
             </div>
           )}
         </div>
 
         {/* Email verification */}
         {!user.email_verified && (
-          <div style={{ background: "linear-gradient(180deg,#1A1410,#120E0A)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 20, padding: 20, marginTop: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Mail size={14} color="#F59E0B" />
-              </div>
-              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Verificar correo electrónico</span>
-            </div>
-            <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, margin: "0 0 14px", lineHeight: 1.5 }}>
-              Tu correo aún no está verificado. Verifica tu cuenta para mayor seguridad.
+          <div style={cardStyle("ambar")}>
+            {sectionHeader(<Mail size={14} color="#F97316" />, "// ALERTA_PENDIENTE", "Verificar correo")}
+            <p style={{ color: "rgba(253,186,116,0.7)", fontSize: 12, margin: "0 0 14px", lineHeight: 1.6, fontFamily: MONO, letterSpacing: 0.3 }}>
+              &gt; Tu correo aun no esta verificado. Confirma tu cuenta para desbloquear todas las funciones del sistema.
             </p>
             {verifSent ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#22C55E", fontSize: 13, fontWeight: 700 }}>
-                <CheckCircle2 size={14} /> ¡Email enviado! Revisa tu bandeja de entrada.
+              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#22C55E", fontSize: 12, fontWeight: 800, fontFamily: MONO, letterSpacing: 1 }}>
+                <CheckCircle2 size={14} /> [ OK ] EMAIL_ENVIADO · revisa tu bandeja
               </div>
             ) : (
               <>
                 <button
                   onClick={handleSendVerification}
                   disabled={sendingVerif}
-                  style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 11, border: "none", background: "rgba(245,158,11,0.15)", color: "#F59E0B", fontSize: 13, fontWeight: 700, cursor: sendingVerif ? "not-allowed" : "pointer" }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 7, padding: "10px 18px",
+                    background: "linear-gradient(135deg, rgba(249,115,22,0.25), rgba(220,38,38,0.15))",
+                    border: "1px solid rgba(249,115,22,0.6)",
+                    clipPath: CLIP_8,
+                    color: "#FDBA74", fontSize: 10, fontWeight: 900, letterSpacing: 1.5,
+                    fontFamily: MONO,
+                    cursor: sendingVerif ? "not-allowed" : "pointer",
+                  }}
                 >
                   {sendingVerif ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <SendHorizonal size={13} />}
-                  {sendingVerif ? "Enviando..." : "Enviar email de verificación"}
+                  {sendingVerif ? "ENVIANDO..." : ">>> ENVIAR VERIFICACION"}
                 </button>
-                {verifError && <div style={{ color: "#FCA5A5", fontSize: 12, marginTop: 8 }}>{verifError}</div>}
+                {verifError && <div style={{ color: "#FCA5A5", fontSize: 11, marginTop: 8, fontFamily: MONO, letterSpacing: 0.5 }}>[ERR] {verifError}</div>}
               </>
             )}
           </div>
         )}
 
         {user.email_verified && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)", borderRadius: 12, marginTop: 14 }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
+            background: "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(22,163,74,0.05))",
+            border: "1px solid rgba(34,197,94,0.4)",
+            clipPath: CLIP_8,
+            marginBottom: 14,
+            fontFamily: MONO, letterSpacing: 1,
+          }}>
             <CheckCircle2 size={15} color="#22C55E" />
-            <span style={{ color: "#22C55E", fontSize: 13, fontWeight: 700 }}>Correo electrónico verificado</span>
+            <span style={{ color: "#22C55E", fontSize: 11, fontWeight: 900 }}>[ OK ] CORREO_VERIFICADO</span>
           </div>
         )}
 
         {/* Change password */}
-        <div style={{ background: "linear-gradient(180deg,#14122a,#111220)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 20, marginTop: 14 }}>
+        <div style={cardStyle("neutro")}>
           <button
             onClick={() => { setShowPassFields(v => !v); setPassError(""); setPassSuccess(false); }}
             style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(220,38,38,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <KeyRound size={14} color="#FECACA" />
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 34, height: 34,
+                background: "linear-gradient(135deg, rgba(220,38,38,0.2), rgba(249,115,22,0.15))",
+                border: "1px solid rgba(249,115,22,0.4)",
+                clipPath: CLIP_6,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <KeyRound size={14} color="#FDBA74" />
               </div>
-              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Cambiar contraseña</span>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ color: "#F97316", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO }}>// MODULO_04</div>
+                <div style={{ color: "#FECACA", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>Cambiar contrase&ntilde;a</div>
+              </div>
             </div>
-            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 20, lineHeight: 1 }}>{showPassFields ? "−" : "+"}</span>
+            <span style={{
+              color: "#F97316", fontSize: 18, lineHeight: 1, fontWeight: 900, fontFamily: MONO,
+              width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(249,115,22,0.1)",
+              border: "1px solid rgba(249,115,22,0.35)",
+              clipPath: CLIP_6,
+            }}>{showPassFields ? "−" : "+"}</span>
           </button>
 
           {showPassFields && (
             <form onSubmit={handleChangePassword} style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-              {(["Contraseña actual", "Nueva contraseña", "Confirmar nueva contraseña"] as const).map((label, i) => {
+              {(["Contrase\u00f1a actual", "Nueva contrase\u00f1a", "Confirmar nueva"] as const).map((label, i) => {
                 const value = i === 0 ? currentPass : i === 1 ? newPass : confirmPass;
                 const setter = i === 0 ? setCurrentPass : i === 1 ? setNewPass : setConfirmPass;
                 return (
                   <div key={label} style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                    <Eye size={13} style={{ position: "absolute", left: 12, color: "rgba(255,255,255,0.25)" }} />
+                    <KeyRound size={12} style={{ position: "absolute", left: 12, color: "rgba(253,186,116,0.5)", zIndex: 1 }} />
                     <input
                       type="password"
                       placeholder={label}
                       value={value}
                       onChange={(e) => setter(e.target.value)}
                       required
-                      style={{ width: "100%", paddingLeft: 34, paddingRight: 12, paddingTop: 10, paddingBottom: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-                      onFocus={(e) => (e.target.style.borderColor = "rgba(220,38,38,0.5)")}
-                      onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+                      style={{ ...inputStyle, paddingLeft: 34 }}
+                      onFocus={(e) => (e.target.style.borderColor = "rgba(249,115,22,0.7)")}
+                      onBlur={(e) => (e.target.style.borderColor = "rgba(249,115,22,0.35)")}
                     />
                   </div>
                 );
               })}
               {passError && (
-                <div style={{ color: "#FCA5A5", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }}>
-                  <X size={11} /> {passError}
+                <div style={{ color: "#FCA5A5", fontSize: 11, display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, letterSpacing: 0.5 }}>
+                  <X size={11} /> [ERR] {passError}
                 </div>
               )}
-              <button
-                type="submit"
-                disabled={savingPass}
-                style={{ padding: "11px", borderRadius: 11, border: "none", background: passSuccess ? "linear-gradient(135deg,#22C55E,#16A34A)" : "linear-gradient(135deg,#DC2626,#991B1B)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: savingPass ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
-              >
-                {savingPass ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> Guardando...</>
-                  : passSuccess ? <><Check size={13} /> ¡Contraseña actualizada!</>
-                  : <><KeyRound size={13} /> Cambiar contraseña</>}
+              <button type="submit" disabled={savingPass} style={{ ...primaryBtn(passSuccess), opacity: savingPass ? 0.7 : 1 }}>
+                {savingPass ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
+                  : passSuccess ? <><Check size={13} /> CONTRASE&Ntilde;A_ACTUALIZADA</>
+                  : <><KeyRound size={13} /> &gt;&gt;&gt; ACTUALIZAR CONTRASE&Ntilde;A</>}
               </button>
             </form>
           )}
         </div>
-
       </div>
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes syspulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
       `}</style>
     </div>
   );
