@@ -36,6 +36,7 @@ const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
 const Manga = lazy(() => import("@/pages/Manga"));
 const MangaDetail = lazy(() => import("@/pages/MangaDetail"));
+const Dmca = lazy(() => import("@/pages/Dmca"));
 const MangaReader = lazy(() => import("@/pages/MangaReader"));
 
 const queryClient = new QueryClient({
@@ -530,6 +531,8 @@ function Router() {
         <Route path="/manga"><Manga /></Route>
         <Route path="/manga/:id/leer/:chapterId"><MangaReader /></Route>
         <Route path="/manga/:id"><MangaDetail /></Route>
+        <Route path="/legal/dmca"><Dmca /></Route>
+        <Route path="/dmca"><Dmca /></Route>
         <Route><NotFound /></Route>
       </Switch>
     </Suspense>

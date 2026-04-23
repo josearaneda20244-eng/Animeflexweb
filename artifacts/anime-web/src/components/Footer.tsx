@@ -13,11 +13,11 @@ const NAV_LINKS = [
 ];
 
 const LEGAL_LINKS = [
-  { label: "Aviso Legal", href: "#" },
-  { label: "Política de Privacidad", href: "#" },
-  { label: "DMCA / Contacto", href: "#" },
-  { label: "Términos de Uso", href: "#" },
-  { label: "Sobre Nosotros", href: "#" },
+  { label: "Aviso Legal", href: "/legal/dmca" },
+  { label: "Política de Privacidad", href: "/legal/dmca" },
+  { label: "DMCA / Contacto", href: "/legal/dmca" },
+  { label: "Términos de Uso", href: "/legal/dmca" },
+  { label: "Sobre Nosotros", href: "/legal/dmca" },
 ];
 
 const SOCIAL_LINKS = [
@@ -198,10 +198,11 @@ export default function Footer() {
                 <a
                   key={label}
                   href={href}
+                  onClick={(e) => { e.preventDefault(); navigate(href); }}
                   style={{
                     color: "rgba(255,255,255,0.45)", fontSize: 14,
                     textDecoration: "none", transition: "color 0.2s ease",
-                    display: "block",
+                    display: "block", cursor: "pointer",
                   }}
                   onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.color = "#fff")}
                   onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.45)")}
