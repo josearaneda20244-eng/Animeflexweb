@@ -8,34 +8,45 @@ import { useQuery } from "@tanstack/react-query";
   import { useWatchProgress } from "@/context/WatchProgressContext";
   import { useAuth } from "@/context/AuthContext";
   import AnimeRecommendations from "@/components/AnimeRecommendations";
-  import { useCallback, useState, useEffect, useRef } from "react";
+  import { useCallback, useState, useEffect, useRef, useMemo } from "react";
   import Navbar from "@/components/Navbar";
   import Footer from "@/components/Footer";
   import AdBanner from "@/components/AdBanner";
+  import { SkeletonRow } from "@/components/SkeletonCard";
 
 
-  /* ── LAZY SECTION (only mount when near viewport) ── */
-  function useLazySection(rootMargin = "350px") {
+  /* ── LAZY SECTION (only mount when near viewport) ──
+     Margin grande para que en scroll rápido (sobre todo móvil) las
+     secciones se monten muy por adelantado y no se vean en blanco. */
+  function useLazySection(rootMargin?: string) {
     const ref = useRef<HTMLDivElement>(null);
     const [inView, setInView] = useState(false);
+    const margin = useMemo(() => {
+      if (rootMargin) return rootMargin;
+      if (typeof window === "undefined") return "1200px";
+      // En móvil pre-cargamos aún más porque el scroll es muy rápido.
+      return window.matchMedia("(max-width: 768px)").matches ? "1800px" : "1200px";
+    }, [rootMargin]);
     useEffect(() => {
       const el = ref.current;
       if (!el) return;
+      // Fallback: si el navegador no soporta IntersectionObserver, mostramos contenido inmediato.
+      if (typeof IntersectionObserver === "undefined") { setInView(true); return; }
       const obs = new IntersectionObserver(
         ([entry]) => { if (entry.isIntersecting) { setInView(true); obs.disconnect(); } },
-        { rootMargin }
+        { rootMargin: margin }
       );
       obs.observe(el);
       return () => obs.disconnect();
-    }, [rootMargin]);
+    }, [margin]);
     return { ref, inView };
   }
 
-  function LazySection({ children, minHeight = 280 }: { children: React.ReactNode; minHeight?: number }) {
+  function LazySection({ children, minHeight = 280, skeleton }: { children: React.ReactNode; minHeight?: number; skeleton?: React.ReactNode }) {
     const { ref, inView } = useLazySection();
     return (
       <div ref={ref} style={{ minHeight: inView ? undefined : minHeight }}>
-        {inView ? children : null}
+        {inView ? children : (skeleton ?? <SkeletonRow count={6} />)}
       </div>
     );
   }

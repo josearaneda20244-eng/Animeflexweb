@@ -555,7 +555,11 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     e?.stopPropagation();
     const v = videoRef.current;
     if (!v) return;
-    v.paused ? v.play() : v.pause();
+    if (v.paused) {
+      v.play().catch(() => {});
+    } else {
+      v.pause();
+    }
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -669,7 +673,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
             }
           </button>
 
-          <button onClick={e => { e.stopPropagation(); isFs ? exitFs() : enterFs(); }} style={_playerBtnStyle}>
+          <button onClick={e => { e.stopPropagation(); if (isFs) { exitFs(); } else { enterFs(); } }} style={_playerBtnStyle}>
             {isFs ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
           </button>
         </div>

@@ -5,6 +5,16 @@ import { Button } from './ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { apiClient } from '@/lib/apiClient';
 
+function safeParseArray<T = any>(raw: string | null): T[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export interface Notification {
   id: string;
   type: 'success' | 'error' | 'warning' | 'info';
@@ -95,7 +105,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         await apiClient.post(`/users/${user.id}/notifications`, newNotification);
       } catch (error) {
         // Save to localStorage as fallback
-        const current = JSON.parse(localStorage.getItem(`notifications_${user.id}`) || '[]');
+        const current = safeParseArray(localStorage.getItem(`notifications_${user.id}`));
         localStorage.setItem(`notifications_${user.id}`, JSON.stringify([newNotification, ...current].slice(0, 50)));
       }
     }
@@ -111,7 +121,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         await apiClient.patch(`/users/${user.id}/notifications/${id}/read`, {});
       } catch (error) {
         // Update localStorage
-        const current = JSON.parse(localStorage.getItem(`notifications_${user.id}`) || '[]');
+        const current = safeParseArray(localStorage.getItem(`notifications_${user.id}`));
         const updated = current.map((n: any) => n.id === id ? { ...n, read: true } : n);
         localStorage.setItem(`notifications_${user.id}`, JSON.stringify(updated));
       }
@@ -126,7 +136,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         await apiClient.patch(`/users/${user.id}/notifications/read-all`, {});
       } catch (error) {
         // Update localStorage
-        const current = JSON.parse(localStorage.getItem(`notifications_${user.id}`) || '[]');
+        const current = safeParseArray(localStorage.getItem(`notifications_${user.id}`));
         const updated = current.map((n: any) => ({ ...n, read: true }));
         localStorage.setItem(`notifications_${user.id}`, JSON.stringify(updated));
       }
@@ -141,7 +151,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         await apiClient.delete(`/users/${user.id}/notifications/${id}`);
       } catch (error) {
         // Update localStorage
-        const current = JSON.parse(localStorage.getItem(`notifications_${user.id}`) || '[]');
+        const current = safeParseArray(localStorage.getItem(`notifications_${user.id}`));
         const updated = current.filter((n: any) => n.id !== id);
         localStorage.setItem(`notifications_${user.id}`, JSON.stringify(updated));
       }
