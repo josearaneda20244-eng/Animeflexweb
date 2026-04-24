@@ -240,7 +240,7 @@ import { useQuery } from "@tanstack/react-query";
         <img src={anime.image} alt={title} loading="lazy" decoding="async" />
         <div className="p-card-grad" />
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-          <span style={{ background: "linear-gradient(135deg,#DC2626,#991B1B)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>LAT</span>
+          <span style={{ background: "linear-gradient(135deg,#DC2626,#991B1B)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>SUB ESP</span>
           {anime.totalEpisodes && <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>{anime.totalEpisodes}</span>}
         </div>
         {anime.rating != null && anime.rating > 0 && (

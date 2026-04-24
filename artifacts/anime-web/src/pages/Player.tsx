@@ -1463,7 +1463,7 @@ export default function Player() {
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
                   <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Episodio {episodeNum}</span>
                   <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 12 }}>·</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 6, padding: "1px 7px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Español Latino</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 6, padding: "1px 7px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Sub Español</span>
                   {hlsSubTracks.length > 0 && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 6, padding: "1px 7px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC · Subs</span>
                   )}
@@ -1504,7 +1504,7 @@ export default function Player() {
                 </button>
                 {/* LAT badge */}
                 <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 9, background: "linear-gradient(135deg,rgba(245,158,11,0.25),rgba(234,88,12,0.15))", border: "1px solid rgba(245,158,11,0.5)", color: "#F59E0B", fontSize: 12, fontWeight: 800 }}>
-                  🇪🇸 LAT
+                  🇪🇸 SUB ESP
                   {animeflvQuery.isLoading && <span style={{ fontSize: 9, opacity: 0.6 }}>···</span>}
                 </div>
 
@@ -1633,7 +1633,7 @@ export default function Player() {
                   {/* Video sources */}
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, marginBottom: 7 }}>
-                      Video · Latino
+                      Video · Sub Español
                     </div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {sources.map((src, i) => {
@@ -1747,7 +1747,7 @@ export default function Player() {
               </div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginBottom: 8 }}>Episodio {episodeNum}</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 20, padding: "3px 10px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Español Latino</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 20, padding: "3px 10px", color: "#F59E0B", fontSize: 11, fontWeight: 700 }}>🇪🇸 Sub Español</span>
                 {hlsSubTracks.length > 0 && (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 20, padding: "3px 10px", color: "#22C55E", fontSize: 11, fontWeight: 700 }}>CC Subtítulos</span>
                 )}

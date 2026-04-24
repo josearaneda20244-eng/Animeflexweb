@@ -121,7 +121,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
                 borderRadius: 6, padding: "2.5px 7px", color: "#fff",
                 fontSize: 8.5, fontWeight: 900, letterSpacing: 0.6,
                 boxShadow: "0 2px 10px rgba(220,38,38,0.5)",
-              }}>LAT</span>
+              }}>SUB ESP</span>
               {anime.type && (
                 <span style={{
                   background: "rgba(7,7,11,0.78)", backdropFilter: "blur(8px)",

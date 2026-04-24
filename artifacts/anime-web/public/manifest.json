@@ -1,10 +1,12 @@
 {
+  "id": "/",
   "name": "AnimeFlex",
   "short_name": "AnimeFlex",
   "description": "Mira anime en español — streaming gratis",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#090A12",
   "theme_color": "#6C63FF",
   "orientation": "portrait-primary",

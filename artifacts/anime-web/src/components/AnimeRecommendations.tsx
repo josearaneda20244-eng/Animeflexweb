@@ -82,7 +82,7 @@
             background: 'linear-gradient(135deg, #DC2626, #991B1B)',
             borderRadius: 4, padding: '2px 6px',
             color: '#fff', fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
-          }}>LAT</div>
+          }}>SUB ESP</div>
           {rec.score > 0 && (
             <div style={{
               position: 'absolute', top: 7, right: 7,
