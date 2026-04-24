@@ -425,34 +425,124 @@ import { useQuery } from "@tanstack/react-query";
 
   /* ── GENRES ── */
   const GENRES = [
-    { label: "Action",     icon: "⚔️",  bg: "rgba(239,68,68,0.12)",   border: "rgba(239,68,68,0.3)",   color: "#FCA5A5" },
-    { label: "Adventure",  icon: "🗺️",  bg: "rgba(249,115,22,0.12)",  border: "rgba(249,115,22,0.3)",  color: "#FDBA74" },
-    { label: "Comedy",     icon: "😂",  bg: "rgba(234,179,8,0.12)",   border: "rgba(234,179,8,0.3)",   color: "#FDE68A" },
-    { label: "Drama",      icon: "🎭",  bg: "rgba(249,115,22,0.12)",  border: "rgba(249,115,22,0.3)",  color: "#D8B4FE" },
-    { label: "Fantasy",    icon: "✨",  bg: "rgba(220,38,38,0.12)",  border: "rgba(220,38,38,0.3)",  color: "#A5B4FC" },
-    { label: "Horror",     icon: "💀",  bg: "rgba(17,24,39,0.6)",     border: "rgba(239,68,68,0.3)",   color: "#F87171" },
-    { label: "Romance",    icon: "💖",  bg: "rgba(220,38,38,0.12)",  border: "rgba(220,38,38,0.3)",  color: "#FECACA" },
-    { label: "Sci-Fi",     icon: "🚀",  bg: "rgba(249,115,22,0.12)",   border: "rgba(249,115,22,0.3)",   color: "#FDBA74" },
-    { label: "Shounen",    icon: "💪",  bg: "rgba(251,146,60,0.12)",  border: "rgba(251,146,60,0.3)",  color: "#FED7AA" },
-    { label: "Isekai",     icon: "🌀",  bg: "rgba(255,92,122,0.12)",  border: "rgba(255,92,122,0.3)",  color: "#FECACA" },
-    { label: "Thriller",   icon: "🔪",  bg: "rgba(75,85,99,0.25)",    border: "rgba(156,163,175,0.3)", color: "#D1D5DB" },
-    { label: "Mystery",    icon: "🔍",  bg: "rgba(30,58,138,0.2)",    border: "rgba(220,38,38,0.3)",  color: "#FECACA" },
+    { label: "Acción",      query: "Action",     icon: "⚔️", accent: "#EF4444", glow: "239,68,68" },
+    { label: "Aventura",    query: "Adventure",  icon: "🗺️", accent: "#F97316", glow: "249,115,22" },
+    { label: "Comedia",     query: "Comedy",     icon: "😂", accent: "#EAB308", glow: "234,179,8" },
+    { label: "Drama",       query: "Drama",      icon: "🎭", accent: "#A855F7", glow: "168,85,247" },
+    { label: "Fantasía",    query: "Fantasy",    icon: "✨", accent: "#8B5CF6", glow: "139,92,246" },
+    { label: "Terror",      query: "Horror",     icon: "💀", accent: "#DC2626", glow: "220,38,38" },
+    { label: "Romance",     query: "Romance",    icon: "💖", accent: "#EC4899", glow: "236,72,153" },
+    { label: "Sci-Fi",      query: "Sci-Fi",     icon: "🚀", accent: "#06B6D4", glow: "6,182,212" },
+    { label: "Shounen",     query: "Shounen",    icon: "💪", accent: "#F59E0B", glow: "245,158,11" },
+    { label: "Isekai",      query: "Isekai",     icon: "🌀", accent: "#3B82F6", glow: "59,130,246" },
+    { label: "Thriller",    query: "Thriller",   icon: "🔪", accent: "#64748B", glow: "100,116,139" },
+    { label: "Misterio",    query: "Mystery",    icon: "🔍", accent: "#6366F1", glow: "99,102,241" },
   ];
 
   function GenresSection() {
     const [, navigate] = useLocation();
     return (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "0 18px" }}>
-        {GENRES.map((g) => (
-          <button key={g.label} onClick={() => navigate(`/search?q=${g.label}`)}
-            style={{ background: g.bg, borderRadius: 22, padding: "8px 18px", border: `1px solid ${g.border}`, color: g.color, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.18s", display: "flex", alignItems: "center", gap: 7 }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 8px 20px rgba(0,0,0,0.4)`; e.currentTarget.style.filter = "brightness(1.2)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; e.currentTarget.style.filter = ""; }}>
-            <span style={{ fontSize: 15 }}>{g.icon}</span>
-            {g.label}
-          </button>
-        ))}
-      </div>
+      <>
+        <div className="genres-grid">
+          {GENRES.map((g) => (
+            <button
+              key={g.label}
+              onClick={() => navigate(`/search?q=${g.query}`)}
+              className="genre-tile"
+              style={{ ["--accent" as any]: g.accent, ["--glow" as any]: g.glow }}
+            >
+              <span className="genre-tile__corner genre-tile__corner--tl" />
+              <span className="genre-tile__corner genre-tile__corner--br" />
+              <span className="genre-tile__icon">{g.icon}</span>
+              <span className="genre-tile__label">{g.label}</span>
+              <span className="genre-tile__arrow">›</span>
+            </button>
+          ))}
+        </div>
+        <style>{`
+          .genres-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            padding: 4px 18px 6px;
+          }
+          @media (max-width: 480px) {
+            .genres-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; padding: 4px 14px 6px; }
+          }
+          .genre-tile {
+            position: relative;
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: linear-gradient(145deg, rgba(15,17,28,0.92), rgba(8,9,18,0.92));
+            border: 1px solid rgba(var(--glow), 0.22);
+            color: #fff;
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: left;
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.22s ease, background 0.18s ease;
+            overflow: hidden;
+          }
+          .genre-tile::before {
+            content: "";
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at 20% 0%, rgba(var(--glow), 0.18), transparent 60%);
+            opacity: 0.55;
+            pointer-events: none;
+            transition: opacity 0.22s ease;
+          }
+          .genre-tile:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 26px rgba(var(--glow), 0.28), inset 0 0 0 1px rgba(var(--glow), 0.18);
+            background: linear-gradient(145deg, rgba(20,22,34,0.95), rgba(10,12,22,0.95));
+          }
+          .genre-tile:hover::before { opacity: 1; }
+          .genre-tile:active { transform: translateY(0); }
+          .genre-tile__icon {
+            position: relative;
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            background: linear-gradient(135deg, rgba(var(--glow), 0.22), rgba(var(--glow), 0.06));
+            border: 1px solid rgba(var(--glow), 0.32);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+            flex-shrink: 0;
+          }
+          .genre-tile__label {
+            position: relative;
+            flex: 1;
+            letter-spacing: 0.2px;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+          }
+          .genre-tile__arrow {
+            position: relative;
+            color: rgba(var(--glow), 0.7);
+            font-size: 18px; line-height: 1;
+            font-weight: 400;
+            transform: translateX(-4px);
+            opacity: 0;
+            transition: transform 0.22s ease, opacity 0.22s ease;
+          }
+          .genre-tile:hover .genre-tile__arrow {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          .genre-tile__corner {
+            position: absolute;
+            width: 8px; height: 8px;
+            border-color: var(--accent);
+            border-style: solid;
+            opacity: 0.65;
+            pointer-events: none;
+          }
+          .genre-tile__corner--tl { top: 4px; left: 4px; border-width: 1px 0 0 1px; border-top-left-radius: 2px; }
+          .genre-tile__corner--br { bottom: 4px; right: 4px; border-width: 0 1px 1px 0; border-bottom-right-radius: 2px; }
+        `}</style>
+      </>
     );
   }
 

@@ -1234,7 +1234,7 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
             <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15 }}>Sistema de límite diario</div>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Episodios gratuitos por día</div>
           </div>
-          <button onClick={() => toggle("daily_limit_enabled")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          <button onClick={() => save({ daily_limit_enabled: isEnabled ? "false" : "true" })} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
             {isEnabled ? <ToggleRight size={40} color="#22C55E" /> : <ToggleLeft size={40} color="rgba(255,255,255,0.2)" />}
           </button>
         </div>
