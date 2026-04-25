@@ -15,6 +15,8 @@ const GENRES = [
 
 const NAV_LINKS = [
   { label: "Inicio", to: "/" },
+  { label: "Manga", to: "/manga" },
+  { label: "Noticias", to: "/noticias" },
   { label: "Películas", to: "/movies" },
   { label: "OVAs & ONAs", to: "/ovas" },
   { label: "Horario", to: "/schedule" },

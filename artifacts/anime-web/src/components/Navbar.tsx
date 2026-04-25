@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera, Rss, LayoutDashboard, BookOpen } from "lucide-react";
+import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera, Rss, LayoutDashboard, BookOpen, Newspaper } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useAuth } from "@/context/AuthContext";
@@ -118,6 +118,7 @@ export default function Navbar() {
   const mobileNavItems = [
     { label: "Inicio", icon: <Home size={18} />, href: "/" },
     { label: "Manga", icon: <BookOpen size={18} />, href: "/manga" },
+    { label: "Noticias", icon: <Newspaper size={18} />, href: "/noticias" },
     { label: "Películas", icon: <Film size={18} />, href: "/movies" },
     { label: "OVAs", icon: <Tv2 size={18} />, href: "/ovas" },
     { label: "Horario", icon: <Calendar size={18} />, href: "/schedule" },
@@ -229,6 +230,7 @@ export default function Navbar() {
               <div style={{ alignItems: "center", gap: 2, flex: 1 }} className="hidden md:flex">
                 <NavBtn href="/" icon={<Home size={15} />} label="Inicio" active={isActive("/")} />
                 <NavBtn href="/manga" icon={<BookOpen size={15} />} label="Manga" active={isActive("/manga")} />
+                <NavBtn href="/noticias" icon={<Newspaper size={15} />} label="Noticias" active={isActive("/noticias")} />
                 <NavBtn href="/movies" icon={<Film size={15} />} label="Películas" active={isActive("/movies")} />
                 <NavBtn href="/ovas" icon={<Tv2 size={15} />} label="OVAs" active={isActive("/ovas")} />
 
