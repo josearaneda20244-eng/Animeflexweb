@@ -314,7 +314,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                         boxShadow: "0 0 16px rgba(239,68,68,0.25)",
                       }}
                     >
-                      <span style={{ color: "#F87171", fontWeight: 800 }}>! ERROR > </span>{error}
+                      <span style={{ color: "#F87171", fontWeight: 800 }}>! ERROR {">"} </span>{error}
                     </motion.div>
                   )}
 
