@@ -60,7 +60,7 @@ const liBullet = (
   <span style={{
     position: "absolute", left: 0, top: 4,
     color: "#F97316", fontSize: 10, fontWeight: 900, fontFamily: MONO,
-  }}>&gt;</span>
+  }}>></span>
 );
 
 export default function Dmca() {
@@ -111,7 +111,7 @@ export default function Dmca() {
               DMCA &middot; CONTACTO
             </h1>
             <p style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, margin: "2px 0 0", letterSpacing: 1, fontFamily: MONO }}>
-              &gt; Pol&iacute;tica de derechos de autor y aviso de no almacenamiento
+              > Política de derechos de autor y aviso de no almacenamiento
             </p>
           </div>
         </div>
@@ -121,12 +121,12 @@ export default function Dmca() {
           {sectionHeader(<AlertTriangle size={16} color="#FCA5A5" />, "// AVISO_PRINCIPAL", "AnimeFlex NO aloja contenido")}
           <p style={para}>
             <strong style={{ color: "#FECACA" }}>AnimeFlex es un agregador / buscador.</strong> No almacenamos, alojamos, transmitimos
-            ni sub&iacute;mos ning&uacute;n archivo de v&iacute;deo, audio o im&aacute;genes de mangas en nuestros servidores.
+            ni subímos ningún archivo de vídeo, audio o imágenes de mangas en nuestros servidores.
           </p>
           <p style={para}>
-            Todo el contenido visible en esta plataforma es <strong style={{ color: "#FDBA74" }}>indexado autom&aacute;ticamente</strong> desde
-            servicios de terceros p&uacute;blicamente accesibles en internet. AnimeFlex act&uacute;a &uacute;nicamente como una capa de
-            organizaci&oacute;n e interfaz que facilita la b&uacute;squeda; los archivos multimedia se sirven directamente desde los
+            Todo el contenido visible en esta plataforma es <strong style={{ color: "#FDBA74" }}>indexado automáticamente</strong> desde
+            servicios de terceros públicamente accesibles en internet. AnimeFlex actúa únicamente como una capa de
+            organización e interfaz que facilita la búsqueda; los archivos multimedia se sirven directamente desde los
             servidores de origen, fuera de nuestro control.
           </p>
           <div style={{
@@ -136,46 +136,46 @@ export default function Dmca() {
             clipPath: CLIP_8,
             color: "#FECACA", fontSize: 12, fontFamily: MONO, letterSpacing: 0.5, lineHeight: 1.6,
           }}>
-            &gt; <strong>RESUMEN_TECNICO:</strong> AnimeFlex no posee, no controla y no se beneficia
+            > <strong>RESUMEN_TECNICO:</strong> AnimeFlex no posee, no controla y no se beneficia
             comercialmente de los archivos multimedia indexados. Todos los derechos pertenecen a sus respectivos
             titulares (estudios, distribuidores y editoriales).
           </div>
         </div>
 
-        {/* C&oacute;mo funciona */}
+        {/* Cómo funciona */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<ExternalLink size={16} color="#FDBA74" />, "// MODULO_01", "C&oacute;mo funciona el indexado")}
+          {sectionHeader(<ExternalLink size={16} color="#FDBA74" />, "// MODULO_01", "Cómo funciona el indexado")}
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            <li style={li}>{liBullet} Nuestros sistemas <strong style={{ color: "#FDBA74" }}>recolectan enlaces p&uacute;blicos</strong> que ya est&aacute;n disponibles en internet.</li>
-            <li style={li}>{liBullet} Los enlaces apuntan a recursos alojados por <strong style={{ color: "#FDBA74" }}>terceros independientes</strong> (servicios de v&iacute;deo, scanlators, agregadores).</li>
+            <li style={li}>{liBullet} Nuestros sistemas <strong style={{ color: "#FDBA74" }}>recolectan enlaces públicos</strong> que ya están disponibles en internet.</li>
+            <li style={li}>{liBullet} Los enlaces apuntan a recursos alojados por <strong style={{ color: "#FDBA74" }}>terceros independientes</strong> (servicios de vídeo, scanlators, agregadores).</li>
             <li style={li}>{liBullet} Cuando un usuario hace clic en &laquo;reproducir&raquo; o &laquo;leer&raquo;, el contenido se carga <strong style={{ color: "#FDBA74" }}>directamente desde el origen externo</strong> a su navegador.</li>
-            <li style={li}>{liBullet} En ning&uacute;n momento ese contenido pasa por, ni se cachea en, los servidores de AnimeFlex.</li>
-            <li style={li}>{liBullet} Los metadatos (t&iacute;tulos, sinopsis, im&aacute;genes de portada) provienen de APIs p&uacute;blicas como AniList, MAL y similares, bajo sus respectivas licencias de uso.</li>
+            <li style={li}>{liBullet} En ningún momento ese contenido pasa por, ni se cachea en, los servidores de AnimeFlex.</li>
+            <li style={li}>{liBullet} Los metadatos (títulos, sinopsis, imágenes de portada) provienen de APIs públicas como AniList, MAL y similares, bajo sus respectivas licencias de uso.</li>
           </ul>
         </div>
 
-        {/* DMCA / Notificaci&oacute;n */}
+        {/* DMCA / Notificación */}
         <div style={cardStyle("ambar")}>
-          {sectionHeader(<Scale size={16} color="#F97316" />, "// MODULO_02", "Notificaci&oacute;n DMCA")}
+          {sectionHeader(<Scale size={16} color="#F97316" />, "// MODULO_02", "Notificación DMCA")}
           <p style={para}>
             Si usted es titular de derechos de autor y considera que un enlace indexado en AnimeFlex apunta a
-            contenido que infringe sus derechos, puede solicitar su eliminaci&oacute;n del &iacute;ndice mediante una
-            notificaci&oacute;n DMCA al correo indicado abajo.
+            contenido que infringe sus derechos, puede solicitar su eliminación del índice mediante una
+            notificación DMCA al correo indicado abajo.
           </p>
           <p style={{ ...para, color: "#FDBA74" }}>
-            <strong>Su notificaci&oacute;n debe incluir:</strong>
+            <strong>Su notificación debe incluir:</strong>
           </p>
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            <li style={li}>{liBullet} Identificaci&oacute;n de la obra protegida (t&iacute;tulo, episodio, cap&iacute;tulo).</li>
+            <li style={li}>{liBullet} Identificación de la obra protegida (título, episodio, capítulo).</li>
             <li style={li}>{liBullet} URL exacta dentro de AnimeFlex donde aparece el enlace al material reclamado.</li>
-            <li style={li}>{liBullet} Sus datos de contacto: nombre legal completo, correo, tel&eacute;fono y direcci&oacute;n postal.</li>
-            <li style={li}>{liBullet} Declaraci&oacute;n jurada de buena fe afirmando que el uso del material no est&aacute; autorizado.</li>
-            <li style={li}>{liBullet} Declaraci&oacute;n bajo pena de perjurio de que la informaci&oacute;n es exacta y de que usted est&aacute; autorizado a actuar en nombre del titular.</li>
-            <li style={li}>{liBullet} Firma electr&oacute;nica o f&iacute;sica del titular o representante autorizado.</li>
+            <li style={li}>{liBullet} Sus datos de contacto: nombre legal completo, correo, teléfono y dirección postal.</li>
+            <li style={li}>{liBullet} Declaración jurada de buena fe afirmando que el uso del material no está autorizado.</li>
+            <li style={li}>{liBullet} Declaración bajo pena de perjurio de que la información es exacta y de que usted está autorizado a actuar en nombre del titular.</li>
+            <li style={li}>{liBullet} Firma electrónica o física del titular o representante autorizado.</li>
           </ul>
           <p style={{ ...para, marginTop: 12 }}>
-            Una vez recibida una notificaci&oacute;n v&aacute;lida, eliminaremos o deshabilitaremos el enlace en un plazo
-            razonable, normalmente inferior a <strong style={{ color: "#FDBA74" }}>72 horas h&aacute;biles</strong>.
+            Una vez recibida una notificación válida, eliminaremos o deshabilitaremos el enlace en un plazo
+            razonable, normalmente inferior a <strong style={{ color: "#FDBA74" }}>72 horas hábiles</strong>.
           </p>
         </div>
 
@@ -183,31 +183,31 @@ export default function Dmca() {
         <div style={cardStyle("carmesi")}>
           {sectionHeader(<Trash2 size={16} color="#FDBA74" />, "// MODULO_03", "Acciones que tomamos")}
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            <li style={li}>{liBullet} Eliminamos el enlace o entrada del &iacute;ndice de AnimeFlex.</li>
+            <li style={li}>{liBullet} Eliminamos el enlace o entrada del índice de AnimeFlex.</li>
             <li style={li}>{liBullet} Notificamos al titular del derecho una vez completada la retirada.</li>
-            <li style={li}>{liBullet} Llevamos un registro interno de las solicitudes para evitar reindexado autom&aacute;tico.</li>
-            <li style={li}>{liBullet} En caso de notificaciones reiteradas y v&aacute;lidas, podemos bloquear de forma permanente la fuente externa correspondiente.</li>
+            <li style={li}>{liBullet} Llevamos un registro interno de las solicitudes para evitar reindexado automático.</li>
+            <li style={li}>{liBullet} En caso de notificaciones reiteradas y válidas, podemos bloquear de forma permanente la fuente externa correspondiente.</li>
           </ul>
         </div>
 
-        {/* Limitaci&oacute;n de responsabilidad */}
+        {/* Limitación de responsabilidad */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<Shield size={16} color="#FDBA74" />, "// MODULO_04", "Limitaci&oacute;n de responsabilidad")}
+          {sectionHeader(<Shield size={16} color="#FDBA74" />, "// MODULO_04", "Limitación de responsabilidad")}
           <p style={para}>
-            AnimeFlex se acoge a las protecciones para proveedores de servicios de la sociedad de la informaci&oacute;n
+            AnimeFlex se acoge a las protecciones para proveedores de servicios de la sociedad de la información
             (&laquo;safe harbor&raquo;) previstas en la <strong style={{ color: "#FDBA74" }}>DMCA (17 U.S.C. &sect; 512)</strong> y en la
-            <strong style={{ color: "#FDBA74" }}> Directiva 2000/31/CE</strong> de comercio electr&oacute;nico de la Uni&oacute;n Europea, as&iacute; como
-            normativas equivalentes en otros pa&iacute;ses.
+            <strong style={{ color: "#FDBA74" }}> Directiva 2000/31/CE</strong> de comercio electrónico de la Unión Europea, así como
+            normativas equivalentes en otros países.
           </p>
           <p style={para}>
-            Como agregador, no tenemos conocimiento previo del contenido espec&iacute;fico al que apuntan los enlaces
+            Como agregador, no tenemos conocimiento previo del contenido específico al que apuntan los enlaces
             externos y no editamos, modificamos ni controlamos el material alojado por terceros. Nuestra
-            responsabilidad se limita a actuar diligentemente al recibir una notificaci&oacute;n v&aacute;lida.
+            responsabilidad se limita a actuar diligentemente al recibir una notificación válida.
           </p>
           <p style={{ ...para, marginBottom: 0 }}>
             El usuario es responsable del uso que haga de los enlaces y reconoce que el material proviene
             de servicios de terceros. Recomendamos siempre apoyar a los autores y estudios oficiales adquiriendo
-            el contenido a trav&eacute;s de las plataformas legales en su pa&iacute;s.
+            el contenido a través de las plataformas legales en su país.
           </p>
         </div>
 
@@ -215,14 +215,14 @@ export default function Dmca() {
         <div style={cardStyle("carmesi")}>
           {sectionHeader(<FileWarning size={16} color="#FDBA74" />, "// MODULO_05", "Contraaviso (counter-notice)")}
           <p style={para}>
-            Si considera que un enlace fue retirado por error o identificaci&oacute;n incorrecta, puede enviar un
+            Si considera que un enlace fue retirado por error o identificación incorrecta, puede enviar un
             contraaviso al mismo correo, incluyendo:
           </p>
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            <li style={li}>{liBullet} Identificaci&oacute;n del enlace retirado y URL donde aparec&iacute;a.</li>
-            <li style={li}>{liBullet} Declaraci&oacute;n jurada de buena fe sobre el error o identificaci&oacute;n incorrecta.</li>
-            <li style={li}>{liBullet} Sus datos de contacto y aceptaci&oacute;n de jurisdicci&oacute;n.</li>
-            <li style={li}>{liBullet} Firma f&iacute;sica o electr&oacute;nica.</li>
+            <li style={li}>{liBullet} Identificación del enlace retirado y URL donde aparecía.</li>
+            <li style={li}>{liBullet} Declaración jurada de buena fe sobre el error o identificación incorrecta.</li>
+            <li style={li}>{liBullet} Sus datos de contacto y aceptación de jurisdicción.</li>
+            <li style={li}>{liBullet} Firma física o electrónica.</li>
           </ul>
         </div>
 
@@ -230,7 +230,7 @@ export default function Dmca() {
         <div style={cardStyle("ambar")}>
           {sectionHeader(<Mail size={16} color="#F97316" />, "// CANAL_DIRECTO", "Contacto DMCA")}
           <p style={para}>
-            Env&iacute;e su notificaci&oacute;n, contraaviso o cualquier consulta legal al correo:
+            Envíe su notificación, contraaviso o cualquier consulta legal al correo:
           </p>
           <a
             href={`mailto:${CONTACT_EMAIL}?subject=Notificacion%20DMCA%20-%20AnimeFlex`}
@@ -250,8 +250,8 @@ export default function Dmca() {
             <Mail size={14} /> {CONTACT_EMAIL}
           </a>
           <p style={{ ...para, marginTop: 14, marginBottom: 0, fontSize: 12, color: "rgba(253,186,116,0.6)" }}>
-            &gt; Tiempo de respuesta estimado: <strong style={{ color: "#FDBA74" }}>24-72 horas h&aacute;biles</strong>.
-            Las solicitudes incompletas o que no cumplan los requisitos legales no podr&aacute;n ser procesadas.
+            > Tiempo de respuesta estimado: <strong style={{ color: "#FDBA74" }}>24-72 horas hábiles</strong>.
+            Las solicitudes incompletas o que no cumplan los requisitos legales no podrán ser procesadas.
           </p>
         </div>
 
