@@ -252,7 +252,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   </div>
                   <div>
                     <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 900, marginBottom: 6, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, textTransform: "uppercase" }}>
-                      &gt; Mensaje enviado
+                      > Mensaje enviado
                     </div>
                     <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 12, lineHeight: 1.6 }}>
                       Si el correo está registrado, recibirás un enlace para restablecer tu contraseña en los próximos minutos.
@@ -314,7 +314,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                         boxShadow: "0 0 16px rgba(239,68,68,0.25)",
                       }}
                     >
-                      <span style={{ color: "#F87171", fontWeight: 800 }}>! ERROR &gt; </span>{error}
+                      <span style={{ color: "#F87171", fontWeight: 800 }}>! ERROR > </span>{error}
                     </motion.div>
                   )}
 
