@@ -266,7 +266,7 @@ export default function MangaReader() {
                 <Loader2 size={32} color="#FDBA74" style={{ position: "absolute", top: 24, left: 24, animation: "spin 1s linear infinite" }} />
               </div>
               <p style={{ color: "#FDBA74", fontSize: 11, fontWeight: 800, letterSpacing: 3, fontFamily: MONO }}>
-                > CARGANDO_PAGINAS...
+                {">"} CARGANDO_PAGINAS...
               </p>
             </div>
           </div>
