@@ -244,7 +244,7 @@ export default function MangaReader() {
                   <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {ch.title || `Capitulo ${ch.chapterNumber}`}
                   </span>
-                  {active && <span style={{ color: "#F97316", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>[ &gt; ]</span>}
+                  {active && <span style={{ color: "#F97316", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>[ > ]</span>}
                 </div>
               );
             })}
@@ -266,7 +266,7 @@ export default function MangaReader() {
                 <Loader2 size={32} color="#FDBA74" style={{ position: "absolute", top: 24, left: 24, animation: "spin 1s linear infinite" }} />
               </div>
               <p style={{ color: "#FDBA74", fontSize: 11, fontWeight: 800, letterSpacing: 3, fontFamily: MONO }}>
-                &gt; CARGANDO_PAGINAS...
+                > CARGANDO_PAGINAS...
               </p>
             </div>
           </div>
@@ -295,7 +295,7 @@ export default function MangaReader() {
                 boxShadow: "0 0 16px rgba(220,38,38,0.5)",
               }}
             >
-              &gt;&gt; VOLVER AL MANGA
+              >> VOLVER AL MANGA
             </button>
           </div>
         )}
@@ -360,7 +360,7 @@ export default function MangaReader() {
                 FIN DEL CAPITULO
               </div>
               <div style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, marginBottom: 22, letterSpacing: 1, fontFamily: MONO }}>
-                {currentChapter ? `&gt; CAP_${String(currentChapter.chapterNumber).padStart(3, "0")} · LEIDO` : ""}
+                {currentChapter ? `> CAP_${String(currentChapter.chapterNumber).padStart(3, "0")} · LEIDO` : ""}
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 {prevChapter && (
@@ -404,7 +404,7 @@ export default function MangaReader() {
                       boxShadow: "0 0 16px rgba(220,38,38,0.6)",
                     }}
                   >
-                    CAP {nextChapter.chapterNumber} &gt;&gt; <ChevronRight size={13} />
+                    CAP {nextChapter.chapterNumber} >> <ChevronRight size={13} />
                   </button>
                 )}
               </div>
