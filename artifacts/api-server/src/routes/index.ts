@@ -11,11 +11,13 @@ import announcementsRouter from "./announcements.js";
 import searchLogRouter from "./search.js";
 import storageRouter from "./storage.js";
 import mangaRouter from "./manga.js";
+import newsRouter from "./news.js";
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(storageRouter);
 router.use(mangaRouter);
+router.use(newsRouter);
 router.use(animeRouter);
 router.use(authRouter);
 router.use(publicUserRouter);
