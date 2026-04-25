@@ -184,7 +184,7 @@ export default function Membership() {
               <span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626,#F97316)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>// MEGAFAN</span>
             </h1>
             <p style={{ color: "rgba(253,186,116,0.7)", fontSize: 13, margin: "16px auto 0", maxWidth: 420, letterSpacing: 0.5, lineHeight: 1.7 }}>
-              > Anime sin límites · sin interrupciones · acceso completo al sistema
+              {">"} Anime sin límites · sin interrupciones · acceso completo al sistema
             </p>
           </div>
         </div>
@@ -320,7 +320,7 @@ export default function Membership() {
               )}
 
               <p style={{ color: "rgba(253,186,116,0.4)", fontSize: 11, margin: "4px 0 24px", letterSpacing: 0.5 }}>
-                > Cancela cuando quieras · Sin contratos
+                {">"} Cancela cuando quieras · Sin contratos
               </p>
 
               {/* Divider */}
@@ -442,7 +442,7 @@ export default function Membership() {
                       fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                     }}
                   >
-                    {loading ? "// CARGANDO..." : ">>> GESTIONAR EN PAYPAL"}
+                    {loading ? "// CARGANDO..." : ">{">>>"} GESTIONAR EN PAYPAL"}
                   </button>
                 </div>
               ) : success ? (
