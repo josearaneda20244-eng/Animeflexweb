@@ -605,7 +605,7 @@ export default function Profile() {
                   color: "rgba(253,186,116,0.7)", fontSize: 10.5, marginTop: 8,
                   fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 0.5,
                 }}>
-                  > {remaining > 0 ? `${remaining} episodios restantes hoy` : "LÍMITE ALCANZADO · reinicio en 24h"}
+                  {">"} {remaining > 0 ? `${remaining} episodios restantes hoy` : "LÍMITE ALCANZADO · reinicio en 24h"}
                 </div>
               </div>
             )}
