@@ -1,29 +1,34 @@
-// AnimeFlex Service Worker v2 — PWA caching + bloqueo de anuncios push
+// AnimeFlex Service Worker v3 — purga total + recarga forzada para limpiar caches viejos
 
-const CACHE_NAME = "animeflex-v2";
-const APP_SHELL = [
-  "/",
-  "/index.html",
-];
+const CACHE_NAME = "animeflex-v3";
+const APP_SHELL = ["/", "/index.html"];
 
-// ── Install: pre-cache app shell ──────────────────────────────────────────
+// ── Install: tomar control inmediatamente ─────────────────────────────────
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
+  // No precachear nada para no servir HTML viejo en futuras navegaciones
   self.skipWaiting();
 });
 
-// ── Activate: clean old caches ────────────────────────────────────────────
+// ── Activate: PURGAR TODOS los caches viejos y recargar pestañas abiertas ─
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
+      // Borrar absolutamente todos los caches
       const keys = await caches.keys();
-      await Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      );
+      await Promise.all(keys.map((k) => caches.delete(k)));
+
+      // Tomar control inmediato de todas las pestañas
       await self.clients.claim();
-      // Bloquear push ads (Monetag / MultiTag)
+
+      // Forzar reload de todas las pestañas abiertas para que carguen el bundle nuevo
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const client of clients) {
+        try {
+          client.navigate(client.url);
+        } catch {}
+      }
+
+      // Bloquear push ads si los hay
       try {
         const sub = await self.registration.pushManager.getSubscription();
         if (sub) await sub.unsubscribe();
@@ -32,85 +37,63 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// ── Fetch: estrategia por tipo de recurso ─────────────────────────────────
+// ── Fetch: network-first para todo, sin cachear (modo a prueba de obsolescencia) ──
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  const url = new URL(request.url);
 
-  // Saltar peticiones no-GET
+  // Solo manejar GET; el resto pasa directo a la red
   if (request.method !== "GET") return;
 
-  // API: network-first, sin cache
+  const url = new URL(request.url);
+
+  // API: network-first, fallback a respuesta de error JSON
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
-      fetch(request).catch(() =>
-        new Response(JSON.stringify({ error: "Sin conexión" }), {
-          status: 503,
-          headers: { "Content-Type": "application/json" },
-        })
+      fetch(request).catch(
+        () =>
+          new Response(JSON.stringify({ error: "Sin conexión" }), {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          })
       )
     );
     return;
   }
 
-  // Imágenes externas (posters, thumbnails): cache-first, 7 días
+  // Imágenes externas: cache-first con expiración implícita por nombre de archivo
   if (
     request.destination === "image" &&
-    !url.hostname.includes("localhost") &&
-    !url.hostname.includes("replit")
+    url.origin !== self.location.origin
   ) {
     event.respondWith(
-      caches.match(request).then((cached) => {
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(request);
         if (cached) return cached;
-        return fetch(request)
-          .then((res) => {
-            if (!res.ok) return res;
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-            return res;
-          })
-          .catch(() => new Response("", { status: 408 }));
-      })
-    );
-    return;
-  }
-
-  // JS/CSS/fonts: cache-first con network fallback
-  if (
-    request.destination === "script" ||
-    request.destination === "style" ||
-    request.destination === "font"
-  ) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((res) => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(request, clone));
-          }
+        try {
+          const res = await fetch(request);
+          if (res.ok) cache.put(request, res.clone());
           return res;
-        });
+        } catch {
+          return new Response("", { status: 408 });
+        }
       })
     );
     return;
   }
 
-  // Navegación (HTML): network-first, fallback a index.html (SPA)
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() =>
-        caches.match("/index.html").then(
-          (cached) =>
-            cached ||
-            new Response("<h1>Sin conexión</h1>", {
-              headers: { "Content-Type": "text/html" },
-            })
-        )
-      )
-    );
-    return;
-  }
+  // JS/CSS/HTML/fonts del propio sitio: SIEMPRE network, sin cachear (evita servir bundles viejos)
+  // Si la red falla y es una navegación, devolver una página de "sin conexión" mínima
+  event.respondWith(
+    fetch(request).catch(() => {
+      if (request.mode === "navigate") {
+        return new Response(
+          "<h1 style='font-family:sans-serif;text-align:center;padding:40px;color:#fff;background:#0a0307'>Sin conexión</h1>",
+          { headers: { "Content-Type": "text/html" }, status: 503 }
+        );
+      }
+      return new Response("", { status: 408 });
+    })
+  );
 });
 
 // ── Bloquear TODOS los eventos push (anuncios Monetag/MultiTag) ───────────
