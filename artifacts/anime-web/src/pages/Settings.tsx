@@ -314,7 +314,7 @@ export default function Settings() {
               CONFIGURACION
             </h1>
             <p style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, margin: "2px 0 0", letterSpacing: 1, fontFamily: MONO }}>
-              &gt; Personaliza tu rango y datos de cazador
+              > Personaliza tu rango y datos de cazador
             </p>
           </div>
         </div>
@@ -410,7 +410,7 @@ export default function Settings() {
                   padding: "5px 10px", fontSize: 10, color: "rgba(253,186,116,0.7)",
                   fontFamily: MONO, letterSpacing: 0.5,
                 }}>
-                  &gt; DESDE {memberSince.toUpperCase()}
+                  > DESDE {memberSince.toUpperCase()}
                 </span>
               )}
             </div>
@@ -485,7 +485,7 @@ export default function Settings() {
           <button onClick={handleSaveAvatar} disabled={savingAvatar} style={{ ...primaryBtn(avatarSuccess), marginTop: 12, opacity: savingAvatar ? 0.7 : 1 }}>
             {savingAvatar ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
               : avatarSuccess ? <><Check size={13} /> AVATAR_ACTUALIZADO</>
-              : <><Camera size={13} /> &gt;&gt;&gt; GUARDAR AVATAR</>}
+              : <><Camera size={13} /> >>> GUARDAR AVATAR</>}
           </button>
         </div>
 
@@ -504,7 +504,7 @@ export default function Settings() {
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 10, letterSpacing: 0.5 }}>
             {usernameError
               ? <span style={{ color: "#FCA5A5", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {usernameError}</span>
-              : <span style={{ color: "rgba(253,186,116,0.4)" }}>&gt; ENTRE 2 Y 30 CARACTERES</span>
+              : <span style={{ color: "rgba(253,186,116,0.4)" }}>> ENTRE 2 Y 30 CARACTERES</span>
             }
             <span style={{ color: "rgba(253,186,116,0.5)" }}>{username.length}/30</span>
           </div>
@@ -521,7 +521,7 @@ export default function Settings() {
           >
             {savingUsername ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
               : usernameSuccess ? <><Check size={13} /> NOMBRE_ACTUALIZADO</>
-              : <><User size={13} /> &gt;&gt;&gt; GUARDAR NOMBRE</>}
+              : <><User size={13} /> >>> GUARDAR NOMBRE</>}
           </button>
         </div>
 
@@ -539,7 +539,7 @@ export default function Settings() {
             {user.email}
           </div>
           <div style={{ color: "rgba(253,186,116,0.35)", fontSize: 10, marginTop: 6, fontFamily: MONO, letterSpacing: 1 }}>
-            &gt; CAMPO_INMUTABLE · SEGURIDAD_CRITICA
+            > CAMPO_INMUTABLE · SEGURIDAD_CRITICA
           </div>
         </div>
 
@@ -561,7 +561,7 @@ export default function Settings() {
                 PERFIL_PUBLICO
               </div>
               <div style={{ color: "rgba(253,186,116,0.55)", fontSize: 10, marginTop: 3, fontFamily: MONO, letterSpacing: 0.5 }}>
-                &gt; {isProfilePublic ? "VISIBLE: favoritos y watchlist" : "OCULTO: lista privada"}
+                > {isProfilePublic ? "VISIBLE: favoritos y watchlist" : "OCULTO: lista privada"}
               </div>
             </div>
             <button
@@ -596,7 +596,7 @@ export default function Settings() {
           <div style={cardStyle("ambar")}>
             {sectionHeader(<Mail size={14} color="#F97316" />, "// ALERTA_PENDIENTE", "Verificar correo")}
             <p style={{ color: "rgba(253,186,116,0.7)", fontSize: 12, margin: "0 0 14px", lineHeight: 1.6, fontFamily: MONO, letterSpacing: 0.3 }}>
-              &gt; Tu correo aun no esta verificado. Confirma tu cuenta para desbloquear todas las funciones del sistema.
+              > Tu correo aun no esta verificado. Confirma tu cuenta para desbloquear todas las funciones del sistema.
             </p>
             {verifSent ? (
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#22C55E", fontSize: 12, fontWeight: 800, fontFamily: MONO, letterSpacing: 1 }}>
@@ -658,7 +658,7 @@ export default function Settings() {
               </div>
               <div style={{ textAlign: "left" }}>
                 <div style={{ color: "#F97316", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO }}>// MODULO_04</div>
-                <div style={{ color: "#FECACA", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>Cambiar contrase&ntilde;a</div>
+                <div style={{ color: "#FECACA", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>Cambiar contraseña</div>
               </div>
             </div>
             <span style={{
@@ -698,8 +698,8 @@ export default function Settings() {
               )}
               <button type="submit" disabled={savingPass} style={{ ...primaryBtn(passSuccess), opacity: savingPass ? 0.7 : 1 }}>
                 {savingPass ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
-                  : passSuccess ? <><Check size={13} /> CONTRASE&Ntilde;A_ACTUALIZADA</>
-                  : <><KeyRound size={13} /> &gt;&gt;&gt; ACTUALIZAR CONTRASE&Ntilde;A</>}
+                  : passSuccess ? <><Check size={13} /> CONTRASEÑA_ACTUALIZADA</>
+                  : <><KeyRound size={13} /> >>> ACTUALIZAR CONTRASEÑA</>}
               </button>
             </form>
           )}
