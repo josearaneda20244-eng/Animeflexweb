@@ -429,6 +429,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
       {/* Header */}
       <motion.div
+        className="dash-welcome"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -457,22 +458,24 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             <span style={{ color: "#DC2626", fontSize: 10, letterSpacing: 4, fontWeight: 900 }}>[ SISTEMA · ANIMEFLEX OS ]</span>
             <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" }}>· {dateStr}</span>
           </div>
-          <h2 style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: -0.5, textShadow: "0 0 20px rgba(220,38,38,0.35)" }}>
+          <h2 className="dash-welcome-title" style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: -0.5, textShadow: "0 0 20px rgba(220,38,38,0.35)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
             BIENVENIDO, <span style={{ color: "#FECACA", fontFamily: "'Courier New', ui-monospace, monospace", textTransform: "uppercase" }}>{user.username}</span>
           </h2>
           <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 6, fontFamily: "'Courier New', ui-monospace, monospace", letterSpacing: 1 }}>
             &gt; Estado de la plataforma operativo. Todas las funciones en línea.
           </div>
         </div>
-        <motion.button
-          onClick={load}
-          whileHover={{ y: -2, boxShadow: "0 20px 48px rgba(220,38,38,0.22)" }}
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 320, damping: 22 }}
-          style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(220,38,38,0.14), rgba(220,38,38,0.04))", border: "1px solid rgba(220,38,38,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(220,38,38,0.12)" }}
-        >
-          <Activity size={14} /> Actualizar
-        </motion.button>
+        <div className="dash-welcome-actions" style={{ position: "relative", zIndex: 1 }}>
+          <motion.button
+            onClick={load}
+            whileHover={{ y: -2, boxShadow: "0 20px 48px rgba(220,38,38,0.22)" }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 320, damping: 22 }}
+            style={{ display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(220,38,38,0.14), rgba(220,38,38,0.04))", border: "1px solid rgba(220,38,38,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(220,38,38,0.12)" }}
+          >
+            <Activity size={14} /> Actualizar
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* Alert: inactive users */}
@@ -488,12 +491,12 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
+      <div className="dash-grid-insights" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
         {INSIGHTS.map((item, i) => <InsightCard key={item.label} label={item.label} value={item.value} tone={item.tone} helper={item.helper} icon={item.icon} index={i} />)}
       </div>
 
       <SectionHeader icon={<LayoutDashboard size={16} />} title="Métricas clave" subtitle="Indicadores principales para revisar el estado de AnimeFlex de un vistazo" />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+      <div className="dash-grid-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
         {CARDS.map((c, index) => (
           <motion.div
             key={c.label}
@@ -535,7 +538,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       </div>
 
       <SectionHeader icon={<Activity size={16} />} title="Rendimiento y salud" subtitle="Conversión, actividad diaria y estabilidad de cuentas" />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
+      <div className="dash-grid-perf" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <Zap size={15} color="#F59E0B" />
@@ -2031,9 +2034,22 @@ export default function Admin() {
           .admin-topbar { padding: 0 14px !important; height: 56px !important; }
           .admin-topbar-crumbs { font-size: 12px !important; }
           .admin-topbar-username { display: none !important; }
+          .dash-welcome { padding: 16px 16px !important; gap: 10px !important; }
+          .dash-welcome-title { font-size: 20px !important; line-height: 1.15 !important; }
+          .dash-welcome-actions { width: 100% !important; }
+          .dash-welcome-actions button { width: 100% !important; justify-content: center !important; }
+          .dash-grid-insights { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .dash-grid-metrics { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .dash-grid-perf { grid-template-columns: 1fr !important; gap: 12px !important; }
         }
         @media (max-width: 480px) {
           .admin-content { padding: 14px 10px !important; }
+          .dash-welcome { padding: 14px 14px !important; }
+          .dash-welcome-title { font-size: 18px !important; word-break: break-word !important; overflow-wrap: anywhere !important; }
+        }
+        @media (max-width: 380px) {
+          .dash-grid-insights { grid-template-columns: 1fr !important; }
+          .dash-grid-metrics { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
