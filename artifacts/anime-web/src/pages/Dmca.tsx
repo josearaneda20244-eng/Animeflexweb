@@ -60,7 +60,7 @@ const liBullet = (
   <span style={{
     position: "absolute", left: 0, top: 4,
     color: "#F97316", fontSize: 10, fontWeight: 900, fontFamily: MONO,
-  }}>></span>
+  }}>{">"}</span>
 );
 
 export default function Dmca() {
