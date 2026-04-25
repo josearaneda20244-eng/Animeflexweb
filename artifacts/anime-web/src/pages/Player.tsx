@@ -1216,7 +1216,7 @@ export default function Player() {
           <div style={{ color: "#FF6680", fontSize: 9, fontWeight: 800, letterSpacing: 2, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", marginBottom: 1, textTransform: "uppercase" }}>[ SISTEMA · REPRODUCIENDO ]</div>
           <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: 0.2 }}>{animeTitle}</div>
           <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
-            &gt; EP_{String(episodeNum).padStart(2, "0")}
+            > EP_{String(episodeNum).padStart(2, "0")}
             {!isMegaFan && remaining <= 2 && remaining > 0 && (
               <span style={{ marginLeft: 8, color: "#F59E0B", fontSize: 10, fontWeight: 700 }}>
                 · {remaining} ep. gratis {remaining === 1 ? "restante" : "restantes"} hoy
