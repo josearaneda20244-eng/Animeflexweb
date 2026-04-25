@@ -9,6 +9,7 @@ import { useHistory } from "@/context/HistoryContext";
 import { NotificationManager } from "@/components/NotificationManager";
 import AuthModal from "@/components/AuthModal";
 import { resolveAvatarUrl } from "@/lib/utils";
+import { CornerBrackets, SystemTag } from "@/components/SystemUI";
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -335,42 +336,57 @@ export default function Navbar() {
 
                     {showUserMenu && (
                       <div style={{
-                        position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 200,
-                        background: "linear-gradient(180deg,#14122a 0%,#111220 100%)",
-                        border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12,
-                        overflow: "hidden", minWidth: 280,
-                        boxShadow: "0 24px 60px rgba(0,0,0,0.8)",
+                        position: "absolute", top: "calc(100% + 12px)", right: 0, zIndex: 200,
+                        minWidth: 300, width: 300,
+                        background: "linear-gradient(180deg, rgba(17,8,35,0.97), rgba(8,4,18,0.99))",
+                        border: "1px solid rgba(220,38,38,0.45)",
+                        boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.85), 0 0 28px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
+                        clipPath: "polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)",
                       }}>
-                        {/* Banner + Avatar */}
-                        <div style={{ position: "relative", height: 72, background: "linear-gradient(135deg,#2D1B69 0%,#1A1A3E 50%,#0D0D1F 100%)", overflow: "hidden" }}>
-                          <div style={{ position: "absolute", inset: 0, background: "none" }} />
-                          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 50%,rgba(245,158,11,0.12) 0%,transparent 70%)" }} />
-                          {/* Decorative dots */}
-                          <div style={{ position: "absolute", top: 10, right: 20, width: 40, height: 40, borderRadius: "50%", background: "none", filter: "none" }} />
-                          <div style={{ position: "absolute", top: 30, right: 50, width: 20, height: 20, borderRadius: "50%", background: "rgba(245,158,11,0.1)", filter: "blur(4px)" }} />
+                        {/* Hex grid background */}
+                        <div style={{
+                          position: "absolute", inset: 0,
+                          backgroundImage: "linear-gradient(rgba(220,38,38,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.06) 1px, transparent 1px)",
+                          backgroundSize: "22px 22px",
+                          maskImage: "linear-gradient(180deg, black 0%, transparent 80%)",
+                          WebkitMaskImage: "linear-gradient(180deg, black 0%, transparent 80%)",
+                          pointerEvents: "none",
+                        }} />
+                        {/* Aurora glow top */}
+                        <div style={{
+                          position: "absolute", top: 0, left: 0, right: 0, height: 140,
+                          background: "radial-gradient(ellipse at 50% 0%, rgba(220,38,38,0.32) 0%, transparent 70%)",
+                          pointerEvents: "none",
+                        }} />
+                        {/* Corner brackets */}
+                        <CornerBrackets color="#DC2626" size={14} thickness={2} inset={4} />
+
+                        {/* SYSTEM tag header */}
+                        <div style={{ padding: "14px 16px 10px", position: "relative", zIndex: 2 }}>
+                          <SystemTag color="#DC2626">[ SYSTEM ] PERFIL</SystemTag>
                         </div>
 
-                        {/* Avatar overlapping banner */}
-                        <div style={{ padding: "0 16px", marginTop: -28, position: "relative", display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                        {/* Avatar + Badges */}
+                        <div style={{ padding: "0 16px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                           <button onClick={() => { navigate("/settings"); setShowUserMenu(false); }}
                             title="Cambiar foto de perfil"
                             style={{
-                              position: "relative", width: 56, height: 56, borderRadius: 16, padding: 0, border: "none",
-                              background: "linear-gradient(135deg,#DC2626,#991B1B)",
-                              boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+                              position: "relative", width: 60, height: 60, padding: 0, border: "none",
+                              background: "linear-gradient(135deg,#DC2626,#7F1D1D)",
+                              boxShadow: "0 4px 18px rgba(220,38,38,0.45), 0 0 0 1px rgba(220,38,38,0.6)",
                               overflow: "hidden", flexShrink: 0, cursor: "pointer",
-                              outline: "3px solid #14122a",
+                              clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
                             }}
                           >
                             {resolveAvatarUrl(user.avatar_url)
                               ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                              : <span style={{ color: "#fff", fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
+                              : <span style={{ color: "#fff", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
                                   {user.username.charAt(0).toUpperCase()}
                                 </span>
                             }
                             <div style={{
                               position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                              background: "rgba(0,0,0,0.5)", opacity: 0, transition: "opacity 0.2s",
+                              background: "rgba(0,0,0,0.55)", opacity: 0, transition: "opacity 0.2s",
                             }}
                               onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "1"; }}
                               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "0"; }}
@@ -378,43 +394,49 @@ export default function Navbar() {
                               <Camera size={16} color="#fff" />
                             </div>
                           </button>
-                          {/* Badges row */}
-                          <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                          {/* Badges */}
+                          <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end" }}>
                             {isOwner && (
                               <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 3,
-                                background: "linear-gradient(135deg,rgba(239,68,68,0.3),rgba(239,68,68,0.15))",
-                                border: "1px solid rgba(239,68,68,0.6)", borderRadius: 100,
-                                padding: "3px 8px", fontSize: 9, fontWeight: 900, color: "#FCA5A5",
-                                letterSpacing: 0.5,
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                                background: "rgba(220,38,38,0.18)",
+                                border: "1px solid rgba(220,38,38,0.55)",
+                                color: "#FCA5A5", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
+                                padding: "3px 8px",
+                                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
                               }}>
-                                <Shield size={8} /> DUEÑO
+                                <Shield size={9} /> DUEÑO
                               </span>
                             )}
                             {isMegaFan && (
                               <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 3,
-                                background: "rgba(255,255,255,0.06)",
-                                border: "1px solid rgba(245,158,11,0.6)", borderRadius: 100,
-                                padding: "3px 8px", fontSize: 9, fontWeight: 900, color: "#FCD34D",
-                                letterSpacing: 0.5,
+                                display: "inline-flex", alignItems: "center", gap: 4,
+                                background: "rgba(249,115,22,0.15)",
+                                border: "1px solid rgba(249,115,22,0.55)",
+                                color: "#FCD34D", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
+                                padding: "3px 8px",
+                                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
                               }}>
-                                <Crown size={8} /> MEGAFAN
+                                <Crown size={9} /> MEGAFAN
                               </span>
                             )}
                           </div>
                         </div>
 
                         {/* User info */}
-                        <div style={{ padding: "8px 16px 12px" }}>
-                          <div style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 900, letterSpacing: -0.3 }}>{user.username}</div>
-                          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 1, display: "flex", alignItems: "center", gap: 4 }}>
-                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E", display: "inline-block", flexShrink: 0 }} />
+                        <div style={{ padding: "0 16px 14px", position: "relative", zIndex: 2 }}>
+                          <div style={{ color: "#FECACA", fontSize: 18, fontWeight: 900, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textShadow: "0 0 12px rgba(220,38,38,0.35)" }}>
+                            {user.username}
+                          </div>
+                          <div style={{ color: "rgba(252,165,165,0.55)", fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-all", fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 6px #22C55E", display: "inline-block", flexShrink: 0 }} />
                             {user.email}
                           </div>
                           {user.created_at && (
-                            <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, marginTop: 4 }}>
-                              Miembro desde {new Date(user.created_at).toLocaleDateString("es", { month: "long", year: "numeric" })}
+                            <div style={{ color: "rgba(252,165,165,0.35)", fontSize: 9.5, marginTop: 6, letterSpacing: 1.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textTransform: "uppercase" }}>
+                              ▸ MIEMBRO DESDE {new Date(user.created_at).toLocaleDateString("es", { month: "short", year: "numeric" }).toUpperCase()}
                             </div>
                           )}
                         </div>
@@ -422,104 +444,113 @@ export default function Navbar() {
                         {/* Stats */}
                         <div style={{
                           display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
-                          margin: "0 12px 12px", borderRadius: 12,
-                          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
-                          overflow: "hidden",
+                          margin: "0 12px 12px",
+                          background: "rgba(220,38,38,0.06)",
+                          border: "1px solid rgba(220,38,38,0.25)",
+                          position: "relative", zIndex: 2,
+                          clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
                         }}>
                           {[
-                            { label: "Favoritos", value: favorites.length, icon: <Bookmark size={13} color="#d1d5db" />, href: "/favorites" },
-                            { label: "Mi Lista", value: watchList.length, icon: <ListVideo size={13} color="#d1d5db" />, href: "/watchlist" },
-                            { label: "Historial", value: history.length, icon: <Clock size={13} color="#34D399" />, href: "/history" },
+                            { label: "FAVS", value: favorites.length, icon: <Bookmark size={13} color="#FCA5A5" />, href: "/favorites" },
+                            { label: "LISTA", value: watchList.length, icon: <ListVideo size={13} color="#FCA5A5" />, href: "/watchlist" },
+                            { label: "HIST", value: history.length, icon: <Clock size={13} color="#34D399" />, href: "/history" },
                           ].map(({ label, value, icon, href }, i) => (
                             <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
                               style={{
                                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                                 padding: "10px 4px", gap: 3, background: "none", border: "none",
-                                borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                                borderRight: i < 2 ? "1px solid rgba(220,38,38,0.18)" : "none",
                                 cursor: "pointer", transition: "background 0.15s",
                               }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.12)"; }}
                               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
                             >
                               {icon}
-                              <span style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 900 }}>{value}</span>
-                              <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, fontWeight: 600, letterSpacing: 0.3 }}>{label}</span>
+                              <span style={{ color: "#FECACA", fontSize: 16, fontWeight: 900, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{value}</span>
+                              <span style={{ color: "rgba(252,165,165,0.6)", fontSize: 8.5, fontWeight: 800, letterSpacing: 1.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{label}</span>
                             </button>
                           ))}
                         </div>
 
                         {/* Membership banner */}
-                        <div style={{ margin: "0 12px 10px" }}>
+                        <div style={{ margin: "0 12px 10px", position: "relative", zIndex: 2 }}>
                           <button
                             onClick={() => { navigate("/membership"); setShowUserMenu(false); }}
                             style={{
                               width: "100%", display: "flex", alignItems: "center", gap: 10,
-                              padding: "11px 14px",
+                              padding: "11px 12px",
                               background: isMegaFan
-                                ? "rgba(255,255,255,0.06)"
-                                : "rgba(255,255,255,0.06)",
-                              border: isMegaFan ? "1px solid rgba(245,158,11,0.4)" : "1px solid rgba(255,255,255,0.1)",
-                              borderRadius: 12, cursor: "pointer", transition: "all 0.2s",
+                                ? "linear-gradient(135deg, rgba(249,115,22,0.18), rgba(249,115,22,0.06))"
+                                : "linear-gradient(135deg, rgba(220,38,38,0.18), rgba(220,38,38,0.06))",
+                              border: isMegaFan ? "1px solid rgba(249,115,22,0.55)" : "1px solid rgba(220,38,38,0.45)",
+                              cursor: "pointer", transition: "all 0.2s",
+                              clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
                             }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.8"; }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.85"; }}
                             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
                           >
                             <div style={{
-                              width: 32, height: 32, borderRadius: 9, flexShrink: 0,
-                              background: isMegaFan ? "linear-gradient(135deg,#F59E0B,#D97706)" : "#1a365d",
+                              width: 32, height: 32, flexShrink: 0,
+                              background: isMegaFan ? "linear-gradient(135deg,#F97316,#B45309)" : "linear-gradient(135deg,#DC2626,#7F1D1D)",
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              boxShadow: isMegaFan ? "0 4px 12px rgba(245,158,11,0.4)" : "0 4px 12px rgba(0,0,0,0.4)",
+                              boxShadow: isMegaFan ? "0 4px 12px rgba(249,115,22,0.45)" : "0 4px 12px rgba(220,38,38,0.45)",
+                              clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
                             }}>
                               {isMegaFan ? <Crown size={16} color="#fff" /> : <Zap size={16} color="#fff" />}
                             </div>
                             <div style={{ flex: 1, textAlign: "left" }}>
-                              <div style={{ color: isMegaFan ? "#FCD34D" : "#fff", fontSize: 12, fontWeight: 700 }}>
-                                {isMegaFan ? "Membresía MegaFan activa" : "Hazte MegaFan"}
+                              <div style={{ color: isMegaFan ? "#FCD34D" : "#FECACA", fontSize: 12, fontWeight: 800, letterSpacing: 0.4, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+                                {isMegaFan ? "MEMBRESÍA ACTIVA" : "HAZTE MEGAFAN"}
                               </div>
-                              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginTop: 1 }}>
-                                {isMegaFan ? "Sin anuncios · Acceso premium" : "Desbloquea todo el contenido"}
+                              <div style={{ color: "rgba(252,165,165,0.55)", fontSize: 9.5, marginTop: 2, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+                                {isMegaFan ? "▸ ACCESO PREMIUM ACTIVO" : "▸ DESBLOQUEAR CONTENIDO"}
                               </div>
                             </div>
-                            <ChevronRight size={14} color="rgba(255,255,255,0.3)" />
+                            <ChevronRight size={14} color={isMegaFan ? "#FCD34D" : "#FCA5A5"} />
                           </button>
                         </div>
 
                         {/* Quick links */}
-                        <div style={{ margin: "0 12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
+                        <div style={{ margin: "0 12px", borderTop: "1px solid rgba(220,38,38,0.18)", paddingTop: 6, position: "relative", zIndex: 2 }}>
                           {[
-                            ...(isOwner ? [{ icon: <LayoutDashboard size={13} />, label: "Panel de Admin", href: "/admin", color: "#d1d5db" }] : []),
-                            { icon: <User size={13} />, label: "Mi Perfil", href: "/perfil", color: "rgba(255,255,255,0.55)" },
-                            { icon: <Settings size={13} />, label: "Configuración", href: "/settings", color: "rgba(255,255,255,0.55)" },
+                            ...(isOwner ? [{ icon: <LayoutDashboard size={13} />, label: "PANEL DE ADMIN", href: "/admin", color: "#FCA5A5" }] : []),
+                            { icon: <User size={13} />, label: "MI PERFIL", href: "/perfil", color: "rgba(252,165,165,0.7)" },
+                            { icon: <Settings size={13} />, label: "CONFIGURACIÓN", href: "/settings", color: "rgba(252,165,165,0.7)" },
                           ].map(({ icon, label, href, color }) => (
                             <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
                               style={{
-                                display: "flex", alignItems: "center", gap: 9, width: "100%",
-                                padding: "9px 10px", background: "none", border: "none",
-                                borderRadius: 10, cursor: "pointer", color,
-                                fontSize: 12, fontWeight: 600, transition: "all 0.15s",
+                                display: "flex", alignItems: "center", gap: 10, width: "100%",
+                                padding: "10px 10px", background: "none", border: "none",
+                                cursor: "pointer", color,
+                                fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
+                                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                                transition: "all 0.15s",
                               }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLButtonElement).style.color = "#F1F1F5"; }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.1)"; (e.currentTarget as HTMLButtonElement).style.color = "#FECACA"; }}
                               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = color; }}
                             >
-                              {icon} {label}
+                              <span style={{ color: "#DC2626" }}>▸</span>{icon} {label}
                             </button>
                           ))}
                         </div>
 
                         {/* Logout */}
-                        <div style={{ margin: "6px 12px 12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 6 }}>
+                        <div style={{ margin: "6px 12px 14px", borderTop: "1px solid rgba(220,38,38,0.18)", paddingTop: 6, position: "relative", zIndex: 2 }}>
                           <button
                             onClick={() => { logout(); setShowUserMenu(false); }}
                             style={{
-                              display: "flex", alignItems: "center", gap: 9, width: "100%",
-                              padding: "9px 10px", background: "none", border: "none",
-                              borderRadius: 10, cursor: "pointer",
-                              color: "#FCA5A5", fontSize: 12, fontWeight: 700, transition: "all 0.15s",
+                              display: "flex", alignItems: "center", gap: 10, width: "100%",
+                              padding: "10px 10px", background: "none", border: "1px solid rgba(220,38,38,0.35)",
+                              cursor: "pointer",
+                              color: "#FCA5A5", fontSize: 11, fontWeight: 900, letterSpacing: 1.5,
+                              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                              transition: "all 0.15s",
+                              clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
                             }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.12)"; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.18)"; (e.currentTarget as HTMLButtonElement).style.color = "#FECACA"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = "#FCA5A5"; }}
                           >
-                            <LogOut size={13} /> Cerrar sesión
+                            <LogOut size={13} /> CERRAR SESIÓN
                           </button>
                         </div>
                       </div>
