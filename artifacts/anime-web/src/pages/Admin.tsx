@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar,
 } from "recharts";
 
 /* ── Types ── */
@@ -85,19 +86,22 @@ function Confirm({ msg, onOk, onCancel }: { msg: string; onOk: () => void; onCan
   );
 }
 
-/* ── Animated Counter ── */
+/* ── Animated Counter (rAF easing, ~700ms) ── */
 function Counter({ target }: { target: number }) {
   const [val, setVal] = useState(0);
   useEffect(() => {
     if (target === 0) { setVal(0); return; }
-    let start = 0;
-    const step = Math.ceil(target / 40);
-    const t = setInterval(() => {
-      start = Math.min(start + step, target);
-      setVal(start);
-      if (start >= target) clearInterval(t);
-    }, 18);
-    return () => clearInterval(t);
+    const duration = 650;
+    const startTime = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      setVal(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [target]);
   return <>{val.toLocaleString()}</>;
 }
@@ -120,18 +124,27 @@ function SectionHeader({ icon, title, subtitle, action }: { icon: ReactNode; tit
   );
 }
 
-function InsightCard({ label, value, tone, helper, index = 0 }: { label: string; value: string | number; tone: string; helper: string; index?: number }) {
+function InsightCard({ label, value, tone, helper, index = 0, icon }: { label: string; value: string | number; tone: string; helper: string; index?: number; icon?: ReactNode }) {
+  const valueStr = String(value);
+  // Shrink long text values (e.g. search queries) so they fit
+  const isLongText = typeof value === "string" && valueStr.length > 6;
+  const valueFontSize = isLongText ? Math.max(15, 28 - Math.max(0, valueStr.length - 6) * 1.2) : 28;
   return (
     <motion.div
       initial={{ opacity: 0, y: 16, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.45, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -4, transition: { type: "spring", stiffness: 320, damping: 22 } }}
-      style={{ background: `linear-gradient(135deg,${tone}1f,rgba(255,255,255,0.015))`, border: `1px solid ${tone}35`, borderRadius: 16, padding: "16px 18px", minHeight: 92, display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: `0 18px 50px ${tone}10`, cursor: "default" }}
+      style={{ position: "relative", overflow: "hidden", background: `linear-gradient(135deg,${tone}1f,rgba(255,255,255,0.015))`, border: `1px solid ${tone}35`, borderRadius: 16, padding: "16px 18px", minHeight: 96, display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: `0 18px 50px ${tone}10`, cursor: "default" }}
     >
-      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6 }}>{label}</div>
-      <div style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 950, letterSpacing: -1 }}>{value}</div>
-      <div style={{ color: tone, fontSize: 12, fontWeight: 700 }}>{helper}</div>
+      {icon && (
+        <div style={{ position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 8, background: `${tone}22`, color: tone, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {icon}
+        </div>
+      )}
+      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6, paddingRight: icon ? 32 : 0 }}>{label}</div>
+      <div style={{ color: "#F1F1F5", fontSize: valueFontSize, fontWeight: 950, letterSpacing: -1, lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={valueStr}>{value}</div>
+      <div style={{ color: tone, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{helper}</div>
     </motion.div>
   );
 }
@@ -337,17 +350,25 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
     ? ((stats.megafanUsers / stats.totalUsers) * 100).toFixed(1)
     : "0.0";
   const estimatedRevenue = (stats?.megafanUsers ?? 0) * 4;
+  const totalViewsTop = stats?.topAnime?.reduce((a, b) => a + (parseInt(b.views) || 0), 0) ?? 0;
   const maxViews = stats?.topAnime && stats.topAnime.length > 0 ? Math.max(...stats.topAnime.map(a => parseInt(a.views) || 0)) || 1 : 1;
 
-  const healthScore = stats?.totalUsers
-    ? Math.max(0, Math.round(100 - ((stats.inactiveUsers ?? 0) / stats.totalUsers) * 100))
-    : 100;
+  // Compute weekly growth from existing growthChart data (no new endpoint needed)
+  const growthDaily = (stats?.growthChart ?? []).map(d => parseInt(d.count) || 0);
+  const last7Sum = growthDaily.slice(-7).reduce((a, b) => a + b, 0);
+  const prev7Sum = growthDaily.slice(-14, -7).reduce((a, b) => a + b, 0);
+  const week7Pct = prev7Sum > 0 ? Math.round(((last7Sum - prev7Sum) / prev7Sum) * 100) : (last7Sum > 0 ? 100 : 0);
+  const last7Series = growthDaily.slice(-7).map((c, i) => ({ d: i, v: c }));
+  // Pad with zeros if we don't have 7 days yet
+  while (last7Series.length < 7) last7Series.unshift({ d: -1, v: 0 });
 
-  const INSIGHTS = [
-    { label: "Actividad ahora", value: stats?.activeUsers ?? 0, tone: "#22C55E", helper: "usuarios en los últimos 30 min" },
-    { label: "Conversión", value: `${conversionRate}%`, tone: "#F59E0B", helper: "usuarios Free a MegaFan" },
-    { label: "Ingresos", value: `$${estimatedRevenue}`, tone: "#10B981", helper: "estimación mensual actual" },
-    { label: "Salud", value: `${healthScore}%`, tone: "#DC2626", helper: "cuentas activas sobre el total" },
+  const topSearch = stats?.searchTrends?.[0];
+
+  const INSIGHTS: { label: string; value: string | number; tone: string; helper: string; icon?: ReactNode }[] = [
+    { label: "Actividad ahora", value: stats?.activeUsers ?? 0, tone: "#22C55E", helper: "usuarios en los últimos 30 min", icon: <Radio size={13} /> },
+    { label: "Crecimiento 7 días", value: `+${last7Sum}`, tone: week7Pct >= 0 ? "#22C55E" : "#EF4444", helper: `${week7Pct >= 0 ? "↑" : "↓"} ${Math.abs(week7Pct)}% vs semana anterior`, icon: <TrendingUp size={13} /> },
+    { label: "Valoraciones", value: stats?.totalRatings ?? 0, tone: "#F59E0B", helper: "ratings dejados por usuarios", icon: <Star size={13} /> },
+    { label: "Top búsqueda", value: topSearch?.query || "—", tone: "#A78BFA", helper: topSearch ? `${topSearch.count} búsquedas` : "Sin búsquedas aún", icon: <Search size={13} /> },
   ];
 
   const CARDS = [
@@ -375,9 +396,13 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
     {
       label: "Nuevos esta semana", value: stats?.newUsersWeek ?? 0,
       sub: "últimos 7 días",
-      icon: <TrendingUp size={20} />, color: "#fff",
-      gradient: "linear-gradient(135deg,rgba(255,255,255,0.005),rgba(255,255,255,0.005))",
-      border: "rgba(255,255,255,0.08)",
+      icon: <TrendingUp size={20} />, color: week7Pct >= 0 ? "#22C55E" : "#EF4444",
+      gradient: week7Pct >= 0
+        ? "linear-gradient(135deg,rgba(34,197,94,0.12),rgba(34,197,94,0.03))"
+        : "linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.03))",
+      border: week7Pct >= 0 ? "rgba(34,197,94,0.22)" : "rgba(239,68,68,0.22)",
+      sparkline: last7Series,
+      delta: { pct: week7Pct, positive: week7Pct >= 0 },
     },
     {
       label: "Comentarios totales", value: stats?.totalComments ?? 0,
@@ -464,7 +489,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
-        {INSIGHTS.map((item, i) => <InsightCard key={item.label} {...item} index={i} />)}
+        {INSIGHTS.map((item, i) => <InsightCard key={item.label} label={item.label} value={item.value} tone={item.tone} helper={item.helper} icon={item.icon} index={i} />)}
       </div>
 
       <SectionHeader icon={<LayoutDashboard size={16} />} title="Métricas clave" subtitle="Indicadores principales para revisar el estado de AnimeFlex de un vistazo" />
@@ -479,17 +504,32 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             style={{ background: c.gradient, border: `1px solid ${c.border}`, borderRadius: 18, padding: "20px", position: "relative", overflow: "hidden", cursor: "pointer", boxShadow: "0 18px 45px rgba(12,14,30,0.14)" }}
           >
             <div style={{ position: "absolute", top: -16, right: -16, width: 64, height: 64, borderRadius: "50%", background: `${c.color}10` }} />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            {(c as any).sparkline && (
+              <div style={{ position: "absolute", inset: 0, opacity: 0.32, pointerEvents: "none" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={(c as any).sparkline} margin={{ top: 56, right: 8, left: 8, bottom: 4 }}>
+                    <Bar dataKey="v" fill={c.color} radius={[2, 2, 0, 0]} isAnimationActive={true} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
               <div style={{ width: 40, height: 40, borderRadius: 11, background: `${c.color}20`, display: "flex", alignItems: "center", justifyContent: "center", color: c.color }}>
                 {c.icon}
               </div>
-              <ArrowUpRight size={15} color={`${c.color}70`} />
+              {(c as any).delta ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: `${c.color}1f`, border: `1px solid ${c.color}45`, color: c.color, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 99, fontFamily: "'Courier New', ui-monospace, monospace" }}>
+                  {(c as any).delta.positive ? "↑" : "↓"} {Math.abs((c as any).delta.pct)}%
+                </span>
+              ) : (
+                <ArrowUpRight size={15} color={`${c.color}70`} />
+              )}
             </div>
-            <div style={{ color: "#F1F1F5", fontSize: 32, fontWeight: 900, letterSpacing: -1, lineHeight: 1 }}>
+            <div style={{ position: "relative", color: "#F1F1F5", fontSize: 32, fontWeight: 900, letterSpacing: -1, lineHeight: 1 }}>
               {c.prefix ?? ""}<Counter target={c.value} />
             </div>
-            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 700, marginTop: 6 }}>{c.label}</div>
-            <div style={{ color: c.color, fontSize: 11, marginTop: 3, fontWeight: 600 }}>{c.sub}</div>
+            <div style={{ position: "relative", color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 700, marginTop: 6 }}>{c.label}</div>
+            <div style={{ position: "relative", color: c.color, fontSize: 11, marginTop: 3, fontWeight: 600 }}>{c.sub}</div>
           </motion.div>
         ))}
       </div>
@@ -578,6 +618,9 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                     )}
                     <span style={{ flex: 1, color: "#F1F1F5", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {a.anime_title || a.anime_id}
+                    </span>
+                    <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 700, flexShrink: 0, fontFamily: "'Courier New', ui-monospace, monospace" }}>
+                      {totalViewsTop > 0 ? `${((parseInt(a.views) / totalViewsTop) * 100).toFixed(1)}%` : "—"}
                     </span>
                     <span style={{ color: BAR_COLORS[i], fontSize: 13, fontWeight: 800, flexShrink: 0, display: "flex", alignItems: "center", gap: 4 }}>
                       <Eye size={12} /> {parseInt(a.views).toLocaleString()}
@@ -677,8 +720,8 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
               </div>
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Suscriptores MegaFan</span>
             </div>
-            <span style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 800 }}>
-              ${(stats?.megafanUsers ?? 0) * 4}/mes
+            <span style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 800 }} title="Ingresos recurrentes mensuales estimados">
+              MRR ${(stats?.megafanUsers ?? 0) * 4}
             </span>
           </div>
           {(stats?.megafanList ?? []).length === 0 ? (
@@ -771,25 +814,57 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       </div>
 
       {/* Search Trends */}
-      {(stats?.searchTrends ?? []).length > 0 && (
-        <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(255,255,255,0.005)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Hash size={14} color="#fff" />
-            </div>
-            <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Búsquedas populares</span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {(stats?.searchTrends ?? []).map((t, i) => (
-              <div key={t.query} style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.005)", border: "1px solid rgba(255,255,255,0.005)", borderRadius: 20, padding: "5px 12px" }}>
-                <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, fontWeight: 900 }}>#{i + 1}</span>
-                <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 600 }}>{t.query}</span>
-                <span style={{ color: "#fff", fontSize: 11, fontWeight: 800 }}>{t.count}</span>
+      {(stats?.searchTrends ?? []).length > 0 && (() => {
+        const maxSearchCount = Math.max(...(stats?.searchTrends ?? []).map(t => t.count), 1);
+        const MEDAL: Record<number, { bg: string; border: string; text: string; rank: string; rankColor: string }> = {
+          0: { bg: "linear-gradient(135deg,rgba(245,158,11,0.18),rgba(245,158,11,0.05))", border: "rgba(245,158,11,0.45)", text: "#FCD34D", rank: "#FCD34D", rankColor: "rgba(245,158,11,0.18)" },
+          1: { bg: "linear-gradient(135deg,rgba(203,213,225,0.14),rgba(203,213,225,0.04))", border: "rgba(203,213,225,0.35)", text: "#E2E8F0", rank: "#E2E8F0", rankColor: "rgba(203,213,225,0.18)" },
+          2: { bg: "linear-gradient(135deg,rgba(217,119,6,0.14),rgba(217,119,6,0.04))", border: "rgba(217,119,6,0.35)", text: "#FBBF24", rank: "#FBBF24", rankColor: "rgba(217,119,6,0.18)" },
+        };
+        const REST = { bg: "rgba(255,255,255,0.04)", border: "rgba(255,255,255,0.08)", text: "#F1F1F5", rank: "rgba(255,255,255,0.55)", rankColor: "rgba(255,255,255,0.06)" };
+        return (
+          <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(167,139,250,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Hash size={14} color="#A78BFA" />
               </div>
-            ))}
+              <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Búsquedas populares</span>
+              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, marginLeft: "auto", fontFamily: "'Courier New', ui-monospace, monospace", letterSpacing: 1 }}>
+                Top {(stats?.searchTrends ?? []).length}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {(stats?.searchTrends ?? []).map((t, i) => {
+                const m = MEDAL[i] ?? REST;
+                const intensity = t.count / maxSearchCount;
+                return (
+                  <motion.div
+                    key={t.query}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.32, delay: 0.04 * i, ease: [0.22, 1, 0.36, 1] }}
+                    whileHover={{ y: -2, scale: 1.04 }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      background: m.bg, border: `1px solid ${m.border}`, borderRadius: 20,
+                      padding: "6px 12px 6px 6px",
+                      boxShadow: i < 3 ? `0 8px 22px ${m.border.replace('0.35','0.18').replace('0.45','0.22')}` : "none",
+                      cursor: "default",
+                      opacity: 0.55 + intensity * 0.45,
+                    }}
+                  >
+                    <span style={{ width: 22, height: 22, borderRadius: "50%", background: m.rankColor, color: m.rank, fontSize: 10, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Courier New', ui-monospace, monospace" }}>
+                      {i < 3 ? ["1","2","3"][i] : i + 1}
+                    </span>
+                    <span style={{ color: m.text, fontSize: 13, fontWeight: 700, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.query}</span>
+                    <span style={{ color: m.text, fontSize: 11, fontWeight: 800, opacity: 0.85, background: m.rankColor, padding: "1px 7px", borderRadius: 10 }}>{t.count}</span>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <SectionHeader icon={<Megaphone size={16} />} title="Comunicación y actividad" subtitle="Mensajes globales y últimos movimientos de usuarios" />
       <AnnouncementsManager toast={toast} />
