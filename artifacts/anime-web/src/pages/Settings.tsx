@@ -504,7 +504,7 @@ export default function Settings() {
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 10, letterSpacing: 0.5 }}>
             {usernameError
               ? <span style={{ color: "#FCA5A5", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {usernameError}</span>
-              : <span style={{ color: "rgba(253,186,116,0.4)" }}>> ENTRE 2 Y 30 CARACTERES</span>
+              : <span style={{ color: "rgba(253,186,116,0.4)" }}>{">"} ENTRE 2 Y 30 CARACTERES</span>
             }
             <span style={{ color: "rgba(253,186,116,0.5)" }}>{username.length}/30</span>
           </div>
