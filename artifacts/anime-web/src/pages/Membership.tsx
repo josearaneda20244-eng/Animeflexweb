@@ -184,7 +184,7 @@ export default function Membership() {
               <span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626,#F97316)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>// MEGAFAN</span>
             </h1>
             <p style={{ color: "rgba(253,186,116,0.7)", fontSize: 13, margin: "16px auto 0", maxWidth: 420, letterSpacing: 0.5, lineHeight: 1.7 }}>
-              &gt; Anime sin límites · sin interrupciones · acceso completo al sistema
+              > Anime sin límites · sin interrupciones · acceso completo al sistema
             </p>
           </div>
         </div>
@@ -320,7 +320,7 @@ export default function Membership() {
               )}
 
               <p style={{ color: "rgba(253,186,116,0.4)", fontSize: 11, margin: "4px 0 24px", letterSpacing: 0.5 }}>
-                &gt; Cancela cuando quieras · Sin contratos
+                > Cancela cuando quieras · Sin contratos
               </p>
 
               {/* Divider */}
@@ -415,7 +415,7 @@ export default function Membership() {
                   clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
                   padding: "18px", textAlign: "center",
                 }}>
-                  <p style={{ color: "#FDBA74", fontSize: 12, margin: 0, letterSpacing: 1, fontWeight: 700 }}>&gt; INICIA SESION PARA SUSCRIBIRTE</p>
+                  <p style={{ color: "#FDBA74", fontSize: 12, margin: 0, letterSpacing: 1, fontWeight: 700 }}>> INICIA SESION PARA SUSCRIBIRTE</p>
                 </div>
               ) : isMegaFan ? (
                 <div>
@@ -428,7 +428,7 @@ export default function Membership() {
                   }}>
                     <div style={{ fontSize: 28, marginBottom: 6, filter: "drop-shadow(0 0 12px #F97316)" }}>👑</div>
                     <p style={{ color: "#FDBA74", fontWeight: 900, fontSize: 14, margin: "0 0 4px", letterSpacing: 2 }}>[ RANGO · MEGAFAN ACTIVO ]</p>
-                    <p style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, margin: 0, letterSpacing: 0.5 }}>&gt; Gracias por apoyar AnimeFlex</p>
+                    <p style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, margin: 0, letterSpacing: 0.5 }}>> Gracias por apoyar AnimeFlex</p>
                   </div>
                   <button
                     onClick={handleManage}
@@ -442,7 +442,7 @@ export default function Membership() {
                       fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                     }}
                   >
-                    {loading ? "// CARGANDO..." : "&gt;&gt;&gt; GESTIONAR EN PAYPAL"}
+                    {loading ? "// CARGANDO..." : ">>> GESTIONAR EN PAYPAL"}
                   </button>
                 </div>
               ) : success ? (
@@ -455,7 +455,7 @@ export default function Membership() {
                 }}>
                   <div style={{ fontSize: 34, marginBottom: 8, filter: "drop-shadow(0 0 12px #22C55E)" }}>✦</div>
                   <p style={{ color: "#22C55E", fontWeight: 900, fontSize: 14, margin: "0 0 6px", letterSpacing: 2 }}>[ RANGO · ACTUALIZADO ]</p>
-                  <p style={{ color: "rgba(34,197,94,0.7)", fontSize: 11, margin: 0, letterSpacing: 0.5 }}>&gt; Bienvenido MegaFan · Membresia activa</p>
+                  <p style={{ color: "rgba(34,197,94,0.7)", fontSize: 11, margin: 0, letterSpacing: 0.5 }}>> Bienvenido MegaFan · Membresia activa</p>
                 </div>
               ) : (
                 <div>
@@ -628,7 +628,7 @@ export default function Membership() {
                 </button>
                 {openFaq === i && (
                   <div style={{ padding: "0 18px 16px", color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.7, fontFamily: "system-ui, sans-serif", borderTop: "1px solid rgba(249,115,22,0.15)", paddingTop: 12, marginTop: -2 }}>
-                    <span style={{ color: "#F97316", fontFamily: "'JetBrains Mono', ui-monospace, monospace", marginRight: 6 }}>&gt;</span>
+                    <span style={{ color: "#F97316", fontFamily: "'JetBrains Mono', ui-monospace, monospace", marginRight: 6 }}>></span>
                     {faq.a}
                   </div>
                 )}
