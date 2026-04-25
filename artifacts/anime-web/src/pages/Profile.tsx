@@ -386,7 +386,7 @@ export default function Profile() {
                 }}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Crown size={14} /> >> HAZTE MEGAFAN · SIN LÍMITES
+                  <Crown size={14} /> {">>"} HAZTE MEGAFAN · SIN LÍMITES
                 </span>
                 <ChevronRight size={14} />
               </button>
