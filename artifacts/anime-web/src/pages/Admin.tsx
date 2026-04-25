@@ -491,12 +491,12 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       )}
 
-      <div className="dash-grid-insights" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
+      <div className="dash-grid-insights" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(190px, 100%), 1fr))", gap: 14, minWidth: 0 }}>
         {INSIGHTS.map((item, i) => <InsightCard key={item.label} label={item.label} value={item.value} tone={item.tone} helper={item.helper} icon={item.icon} index={i} />)}
       </div>
 
       <SectionHeader icon={<LayoutDashboard size={16} />} title="Métricas clave" subtitle="Indicadores principales para revisar el estado de AnimeFlex de un vistazo" />
-      <div className="dash-grid-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+      <div className="dash-grid-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(200px, 100%), 1fr))", gap: 14, minWidth: 0 }}>
         {CARDS.map((c, index) => (
           <motion.div
             key={c.label}
@@ -538,7 +538,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       </div>
 
       <SectionHeader icon={<Activity size={16} />} title="Rendimiento y salud" subtitle="Conversión, actividad diaria y estabilidad de cuentas" />
-      <div className="dash-grid-perf" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
+      <div className="dash-grid-perf" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 14 }}>
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <Zap size={15} color="#F59E0B" />
@@ -672,7 +672,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       </div>
 
       <SectionHeader icon={<Users size={16} />} title="Usuarios y comunidad" subtitle="Nuevos registros, suscriptores y crecimiento" />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 14 }}>
 
         {/* Recent registrations */}
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
@@ -755,7 +755,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14, alignItems: "stretch" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))", gap: 14, alignItems: "stretch" }}>
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2103,7 +2103,7 @@ export default function Admin() {
       </aside>
 
       {/* Main */}
-      <div className="admin-main" style={{ flex: 1, marginLeft: 230, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <div className="admin-main" style={{ flex: 1, marginLeft: 230, minHeight: "100vh", display: "flex", flexDirection: "column", minWidth: 0, overflowX: "hidden" }}>
         {/* Topbar */}
         <div className="admin-topbar" style={{ height: 60, background: "rgba(13,13,26,0.96)", borderBottom: "1px solid rgba(220,38,38,0.12)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, boxShadow: "0 18px 40px rgba(0,0,0,0.18)" }}>
           <button onClick={() => setSidebarOpen(true)} className="sidebar-toggle" style={{ display: "none", background: "none", border: "none", cursor: "pointer", color: "#F1F1F5", padding: 4 }}>
@@ -2131,7 +2131,7 @@ export default function Admin() {
         </div>
 
         {/* Content */}
-        <div className="admin-content" style={{ flex: 1, padding: "28px 24px", maxWidth: 1180, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
+        <div className="admin-content" style={{ flex: 1, padding: "28px 24px", maxWidth: 1180, width: "100%", margin: "0 auto", boxSizing: "border-box", minWidth: 0, overflowX: "hidden" }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={section}
