@@ -462,7 +462,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
             BIENVENIDO, <span style={{ color: "#FECACA", fontFamily: "'Courier New', ui-monospace, monospace", textTransform: "uppercase" }}>{user.username}</span>
           </h2>
           <div className="dash-welcome-sub" style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 6, fontFamily: "'Courier New', ui-monospace, monospace", letterSpacing: 1, wordBreak: "break-word", overflowWrap: "anywhere" }}>
-            > Estado de la plataforma operativo. Todas las funciones en línea.
+            {">"} Estado de la plataforma operativo. Todas las funciones en línea.
           </div>
         </div>
         <div className="dash-welcome-actions" style={{ position: "relative", zIndex: 1 }}>
