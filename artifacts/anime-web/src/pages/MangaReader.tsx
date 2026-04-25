@@ -244,7 +244,7 @@ export default function MangaReader() {
                   <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {ch.title || `Capitulo ${ch.chapterNumber}`}
                   </span>
-                  {active && <span style={{ color: "#F97316", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>[ > ]</span>}
+                  {active && <span style={{ color: "#F97316", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{"[ > ]"}</span>}
                 </div>
               );
             })}
@@ -404,7 +404,7 @@ export default function MangaReader() {
                       boxShadow: "0 0 16px rgba(220,38,38,0.6)",
                     }}
                   >
-                    CAP {nextChapter.chapterNumber} >> <ChevronRight size={13} />
+                    CAP {nextChapter.chapterNumber} {">>"} <ChevronRight size={13} />
                   </button>
                 )}
               </div>
