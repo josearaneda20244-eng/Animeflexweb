@@ -295,7 +295,7 @@ export default function MangaReader() {
                 boxShadow: "0 0 16px rgba(220,38,38,0.5)",
               }}
             >
-              >> VOLVER AL MANGA
+              {">>"} VOLVER AL MANGA
             </button>
           </div>
         )}
