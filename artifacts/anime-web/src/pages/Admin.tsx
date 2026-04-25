@@ -453,15 +453,15 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           style={{ position: "absolute", top: 0, bottom: 0, width: "55%", background: "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.08) 50%, transparent 65%)", pointerEvents: "none", zIndex: 0 }}
         />
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontFamily: "'Courier New', ui-monospace, monospace" }}>
-            <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ width: 8, height: 8, background: "#DC2626", boxShadow: "0 0 10px #DC2626" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontFamily: "'Courier New', ui-monospace, monospace", flexWrap: "wrap" }}>
+            <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ width: 8, height: 8, background: "#DC2626", boxShadow: "0 0 10px #DC2626", flexShrink: 0 }} />
             <span style={{ color: "#DC2626", fontSize: 10, letterSpacing: 4, fontWeight: 900 }}>[ SISTEMA · ANIMEFLEX OS ]</span>
-            <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" }}>· {dateStr}</span>
+            <span className="dash-welcome-meta" style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" }}>· {dateStr}</span>
           </div>
           <h2 className="dash-welcome-title" style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: -0.5, textShadow: "0 0 20px rgba(220,38,38,0.35)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
             BIENVENIDO, <span style={{ color: "#FECACA", fontFamily: "'Courier New', ui-monospace, monospace", textTransform: "uppercase" }}>{user.username}</span>
           </h2>
-          <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 6, fontFamily: "'Courier New', ui-monospace, monospace", letterSpacing: 1 }}>
+          <div className="dash-welcome-sub" style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 6, fontFamily: "'Courier New', ui-monospace, monospace", letterSpacing: 1, wordBreak: "break-word", overflowWrap: "anywhere" }}>
             &gt; Estado de la plataforma operativo. Todas las funciones en línea.
           </div>
         </div>
@@ -2038,18 +2038,18 @@ export default function Admin() {
           .dash-welcome-title { font-size: 20px !important; line-height: 1.15 !important; }
           .dash-welcome-actions { width: 100% !important; }
           .dash-welcome-actions button { width: 100% !important; justify-content: center !important; }
-          .dash-grid-insights { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-          .dash-grid-metrics { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+          .dash-grid-insights { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+          .dash-grid-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
           .dash-grid-perf { grid-template-columns: 1fr !important; gap: 12px !important; }
+          .dash-welcome-sub { font-size: 11px !important; letter-spacing: 0 !important; word-break: break-word !important; overflow-wrap: anywhere !important; }
+          .dash-welcome-meta { display: none !important; }
         }
         @media (max-width: 480px) {
           .admin-content { padding: 14px 10px !important; }
           .dash-welcome { padding: 14px 14px !important; }
           .dash-welcome-title { font-size: 18px !important; word-break: break-word !important; overflow-wrap: anywhere !important; }
-        }
-        @media (max-width: 380px) {
-          .dash-grid-insights { grid-template-columns: 1fr !important; }
-          .dash-grid-metrics { grid-template-columns: 1fr !important; }
+          .dash-grid-insights { gap: 8px !important; }
+          .dash-grid-metrics { gap: 8px !important; }
         }
       `}</style>
 
