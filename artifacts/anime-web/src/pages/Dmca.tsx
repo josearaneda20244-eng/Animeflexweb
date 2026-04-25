@@ -111,7 +111,7 @@ export default function Dmca() {
               DMCA &middot; CONTACTO
             </h1>
             <p style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, margin: "2px 0 0", letterSpacing: 1, fontFamily: MONO }}>
-              > Política de derechos de autor y aviso de no almacenamiento
+              {">"} Política de derechos de autor y aviso de no almacenamiento
             </p>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function Dmca() {
             clipPath: CLIP_8,
             color: "#FECACA", fontSize: 12, fontFamily: MONO, letterSpacing: 0.5, lineHeight: 1.6,
           }}>
-            > <strong>RESUMEN_TECNICO:</strong> AnimeFlex no posee, no controla y no se beneficia
+            {">"} <strong>RESUMEN_TECNICO:</strong> AnimeFlex no posee, no controla y no se beneficia
             comercialmente de los archivos multimedia indexados. Todos los derechos pertenecen a sus respectivos
             titulares (estudios, distribuidores y editoriales).
           </div>
@@ -250,7 +250,7 @@ export default function Dmca() {
             <Mail size={14} /> {CONTACT_EMAIL}
           </a>
           <p style={{ ...para, marginTop: 14, marginBottom: 0, fontSize: 12, color: "rgba(253,186,116,0.6)" }}>
-            > Tiempo de respuesta estimado: <strong style={{ color: "#FDBA74" }}>24-72 horas hábiles</strong>.
+            {">"} Tiempo de respuesta estimado: <strong style={{ color: "#FDBA74" }}>24-72 horas hábiles</strong>.
             Las solicitudes incompletas o que no cumplan los requisitos legales no podrán ser procesadas.
           </p>
         </div>
