@@ -13,11 +13,18 @@ interface NewsItem {
 
 let cache: { items: NewsItem[]; timestamp: number } | null = null;
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const NEWS_CACHE_VERSION = 3; // bump para invalidar cualquier caché en memoria al desplegar
 
-function decodeText(s: string): string {
-  let out = s
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/<[^>]+>/g, " ")
+function stripTagsOnce(s: string): string {
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, " $1 ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<\/?[a-zA-Z][^>]*>/g, " ")
+    .replace(/<\/?[a-zA-Z][^>]*$/g, " "); // tag cortada al final del slice
+}
+
+function decodeEntitiesOnce(s: string): string {
+  return s
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
@@ -25,18 +32,40 @@ function decodeText(s: string): string {
     .replace(/&#039;/g, "'")
     .replace(/&apos;/g, "'")
     .replace(/&nbsp;/g, " ")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)));
-  // Segunda pasada: tras decodificar entidades pueden aparecer tags HTML literales
-  // (p. ej. &lt;div class="separator"&gt; → <div class="separator">) que también deben eliminarse.
-  for (let i = 0; i < 2; i++) {
-    if (!/<[^>]+>/.test(out)) break;
-    out = out.replace(/<[^>]+>/g, " ");
+    .replace(/&hellip;/g, "…")
+    .replace(/&mdash;/g, "—")
+    .replace(/&ndash;/g, "–")
+    .replace(/&laquo;/g, "«")
+    .replace(/&raquo;/g, "»")
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = parseInt(n, 10);
+      return Number.isFinite(code) ? String.fromCharCode(code) : "";
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => {
+      const code = parseInt(n, 16);
+      return Number.isFinite(code) ? String.fromCharCode(code) : "";
+    });
+}
+
+function decodeText(s: string): string {
+  if (!s) return "";
+  let out = String(s);
+  // Iterar: limpiar tags, decodificar entidades, repetir.
+  // Esto cubre HTML simple (<div>), HTML escapado (&lt;div&gt;) y doble-escapado
+  // (&amp;lt;div&amp;gt;) que aparecen frecuentemente en feeds de Blogger/WordPress.
+  for (let i = 0; i < 6; i++) {
+    const before = out;
+    out = stripTagsOnce(out);
+    out = decodeEntitiesOnce(out);
+    if (out === before) break;
   }
-  // Limpieza final: comentarios HTML/cdata residuales y restos de etiquetas truncadas al cortar a 240
+  // Pasadas finales por si quedaron tags tras la última decodificación
+  out = stripTagsOnce(out);
+  // Limpieza visual final
   out = out
-    .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/\[…\]|\[\.\.\.\]/g, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "") // zero-width chars
+    .replace(/\s+([.,;:!?])/g, "$1") // espacios antes de puntuación
     .replace(/\s+/g, " ")
     .trim();
   return out;
