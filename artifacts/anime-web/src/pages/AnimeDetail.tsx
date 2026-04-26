@@ -326,10 +326,19 @@ export default function AnimeDetail() {
   const rawDesc = (anime?.description ?? "").replace(/<[^>]+>/g, "");
   const genres = anime?.genres ?? [];
   const anilistEpisodes = anime?.episodes ?? [];
+  /**
+   * IMPORTANTE: solo mostramos episodios REALMENTE disponibles en el proveedor de streaming
+   * (paheEpisodesList). Antes se mezclaba con la metadata total de AniList (totalEpisodes),
+   * lo que generaba botones "fantasma" para episodios aún no emitidos: al pulsarlos, el
+   * reproductor no encontraba el stream y caía a otro anime distinto.
+   *
+   * Si el proveedor todavía está cargando o falló por completo, usamos AniList como
+   * último recurso para no dejar la pantalla vacía.
+   */
   const episodes: Episode[] =
-    paheEpisodesList.length > 0 && paheEpisodesList.length >= anilistEpisodes.length
+    paheEpisodesList.length > 0
       ? paheEpisodesList
-      : anilistEpisodes;
+      : (paheQuery.isLoading || paheQuery.isError ? anilistEpisodes : []);
   const characters = anime?.characters ?? [];
   const recommendations = (anime?.recommendations ?? []).filter((r) => r.image);
   const trailer = anime?.trailer;
@@ -469,7 +478,14 @@ export default function AnimeDetail() {
               {anime?.type && <span className="flex items-center gap-1"><Tv size={12} />{anime.type}</span>}
               {anime?.status && <span>{anime.status}</span>}
               {anime?.releaseDate && <span className="flex items-center gap-1"><Calendar size={12} />{anime.releaseDate}</span>}
-              {anime?.totalEpisodes && <span className="flex items-center gap-1"><Film size={12} />{anime.totalEpisodes} eps</span>}
+              {anime?.totalEpisodes != null && (
+                <span className="flex items-center gap-1">
+                  <Film size={12} />
+                  {episodes.length > 0 && episodes.length < anime.totalEpisodes
+                    ? `${episodes.length}/${anime.totalEpisodes} eps`
+                    : `${anime.totalEpisodes} eps`}
+                </span>
+              )}
               {anime?.studios && anime.studios.length > 0 && (
                 <span className="flex items-center gap-1">{anime.studios[0]}</span>
               )}
