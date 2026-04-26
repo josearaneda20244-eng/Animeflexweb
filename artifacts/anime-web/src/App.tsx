@@ -373,59 +373,255 @@ function MaintenanceCard({
   const remaining = Number.isFinite(endTime) && endTime > 0 ? endTime - now : 0;
   const countdown = endTime && remaining > 0 ? formatMaintenanceTime(remaining) : "Pronto volveremos";
 
+  const mono = "'JetBrains Mono', 'SF Mono', ui-monospace, monospace";
+  const RED = "#DC2626";
+  const RED_GLOW = "rgba(220,38,38,0.55)";
+
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at 50% 20%, rgba(220,38,38,0.28), transparent 28%), rgba(0,0,0,0.94)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, flexDirection: "column", gap: 0 }}>
+    <div style={{
+      minHeight: "100vh",
+      background: "#04040A",
+      backgroundImage: [
+        "radial-gradient(ellipse at 50% 0%, rgba(220,38,38,0.22), transparent 55%)",
+        "radial-gradient(ellipse at 50% 100%, rgba(220,38,38,0.10), transparent 60%)",
+        "linear-gradient(rgba(220,38,38,0.04) 1px, transparent 1px)",
+        "linear-gradient(90deg, rgba(220,38,38,0.04) 1px, transparent 1px)",
+      ].join(","),
+      backgroundSize: "auto, auto, 32px 32px, 32px 32px",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 20, flexDirection: "column", position: "relative", overflow: "hidden",
+    }}>
+      {/* Scanlines overlay */}
+      <div aria-hidden style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: "repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 3px)",
+        mixBlendMode: "overlay",
+      }} />
+      {/* Vignette */}
+      <div aria-hidden style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%)",
+      }} />
+
+      <style>{`
+        @keyframes maint-pulse { 0%,100% { opacity: 1; transform: scale(1);} 50% { opacity: 0.55; transform: scale(1.06);} }
+        @keyframes maint-scan { 0% { transform: translateY(-100%);} 100% { transform: translateY(2200%);} }
+        @keyframes maint-flicker { 0%,98%,100% { opacity: 1;} 99% { opacity: 0.4;} }
+      `}</style>
+
       {isAdminPreview && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-          background: "linear-gradient(90deg,#DC2626,#991B1B)",
+          background: "linear-gradient(90deg, rgba(220,38,38,0.95), rgba(153,27,27,0.95))",
+          borderBottom: `1px solid ${RED}`,
           padding: "10px 20px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           gap: 12, flexWrap: "wrap",
+          boxShadow: `0 0 24px ${RED_GLOW}`,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontSize: 13, fontWeight: 800 }}>
-            <span style={{ fontSize: 16 }}>👁️</span>
-            <span>Vista de administrador — así ven la pantalla todos los usuarios</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#fff", fontSize: 12, fontWeight: 900, fontFamily: mono, letterSpacing: 1, textTransform: "uppercase" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff", boxShadow: "0 0 10px #fff", animation: "maint-pulse 1.4s ease-in-out infinite" }} />
+            <span>[ ADMIN_VIEW ] vista pública del sistema</span>
           </div>
           <button
             onClick={onAdminBypass}
             style={{
-              background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.4)",
-              borderRadius: 10, padding: "6px 16px", color: "#fff",
-              fontSize: 13, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
+              background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.55)",
+              borderRadius: 6, padding: "6px 14px", color: "#fff",
+              fontSize: 12, fontWeight: 900, cursor: "pointer", whiteSpace: "nowrap",
+              fontFamily: mono, letterSpacing: 1, textTransform: "uppercase",
             }}
           >
-            Continuar al sitio →
+            CONTINUAR ›
           </button>
         </div>
       )}
-      <div style={{ width: "min(92vw, 540px)", background: "linear-gradient(145deg, rgba(15,15,30,0.98), rgba(4,4,10,0.98))", border: "1px solid rgba(220,38,38,0.32)", borderRadius: 28, padding: isAdminPreview ? "80px 28px 34px" : "34px 28px", textAlign: "center", boxShadow: "0 32px 100px rgba(0,0,0,0.72), 0 0 70px rgba(220,38,38,0.18)", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(220,38,38,0.12), transparent 45%, rgba(245,158,11,0.08))", pointerEvents: "none" }} />
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ width: 76, height: 76, borderRadius: 24, margin: "0 auto 20px", background: "linear-gradient(135deg,#DC2626,#991B1B)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 48px rgba(220,38,38,0.42)", fontSize: 34 }}>
-            🛠️
+
+      {/* Top status bar */}
+      <div style={{
+        position: "relative", zIndex: 2,
+        marginTop: isAdminPreview ? 60 : 0,
+        marginBottom: 18,
+        display: "flex", alignItems: "center", gap: 10,
+        color: RED, fontFamily: mono, fontSize: 11, fontWeight: 800,
+        letterSpacing: 2, textTransform: "uppercase",
+        animation: "maint-flicker 4s linear infinite",
+      }}>
+        <span style={{
+          width: 10, height: 10, borderRadius: "50%",
+          background: RED, boxShadow: `0 0 12px ${RED}, 0 0 24px ${RED_GLOW}`,
+          animation: "maint-pulse 1.2s ease-in-out infinite",
+        }} />
+        <span>[ ALERTA DEL SISTEMA ]</span>
+        <span style={{ opacity: 0.4 }}>///</span>
+        <span style={{ opacity: 0.7 }}>NIVEL: CRÍTICO</span>
+      </div>
+
+      {/* Monolith panel */}
+      <div style={{
+        position: "relative", zIndex: 2,
+        width: "min(94vw, 580px)",
+        background: "linear-gradient(180deg, rgba(8,8,16,0.96), rgba(2,2,8,0.98))",
+        border: `1px solid ${RED}`,
+        boxShadow: `0 0 0 1px rgba(220,38,38,0.12) inset, 0 0 60px rgba(220,38,38,0.25), 0 40px 120px rgba(0,0,0,0.75)`,
+        clipPath: "polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px))",
+        padding: "30px 28px 28px",
+        textAlign: "left",
+        overflow: "hidden",
+      }}>
+        {/* Inner scanline beam */}
+        <div aria-hidden style={{
+          position: "absolute", left: 0, right: 0, height: 2,
+          background: `linear-gradient(90deg, transparent, ${RED}, transparent)`,
+          boxShadow: `0 0 10px ${RED}`,
+          animation: "maint-scan 4s linear infinite",
+          opacity: 0.7,
+        }} />
+
+        {/* Corner ticks */}
+        {[
+          { top: 6, left: 6, borderTop: `2px solid ${RED}`, borderLeft: `2px solid ${RED}` },
+          { top: 6, right: 6, borderTop: `2px solid ${RED}`, borderRight: `2px solid ${RED}` },
+          { bottom: 6, left: 6, borderBottom: `2px solid ${RED}`, borderLeft: `2px solid ${RED}` },
+          { bottom: 6, right: 6, borderBottom: `2px solid ${RED}`, borderRight: `2px solid ${RED}` },
+        ].map((s, i) => (
+          <div key={i} aria-hidden style={{ position: "absolute", width: 14, height: 14, ...s }} />
+        ))}
+
+        {/* Header line */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          paddingBottom: 12, marginBottom: 22,
+          borderBottom: "1px solid rgba(220,38,38,0.22)",
+          fontFamily: mono, fontSize: 10, fontWeight: 800,
+          color: "rgba(255,255,255,0.45)", letterSpacing: 1.4, textTransform: "uppercase",
+        }}>
+          <span>SYS://animeflex.core</span>
+          <span style={{ color: RED }}>● MANTENIMIENTO</span>
+        </div>
+
+        {/* Hex warning icon */}
+        <div style={{
+          width: 84, height: 84, margin: "0 auto 22px",
+          position: "relative",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg viewBox="0 0 100 100" width={84} height={84} style={{
+            position: "absolute", inset: 0,
+            filter: `drop-shadow(0 0 12px ${RED_GLOW})`,
+            animation: "maint-pulse 2.4s ease-in-out infinite",
+          }}>
+            <polygon
+              points="50,4 92,27 92,73 50,96 8,73 8,27"
+              fill="rgba(220,38,38,0.12)"
+              stroke={RED}
+              strokeWidth="2"
+            />
+            <polygon
+              points="50,18 78,34 78,66 50,82 22,66 22,34"
+              fill="none"
+              stroke="rgba(220,38,38,0.35)"
+              strokeWidth="1"
+            />
+          </svg>
+          <div style={{
+            position: "relative", zIndex: 1,
+            color: "#fff", fontSize: 38, fontWeight: 950, lineHeight: 1,
+            fontFamily: mono,
+            textShadow: `0 0 14px ${RED}, 0 0 28px ${RED_GLOW}`,
+          }}>!</div>
+        </div>
+
+        {/* Title */}
+        <h1 style={{
+          color: "#F8FAFC", textAlign: "center",
+          fontSize: "clamp(26px, 5vw, 38px)", lineHeight: 1.1,
+          margin: "0 0 10px", fontWeight: 950, letterSpacing: -0.8,
+          textShadow: `0 0 30px ${RED_GLOW}`,
+        }}>
+          SISTEMA EN MANTENIMIENTO
+        </h1>
+        <div style={{
+          textAlign: "center",
+          color: RED, fontFamily: mono, fontSize: 11, fontWeight: 800,
+          letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 22,
+        }}>
+          /// acceso temporalmente restringido ///
+        </div>
+
+        {/* Message */}
+        <p style={{
+          color: "rgba(255,255,255,0.7)", fontSize: 14.5, lineHeight: 1.65,
+          margin: "0 auto 22px", maxWidth: 460,
+          textAlign: "center", whiteSpace: "pre-wrap",
+        }}>
+          {message || "Estamos realizando mantenimiento para mejorar AnimeFlex."}
+        </p>
+
+        {/* Countdown panel */}
+        <div style={{
+          background: "linear-gradient(180deg, rgba(220,38,38,0.06), rgba(0,0,0,0.5))",
+          border: "1px solid rgba(220,38,38,0.32)",
+          padding: "16px 18px", marginBottom: 18,
+          position: "relative",
+          clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))",
+        }}>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            marginBottom: 8,
+          }}>
+            <span style={{
+              color: "rgba(255,255,255,0.5)", fontFamily: mono,
+              fontSize: 10, fontWeight: 800, letterSpacing: 1.6, textTransform: "uppercase",
+            }}>
+              [ TIEMPO RESTANTE ]
+            </span>
+            <span style={{
+              color: RED, fontFamily: mono,
+              fontSize: 10, fontWeight: 800, letterSpacing: 1.6, textTransform: "uppercase",
+              display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: RED, boxShadow: `0 0 8px ${RED}`,
+                animation: "maint-pulse 1s ease-in-out infinite",
+              }} />
+              EN VIVO
+            </span>
           </div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#FBBF24", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.24)", borderRadius: 999, padding: "7px 12px", fontSize: 12, fontWeight: 900, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Modo mantenimiento activo
-          </div>
-          <h1 style={{ color: "#F8FAFC", fontSize: "clamp(28px, 5vw, 42px)", lineHeight: 1.05, margin: "0 0 12px", fontWeight: 950, letterSpacing: -1.4 }}>
-            Estamos en mantenimiento
-          </h1>
-          <p style={{ color: "rgba(255,255,255,0.66)", fontSize: 15, lineHeight: 1.7, margin: "0 auto 24px", maxWidth: 430, whiteSpace: "pre-wrap" }}>
-            {message || "Estamos realizando mantenimiento para mejorar AnimeFlex."}
-          </p>
-          <div style={{ background: "rgba(0,0,0,0.38)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "18px 16px", marginBottom: 20 }}>
-            <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 12, fontWeight: 800, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
-              Tiempo estimado
-            </div>
-            <div style={{ color: "#B39DFF", fontSize: "clamp(34px, 10vw, 54px)", fontWeight: 950, letterSpacing: -1.5, fontVariantNumeric: "tabular-nums" }}>
-              {countdown}
-            </div>
-          </div>
-          <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 13, lineHeight: 1.6 }}>
-            La navegación está pausada temporalmente. Gracias por tu paciencia.
+          <div style={{
+            color: "#F8FAFC",
+            fontSize: "clamp(36px, 11vw, 60px)", fontWeight: 950,
+            fontFamily: mono, letterSpacing: -1,
+            fontVariantNumeric: "tabular-nums",
+            textShadow: `0 0 24px ${RED_GLOW}`,
+            textAlign: "center", lineHeight: 1,
+          }}>
+            {countdown}
           </div>
         </div>
+
+        {/* Footer status */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          paddingTop: 14,
+          borderTop: "1px solid rgba(220,38,38,0.18)",
+          fontFamily: mono, fontSize: 10, fontWeight: 700,
+          color: "rgba(255,255,255,0.4)", letterSpacing: 1.2, textTransform: "uppercase",
+        }}>
+          <span>› El sistema se restablecerá automáticamente</span>
+          <span style={{ color: "rgba(220,38,38,0.7)" }}>v4.0</span>
+        </div>
+      </div>
+
+      {/* Bottom signature */}
+      <div style={{
+        position: "relative", zIndex: 2,
+        marginTop: 18,
+        color: "rgba(255,255,255,0.3)", fontFamily: mono, fontSize: 10,
+        letterSpacing: 2, textTransform: "uppercase",
+      }}>
+        ANIMEFLEX · SYSTEM_GUARD
       </div>
     </div>
   );
