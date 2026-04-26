@@ -256,16 +256,48 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
 
   // Native fullscreen detection — no Plyr CSS fallback, fullscreenchange always fires
   useEffect(() => {
+    const isMobileDevice = () =>
+      typeof navigator !== "undefined" &&
+      (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 1 && window.matchMedia("(max-width: 900px)").matches));
+
+    const lockLandscape = async () => {
+      try {
+        const orient: any = (screen as any).orientation;
+        if (orient && typeof orient.lock === "function") {
+          await orient.lock("landscape");
+        }
+      } catch {
+        // Browser may reject if not allowed (e.g. iOS Safari) — silently ignore
+      }
+    };
+
+    const unlockOrientation = () => {
+      try {
+        const orient: any = (screen as any).orientation;
+        if (orient && typeof orient.unlock === "function") {
+          orient.unlock();
+        }
+      } catch {
+        // ignore
+      }
+    };
+
     const onFsChange = () => {
-      const fs = !!document.fullscreenElement;
+      const fs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
       setIsFs(fs);
       onFullscreenChangeRef.current?.(fs);
+      if (isMobileDevice()) {
+        if (fs) lockLandscape();
+        else unlockOrientation();
+      }
     };
     document.addEventListener("fullscreenchange", onFsChange);
     document.addEventListener("webkitfullscreenchange", onFsChange);
     return () => {
       document.removeEventListener("fullscreenchange", onFsChange);
       document.removeEventListener("webkitfullscreenchange", onFsChange);
+      if (isMobileDevice()) unlockOrientation();
     };
   }, []);
 
@@ -1105,9 +1137,46 @@ export default function Player() {
 
   // ── Fullscreen detection + auto-hide controls on mouse inactivity ─────────
   useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const isMobileDevice = () =>
+      typeof navigator !== "undefined" &&
+      (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 1 && window.matchMedia("(max-width: 900px)").matches));
+
+    const lockLandscape = async () => {
+      try {
+        const orient: any = (screen as any).orientation;
+        if (orient && typeof orient.lock === "function") {
+          await orient.lock("landscape");
+        }
+      } catch {
+        // ignore unsupported / disallowed
+      }
+    };
+
+    const unlockOrientation = () => {
+      try {
+        const orient: any = (screen as any).orientation;
+        if (orient && typeof orient.unlock === "function") orient.unlock();
+      } catch {
+        // ignore
+      }
+    };
+
+    const onChange = () => {
+      const fs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      setIsFullscreen(fs);
+      if (isMobileDevice()) {
+        if (fs) lockLandscape();
+        else unlockOrientation();
+      }
+    };
     document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+      if (isMobileDevice()) unlockOrientation();
+    };
   }, []);
 
   useEffect(() => {
