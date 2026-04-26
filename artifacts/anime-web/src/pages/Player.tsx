@@ -6,7 +6,7 @@ import {
   ArrowLeft, SkipForward, AlertCircle, Loader2, Play, Pause, X,
   Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2,
   Share2, Copy, Check as CheckIcon, HelpCircle, FastForward, Rewind,
-  Download, Settings,
+  Download, Settings, Crown, Lock,
 } from "lucide-react";
 import {
   consumet,
@@ -1419,45 +1419,14 @@ export default function Player() {
               <CornerBrackets color="#DC2626" size={18} thickness={2} inset={8} />
             </div>
 
-            {/* ── Límite de episodios — Modal premium ── */}
+            {/* Placeholder cuando el modal está activo (mantiene el aspect ratio del player) */}
             {showLimitModal && (
               <div style={{
-                position: "absolute", inset: 0, zIndex: 50,
-                background: "rgba(9,10,18,0.92)",
-                backdropFilter: "blur(12px)",
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                gap: 20, padding: "32px 24px", textAlign: "center",
+                position: "absolute", inset: 0, zIndex: 5,
+                background: "#000",
+                display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <div style={{
-                  width: 80, height: 80, borderRadius: "50%",
-                  background: "linear-gradient(135deg,rgba(220,38,38,0.25),rgba(153,27,27,0.15))",
-                  border: "2px solid rgba(220,38,38,0.4)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 36,
-                }}>😢</div>
-                <div>
-                  <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900, marginBottom: 8, lineHeight: 1.2 }}>
-                    {limitsConfig.limitMessage.split('.')[0] || "Has alcanzado el límite diario"}
-                  </div>
-                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, lineHeight: 1.5, maxWidth: 320 }}>
-                    Solo puedes ver <strong style={{ color: "#FECACA" }}>{limitsConfig.dailyLimit} episodios por día</strong> con la cuenta gratuita.
-                    <br />El límite se reinicia automáticamente cada día.
-                  </div>
-                </div>
-                <Link href="/membership" style={{
-                  display: "inline-flex", alignItems: "center", gap: 10,
-                  background: "linear-gradient(135deg,#DC2626,#991B1B)",
-                  borderRadius: 16, padding: "14px 28px",
-                  color: "#fff", fontSize: 16, fontWeight: 900,
-                  textDecoration: "none", boxShadow: "0 8px 32px rgba(220,38,38,0.35)",
-                }}>
-                  👑 {limitsConfig.megafanMessage}
-                </Link>
-                <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, lineHeight: 1.5 }}>
-                  Acceso ilimitado · Sin interrupciones · Mejor calidad
-                  <br />Solo <strong style={{ color: "#FECACA" }}>$4/mes</strong> · Cancela cuando quieras
-                </div>
+                <Lock size={48} color="rgba(255,255,255,0.15)" />
               </div>
             )}
 
@@ -1970,6 +1939,108 @@ export default function Player() {
             <div style={{ marginTop: 16, color: "rgba(255,255,255,0.2)", fontSize: 11, textAlign: "center" }}>
               Toca fuera del panel para cerrar
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Límite diario alcanzado — Overlay full-screen ── */}
+      {showLimitModal && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(5,5,12,0.96)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16, overflowY: "auto",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{
+            width: "100%", maxWidth: 440,
+            background: "linear-gradient(180deg,#15151F 0%,#0B0B14 100%)",
+            border: "1px solid rgba(220,38,38,0.25)",
+            borderRadius: 20,
+            padding: "32px 24px",
+            textAlign: "center",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset",
+            position: "relative",
+          }}>
+            <button
+              onClick={() => navigate("/")}
+              aria-label="Cerrar"
+              style={{
+                position: "absolute", top: 12, right: 12,
+                width: 36, height: 36, borderRadius: 10,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.7)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            <div style={{
+              width: 72, height: 72, borderRadius: "50%",
+              background: "linear-gradient(135deg,rgba(220,38,38,0.35),rgba(153,27,27,0.18))",
+              border: "2px solid rgba(220,38,38,0.5)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 18px",
+            }}>
+              <Lock size={32} color="#FECACA" />
+            </div>
+
+            <h2 style={{
+              color: "#F1F1F5", fontSize: 20, fontWeight: 900,
+              margin: "0 0 10px", lineHeight: 1.25,
+            }}>
+              {limitsConfig.limitMessage.split('.')[0] || "Has alcanzado el límite diario"}
+            </h2>
+            <p style={{
+              color: "rgba(255,255,255,0.6)", fontSize: 14, lineHeight: 1.55,
+              margin: "0 0 22px",
+            }}>
+              Solo puedes ver <strong style={{ color: "#FECACA" }}>{limitsConfig.dailyLimit} {limitsConfig.dailyLimit === 1 ? "episodio" : "episodios"} por día</strong> con la cuenta gratuita.
+              <br />El límite se reinicia automáticamente cada día.
+            </p>
+
+            <Link href="/membership" style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              background: "linear-gradient(135deg,#DC2626,#991B1B)",
+              borderRadius: 14, padding: "14px 20px",
+              color: "#fff", fontSize: 15, fontWeight: 900,
+              textDecoration: "none",
+              boxShadow: "0 8px 24px rgba(220,38,38,0.35)",
+              marginBottom: 14,
+            }}>
+              <Crown size={18} />
+              <span>{limitsConfig.megafanMessage}</span>
+            </Link>
+
+            <div style={{
+              display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6,
+              color: "rgba(255,255,255,0.45)", fontSize: 12, lineHeight: 1.6,
+              marginBottom: 6,
+            }}>
+              <span>Acceso ilimitado</span><span style={{ opacity: 0.4 }}>·</span>
+              <span>Sin interrupciones</span><span style={{ opacity: 0.4 }}>·</span>
+              <span>Mejor calidad</span>
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>
+              Solo <strong style={{ color: "#FECACA" }}>$4/mes</strong> · Cancela cuando quieras
+            </div>
+
+            <button
+              onClick={() => navigate("/")}
+              style={{
+                marginTop: 18,
+                background: "transparent", border: "none",
+                color: "rgba(255,255,255,0.45)", fontSize: 13,
+                cursor: "pointer", padding: 8,
+              }}
+            >
+              Volver al inicio
+            </button>
           </div>
         </div>
       )}
