@@ -145,11 +145,11 @@ import { useQuery } from "@tanstack/react-query";
   function HeroBanner({ animes, idx, onPrev, onNext }: { animes: AnimeResult[]; idx: number; onPrev: () => void; onNext: () => void }) {
     const [, navigate] = useLocation();
     const anime = animes[idx];
-    if (!anime) return <div style={{ height: "min(70vw, 540px)", background: "#000" }} />;
+    if (!anime) return <div style={{ height: "clamp(440px, 70vw, 580px)", background: "#000" }} />;
     const title = resolveTitle(anime.title);
 
     return (
-      <div style={{ position: "relative", height: "min(70vw, 580px)", overflow: "hidden", margin: "0" }}>
+      <div style={{ position: "relative", height: "clamp(440px, 70vw, 580px)", overflow: "hidden", margin: "0" }}>
         <img src={anime.cover || anime.image} alt={title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", filter: "saturate(1.03) brightness(0.88)", transition: "opacity 0.6s" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7) 65%, #000 100%), linear-gradient(180deg, rgba(0,0,0,0.55), transparent 35%)" }} />
         <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(270deg, transparent 40%, rgba(0,0,0,0.54) 80%)" }} />
@@ -157,7 +157,7 @@ import { useQuery } from "@tanstack/react-query";
         <ScanLines color="rgba(220,38,38,0.05)" />
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 85% 0%, rgba(220,38,38,0.22) 0%, transparent 55%)", pointerEvents: "none", zIndex: 1 }} />
         <CornerBrackets color="#DC2626" size={22} thickness={2} inset={14} />
-        <div style={{ position: "absolute", bottom: "clamp(20px, 5vw, 38px)", left: "clamp(16px, 4vw, 38px)", right: "clamp(16px, 4vw, 38px)", maxWidth: 620, zIndex: 2 }}>
+        <div style={{ position: "absolute", bottom: "clamp(48px, 5vw, 38px)", left: "clamp(16px, 4vw, 38px)", right: "clamp(16px, 4vw, 38px)", maxWidth: 620, zIndex: 2 }}>
             <motion.div
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
               style={{ marginBottom: 10 }}
@@ -175,8 +175,20 @@ import { useQuery } from "@tanstack/react-query";
                 <span key={g} style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 500, border: "1px solid rgba(255,255,255,0.15)" }}>{g}</span>
               ))}
             </div>
-          <h1 style={{ color: "#F8FBFF", fontSize: "clamp(28px, 4.2vw, 46px)", fontWeight: 900, lineHeight: 1.05, letterSpacing: -1, margin: 0, textShadow: "0 2px 24px rgba(0,0,0,0.85)" }}>{title}</h1>
-          <p style={{ maxWidth: 520, color: "rgba(248,251,255,0.74)", fontSize: 15, lineHeight: 1.8, margin: "16px 0 0" }}>{anime.description ? anime.description.replace(/<[^>]+>/g, '').slice(0, 140) + '…' : 'Descubre por qué este anime está arrasando entre la comunidad.'}</p>
+          <h1 style={{
+            color: "#F8FBFF", fontSize: "clamp(24px, 4.2vw, 46px)", fontWeight: 900,
+            lineHeight: 1.1, letterSpacing: -1, margin: 0,
+            textShadow: "0 2px 24px rgba(0,0,0,0.85)",
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}>{title}</h1>
+          <p style={{
+            maxWidth: 520, color: "rgba(248,251,255,0.74)",
+            fontSize: "clamp(13px, 1.6vw, 15px)", lineHeight: 1.55,
+            margin: "12px 0 0",
+            display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}>{anime.description ? anime.description.replace(/<[^>]+>/g, '').slice(0, 200) : 'Descubre por qué este anime está arrasando entre la comunidad.'}</p>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
             <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #DC2626, #991B1B)", border: "none", borderRadius: 30, padding: "11px 24px", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(220,38,38,0.45)" }}
               onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(220,38,38,0.6)"; }}
