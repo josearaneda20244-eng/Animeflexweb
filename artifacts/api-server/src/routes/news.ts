@@ -15,9 +15,9 @@ let cache: { items: NewsItem[]; timestamp: number } | null = null;
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 function decodeText(s: string): string {
-  return s
+  let out = s
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/<[^>]+>/g, "")
+    .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
@@ -26,9 +26,41 @@ function decodeText(s: string): string {
     .replace(/&apos;/g, "'")
     .replace(/&nbsp;/g, " ")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)));
+  // Segunda pasada: tras decodificar entidades pueden aparecer tags HTML literales
+  // (p. ej. &lt;div class="separator"&gt; → <div class="separator">) que también deben eliminarse.
+  for (let i = 0; i < 2; i++) {
+    if (!/<[^>]+>/.test(out)) break;
+    out = out.replace(/<[^>]+>/g, " ");
+  }
+  // Limpieza final: comentarios HTML/cdata residuales y restos de etiquetas truncadas al cortar a 240
+  out = out
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/\[…\]|\[\.\.\.\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+  return out;
+}
+
+function upgradeImageUrl(url: string): string {
+  if (!url) return url;
+  try {
+    let upgraded = url
+      // WordPress: archivo-300x200.jpg → archivo.jpg (quita el sufijo de redimensión)
+      .replace(/-(\d{2,4})x(\d{2,4})(\.(?:jpe?g|png|webp|gif))(\?.*)?$/i, "$3$4")
+      // Google/Blogger: /s72-c/ /s320/ /w200-h300/ → /s1600/
+      .replace(/\/s\d{2,4}(?:-c)?\//, "/s1600/")
+      .replace(/\/w\d+-h\d+(?:-[a-z\-]+)?\//, "/s1600/")
+      // Parámetros de querystring de tamaño
+      .replace(/([?&])(?:w|width|h|height|resize|size|quality)=\d+/gi, "$1")
+      .replace(/[?&]$/, "")
+      .replace(/\?&/, "?");
+    // Forzar https
+    if (upgraded.startsWith("http://")) upgraded = "https://" + upgraded.slice(7);
+    return upgraded;
+  } catch {
+    return url;
+  }
 }
 
 function extractTag(item: string, tag: string): string {
@@ -37,17 +69,50 @@ function extractTag(item: string, tag: string): string {
 }
 
 function findImage(raw: string): string | undefined {
+  // 1) Preferir <media:content url=... width=... height=...> con dimensiones grandes
+  const mediaContentAll = [...raw.matchAll(/<media:content\s+([^>]+)>/gi)];
+  let bestMedia: { url: string; area: number } | null = null;
+  for (const mc of mediaContentAll) {
+    const attrs = mc[1];
+    const url = (attrs.match(/url=["']([^"']+)["']/i) || [])[1];
+    if (!url || !/\.(?:jpe?g|png|webp|gif)/i.test(url)) continue;
+    const w = parseInt((attrs.match(/width=["']?(\d+)/i) || [])[1] || "0", 10);
+    const h = parseInt((attrs.match(/height=["']?(\d+)/i) || [])[1] || "0", 10);
+    const area = w * h || 1;
+    if (!bestMedia || area > bestMedia.area) bestMedia = { url, area };
+  }
+  if (bestMedia) return upgradeImageUrl(bestMedia.url);
+
+  // 2) Si hay <img srcset="...">, escoger la URL con mayor descriptor (1024w, 2x, etc.)
+  const srcsetMatches = [...raw.matchAll(/srcset=["']([^"']+)["']/gi)];
+  let bestSrcset: { url: string; weight: number } | null = null;
+  for (const sm of srcsetMatches) {
+    const candidates = sm[1].split(",").map(c => c.trim());
+    for (const c of candidates) {
+      const parts = c.split(/\s+/);
+      const url = parts[0];
+      if (!url || !/\.(?:jpe?g|png|webp|gif)/i.test(url)) continue;
+      const desc = parts[1] || "";
+      const wMatch = desc.match(/(\d+)w/);
+      const xMatch = desc.match(/(\d+(?:\.\d+)?)x/);
+      const weight = wMatch ? parseInt(wMatch[1], 10) : (xMatch ? parseFloat(xMatch[1]) * 1000 : 100);
+      if (!bestSrcset || weight > bestSrcset.weight) bestSrcset = { url, weight };
+    }
+  }
+  if (bestSrcset) return upgradeImageUrl(bestSrcset.url);
+
+  // 3) Patrones generales
   const patterns = [
-    /<media:content[^>]+url=["']([^"']+\.(?:jpe?g|png|webp|gif)[^"']*)["']/i,
     /<media:thumbnail[^>]+url=["']([^"']+)["']/i,
     /<enclosure[^>]+url=["']([^"']+\.(?:jpe?g|png|webp|gif)[^"']*)["']/i,
+    /<img[^>]+data-src=["']([^"']+\.(?:jpe?g|png|webp|gif)[^"']*)["']/i,
     /<img[^>]+src=["']([^"']+\.(?:jpe?g|png|webp|gif)[^"']*)["']/i,
     /src=["']([^"']*wp-content[^"']+\.(?:jpe?g|png|webp))["']/i,
     /url=["']([^"']+\.(?:jpe?g|png|webp))["']/i,
   ];
   for (const re of patterns) {
     const m = raw.match(re);
-    if (m) return m[1];
+    if (m) return upgradeImageUrl(m[1]);
   }
   return undefined;
 }
