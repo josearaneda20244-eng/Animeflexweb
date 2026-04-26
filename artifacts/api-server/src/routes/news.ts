@@ -13,7 +13,7 @@ interface NewsItem {
 
 let cache: { items: NewsItem[]; timestamp: number } | null = null;
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-const NEWS_CACHE_VERSION = 3; // bump para invalidar cualquier caché en memoria al desplegar
+const NEWS_CACHE_VERSION = 4; // bump para invalidar cualquier caché en memoria al desplegar
 
 function stripTagsOnce(s: string): string {
   return s
@@ -23,27 +23,61 @@ function stripTagsOnce(s: string): string {
     .replace(/<\/?[a-zA-Z][^>]*$/g, " "); // tag cortada al final del slice
 }
 
+// Tabla de entidades HTML con nombre (cubre todos los acentos en español
+// + signos comunes). Crítico para feeds que escapan tildes y eñes (Kudasai),
+// que de lo contrario aparecen como "v&iacute;ctima" en la UI.
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+  // Vocales acentuadas (minúsculas)
+  aacute: "á", eacute: "é", iacute: "í", oacute: "ó", uacute: "ú",
+  // Vocales acentuadas (mayúsculas)
+  Aacute: "Á", Eacute: "É", Iacute: "Í", Oacute: "Ó", Uacute: "Ú",
+  // Eñe
+  ntilde: "ñ", Ntilde: "Ñ",
+  // Diéresis (pingüino)
+  auml: "ä", euml: "ë", iuml: "ï", ouml: "ö", uuml: "ü",
+  Auml: "Ä", Euml: "Ë", Iuml: "Ï", Ouml: "Ö", Uuml: "Ü",
+  // Acentos graves / circunflejos / tildes (texto importado del francés/portugués)
+  agrave: "à", egrave: "è", igrave: "ì", ograve: "ò", ugrave: "ù",
+  Agrave: "À", Egrave: "È", Igrave: "Ì", Ograve: "Ò", Ugrave: "Ù",
+  acirc: "â", ecirc: "ê", icirc: "î", ocirc: "ô", ucirc: "û",
+  Acirc: "Â", Ecirc: "Ê", Icirc: "Î", Ocirc: "Ô", Ucirc: "Û",
+  atilde: "ã", otilde: "õ", Atilde: "Ã", Otilde: "Õ",
+  aring: "å", Aring: "Å", aelig: "æ", AElig: "Æ",
+  ccedil: "ç", Ccedil: "Ç", oslash: "ø", Oslash: "Ø",
+  szlig: "ß",
+  // Signos de puntuación españoles
+  iexcl: "¡", iquest: "¿",
+  // Comillas tipográficas y guiones
+  laquo: "«", raquo: "»",
+  lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”",
+  sbquo: "‚", bdquo: "„", lsaquo: "‹", rsaquo: "›",
+  mdash: "—", ndash: "–", hellip: "…",
+  // Símbolos comunes
+  copy: "©", reg: "®", trade: "™", deg: "°",
+  middot: "·", bull: "•", dagger: "†", Dagger: "‡",
+  permil: "‰", para: "¶", sect: "§",
+  euro: "€", pound: "£", yen: "¥", cent: "¢",
+  plusmn: "±", times: "×", divide: "÷",
+  frac12: "½", frac14: "¼", frac34: "¾",
+  larr: "←", uarr: "↑", rarr: "→", darr: "↓",
+  // Especial: &#039; numérico ya cubierto, pero por compatibilidad explícita
+  "#039": "'", "#39": "'",
+};
+
 function decodeEntitiesOnce(s: string): string {
   return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&hellip;/g, "…")
-    .replace(/&mdash;/g, "—")
-    .replace(/&ndash;/g, "–")
-    .replace(/&laquo;/g, "«")
-    .replace(/&raquo;/g, "»")
+    // Entidades con nombre (incluyendo Spanish: &iacute; etc.)
+    .replace(/&([a-zA-Z]{2,8});/g, (m, name) => NAMED_ENTITIES[name] ?? m)
+    // Decimal: &#123;
     .replace(/&#(\d+);/g, (_, n) => {
       const code = parseInt(n, 10);
-      return Number.isFinite(code) ? String.fromCharCode(code) : "";
+      return Number.isFinite(code) && code > 0 ? String.fromCodePoint(code) : "";
     })
+    // Hex: &#x7B;
     .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => {
       const code = parseInt(n, 16);
-      return Number.isFinite(code) ? String.fromCharCode(code) : "";
+      return Number.isFinite(code) && code > 0 ? String.fromCodePoint(code) : "";
     });
 }
 
