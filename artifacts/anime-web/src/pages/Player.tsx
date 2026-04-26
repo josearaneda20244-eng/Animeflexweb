@@ -6,7 +6,7 @@ import {
   ArrowLeft, SkipForward, AlertCircle, Loader2, Play, Pause, X,
   Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2,
   Share2, Copy, Check as CheckIcon, HelpCircle, FastForward, Rewind,
-  Download,
+  Download, Settings,
 } from "lucide-react";
 import {
   consumet,
@@ -186,6 +186,7 @@ interface PlyrControls {
 interface PlyrPlayerProps {
   m3u8Url: string;
   playbackRate: number;
+  onPlaybackRateChange?: (rate: number) => void;
   startAt?: number;
   fullscreenContainer?: string;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
@@ -205,7 +206,7 @@ const _playerBtnStyle: React.CSSProperties = {
   lineHeight: 0, color: "#fff", flexShrink: 0,
 };
 
-function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef, onPlaybackError, onFullscreenChange }: PlyrPlayerProps) {
+function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef, onPlaybackError, onFullscreenChange }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const startAtRef = useRef(startAt);
@@ -230,6 +231,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
   const [controlsVis, setControlsVis] = useState(true);
   const [isFs, setIsFs] = useState(false);
   const [buffering, setBuffering] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const wasPlayingRef = useRef(false);
   const isDraggingRef = useRef(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -319,7 +321,13 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
     setControlsVis(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     hideTimerRef.current = setTimeout(() => {
-      setPlaying(p => { if (p) setControlsVis(false); return p; });
+      setPlaying(p => {
+        if (p) {
+          setControlsVis(false);
+          setSettingsOpen(false);
+        }
+        return p;
+      });
     }, 3000);
   }, []);
 
@@ -704,6 +712,93 @@ function PlyrPlayer({ m3u8Url, playbackRate, startAt, fullscreenContainer, onTim
               : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
             }
           </button>
+
+          {/* Settings (gear) button */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={e => { e.stopPropagation(); setSettingsOpen(o => !o); }}
+              style={{
+                ..._playerBtnStyle,
+                background: settingsOpen ? "rgba(255,255,255,0.12)" : "none",
+                borderRadius: 8,
+              }}
+              aria-label="Ajustes"
+            >
+              <Settings
+                size={20}
+                style={{
+                  transition: "transform 0.3s ease",
+                  transform: settingsOpen ? "rotate(60deg)" : "rotate(0deg)",
+                }}
+              />
+            </button>
+
+            {settingsOpen && (
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  position: "absolute",
+                  bottom: "calc(100% + 10px)",
+                  right: 0,
+                  minWidth: 220,
+                  background: "rgba(15,15,20,0.96)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 12,
+                  padding: 10,
+                  boxShadow: "0 12px 32px rgba(0,0,0,0.6)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  zIndex: 50,
+                }}
+              >
+                <div style={{
+                  color: "rgba(255,255,255,0.45)",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  padding: "4px 8px 8px",
+                }}>
+                  Velocidad de reproducción
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {SPEEDS.map(s => {
+                    const active = playbackRate === s;
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          if (videoRef.current) videoRef.current.playbackRate = s;
+                          onPlaybackRateChange?.(s);
+                          setSettingsOpen(false);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          padding: "8px 10px",
+                          borderRadius: 8,
+                          background: active ? "rgba(220,38,38,0.18)" : "transparent",
+                          border: "none",
+                          color: active ? "#FECACA" : "rgba(255,255,255,0.85)",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                        onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                        onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
+                      >
+                        <span>{s === 1 ? "Normal (1x)" : `${s}x`}</span>
+                        {active && <CheckIcon size={16} style={{ color: "#DC2626" }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
           <button onClick={e => { e.stopPropagation(); if (isFs) { exitFs(); } else { enterFs(); } }} style={_playerBtnStyle}>
             {isFs ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
@@ -1422,6 +1517,7 @@ export default function Player() {
                     key={`${episodeId}-lat-${selectedIdx}`}
                     m3u8Url={proxyM3u8}
                     playbackRate={playbackRate}
+                    onPlaybackRateChange={setPlaybackRate}
                     startAt={startAt}
                     fullscreenContainer="#plyr-fullscreen-container"
                     onTimeUpdate={handleTimeUpdate}
@@ -1625,28 +1721,6 @@ export default function Player() {
                       ))}
                     </div>
                   )}
-                </div>
-              </div>
-            </div>
-
-            {/* Speed */}
-            <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", flexShrink: 0 }}>Velocidad</div>
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap", flex: 1 }}>
-                  {SPEEDS.map((s) => (
-                    <button key={s} onClick={() => setPlaybackRate(s)}
-                      style={{
-                        padding: "5px 13px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                        background: playbackRate === s ? "linear-gradient(135deg,rgba(220,38,38,0.35),rgba(153,27,27,0.25))" : "rgba(255,255,255,0.04)",
-                        border: `1px solid ${playbackRate === s ? "rgba(220,38,38,0.7)" : "rgba(255,255,255,0.07)"}`,
-                        color: playbackRate === s ? "#FECACA" : "rgba(255,255,255,0.3)",
-                        boxShadow: playbackRate === s ? "0 0 10px rgba(220,38,38,0.25)" : "none",
-                        transition: "all 0.12s ease",
-                      }}>
-                      {s}x
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
