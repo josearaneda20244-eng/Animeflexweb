@@ -337,11 +337,11 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({ classN
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 top-12 w-96 max-h-96 bg-background border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+        <div className="fixed left-2 right-2 top-[66px] sm:absolute sm:left-auto sm:right-0 sm:top-12 w-auto sm:w-96 max-h-[calc(100vh-78px)] sm:max-h-96 bg-background border border-border rounded-lg shadow-lg z-50 overflow-hidden flex flex-col">
           <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Notificaciones</h3>
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="font-semibold text-sm sm:text-base">Notificaciones</h3>
+              <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -355,9 +355,9 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({ classN
                     variant="ghost"
                     size="sm"
                     onClick={markAllAsRead}
-                    className="text-xs"
+                    className="text-[11px] sm:text-xs px-2"
                   >
-                    Marcar todas como leídas
+                    Marcar leídas
                   </Button>
                 )}
                 {notifications.length > 0 && (
@@ -365,16 +365,16 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({ classN
                     variant="ghost"
                     size="sm"
                     onClick={clearAll}
-                    className="text-xs text-red-500 hover:text-red-600"
+                    className="text-[11px] sm:text-xs text-red-500 hover:text-red-600 px-2"
                   >
-                    Limpiar todas
+                    Limpiar
                   </Button>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="max-h-80 overflow-y-auto">
+          <div className="flex-1 max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />

@@ -24,6 +24,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
@@ -115,6 +116,15 @@ export default function Navbar() {
     }
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 640px)");
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
+    handler(mq);
+    mq.addEventListener("change", handler as (e: MediaQueryListEvent) => void);
+    return () => mq.removeEventListener("change", handler as (e: MediaQueryListEvent) => void);
+  }, []);
 
   const mobileNavItems = [
     { label: "Inicio", icon: <Home size={18} />, href: "/" },
@@ -335,7 +345,14 @@ export default function Navbar() {
                     </button>
 
                     {showUserMenu && (
-                      <div style={{
+                      <div style={isMobile ? {
+                        position: "fixed", top: 66, left: 8, right: 8, zIndex: 200,
+                        maxHeight: "calc(100vh - 78px)", overflowY: "auto",
+                        background: "linear-gradient(180deg, rgba(17,8,35,0.97), rgba(8,4,18,0.99))",
+                        border: "1px solid rgba(220,38,38,0.45)",
+                        boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.85), 0 0 28px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
+                        clipPath: "polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)",
+                      } : {
                         position: "absolute", top: "calc(100% + 12px)", right: 0, zIndex: 200,
                         minWidth: 300, width: 300,
                         background: "linear-gradient(180deg, rgba(17,8,35,0.97), rgba(8,4,18,0.99))",
