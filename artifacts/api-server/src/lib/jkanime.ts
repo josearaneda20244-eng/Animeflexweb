@@ -467,7 +467,13 @@ export async function getJkAnimeWatch(
   animeId?: string,
 ): Promise<JkAnimeStreamData> {
   const allTitles = [animeTitle, ...extraTitles].filter(Boolean);
-  const cacheKey = animeTitle.toLowerCase().trim();
+  // IMPORTANT: include animeId in the cache key so two anime that share a
+  // similar/identical title (sequels, OVAs, remakes, generic English names)
+  // never share a cached slug. Falling back to the title alone caused the
+  // "wrong episodes appearing for this anime" bug.
+  const cacheKey = animeId
+    ? `id:${animeId}`
+    : `t:${animeTitle.toLowerCase().trim()}`;
 
   // Fast path: cached M3U8
   const cachedM3u8Key = `${cacheKey}:${episodeNum}`;
@@ -537,8 +543,9 @@ export async function getJkAnimeWatch(
       addQuery(words.slice(0, 2).join(" "));
       addQuery(words.slice(0, 3).join(" "));
       addQuery(words.slice(0, 4).join(" "));
-      // Single word queries for Japanese/romaji titles (e.g. "Shingeki", "Naruto")
-      if (words[0] && words[0].length >= 4) addQuery(words[0]);
+      // NOTE: do NOT add single-word queries (e.g. "witch", "naruto") — they
+      // return many unrelated anime and have caused the wrong slug to be
+      // cached, leading to "wrong episodes" bugs. Stick to 2+ word queries.
       // Base without trailing season words
       const baseWords = base.split(" ").filter(Boolean);
       if (baseWords.length >= 2) addQuery(baseWords.slice(0, 2).join(" "));
@@ -556,21 +563,29 @@ export async function getJkAnimeWatch(
       }
     }
 
-    // If no candidates with season intent matched, fall back to ANY returned slug
-    // (handles cases where JKAnime's slug has no season marker at all)
+    // If no candidates with season intent matched, fall back to slugs that
+    // are at least RELEVANT (share words with the requested title) — never
+    // accept ANY returned slug, that caused wrong-anime episodes to play.
     if (candidateSlugsRaw.length === 0) {
       for (const r of searchResults) {
         if (r.status === "fulfilled") {
           for (const s of r.value) {
-            if (!triedSlugs.has(s) && !seenCand.has(s)) { seenCand.add(s); candidateSlugsRaw.push(s); }
+            if (!triedSlugs.has(s) && !seenCand.has(s)) {
+              if (slugRelevanceScore(s, allTitles) >= 1) {
+                seenCand.add(s);
+                candidateSlugsRaw.push(s);
+              }
+            }
           }
         }
       }
     }
 
-    // Sort by relevance: slugs sharing words with titles come first
+    // Sort by relevance: slugs sharing words with titles come first.
+    // Drop zero-relevance slugs entirely to avoid playing the wrong anime.
     const candidateSlugs = candidateSlugsRaw
       .map(s => ({ s, score: slugRelevanceScore(s, allTitles) }))
+      .filter(({ score }) => score >= 1)
       .sort((a, b) => b.score - a.score)
       .map(({ s }) => s);
 
