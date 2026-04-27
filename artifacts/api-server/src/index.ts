@@ -37,6 +37,8 @@ async function runMigrations() {
   await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(200)`, "users.stripe_customer_id");
   await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(200)`, "users.stripe_subscription_id");
   await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_profile_public BOOLEAN DEFAULT TRUE`, "users.is_profile_public");
+  await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio VARCHAR(280)`, "users.bio");
+  await safeQuery(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_preset VARCHAR(50)`, "users.banner_preset");
 
   await safeQuery(`
     CREATE TABLE IF NOT EXISTS paypal_pending_orders (
