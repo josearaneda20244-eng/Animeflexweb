@@ -16,9 +16,11 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
   const userRes = await pool.query<{
     id: number; username: string; avatar_url: string | null;
     created_at: string; membership_tier: string; is_profile_public: boolean;
+    bio: string | null; banner_preset: string | null;
   }>(
     `SELECT id, username, avatar_url, created_at, membership_tier,
-            COALESCE(is_profile_public, TRUE) AS is_profile_public
+            COALESCE(is_profile_public, TRUE) AS is_profile_public,
+            bio, banner_preset
      FROM users WHERE id = $1 AND is_active = TRUE`,
     [userId]
   );
@@ -114,6 +116,8 @@ async function handlePublicProfile(userId: number, res: import("express").Respon
       created_at: u.created_at,
       membership_tier: u.membership_tier,
       is_profile_public: u.is_profile_public,
+      bio: u.bio,
+      banner_preset: u.banner_preset,
       followerCount,
     },
     stats: {
@@ -772,7 +776,11 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
   try {
     const uid = req.userId;
 
-    const [epResult, completedResult, weeklyResult, topResult, streakResult, weekTotalResult, genreResult] = await Promise.all([
+    const [
+      epResult, completedResult, weeklyResult, topResult, streakResult, weekTotalResult, genreResult,
+      yearlyResult, hourlyResult, percentileResult, milestonesResult, recentProgressResult,
+      firstHistoryResult,
+    ] = await Promise.all([
       pool.query<{ total_episodes: string; total_animes: string }>(
         `SELECT COUNT(*) as total_episodes, COUNT(DISTINCT anime_id) as total_animes
          FROM user_history WHERE user_id = $1`,
@@ -794,7 +802,7 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
         `SELECT anime_id, anime_title, anime_image, COUNT(*) as ep_count
          FROM user_history WHERE user_id = $1
          GROUP BY anime_id, anime_title, anime_image
-         ORDER BY ep_count DESC LIMIT 3`,
+         ORDER BY ep_count DESC LIMIT 10`,
         [uid]
       ),
       pool.query<{ streak: number }>(
@@ -825,7 +833,68 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
          WHERE genre IS NOT NULL AND genre <> ''
          GROUP BY genre
          ORDER BY cnt DESC
-         LIMIT 5`,
+         LIMIT 10`,
+        [uid]
+      ),
+      /* yearly heatmap — episodes per day, last 365 days */
+      pool.query<{ day: string; episodes: number }>(
+        `SELECT view_date::text AS day, COUNT(DISTINCT episode_id)::int AS episodes
+         FROM user_daily_views
+         WHERE user_id = $1 AND view_date >= CURRENT_DATE - 364
+         GROUP BY view_date`,
+        [uid]
+      ),
+      /* hourly distribution — buckets 0..23 from history.watched_at (local UTC) */
+      pool.query<{ hour: number; episodes: number }>(
+        `SELECT EXTRACT(HOUR FROM watched_at)::int AS hour, COUNT(*)::int AS episodes
+         FROM user_history WHERE user_id = $1
+         GROUP BY hour ORDER BY hour`,
+        [uid]
+      ),
+      /* percentile — % of active users (1+ ep) with fewer episodes than us */
+      pool.query<{ pct: string }>(
+        `WITH ranked AS (
+           SELECT user_id, COUNT(*)::int AS eps
+           FROM user_history GROUP BY user_id HAVING COUNT(*) > 0
+         ),
+         my_eps AS (SELECT eps FROM ranked WHERE user_id = $1)
+         SELECT
+           CASE
+             WHEN (SELECT COUNT(*) FROM ranked) <= 1 THEN '0'
+             WHEN (SELECT eps FROM my_eps) IS NULL THEN '0'
+             ELSE ROUND(
+               (SELECT COUNT(*)::numeric FROM ranked WHERE eps < (SELECT eps FROM my_eps))
+               / NULLIF((SELECT COUNT(*) - 1 FROM ranked), 0) * 100
+             )::text
+           END AS pct`,
+        [uid]
+      ),
+      /* milestone unlock dates from user_history (first time threshold was crossed by watched_at) */
+      pool.query<{ milestone: number; unlocked_at: string }>(
+        `WITH numbered AS (
+           SELECT watched_at,
+                  ROW_NUMBER() OVER (ORDER BY watched_at ASC) AS rn
+           FROM user_history WHERE user_id = $1
+         )
+         SELECT rn AS milestone, watched_at::text AS unlocked_at
+         FROM numbered WHERE rn IN (1, 50, 200, 500)`,
+        [uid]
+      ),
+      /* continue watching — top 4 with watch_time < duration*0.95 and time > 30s */
+      pool.query<{ episode_id: string; anime_id: string; anime_title: string; anime_image: string; episode_num: number; watch_time: number; duration: number; updated_at: string }>(
+        `SELECT episode_id, anime_id, anime_title, anime_image, episode_num,
+                watch_time, duration, updated_at
+         FROM user_watch_progress
+         WHERE user_id = $1
+           AND duration > 0
+           AND watch_time > 30
+           AND watch_time < duration * 0.95
+         ORDER BY updated_at DESC
+         LIMIT 4`,
+        [uid]
+      ),
+      pool.query<{ first_watched: string | null }>(
+        `SELECT MIN(watched_at)::text AS first_watched FROM user_history WHERE user_id = $1`,
         [uid]
       ),
     ]);
@@ -838,6 +907,8 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
     const estimatedHours   = Math.round((totalEpisodes * 24) / 60 * 10) / 10;
     const favoriteGenre: string | null = genreResult.rows[0]?.genre ?? null;
     const topGenres = genreResult.rows.map(r => ({ genre: r.genre, count: parseInt(r.cnt, 10) }));
+    const percentile = parseInt(percentileResult.rows[0]?.pct ?? "0", 10);
+    const firstWatched = firstHistoryResult.rows[0]?.first_watched ?? null;
 
     const DAY_NAMES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
     const weekMap: Record<string, number> = {};
@@ -852,6 +923,47 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
       return { date, day: DAY_NAMES[d.getUTCDay()], episodes };
     });
 
+    /* Yearly heatmap — fill 365 days with 0s, then overlay query results */
+    const yearMap: Record<string, number> = {};
+    for (let i = 364; i >= 0; i--) {
+      const d = new Date();
+      d.setUTCHours(12, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+      yearMap[d.toISOString().slice(0, 10)] = 0;
+    }
+    yearlyResult.rows.forEach(r => {
+      if (r.day in yearMap) yearMap[r.day] = r.episodes;
+    });
+    const yearlyHeatmap = Object.entries(yearMap).map(([date, episodes]) => ({ date, episodes }));
+
+    /* Hourly distribution — 24 buckets */
+    const hourly = Array.from({ length: 24 }, (_, h) => ({ hour: h, episodes: 0 }));
+    hourlyResult.rows.forEach(r => {
+      if (r.hour >= 0 && r.hour < 24) hourly[r.hour].episodes = r.episodes;
+    });
+
+    /* Achievement unlock dates */
+    const milestoneMap: Record<number, string> = {};
+    milestonesResult.rows.forEach(r => { milestoneMap[r.milestone] = r.unlocked_at; });
+    const achievementDates: Record<string, string | null> = {
+      inicio:    milestoneMap[1] ?? null,
+      dedicado:  milestoneMap[50] ?? null,
+      maraton:   milestoneMap[200] ?? null,
+      legend:    milestoneMap[500] ?? null,
+    };
+
+    const continueWatching = recentProgressResult.rows.map(r => ({
+      episode_id: r.episode_id,
+      anime_id: r.anime_id,
+      anime_title: r.anime_title,
+      anime_image: r.anime_image,
+      episode_num: r.episode_num,
+      watch_time: Number(r.watch_time),
+      duration: Number(r.duration),
+      progress_pct: r.duration > 0 ? Math.round((Number(r.watch_time) / Number(r.duration)) * 100) : 0,
+      updated_at: r.updated_at,
+    }));
+
     res.json({
       totalEpisodes,
       totalAnimes,
@@ -863,6 +975,12 @@ router.get("/user/stats", async (req: AuthRequest, res) => {
       topGenres,
       weeklyActivity,
       topAnime: topResult.rows,
+      yearlyHeatmap,
+      hourlyActivity: hourly,
+      percentile,
+      achievementDates,
+      continueWatching,
+      firstWatched,
     });
   } catch (err) {
     res.status(500).json({ error: "Error al obtener estadísticas" });
