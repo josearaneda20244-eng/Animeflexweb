@@ -954,3 +954,30 @@ button:active { transform: scale(0.97); }
   background: rgba(8,4,18,0.95);
   box-shadow: 0 0 0 1px #F97316, 0 0 24px rgba(249,115,22,0.35) !important;
 }
+
+/* ── Player fullscreen: CSS rotation fallback ──────────────────────────────
+   Used when the device is in portrait fullscreen and screen.orientation.lock
+   was rejected (e.g. system rotation lock ON, iOS Safari, Firefox Android).
+   Rotates the player container 90° so the user gets a landscape view. */
+.plyr-fs-rotate:fullscreen,
+.plyr-fs-rotate:-webkit-full-screen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 100vw !important;
+  width: 100vh !important;
+  height: 100vw !important;
+  max-width: none !important;
+  max-height: none !important;
+  transform: rotate(90deg) !important;
+  transform-origin: top left !important;
+  background: #000 !important;
+  z-index: 2147483647 !important;
+}
+
+/* Make sure the video and its controls fill the rotated container */
+.plyr-fs-rotate:fullscreen video,
+.plyr-fs-rotate:-webkit-full-screen video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
