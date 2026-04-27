@@ -12,6 +12,8 @@ export interface AuthUser {
   role: "user" | "owner" | "admin";
   is_profile_public: boolean;
   email_verified: boolean;
+  bio: string | null;
+  banner_preset: string | null;
 }
 
 interface AuthContextValue {
@@ -24,7 +26,7 @@ interface AuthContextValue {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  updateProfile: (data: { username?: string; avatar_url?: string; is_profile_public?: boolean }) => Promise<void>;
+  updateProfile: (data: { username?: string; avatar_url?: string; is_profile_public?: boolean; bio?: string | null; banner_preset?: string | null }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -76,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchUser().catch(() => {});
   };
 
-  const updateProfile = async (data: { username?: string; avatar_url?: string; is_profile_public?: boolean }) => {
+  const updateProfile = async (data: { username?: string; avatar_url?: string; is_profile_public?: boolean; bio?: string | null; banner_preset?: string | null }) => {
     const { user: updated } = await apiClient.patch<{ user: AuthUser }>("/auth/me", data);
     setUser(updated);
   };
