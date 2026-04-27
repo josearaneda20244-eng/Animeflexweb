@@ -263,6 +263,11 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
       (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
         (navigator.maxTouchPoints > 1 && window.matchMedia("(max-width: 900px)").matches));
 
+    const getFsContainer = (): HTMLElement | null =>
+      fullscreenContainer
+        ? (document.querySelector(fullscreenContainer) as HTMLElement | null)
+        : videoRef.current;
+
     const lockLandscape = async () => {
       try {
         const orient: any = (screen as any).orientation;
@@ -270,7 +275,8 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
           await orient.lock("landscape");
         }
       } catch {
-        // Browser may reject if not allowed (e.g. iOS Safari) — silently ignore
+        // Browser may reject if not allowed (e.g. iOS Safari, system rotation lock on Firefox)
+        // — fallback CSS rotation will handle it below.
       }
     };
 
@@ -285,31 +291,95 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
       }
     };
 
+    const applyRotateFallbackIfNeeded = () => {
+      const el = getFsContainer();
+      if (!el) return;
+      const fs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      if (!fs || !isMobileDevice()) {
+        el.classList.remove("plyr-fs-rotate");
+        return;
+      }
+      // If the screen is still portrait after fullscreen + orientation-lock attempt,
+      // rotate the player 90° via CSS so the user gets a landscape view anyway
+      // (works even when the device's auto-rotate is OFF).
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (h > w) {
+        el.classList.add("plyr-fs-rotate");
+      } else {
+        el.classList.remove("plyr-fs-rotate");
+      }
+    };
+
     const onFsChange = () => {
       const fs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
       setIsFs(fs);
       onFullscreenChangeRef.current?.(fs);
       if (isMobileDevice()) {
-        if (fs) lockLandscape();
-        else unlockOrientation();
+        if (fs) {
+          lockLandscape().finally(() => {
+            // Re-check after lock attempt resolves; the orientationchange/resize
+            // listeners below will also keep this in sync.
+            setTimeout(applyRotateFallbackIfNeeded, 250);
+            setTimeout(applyRotateFallbackIfNeeded, 700);
+          });
+        } else {
+          unlockOrientation();
+          const el = getFsContainer();
+          if (el) el.classList.remove("plyr-fs-rotate");
+        }
       }
     };
+
     document.addEventListener("fullscreenchange", onFsChange);
     document.addEventListener("webkitfullscreenchange", onFsChange);
+    window.addEventListener("resize", applyRotateFallbackIfNeeded);
+    window.addEventListener("orientationchange", applyRotateFallbackIfNeeded);
     return () => {
       document.removeEventListener("fullscreenchange", onFsChange);
       document.removeEventListener("webkitfullscreenchange", onFsChange);
+      window.removeEventListener("resize", applyRotateFallbackIfNeeded);
+      window.removeEventListener("orientationchange", applyRotateFallbackIfNeeded);
       if (isMobileDevice()) unlockOrientation();
+      const el = getFsContainer();
+      if (el) el.classList.remove("plyr-fs-rotate");
     };
-  }, []);
+  }, [fullscreenContainer]);
 
-  const enterFs = useCallback(() => {
+  const enterFs = useCallback(async () => {
     const el = fullscreenContainer
       ? (document.querySelector(fullscreenContainer) as HTMLElement | null)
       : videoRef.current;
     if (!el) return;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if ((el as any).webkitRequestFullscreen) (el as any).webkitRequestFullscreen();
+
+    // Chain requestFullscreen + screen.orientation.lock inside the SAME user gesture.
+    // This is what lets Chrome/Android force landscape even when the system's
+    // auto-rotate (rotation lock) is OFF.
+    try {
+      if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else if ((el as any).webkitRequestFullscreen) {
+        await (el as any).webkitRequestFullscreen();
+      }
+    } catch {
+      return;
+    }
+
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 1 && window.matchMedia("(max-width: 900px)").matches));
+    if (!isMobile) return;
+
+    try {
+      const orient: any = (screen as any).orientation;
+      if (orient && typeof orient.lock === "function") {
+        await orient.lock("landscape");
+      }
+    } catch {
+      // Lock denied (system rotation lock, iOS, Firefox) — CSS fallback in
+      // the fullscreenchange handler will rotate the container instead.
+    }
   }, [fullscreenContainer]);
 
   const exitFs = useCallback(() => {
