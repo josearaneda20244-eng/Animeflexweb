@@ -149,7 +149,7 @@ function SubtitleOverlay({
 
 /* ── AUTO-NEXT ── */
 function AutoNextOverlay({ nextNum, onSkip, onCancel }: { nextNum: string; onSkip: () => void; onCancel: () => void }) {
-  const [secs, setSecs] = useState(10);
+  const [secs, setSecs] = useState(5);
   useEffect(() => {
     if (secs <= 0) { onSkip(); return; }
     const t = setTimeout(() => setSecs((s) => s - 1), 1000);
@@ -1289,9 +1289,27 @@ export default function Player() {
     navigate(`/watch?${p.toString()}`);
   }, [nextEpisodeId, nextEpisodeNum, nextNextEp, animeTitle, animeId, animeImage, navigate]);
 
+  const [videoEnded, setVideoEnded] = useState(false);
+
   const handleEnded = useCallback(() => {
+    setVideoEnded(true);
     if (nextEpisodeId) setShowAutoNext(true);
   }, [nextEpisodeId]);
+
+  // Reset end-of-video flags whenever the user moves to a different episode
+  useEffect(() => {
+    setVideoEnded(false);
+    setShowAutoNext(false);
+  }, [episodeId]);
+
+  // If the video already ended but the next-episode id wasn't loaded yet
+  // (episode list still fetching), trigger the auto-next overlay as soon
+  // as the id becomes available.
+  useEffect(() => {
+    if (videoEnded && nextEpisodeId && !showAutoNext) {
+      setShowAutoNext(true);
+    }
+  }, [videoEnded, nextEpisodeId, showAutoNext]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
