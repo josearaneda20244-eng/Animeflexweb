@@ -105,6 +105,13 @@ UPDATE users SET role='owner' WHERE email='josearaneda20244@gmail.com';
 - CORS está configurado con `origin: true` para funcionar con el proxy de Replit
 
 
+## Refactor Replit (abril 2026)
+
+- Repositorio clonado desde GitHub (`josearaneda20244-eng/Animeflexweb`) y reintegrado al monorepo del workspace conservando los IDs de los artefactos `api-server` y `mockup-sandbox` (corrige conflictos de registro en Replit).
+- `anime-web` re-registrado como artifact React/Vite con puerto asignado por la plataforma (`PORT=24976`, ruta base `/`).
+- Pantalla de inicio: la franja negra del hero mientras carga la API externa se reemplazó por un `HeroSkeleton` cinematográfico animado (rejilla, brillos rojos, shimmer y barrido) que mantiene la línea visual del sitio durante la espera.
+- Endpoint `/api/config/limits`: confirmado que el endpoint público de `routes/user.ts` está activo tras aplicar las migraciones (antes devolvía 404 por estado parcial al primer arranque). Eliminada una definición duplicada accidental.
+
 ## Cambios Recientes
 
 - El módulo de manga ahora usa LeerMangaEsp como fuente principal: listado/búsqueda desde su API pública y scraping de ficha, capítulos e imágenes de lectura desde páginas públicas.

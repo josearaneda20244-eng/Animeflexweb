@@ -121,6 +121,97 @@ function ScrollableCarousel({ children, scrollAmount = 420 }: { children: React.
   );
 }
 
+/* ── HERO SKELETON (cinematic loading state) ── */
+function HeroSkeleton() {
+  return (
+    <div style={{
+      position: "relative",
+      height: "clamp(440px, 70vw, 580px)",
+      overflow: "hidden",
+      background: "linear-gradient(135deg, #0a0510 0%, #15050a 50%, #050309 100%)",
+    }}>
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: "linear-gradient(rgba(220,38,38,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.05) 1px, transparent 1px)",
+        backgroundSize: "32px 32px",
+        maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+        WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+      }} />
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "radial-gradient(ellipse at 85% 0%, rgba(220,38,38,0.18) 0%, transparent 55%), radial-gradient(ellipse at 10% 100%, rgba(249,115,22,0.10) 0%, transparent 55%)",
+      }} />
+      <CornerBrackets color="#DC2626" size={22} thickness={2} inset={14} />
+      <motion.div
+        animate={{ x: ["-100%", "200%"] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
+        style={{
+          position: "absolute", top: 0, bottom: 0, width: "40%",
+          background: "linear-gradient(90deg, transparent, rgba(220,38,38,0.08), transparent)",
+          pointerEvents: "none",
+        }}
+      />
+      <div style={{
+        position: "absolute",
+        bottom: "clamp(64px, 6vw, 56px)",
+        left: "clamp(16px, 4vw, 38px)",
+        right: "clamp(16px, 4vw, 38px)",
+        maxWidth: 620,
+      }}>
+        <div style={{ marginBottom: 14 }}>
+          <SystemTag color="#DC2626">[ SISTEMA · CARGANDO ]</SystemTag>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {[80, 60, 70].map((w, i) => (
+            <div key={i} style={{
+              height: 22, width: w, borderRadius: 999,
+              background: "linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.10), rgba(255,255,255,0.04))",
+              backgroundSize: "200% 100%",
+              animation: "skel-shimmer 1.6s ease-in-out infinite",
+            }} />
+          ))}
+        </div>
+        <div style={{
+          height: 38, width: "75%", borderRadius: 8, marginBottom: 14,
+          background: "linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.12), rgba(255,255,255,0.04))",
+          backgroundSize: "200% 100%",
+          animation: "skel-shimmer 1.6s ease-in-out infinite",
+        }} />
+        <div style={{
+          height: 14, width: "90%", borderRadius: 6, marginBottom: 8,
+          background: "linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
+          backgroundSize: "200% 100%",
+          animation: "skel-shimmer 1.6s ease-in-out infinite",
+        }} />
+        <div style={{
+          height: 14, width: "65%", borderRadius: 6, marginBottom: 24,
+          background: "linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
+          backgroundSize: "200% 100%",
+          animation: "skel-shimmer 1.6s ease-in-out infinite",
+        }} />
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{
+            height: 44, width: 150, borderRadius: 30,
+            background: "linear-gradient(135deg, rgba(220,38,38,0.4), rgba(153,27,27,0.4))",
+            border: "1px solid rgba(220,38,38,0.3)",
+          }} />
+          <div style={{
+            height: 44, width: 120, borderRadius: 30,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.10)",
+          }} />
+        </div>
+      </div>
+      <style>{`
+        @keyframes skel-shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 /* ── HERO BANNER (pausable + LCP optimized) ── */
 function HeroBanner({ animes, idx, onPrev, onNext, onSetIdx }: { animes: AnimeResult[]; idx: number; onPrev: () => void; onNext: () => void; onSetIdx: (i: number) => void }) {
   const [, navigate] = useLocation();
@@ -690,7 +781,7 @@ export default function Home() {
         {/* Hero */}
         {trendList.length > 0
           ? <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} onSetIdx={setHeroIdx} />
-          : <div style={{ height: "min(70vw, 540px)", background: "#000" }} />}
+          : <HeroSkeleton />}
 
         {/* Watchlist new episodes banner — top priority for logged-in users */}
         <WatchlistNewEpisodesBanner />
