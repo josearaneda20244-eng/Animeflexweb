@@ -1015,7 +1015,12 @@ function buildEpisodesFromAnilistMeta(
     meta.nextAiringEpisode?.episode != null
       ? Math.max(0, meta.nextAiringEpisode.episode - 1)
       : null;
-  const count = meta.episodes ?? airedCount ?? meta.streamingEpisodes.length ?? 0;
+  // For currently airing anime, prefer airedCount over meta.episodes
+  // (meta.episodes is the planned season total, not what's actually out yet).
+  const count =
+    airedCount != null
+      ? airedCount
+      : (meta.episodes ?? meta.streamingEpisodes.length ?? 0);
   return Array.from({ length: count }, (_, i) => {
     const num = i + 1;
     const streaming = meta.streamingEpisodes.find((e) => {
@@ -1080,7 +1085,40 @@ router.get("/anime/episodes", async (req, res) => {
     }
 
     if (useKai) {
-      res.json(kai);
+      // For currently airing anime, AnimeKai (and AniList's planned total)
+      // may list episodes that haven't been released yet. Trim the list to
+      // what's actually aired according to AniList's nextAiringEpisode.
+      const airedCount =
+        meta?.nextAiringEpisode?.episode != null
+          ? Math.max(0, meta.nextAiringEpisode.episode - 1)
+          : null;
+      const kaiEpisodes = Array.isArray((kai as any).episodes)
+        ? (kai as any).episodes
+        : [];
+      let trimmedEpisodes = kaiEpisodes;
+      if (airedCount != null && kaiEpisodes.length > airedCount) {
+        // Sort by episode number (when available) and take the first airedCount.
+        trimmedEpisodes = [...kaiEpisodes]
+          .sort((a: any, b: any) => {
+            const an = Number(a?.number ?? 0);
+            const bn = Number(b?.number ?? 0);
+            return an - bn;
+          })
+          .filter((ep: any) => {
+            const n = Number(ep?.number ?? 0);
+            return n > 0 && n <= airedCount;
+          });
+        // Fallback: if filtering by number left it empty (numbers missing),
+        // just slice the first airedCount items.
+        if (trimmedEpisodes.length === 0) {
+          trimmedEpisodes = kaiEpisodes.slice(0, airedCount);
+        }
+      }
+      res.json({
+        ...kai,
+        episodes: trimmedEpisodes,
+        totalEpisodes: trimmedEpisodes.length,
+      });
     } else {
       // AnimeKai mapped the wrong anime — build episodes from AniList directly
       const episodes = buildEpisodesFromAnilistMeta(anilistId, meta);
@@ -1133,14 +1171,18 @@ router.get("/anime/anilist-info", async (req, res) => {
 
     const streamingEps: { title?: string; thumbnail?: string }[] = media.streamingEpisodes ?? [];
 
-    // For airing anime, media.episodes may be null (total not yet known).
-    // Use nextAiringEpisode.episode - 1 to count how many have already aired.
+    // For airing anime, media.episodes may be null (total not yet known) OR
+    // it may already contain the planned season total (e.g. 13) even though
+    // only some have aired (e.g. 4). Prefer the actual aired count when
+    // nextAiringEpisode is set — that means the show is still airing.
     const airedCount: number | null =
       media.nextAiringEpisode?.episode != null
         ? Math.max(0, media.nextAiringEpisode.episode - 1)
         : null;
     const episodeCount: number =
-      media.episodes ?? airedCount ?? streamingEps.length ?? 0;
+      airedCount != null
+        ? airedCount
+        : (media.episodes ?? streamingEps.length ?? 0);
     const episodes = Array.from({ length: episodeCount }, (_, i) => {
       const num = i + 1;
       const meta = streamingEps.find((e) => {
