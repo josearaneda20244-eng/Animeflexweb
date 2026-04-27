@@ -615,67 +615,131 @@ function isAnimeFormat(type: string | undefined | null): boolean {
   return ANIME_FORMATS.includes(type.toUpperCase());
 }
 
-router.get("/anime/trending", async (req, res) => {
-  try {
-    const data = await getAnilist().fetchTrendingAnime(1, 28);
-    const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
-    res.json({ currentPage: data.currentPage, hasNextPage: data.hasNextPage, results });
-  } catch (err) {
-    req.log.error({ err }, "Failed to fetch trending anime");
-    res.status(500).json({ error: "Failed to fetch trending anime" });
+// ── Stale-while-revalidate cache for slow AniList endpoints ──
+// Avoids users waiting 10-40s for trending/popular/recent on cold requests.
+type CacheEntry<T> = { data: T; expires: number; refreshing: boolean };
+const swrCache = new Map<string, CacheEntry<any>>();
+const SWR_TTL_MS = 5 * 60 * 1000; // 5 min fresh window
+
+async function serveSwr<T>(
+  cacheKey: string,
+  loader: () => Promise<T>,
+  res: any,
+  log: any,
+  errorLabel: string
+) {
+  const now = Date.now();
+  const cached = swrCache.get(cacheKey);
+
+  // Hit (fresh): instant response
+  if (cached && cached.expires > now) {
+    res.json(cached.data);
+    return;
   }
+
+  // Stale hit: respond instantly with stale data, refresh in background
+  if (cached) {
+    res.json(cached.data);
+    if (!cached.refreshing) {
+      cached.refreshing = true;
+      loader()
+        .then((fresh) => {
+          swrCache.set(cacheKey, { data: fresh, expires: Date.now() + SWR_TTL_MS, refreshing: false });
+        })
+        .catch((err) => {
+          log.warn({ err, cacheKey }, `${errorLabel} (background refresh failed, keeping stale cache)`);
+          cached.refreshing = false;
+          // Extend stale TTL a bit so we don't hammer the upstream
+          cached.expires = Date.now() + 30 * 1000;
+        });
+    }
+    return;
+  }
+
+  // Cold: must wait for upstream
+  try {
+    const fresh = await loader();
+    swrCache.set(cacheKey, { data: fresh, expires: now + SWR_TTL_MS, refreshing: false });
+    res.json(fresh);
+  } catch (err) {
+    log.error({ err }, errorLabel);
+    res.status(500).json({ error: errorLabel });
+  }
+}
+
+async function loadTrending() {
+  const data = await getAnilist().fetchTrendingAnime(1, 28);
+  const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
+  return { currentPage: data.currentPage, hasNextPage: data.hasNextPage, results };
+}
+
+async function loadPopular() {
+  const data = await getAnilist().fetchPopularAnime(1, 28);
+  const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
+  return { currentPage: data.currentPage, hasNextPage: data.hasNextPage, results };
+}
+
+async function loadRecent() {
+  const now = Math.floor(Date.now() / 1000);
+  const weekAgo = now - 7 * 24 * 60 * 60;
+  const gqlResp = await fetch("https://graphql.anilist.co", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query: `query($from:Int,$to:Int){Page(page:1,perPage:28){airingSchedules(airingAt_greater:$from,airingAt_lesser:$to,sort:[TIME_DESC]){episode airingAt media{id title{romaji english userPreferred}coverImage{extraLarge large}format status episodes averageScore genres type}}}}`,
+      variables: { from: weekAgo, to: now },
+    }),
+  });
+  if (!gqlResp.ok) throw new Error("AniList " + gqlResp.status);
+  const gql: any = await gqlResp.json();
+  const schedules: any[] = gql.data?.Page?.airingSchedules ?? [];
+  const seen = new Set<string>();
+  const results: any[] = [];
+  for (const s of schedules) {
+    const m = s.media;
+    if (!m || seen.has(String(m.id))) continue;
+    seen.add(String(m.id));
+    results.push({
+      id: String(m.id),
+      title: m.title,
+      image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
+      currentEpisode: s.episode,
+      type: m.format ?? m.type ?? "TV",
+      status: m.status ?? "",
+      totalEpisodes: m.episodes ?? 0,
+      rating: m.averageScore ?? 0,
+      genres: m.genres ?? [],
+    });
+  }
+  return { currentPage: 1, hasNextPage: false, results };
+}
+
+// Pre-warm cache at module load so the very first user request is instant.
+// We do this lazily (no top-level await) to avoid blocking server startup.
+function prewarm() {
+  loadTrending()
+    .then((d) => swrCache.set("trending", { data: d, expires: Date.now() + SWR_TTL_MS, refreshing: false }))
+    .catch(() => {});
+  loadPopular()
+    .then((d) => swrCache.set("popular", { data: d, expires: Date.now() + SWR_TTL_MS, refreshing: false }))
+    .catch(() => {});
+  loadRecent()
+    .then((d) => swrCache.set("recent", { data: d, expires: Date.now() + SWR_TTL_MS, refreshing: false }))
+    .catch(() => {});
+}
+prewarm();
+
+router.get("/anime/trending", async (req, res) => {
+  await serveSwr("trending", loadTrending, res, req.log, "Failed to fetch trending anime");
 });
 
 router.get("/anime/popular", async (req, res) => {
-  try {
-    const data = await getAnilist().fetchPopularAnime(1, 28);
-    const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
-    res.json({ currentPage: data.currentPage, hasNextPage: data.hasNextPage, results });
-  } catch (err) {
-    req.log.error({ err }, "Failed to fetch popular anime");
-    res.status(500).json({ error: "Failed to fetch popular anime" });
-  }
+  await serveSwr("popular", loadPopular, res, req.log, "Failed to fetch popular anime");
 });
 
 router.get("/anime/recent", async (req, res) => {
-    try {
-      const now = Math.floor(Date.now() / 1000);
-      const weekAgo = now - 7 * 24 * 60 * 60;
-      const gqlResp = await fetch("https://graphql.anilist.co", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `query($from:Int,$to:Int){Page(page:1,perPage:28){airingSchedules(airingAt_greater:$from,airingAt_lesser:$to,sort:[TIME_DESC]){episode airingAt media{id title{romaji english userPreferred}coverImage{extraLarge large}format status episodes averageScore genres type}}}}`,
-          variables: { from: weekAgo, to: now },
-        }),
-      });
-      if (!gqlResp.ok) throw new Error("AniList " + gqlResp.status);
-      const gql: any = await gqlResp.json();
-      const schedules: any[] = gql.data?.Page?.airingSchedules ?? [];
-      const seen = new Set<string>();
-      const results: any[] = [];
-      for (const s of schedules) {
-        const m = s.media;
-        if (!m || seen.has(String(m.id))) continue; // airingSchedules already filtered to anime
-        seen.add(String(m.id));
-        results.push({
-          id: String(m.id),
-          title: m.title,
-          image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
-          currentEpisode: s.episode,
-          type: m.format ?? m.type ?? "TV",
-          status: m.status ?? "",
-          totalEpisodes: m.episodes ?? 0,
-          rating: m.averageScore ?? 0,
-          genres: m.genres ?? [],
-        });
-      }
-      res.json({ currentPage: 1, hasNextPage: false, results });
-    } catch (err) {
-      req.log.error({ err }, "Failed to fetch recent episodes");
-      res.status(500).json({ error: "Failed to fetch recent episodes" });
-    }
-  });
+  await serveSwr("recent", loadRecent, res, req.log, "Failed to fetch recent episodes");
+});
 
 router.get("/anime/search", async (req, res) => {
   const query = req.query.q as string;
