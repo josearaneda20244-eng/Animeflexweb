@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
-import { Camera, User, Mail, Shield, Crown, ArrowLeft, Check, X, Upload, Link as LinkIcon, Loader2, Eye, EyeOff, KeyRound, CheckCircle2, SendHorizonal } from "lucide-react";
+import { Camera, User, Mail, Shield, Crown, ArrowLeft, Check, X, Upload, Link as LinkIcon, Loader2, Eye, EyeOff, KeyRound, CheckCircle2, SendHorizonal, FileText, Image as ImageIcon } from "lucide-react";
+import { BANNER_PRESETS, type BannerPresetKey } from "@/components/BannerPreset";
 import Navbar from "@/components/Navbar";
 import { apiClient } from "@/lib/apiClient";
 
@@ -98,6 +99,16 @@ export default function Settings() {
   const [isProfilePublic, setIsProfilePublic] = useState(user?.is_profile_public ?? true);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [privacySuccess, setPrivacySuccess] = useState(false);
+
+  const [bio, setBio] = useState(user?.bio ?? "");
+  const [savingBio, setSavingBio] = useState(false);
+  const [bioSuccess, setBioSuccess] = useState(false);
+  const [bioError, setBioError] = useState("");
+
+  const [bannerPreset, setBannerPreset] = useState<BannerPresetKey>(
+    (user?.banner_preset as BannerPresetKey) ?? "default"
+  );
+  const [savingBanner, setSavingBanner] = useState<BannerPresetKey | null>(null);
 
   const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
@@ -214,6 +225,32 @@ export default function Settings() {
     } finally {
       setSavingUsername(false);
     }
+  };
+
+  const handleSaveBio = async () => {
+    setSavingBio(true);
+    setBioError("");
+    setBioSuccess(false);
+    try {
+      const trimmed = bio.trim().slice(0, 280);
+      await updateProfile({ bio: trimmed.length === 0 ? null : trimmed });
+      setBioSuccess(true);
+      setTimeout(() => setBioSuccess(false), 2500);
+    } catch (err: unknown) {
+      setBioError(err instanceof Error ? err.message : "Error al guardar bio");
+    } finally {
+      setSavingBio(false);
+    }
+  };
+
+  const handleSelectBanner = async (key: BannerPresetKey) => {
+    if (savingBanner !== null) return;
+    setSavingBanner(key);
+    try {
+      await updateProfile({ banner_preset: key === "default" ? null : key });
+      setBannerPreset(key);
+    } catch { /* ignore */ }
+    finally { setSavingBanner(null); }
   };
 
   const handleSavePrivacy = async (newValue: boolean) => {
@@ -543,11 +580,99 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Bio section */}
+        <div style={cardStyle("carmesi")}>
+          {sectionHeader(<FileText size={14} color="#FDBA74" />, "// MODULO_03", "Bio del cazador")}
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value.slice(0, 280))}
+            maxLength={280}
+            rows={3}
+            placeholder="// Describe tu rango, tu sello o tu objetivo..."
+            style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5, fontFamily: MONO } as React.CSSProperties}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 10, letterSpacing: 0.5 }}>
+            {bioError
+              ? <span style={{ color: "#FCA5A5", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {bioError}</span>
+              : <span style={{ color: "rgba(253,186,116,0.4)" }}>{">"} MAX. 280 CARACTERES · VISIBLE EN TU PERFIL</span>
+            }
+            <span style={{ color: bio.length >= 270 ? "#FCA5A5" : "rgba(253,186,116,0.5)" }}>{bio.length}/280</span>
+          </div>
+          <button
+            onClick={handleSaveBio}
+            disabled={savingBio || bio === (user.bio ?? "")}
+            style={{
+              ...primaryBtn(bioSuccess),
+              marginTop: 12,
+              opacity: (savingBio || bio === (user.bio ?? "")) ? 0.5 : 1,
+              cursor: (savingBio || bio === (user.bio ?? "")) ? "not-allowed" : "pointer",
+            }}
+          >
+            {savingBio ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
+              : bioSuccess ? <><Check size={13} /> BIO_ACTUALIZADA</>
+              : <><FileText size={13} /> {">>>"} GUARDAR BIO</>}
+          </button>
+        </div>
+
+        {/* Banner preset section */}
+        <div style={cardStyle("carmesi")}>
+          {sectionHeader(<ImageIcon size={14} color="#FDBA74" />, "// MODULO_04", "Banner del perfil")}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+            {BANNER_PRESETS.map((p) => {
+              const active = bannerPreset === p.key;
+              const loading = savingBanner === p.key;
+              return (
+                <button
+                  key={p.key}
+                  onClick={() => handleSelectBanner(p.key)}
+                  disabled={savingBanner !== null}
+                  aria-label={`Seleccionar banner ${p.label}`}
+                  aria-pressed={active}
+                  style={{
+                    position: "relative", padding: 0, cursor: savingBanner !== null ? "wait" : "pointer",
+                    background: "transparent",
+                    border: `1px solid ${active ? p.accent : "rgba(249,115,22,0.25)"}`,
+                    clipPath: CLIP_6, overflow: "hidden",
+                    boxShadow: active ? `0 0 14px ${p.glow}` : "none",
+                    transition: "all 0.18s",
+                  }}
+                >
+                  <div style={{ height: 48, background: p.bg, position: "relative" }}>
+                    <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 30% 60%, ${p.glow}, transparent 60%)` }} />
+                    <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 80% 30%, ${p.accent}55, transparent 60%)` }} />
+                    {active && (
+                      <div style={{ position: "absolute", top: 4, right: 4, background: p.accent, color: "#000", padding: "1px 5px", fontSize: 8, fontWeight: 900, fontFamily: MONO, letterSpacing: 0.5 }}>
+                        ✓
+                      </div>
+                    )}
+                    {loading && (
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)" }}>
+                        <Loader2 size={14} color="#fff" style={{ animation: "spin 1s linear infinite" }} />
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    background: "rgba(8,4,18,0.9)", padding: "5px 6px",
+                    color: active ? p.accent : "rgba(253,186,116,0.55)",
+                    fontSize: 9, fontFamily: MONO, fontWeight: 900, letterSpacing: 1, textAlign: "center",
+                    textShadow: active ? `0 0 8px ${p.glow}` : "none",
+                  }}>
+                    {p.label}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ color: "rgba(253,186,116,0.4)", fontSize: 10, marginTop: 10, fontFamily: MONO, letterSpacing: 0.5, textAlign: "center" }}>
+            {">"} TU BANNER SE GUARDA AUTOMATICAMENTE
+          </div>
+        </div>
+
         {/* Privacy section */}
         <div style={cardStyle("carmesi")}>
           {sectionHeader(
             isProfilePublic ? <Eye size={14} color="#FDBA74" /> : <EyeOff size={14} color="#FDBA74" />,
-            "// MODULO_03", "Privacidad del perfil"
+            "// MODULO_05", "Privacidad del perfil"
           )}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
