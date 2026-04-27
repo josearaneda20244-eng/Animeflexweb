@@ -18,7 +18,14 @@ const BASE_USER_COLS = `id, username, email, password_hash, avatar_url, created_
 /* Columnas completas para SELECT (incluye campos opcionales con valores por defecto) */
 const FULL_USER_COLS = `${BASE_USER_COLS},
   COALESCE(email_verified, FALSE) AS email_verified,
-  COALESCE(is_profile_public, TRUE) AS is_profile_public`;
+  COALESCE(is_profile_public, TRUE) AS is_profile_public,
+  bio,
+  banner_preset`;
+
+const VALID_BANNER_PRESETS = new Set([
+  "monarca", "cazador", "akatsuki", "hokage", "espiral", "rasengan",
+  "sukuna", "frieren", "sello", "dragon", "void", "default"
+]);
 
 /** Limpia campos internos antes de devolver el usuario al cliente */
 function safeUser(row: Record<string, unknown>) {
@@ -160,8 +167,10 @@ router.patch("/auth/me", requireAuth, async (req: AuthRequest, res) => {
   const hasUsername = typeof body.username === "string";
   const hasAvatar = body.avatar_url !== undefined;
   const hasPublic = typeof body.is_profile_public === "boolean";
+  const hasBio = body.bio !== undefined;
+  const hasBanner = body.banner_preset !== undefined;
 
-  if (!hasUsername && !hasAvatar && !hasPublic) {
+  if (!hasUsername && !hasAvatar && !hasPublic && !hasBio && !hasBanner) {
     res.status(400).json({ error: "Nada que actualizar" });
     return;
   }
@@ -188,6 +197,31 @@ router.patch("/auth/me", requireAuth, async (req: AuthRequest, res) => {
     }
   }
 
+  let bio: string | null | undefined;
+  if (hasBio) {
+    if (body.bio === null || body.bio === "") {
+      bio = null;
+    } else if (typeof body.bio === "string") {
+      const trimmed = body.bio.trim().slice(0, 280);
+      bio = trimmed.length === 0 ? null : trimmed;
+    } else {
+      res.status(400).json({ error: "Bio inválida" });
+      return;
+    }
+  }
+
+  let bannerPreset: string | null | undefined;
+  if (hasBanner) {
+    if (body.banner_preset === null || body.banner_preset === "") {
+      bannerPreset = null;
+    } else if (typeof body.banner_preset === "string" && VALID_BANNER_PRESETS.has(body.banner_preset)) {
+      bannerPreset = body.banner_preset;
+    } else {
+      res.status(400).json({ error: "Banner no válido" });
+      return;
+    }
+  }
+
   try {
     const fields: string[] = [];
     const values: (string | number | boolean | null)[] = [];
@@ -195,6 +229,8 @@ router.patch("/auth/me", requireAuth, async (req: AuthRequest, res) => {
     if (username !== null) { fields.push(`username = $${idx++}`); values.push(username); }
     if (avatarUrl !== undefined) { fields.push(`avatar_url = $${idx++}`); values.push(avatarUrl); }
     if (hasPublic) { fields.push(`is_profile_public = $${idx++}`); values.push(body.is_profile_public as boolean); }
+    if (bio !== undefined) { fields.push(`bio = $${idx++}`); values.push(bio); }
+    if (bannerPreset !== undefined) { fields.push(`banner_preset = $${idx++}`); values.push(bannerPreset); }
     values.push(req.userId!);
     await pool.query(
       `UPDATE users SET ${fields.join(", ")} WHERE id = $${idx}`,
