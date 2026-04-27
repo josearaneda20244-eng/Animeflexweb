@@ -12,6 +12,7 @@ import searchLogRouter from "./search.js";
 import storageRouter from "./storage.js";
 import mangaRouter from "./manga.js";
 import newsRouter from "./news.js";
+import homeRouter from "./home.js";
 const router: IRouter = Router();
 
 router.use(healthRouter);
@@ -26,6 +27,7 @@ router.use(commentsRouter);
 router.use(ratingsRouter);
 router.use(announcementsRouter);
 router.use(searchLogRouter);
+router.use(homeRouter);
 // Auth-required routes
 router.use(userRouter);
 router.use(adminRouter);

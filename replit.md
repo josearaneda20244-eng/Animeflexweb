@@ -30,6 +30,21 @@ AnimeFlex es una plataforma de streaming de anime construida como monorepo pnpm 
 - `DATABASE_URL` — Neon PostgreSQL connection string (ya configurado)
 - `JWT_SECRET` — Secreto JWT para tokens de auth (ya configurado)
 
+## Mejoras del Home (abril 2026)
+
+Refactor completo de la página principal con:
+
+- **Banner "Nuevos episodios de tu lista"** (autenticado): compara la watchlist del usuario con AniList vía endpoint nuevo `/api/user/watchlist/new-episodes` (caché 5 min).
+- **Selección AnimeFlex**: contenido destacado por el equipo desde panel admin (`admin_content` action `featured`/`highlight`/`destacado`/`pin`), endpoint público `/api/featured-content` (caché 60s).
+- **Discusiones activas**: top hilos de comentarios de los últimos 7 días, endpoint público `/api/discussions/active` (caché 60s).
+- **Chips de filtros rápidos** debajo del hero: salto a secciones por id + accesos rápidos a Películas, OVAs, búsqueda, Sorpréndeme.
+- **Marcado de watchlist en Calendario**: badge "EN MI LISTA" en cards y contador de "X de tu lista emite hoy".
+- **Continuar viendo** con botón "Quitar" que borra el progreso (usa `removeProgress` del context).
+- **Hero pausable**: se detiene cuando la pestaña está oculta o el sistema pide `prefers-reduced-motion`. Imagen del hero precargada con `fetchpriority="high"` para mejorar LCP.
+- **Vista previa de noticias y banner de manga reciente** integrados en el flujo del home.
+- **SEO dinámico** con `usePageMeta`: title, description, Open Graph y Twitter Card.
+- **Episodios emitidos vs planificados**: las cards muestran `currentEpisode` cuando existe (preferencia sobre `totalEpisodes`) y un badge "LIVE" en animes en emisión.
+
 ## API Endpoints Principales
 
 ### Auth (`/api/auth/`)
