@@ -52,17 +52,14 @@ function optAuth(req: AuthReq, _res: Response, next: NextFunction) {
 
 const router: IRouter = Router();
 
-let anilist: InstanceType<typeof META.Anilist>;
+// AniList META wrappers were removed. AniList's GraphQL API is permanently
+// disabled, so all metadata now comes from Jikan. The streaming providers
+// (AnimeKai, HiAnime, AnimePahe, KickAssAnime, JKAnime) are still scraped
+// directly via @consumet/extensions ANIME.* providers.
 let animeKai: InstanceType<typeof ANIME.AnimeKai>;
-let anilistWithKai: InstanceType<typeof META.Anilist>;
 let hianime: InstanceType<typeof ANIME.Hianime>;
 let animePahe: InstanceType<typeof ANIME.AnimePahe>;
 let kickAssAnime: InstanceType<typeof ANIME.KickAssAnime>;
-
-function getAnilist() {
-  if (!anilist) anilist = new META.Anilist();
-  return anilist;
-}
 
 function getAnimeKai() {
   if (!animeKai) animeKai = new ANIME.AnimeKai();
@@ -82,16 +79,6 @@ function getAnimePahe() {
 function getKickAssAnime() {
   if (!kickAssAnime) kickAssAnime = new ANIME.KickAssAnime();
   return kickAssAnime;
-}
-
-/**
- * AniList wrapper that uses AnimeKai as the streaming provider.
- * This leverages AniList's ID-to-AnimeKai mapping, giving us access to
- * AnimeKai's full library without unreliable title-based search.
- */
-function getAnilistWithKai() {
-  if (!anilistWithKai) anilistWithKai = new META.Anilist(new ANIME.AnimeKai());
-  return anilistWithKai;
 }
 
 function titleVariants(title: string): string[] {
@@ -670,48 +657,98 @@ async function serveSwr<T>(
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Jikan (MyAnimeList) is now the primary data source for anime listings,
+// search, and metadata. The variable names still mention "anilist" in a few
+// places for backward compatibility with the existing frontend contract
+// (e.g. the /anime/anilist-info endpoint), but every actual upstream call
+// goes to Jikan. IDs throughout the system are MAL IDs.
+// ──────────────────────────────────────────────────────────────────────────────
+const JIKAN_BASE = "https://api.jikan.moe/v4";
+
+function jikanImage(images: any): string {
+  return (
+    images?.webp?.large_image_url ??
+    images?.jpg?.large_image_url ??
+    images?.webp?.image_url ??
+    images?.jpg?.image_url ??
+    ""
+  );
+}
+
+function jikanTitle(m: any): { romaji: string; english?: string; userPreferred: string; native?: string } {
+  return {
+    romaji: m.title ?? "",
+    english: m.title_english ?? undefined,
+    userPreferred: m.title_english || m.title || "",
+    native: m.title_japanese ?? undefined,
+  };
+}
+
+function mapJikanAnime(m: any): any {
+  return {
+    id: String(m.mal_id),
+    title: jikanTitle(m),
+    image: jikanImage(m.images),
+    type: (m.type ?? "TV").toUpperCase(),
+    status: (m.status ?? "").toUpperCase().replace(/\s+/g, "_"),
+    totalEpisodes: m.episodes ?? 0,
+    rating: m.score != null ? Math.round(m.score * 10) : 0,
+    genres: Array.isArray(m.genres) ? m.genres.map((g: any) => g.name).filter(Boolean) : [],
+    releaseDate: m.year ?? m.aired?.prop?.from?.year ?? undefined,
+  };
+}
+
+async function jikanFetch(path: string): Promise<any> {
+  const r = await fetch(`${JIKAN_BASE}${path}`, { headers: { Accept: "application/json" } });
+  if (!r.ok) throw new Error(`Jikan ${r.status} on ${path}`);
+  return await r.json();
+}
+
 async function loadTrending() {
-  const data = await getAnilist().fetchTrendingAnime(1, 28);
-  const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
-  return { currentPage: data.currentPage, hasNextPage: data.hasNextPage, results };
+  // "Trending" ≈ currently airing top anime on MAL.
+  const j = await jikanFetch(`/top/anime?filter=airing&limit=25`);
+  const results = (j.data ?? []).map(mapJikanAnime).filter((a: any) => isAnimeFormat(a.type));
+  return {
+    currentPage: j.pagination?.current_page ?? 1,
+    hasNextPage: Boolean(j.pagination?.has_next_page),
+    results,
+  };
 }
 
 async function loadPopular() {
-  const data = await getAnilist().fetchPopularAnime(1, 28);
-  const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
-  return { currentPage: data.currentPage, hasNextPage: data.hasNextPage, results };
+  const j = await jikanFetch(`/top/anime?filter=bypopularity&limit=25`);
+  const results = (j.data ?? []).map(mapJikanAnime).filter((a: any) => isAnimeFormat(a.type));
+  return {
+    currentPage: j.pagination?.current_page ?? 1,
+    hasNextPage: Boolean(j.pagination?.has_next_page),
+    results,
+  };
 }
 
 async function loadRecent() {
-  const now = Math.floor(Date.now() / 1000);
-  const weekAgo = now - 7 * 24 * 60 * 60;
-  const gqlResp = await fetch("https://graphql.anilist.co", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: `query($from:Int,$to:Int){Page(page:1,perPage:28){airingSchedules(airingAt_greater:$from,airingAt_lesser:$to,sort:[TIME_DESC]){episode airingAt media{id title{romaji english userPreferred}coverImage{extraLarge large}format status episodes averageScore genres type}}}}`,
-      variables: { from: weekAgo, to: now },
-    }),
-  });
-  if (!gqlResp.ok) throw new Error("AniList " + gqlResp.status);
-  const gql: any = await gqlResp.json();
-  const schedules: any[] = gql.data?.Page?.airingSchedules ?? [];
+  // Jikan exposes the watch feed of recently-aired episodes from the MAL
+  // community. Each entry has {entry, episodes:[]}. We deduplicate by anime.
+  const j = await jikanFetch(`/watch/episodes`);
+  const raw: any[] = j.data ?? [];
   const seen = new Set<string>();
   const results: any[] = [];
-  for (const s of schedules) {
-    const m = s.media;
-    if (!m || seen.has(String(m.id))) continue;
-    seen.add(String(m.id));
+  for (const item of raw) {
+    const e = item?.entry;
+    if (!e || seen.has(String(e.mal_id))) continue;
+    seen.add(String(e.mal_id));
+    const epList: any[] = item.episodes ?? [];
+    const lastEp = typeof epList[0]?.mal_id === "number" ? epList[0].mal_id : epList.length;
     results.push({
-      id: String(m.id),
-      title: m.title,
-      image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
-      currentEpisode: s.episode,
-      type: m.format ?? m.type ?? "TV",
-      status: m.status ?? "",
-      totalEpisodes: m.episodes ?? 0,
-      rating: m.averageScore ?? 0,
-      genres: m.genres ?? [],
+      id: String(e.mal_id),
+      title: { romaji: e.title ?? "", english: undefined, userPreferred: e.title ?? "" },
+      image: jikanImage(e.images),
+      currentEpisode: lastEp,
+      type: "TV",
+      status: "RELEASING",
+      totalEpisodes: 0,
+      rating: 0,
+      genres: [],
     });
   }
   return { currentPage: 1, hasNextPage: false, results };
@@ -752,9 +789,15 @@ router.get("/anime/search", async (req, res) => {
     return;
   }
   try {
-    const data = await getAnilist().search(query, page, 24);
-    const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
-    res.json({ currentPage: data.currentPage, hasNextPage: data.hasNextPage, results });
+    const j = await jikanFetch(
+      `/anime?q=${encodeURIComponent(query)}&page=${page}&limit=24&sfw=true&order_by=popularity&sort=asc`,
+    );
+    const results = (j.data ?? []).map(mapJikanAnime).filter((a: any) => isAnimeFormat(a.type));
+    res.json({
+      currentPage: j.pagination?.current_page ?? page,
+      hasNextPage: Boolean(j.pagination?.has_next_page),
+      results,
+    });
   } catch (err) {
     req.log.error({ err }, "Failed to search anime");
     res.status(500).json({ error: "Failed to search anime" });
@@ -762,171 +805,23 @@ router.get("/anime/search", async (req, res) => {
 });
 
 /**
- * Fetch anime by Anilist format (MOVIE, OVA, ONA, SPECIAL), sorted by popularity.
- * Uses AniList GraphQL API directly for reliability.
+ * Fetch anime by format (MOVIE, OVA, ONA, SPECIAL), sorted by popularity.
+ * Backed by Jikan (MyAnimeList).
  * GET /api/anime/by-format?format=MOVIE&page=1
  */
 const byFormatCache = new Map<string, { data: unknown; expires: number }>();
 
-// Cache for AniList anime info — prevents rate-limiting (AniList: 90 req/min)
+// Cache for anime detail responses — prevents hammering Jikan (rate limit ~3 req/sec).
 const anilistInfoCache = new Map<string, { data: unknown; expires: number; stale: unknown }>();
 const ANILIST_INFO_CACHE_TTL = 20 * 60 * 1000; // 20 minutes
 
-const ANILIST_GQL = "https://graphql.anilist.co";
-
-const ANILIST_INFO_FIELDS = `
-  id idMal
-  title { romaji english native userPreferred }
-  description(asHtml: false)
-  coverImage { extraLarge large medium color }
-  bannerImage genres status format episodes duration season seasonYear
-  averageScore popularity
-  nextAiringEpisode { episode airingAt }
-  studios(isMain: true) { nodes { name } }
-  streamingEpisodes { title thumbnail url site }
-  trailer { id site }
-  characters(sort: [ROLE, RELEVANCE], perPage: 16) {
-    edges { role node { id name { full } image { medium } } }
-  }
-  recommendations(sort: RATING_DESC, perPage: 10) {
-    nodes {
-      mediaRecommendation {
-        id title { userPreferred english romaji }
-        coverImage { large medium } averageScore format episodes
-      }
-    }
-  }
-  relations {
-    edges {
-      relationType
-      node { id title { userPreferred } coverImage { medium } format episodes }
-    }
-  }
-`;
-
-/**
- * Query AniList GraphQL by numeric ID.
- * Retries on 429 (rate limit) with exponential backoff.
- */
-async function queryAnilistById(numId: number, field: "idMal" | "id" = "id"): Promise<any | null> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const gql = `query ($id: Int) { Media(${field}: $id, type: ANIME) { ${ANILIST_INFO_FIELDS} } }`;
-      const resp = await fetch(ANILIST_GQL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ query: gql, variables: { id: numId } }),
-      });
-      if (resp.status === 429) {
-        const retryAfter = parseInt(resp.headers.get("retry-after") ?? "0", 10) || 0;
-        const wait = Math.max(retryAfter * 1000, (attempt + 1) * 2000);
-        await new Promise(r => setTimeout(r, wait));
-        continue;
-      }
-      if (!resp.ok) return null;
-      const json = await resp.json() as { data?: { Media?: any }; errors?: unknown[] };
-      if (json.errors?.length || !json.data?.Media) return null;
-      return json.data.Media;
-    } catch {
-      if (attempt < 2) await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
-    }
-  }
-  return null;
-}
-
-async function anilistByFormat(format: string, page: number, perPage = 24) {
-  const query = `
-    query ($format: MediaFormat, $page: Int, $perPage: Int) {
-      Page(page: $page, perPage: $perPage) {
-        pageInfo { currentPage hasNextPage }
-        media(type: ANIME, format: $format, sort: POPULARITY_DESC, isAdult: false) {
-          id
-          title { romaji english native userPreferred }
-          coverImage { extraLarge large }
-          averageScore
-          format
-          episodes
-          status
-          genres
-        }
-      }
-    }
-  `;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
-  try {
-    const resp = await fetch(ANILIST_GQL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query, variables: { format, page, perPage } }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    if (!resp.ok) throw new Error(`AniList GQL error ${resp.status}`);
-    const json: any = await resp.json();
-    if (json.errors?.length) throw new Error(json.errors[0].message);
-    return json.data.Page;
-  } catch (err) {
-    clearTimeout(timer);
-    throw err;
-  }
-}
-
-async function anilistByFormatFallback(format: string, page: number, perPage = 24) {
-  // Fallback A: consumet's Anilist advancedSearch with format as 5th param
-  const anilistMeta = getAnilist();
-  const data: any = await (anilistMeta as any).advancedSearch(
-    undefined,  // query
-    "ANIME",    // type
-    page,       // page
-    perPage,    // perPage
-    format      // format — 5th parameter
-  );
-  const results = ((data?.results) || []).map((m: any) => ({
-    id: String(m.id),
-    title: m.title ?? { romaji: String(m.title), english: String(m.title) },
-    image: m.image ?? "",
-    rating: m.rating ?? 0,
-    type: m.type ?? format,
-    totalEpisodes: m.totalEpisodes ?? 0,
-    status: m.status ?? "",
-    genres: m.genres ?? [],
-  }));
-  return {
-    media: results,
-    pageInfo: { currentPage: page, hasNextPage: data?.hasNextPage ?? false },
-    _fromFallback: true,
-  };
-}
-
-async function anilistByFormatDirect(format: string, page: number, perPage = 24) {
-  // Fallback B: public Consumet REST API as last resort
-  const url = `https://api.consumet.org/meta/anilist/advanced-search?type=ANIME&format=${format}&page=${page}&perPage=${perPage}&sort=%5B%22POPULARITY_DESC%22%5D`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
-  try {
-    const resp = await fetch(url, { signal: controller.signal, headers: { Accept: "application/json" } });
-    clearTimeout(timer);
-    if (!resp.ok) throw new Error(`consumet.org API error ${resp.status}`);
-    const json: any = await resp.json();
-    const results = ((json?.results) || []).map((m: any) => ({
-      id: String(m.id),
-      title: m.title ?? {},
-      image: m.image ?? "",
-      rating: m.rating ?? 0,
-      type: m.type ?? format,
-      totalEpisodes: m.totalEpisodes ?? 0,
-      status: m.status ?? "",
-      genres: m.genres ?? [],
-    }));
-    return {
-      media: results,
-      pageInfo: { currentPage: page, hasNextPage: json?.hasNextPage ?? false },
-      _fromFallback: true,
-    };
-  } catch (err) {
-    clearTimeout(timer);
-    throw err;
+function jikanTypeForFormat(format: string): string {
+  switch (format) {
+    case "MOVIE":   return "movie";
+    case "OVA":     return "ova";
+    case "ONA":     return "ona";
+    case "SPECIAL": return "special";
+    default:        return "movie";
   }
 }
 
@@ -945,49 +840,15 @@ router.get("/anime/by-format", async (req, res) => {
     return;
   }
   try {
-    let page_data: any;
-    let usedFallback = false;
-
-    // Attempt 1: direct AniList GraphQL
-    try {
-      page_data = await anilistByFormat(format, page);
-    } catch (err1) {
-      req.log.warn({ err1 }, "AniList GQL failed, trying consumet advancedSearch");
-      // Attempt 2: consumet Anilist advancedSearch
-      try {
-        page_data = await anilistByFormatFallback(format, page);
-        usedFallback = true;
-      } catch (err2) {
-        req.log.warn({ err2 }, "consumet advancedSearch failed, trying consumet.org REST API");
-        // Attempt 3: public consumet.org REST API
-        try {
-          page_data = await anilistByFormatDirect(format, page);
-          usedFallback = true;
-        } catch (err3) {
-          req.log.error({ err1, err2, err3 }, "All three methods failed for by-format");
-          throw err1;
-        }
-      }
-    }
-
-    const rawItems: any[] = page_data.media || [];
-    const results = usedFallback
-      ? rawItems  // already normalized in fallback functions
-      : rawItems.map((m: any) => ({
-          id: String(m.id),
-          title: m.title,
-          image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
-          rating: m.averageScore ?? 0,
-          type: m.format ?? format,
-          totalEpisodes: m.episodes ?? 0,
-          status: m.status,
-          genres: m.genres ?? [],
-        }));
-
+    const j = await jikanFetch(
+      `/anime?type=${jikanTypeForFormat(format)}` +
+      `&order_by=popularity&sort=asc&page=${page}&limit=24&sfw=true`,
+    );
+    const results = (j.data ?? []).map(mapJikanAnime);
     const payload = {
       results,
-      currentPage: page_data.pageInfo?.currentPage ?? page,
-      hasNextPage: page_data.pageInfo?.hasNextPage ?? false,
+      currentPage: j.pagination?.current_page ?? page,
+      hasNextPage: Boolean(j.pagination?.has_next_page),
     };
     byFormatCache.set(cacheKey, { data: payload, expires: Date.now() + 15 * 60 * 1000 });
     res.json(payload);
@@ -1029,87 +890,10 @@ function computeTitleSimilarity(a: string, b: string): number {
 }
 
 /**
- * Fetch minimal AniList metadata: titles, episode count, streaming episodes.
- */
-async function fetchAnilistBasicMeta(anilistId: string): Promise<{
-  title: { romaji?: string; english?: string; native?: string };
-  episodes: number | null;
-  nextAiringEpisode: { episode: number } | null;
-  streamingEpisodes: Array<{ title?: string; thumbnail?: string }>;
-} | null> {
-  try {
-    const resp = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        query: `query ($id: Int) {
-          Media(id: $id, type: ANIME) {
-            title { romaji english native userPreferred }
-            episodes
-            nextAiringEpisode { episode }
-            streamingEpisodes { title thumbnail }
-          }
-        }`,
-        variables: { id: parseInt(anilistId, 10) },
-      }),
-    });
-    if (!resp.ok) return null;
-    const json = await resp.json() as any;
-    const m = json?.data?.Media;
-    if (!m) return null;
-    return {
-      title: m.title ?? {},
-      episodes: m.episodes ?? null,
-      nextAiringEpisode: m.nextAiringEpisode ?? null,
-      streamingEpisodes: m.streamingEpisodes ?? [],
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Build a numbered episode list from AniList metadata.
- * IDs use the stable format "{anilistId}-episode-{num}" so they match
- * what /anime/anilist-info produces.
- */
-function buildEpisodesFromAnilistMeta(
-  anilistId: string,
-  meta: Awaited<ReturnType<typeof fetchAnilistBasicMeta>>,
-): Array<{ id: string; number: number; title: string; image: string | null }> {
-  if (!meta) return [];
-  const airedCount =
-    meta.nextAiringEpisode?.episode != null
-      ? Math.max(0, meta.nextAiringEpisode.episode - 1)
-      : null;
-  // For currently airing anime, prefer airedCount over meta.episodes
-  // (meta.episodes is the planned season total, not what's actually out yet).
-  const count =
-    airedCount != null
-      ? airedCount
-      : (meta.episodes ?? meta.streamingEpisodes.length ?? 0);
-  return Array.from({ length: count }, (_, i) => {
-    const num = i + 1;
-    const streaming = meta.streamingEpisodes.find((e) => {
-      const m = e.title?.match(/Episode\s+(\d+)/i);
-      return m ? parseInt(m[1]) === num : false;
-    });
-    return {
-      id: `${anilistId}-episode-${num}`,
-      number: num,
-      title: streaming?.title ?? `Episodio ${num}`,
-      image: streaming?.thumbnail ?? null,
-    };
-  });
-}
-
-/**
- * Fetch episodes for an anime using its AniList ID.
- * Tries AnimeKai first (via META.Anilist wrapper) for richer metadata.
- * Validates the returned anime title against AniList's canonical title —
- * if AnimeKai maps the ID to the wrong anime (title mismatch), we fall back
- * to building a numbered episode list directly from AniList data so the
- * player always shows the correct anime's episodes.
+ * Fetch episodes for an anime using its MAL ID (still called `anilistId`
+ * in the query string for backward compatibility with existing clients).
+ * Backed by Jikan; returns the canonical episode list when Jikan has it,
+ * otherwise synthesizes a numbered list from the planned episode total.
  */
 router.get("/anime/episodes", async (req, res) => {
   const anilistId = req.query.anilistId as string;
@@ -1118,84 +902,51 @@ router.get("/anime/episodes", async (req, res) => {
     return;
   }
   try {
-    // Fetch AniList canonical metadata in parallel with AnimeKai
-    const [anilistMeta, kaiData] = await Promise.allSettled([
-      fetchAnilistBasicMeta(anilistId),
-      getAnilistWithKai().fetchAnimeInfo(anilistId),
+    // Episode list is derived from Jikan (MAL). The variable is still
+    // called `anilistId` for backward-compat but the value is a MAL ID.
+    const [metaR, epsR] = await Promise.allSettled([
+      jikanFetch(`/anime/${encodeURIComponent(anilistId)}/full`),
+      jikanFetch(`/anime/${encodeURIComponent(anilistId)}/episodes`),
     ]);
 
-    const meta = anilistMeta.status === "fulfilled" ? anilistMeta.value : null;
-    const kai = kaiData.status === "fulfilled" ? kaiData.value : null;
+    const media = metaR.status === "fulfilled" ? metaR.value?.data : null;
+    const epsRaw: any[] = epsR.status === "fulfilled" ? (epsR.value?.data ?? []) : [];
 
-    if (!kai && !meta) {
+    if (!media && epsRaw.length === 0) {
       res.status(500).json({ error: "Failed to fetch episode list" });
       return;
     }
 
-    // Determine whether AnimeKai returned the correct anime by comparing titles
-    let useKai = false;
-    if (kai && meta) {
-      const kaiTitle =
-        (typeof kai.title === "string"
-          ? kai.title
-          : (kai.title as any)?.english || (kai.title as any)?.romaji || "") as string;
-      const anilistTitle = meta.title?.english || meta.title?.romaji || "";
-      const score = computeTitleSimilarity(kaiTitle, anilistTitle);
-      // Also sanity-check episode count: if AnimeKai returned way more episodes
-      // than AniList knows about, it found a different (longer) anime.
-      const anilistCount = (meta.episodes ?? (meta.nextAiringEpisode?.episode != null ? meta.nextAiringEpisode.episode - 1 : null)) ?? 0;
-      const kaiCount = (kai.episodes as any[])?.length ?? 0;
-      const countOk = anilistCount === 0 || kaiCount === 0 || kaiCount <= anilistCount * 2;
-      useKai = score >= 0.5 && countOk && titleMatchesRequestedSeason(anilistTitle, kai.title);
-    } else if (kai && !meta) {
-      useKai = true;
+    let episodes: Array<{ id: string; number: number; title: string; image: string | null }>;
+    if (epsRaw.length > 0) {
+      episodes = epsRaw
+        .filter((e: any) => typeof e.mal_id === "number")
+        .sort((a: any, b: any) => a.mal_id - b.mal_id)
+        .map((e: any) => ({
+          id: `${anilistId}-episode-${e.mal_id}`,
+          number: e.mal_id,
+          title: e.title ?? `Episodio ${e.mal_id}`,
+          image: null,
+        }));
+    } else {
+      const count = typeof media?.episodes === "number" ? media.episodes : 0;
+      episodes = Array.from({ length: count }, (_, i) => {
+        const num = i + 1;
+        return {
+          id: `${anilistId}-episode-${num}`,
+          number: num,
+          title: `Episodio ${num}`,
+          image: null,
+        };
+      });
     }
 
-    if (useKai) {
-      // For currently airing anime, AnimeKai (and AniList's planned total)
-      // may list episodes that haven't been released yet. Trim the list to
-      // what's actually aired according to AniList's nextAiringEpisode.
-      const airedCount =
-        meta?.nextAiringEpisode?.episode != null
-          ? Math.max(0, meta.nextAiringEpisode.episode - 1)
-          : null;
-      const kaiEpisodes = Array.isArray((kai as any).episodes)
-        ? (kai as any).episodes
-        : [];
-      let trimmedEpisodes = kaiEpisodes;
-      if (airedCount != null && kaiEpisodes.length > airedCount) {
-        // Sort by episode number (when available) and take the first airedCount.
-        trimmedEpisodes = [...kaiEpisodes]
-          .sort((a: any, b: any) => {
-            const an = Number(a?.number ?? 0);
-            const bn = Number(b?.number ?? 0);
-            return an - bn;
-          })
-          .filter((ep: any) => {
-            const n = Number(ep?.number ?? 0);
-            return n > 0 && n <= airedCount;
-          });
-        // Fallback: if filtering by number left it empty (numbers missing),
-        // just slice the first airedCount items.
-        if (trimmedEpisodes.length === 0) {
-          trimmedEpisodes = kaiEpisodes.slice(0, airedCount);
-        }
-      }
-      res.json({
-        ...kai,
-        episodes: trimmedEpisodes,
-        totalEpisodes: trimmedEpisodes.length,
-      });
-    } else {
-      // AnimeKai mapped the wrong anime — build episodes from AniList directly
-      const episodes = buildEpisodesFromAnilistMeta(anilistId, meta);
-      res.json({
-        id: anilistId,
-        title: meta?.title ?? {},
-        episodes,
-        totalEpisodes: episodes.length,
-      });
-    }
+    res.json({
+      id: anilistId,
+      title: media ? jikanTitle(media) : {},
+      episodes,
+      totalEpisodes: episodes.length,
+    });
   } catch (err) {
     req.log.error({ err }, "Failed to fetch episodes");
     res.status(500).json({ error: "Failed to fetch episode list" });
@@ -1223,12 +974,19 @@ router.get("/anime/anilist-info", async (req, res) => {
   }
 
   try {
-    const media = await queryAnilistById(numId, "id");
+    // Fetch full anime info + recommendations + characters from Jikan in parallel.
+    const [fullJ, recsJ, charsJ, epsJ] = await Promise.allSettled([
+      jikanFetch(`/anime/${numId}/full`),
+      jikanFetch(`/anime/${numId}/recommendations`),
+      jikanFetch(`/anime/${numId}/characters`),
+      jikanFetch(`/anime/${numId}/episodes`),
+    ]);
 
+    const media = fullJ.status === "fulfilled" ? fullJ.value?.data : null;
     if (!media) {
-      // Return stale cache data rather than an error when AniList is unavailable
+      // Return stale cache data rather than an error when Jikan is unavailable
       if (cached?.stale) {
-        req.log.warn({ id }, "AniList unavailable — serving stale cache");
+        req.log.warn({ id }, "Jikan unavailable — serving stale cache");
         res.json(cached.stale);
         return;
       }
@@ -1236,74 +994,80 @@ router.get("/anime/anilist-info", async (req, res) => {
       return;
     }
 
-    const streamingEps: { title?: string; thumbnail?: string }[] = media.streamingEpisodes ?? [];
+    const recsRaw = recsJ.status === "fulfilled" ? (recsJ.value?.data ?? []) : [];
+    const charsRaw = charsJ.status === "fulfilled" ? (charsJ.value?.data ?? []) : [];
+    const epsRaw = epsJ.status === "fulfilled" ? (epsJ.value?.data ?? []) : [];
 
-    // For airing anime, media.episodes may be null (total not yet known) OR
-    // it may already contain the planned season total (e.g. 13) even though
-    // only some have aired (e.g. 4). Prefer the actual aired count when
-    // nextAiringEpisode is set — that means the show is still airing.
-    const airedCount: number | null =
-      media.nextAiringEpisode?.episode != null
-        ? Math.max(0, media.nextAiringEpisode.episode - 1)
-        : null;
-    const episodeCount: number =
-      airedCount != null
-        ? airedCount
-        : (media.episodes ?? streamingEps.length ?? 0);
-    const episodes = Array.from({ length: episodeCount }, (_, i) => {
-      const num = i + 1;
-      const meta = streamingEps.find((e) => {
-        const m = e.title?.match(/Episode\s+(\d+)/i);
-        return m ? parseInt(m[1]) === num : false;
+    // Build the episode list. Prefer the real episode list from Jikan when it
+    // has data; otherwise synthesize from `media.episodes` (planned total).
+    let episodes: any[];
+    if (epsRaw.length > 0) {
+      episodes = epsRaw
+        .filter((e: any) => typeof e.mal_id === "number")
+        .sort((a: any, b: any) => a.mal_id - b.mal_id)
+        .map((e: any) => ({
+          id: `${id}-episode-${e.mal_id}`,
+          number: e.mal_id,
+          title: e.title ?? `Episodio ${e.mal_id}`,
+          image: null,
+          url: e.url ?? null,
+        }));
+    } else {
+      const count = typeof media.episodes === "number" ? media.episodes : 0;
+      episodes = Array.from({ length: count }, (_, i) => {
+        const num = i + 1;
+        return {
+          id: `${id}-episode-${num}`,
+          number: num,
+          title: `Episodio ${num}`,
+          image: null,
+          url: null,
+        };
       });
+    }
+
+    const characters = charsRaw.slice(0, 16).map((c: any) => ({
+      id: String(c.character?.mal_id ?? ""),
+      name: c.character?.name ?? "",
+      image:
+        c.character?.images?.webp?.image_url ??
+        c.character?.images?.jpg?.image_url ??
+        "",
+      role: (c.role ?? "SUPPORTING").toUpperCase(),
+    }));
+
+    const recommendations = recsRaw.slice(0, 10).map((r: any) => {
+      const e = r.entry ?? {};
       return {
-        id: `${id}-episode-${num}`,
-        number: num,
-        title: meta?.title ?? `Episodio ${num}`,
-        image: (meta as any)?.thumbnail ?? null,
-        url: (meta as any)?.url ?? null,
+        id: String(e.mal_id ?? ""),
+        title: e.title ?? "",
+        image: jikanImage(e.images),
+        rating: 0,
+        type: "TV",
+        totalEpisodes: 0,
       };
     });
 
-    const characters = (media.characters?.edges ?? []).map((e: any) => ({
-      id: String(e.node?.id),
-      name: e.node?.name?.full ?? "",
-      image: e.node?.image?.medium ?? "",
-      role: e.role ?? "SUPPORTING",
-    }));
-
-    const recommendations = (media.recommendations?.nodes ?? [])
-      .filter((n: any) => n.mediaRecommendation)
-      .map((n: any) => {
-        const m = n.mediaRecommendation;
-        return {
-          id: String(m.id),
-          title: m.title?.english || m.title?.userPreferred || m.title?.romaji || "",
-          image: m.coverImage?.large ?? m.coverImage?.medium ?? "",
-          rating: m.averageScore,
-          type: m.format,
-          totalEpisodes: m.episodes,
-        };
-      });
-
-    const trailer = media.trailer?.id
-      ? { id: media.trailer.id as string, site: (media.trailer.site ?? "") as string }
+    const trailer = media.trailer?.youtube_id
+      ? { id: media.trailer.youtube_id as string, site: "youtube" }
       : null;
 
+    const studios = (media.studios ?? []).map((s: any) => s.name).filter(Boolean);
+
     const payload = {
-      id: String(media.id),
-      title: media.title,
-      image: media.coverImage?.extraLarge ?? media.coverImage?.large ?? "",
-      cover: media.bannerImage ?? "",
-      description: media.description ?? "",
-      genres: media.genres ?? [],
-      status: media.status,
-      type: media.format,
-      totalEpisodes: episodeCount,
-      duration: media.duration,
-      rating: media.averageScore,
-      color: media.coverImage?.color,
-      studios: (media.studios?.nodes ?? []).map((s: any) => s.name),
+      id: String(media.mal_id),
+      title: jikanTitle(media),
+      image: jikanImage(media.images),
+      cover: media.trailer?.images?.maximum_image_url ?? jikanImage(media.images),
+      description: media.synopsis ?? "",
+      genres: (media.genres ?? []).map((g: any) => g.name).filter(Boolean),
+      status: (media.status ?? "").toUpperCase().replace(/\s+/g, "_"),
+      type: (media.type ?? "TV").toUpperCase(),
+      totalEpisodes: episodes.length || media.episodes || 0,
+      duration: media.duration ?? "",
+      rating: media.score != null ? Math.round(media.score * 10) : 0,
+      color: undefined,
+      studios,
       trailer,
       characters,
       recommendations,
@@ -1318,10 +1082,9 @@ router.get("/anime/anilist-info", async (req, res) => {
 
     res.json(payload);
   } catch (err) {
-    req.log.error({ err }, "Failed to fetch anilist anime info");
-    // Serve stale cache rather than returning an error
+    req.log.error({ err }, "Failed to fetch anime info from Jikan");
     if (cached?.stale) {
-      req.log.warn({ id }, "AniList error — serving stale cache");
+      req.log.warn({ id }, "Jikan error — serving stale cache");
       res.json(cached.stale);
       return;
     }
@@ -1499,33 +1262,10 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
     );
   }
 
-  // ── Branch 2: AnimeKai via AniList ID lookup ──────────────────────
-  if (episodeNum && anilistCandidates.length > 0) {
-    attempts.push(
-      (async () => {
-        for (const candidateAnilistId of anilistCandidates) {
-          try {
-            const info = await retryFetch(
-              () => getAnilistWithKai().fetchAnimeInfo(candidateAnilistId),
-              1,
-              400,
-            ) as any;
-            if (animeTitle && !titleMatchesRequestedSeason(animeTitle, info?.title)) continue;
-            const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
-            if (!ep?.id) continue;
-            const data = await fetchAnimeKaiSources(ep.id as string);
-            if (!isPlayable(data)) continue;
-            req.log.info(
-              { provider: "AnimeKai-anilist", animeId: candidateAnilistId, episodeNum },
-              "AnimeKai AniList lookup hit",
-            );
-            return data;
-          } catch { /* try next */ }
-        }
-        throw new Error("animekai-anilist exhausted");
-      })(),
-    );
-  }
+  // ── Branch 2 removed: AnimeKai's AniList-ID lookup wrapper relied on the
+  // AniList GraphQL API, which is permanently disabled. Title-based
+  // discovery (Branch 3) and JKAnime (Branch 7) cover the same ground.
+  void anilistCandidates; // keep variable referenced for future re-use
 
   // ── Branch 3: AnimeKai via title search (slowest AnimeKai path) ────
   if (animeTitle && episodeNum) {
@@ -1899,26 +1639,32 @@ router.get("/anime/download-proxy", async (req, res) => {
 });
 
 /**
- * Fetch all title variants for an AniList anime ID (romaji, english, native).
- * Used to improve JKAnime search coverage.
+ * Fetch all title variants for a given anime (MAL ID) — romaji, english,
+ * native plus synonyms. Used to improve JKAnime slug-search coverage.
  */
 async function fetchAnilistTitles(anilistId: string): Promise<string[]> {
   try {
-    const resp = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        query: `query ($id: Int) { Media(id: $id, type: ANIME) { title { romaji english native } synonyms } }`,
-        variables: { id: parseInt(anilistId, 10) },
-      }),
+    const j = await jikanFetch(`/anime/${encodeURIComponent(anilistId)}/full`);
+    const m = j?.data;
+    if (!m) return [];
+    const titles: string[] = [];
+    if (typeof m.title === "string") titles.push(m.title);
+    if (typeof m.title_english === "string") titles.push(m.title_english);
+    if (typeof m.title_japanese === "string") titles.push(m.title_japanese);
+    if (Array.isArray(m.title_synonyms)) {
+      for (const s of m.title_synonyms) if (typeof s === "string") titles.push(s);
+    }
+    if (Array.isArray(m.titles)) {
+      for (const t of m.titles) if (t && typeof t.title === "string") titles.push(t.title);
+    }
+    // Deduplicate while preserving order
+    const seen = new Set<string>();
+    return titles.filter((s) => {
+      const k = s.toLowerCase().trim();
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
     });
-    if (!resp.ok) return [];
-    const json = await resp.json() as any;
-    const media = json?.data?.Media;
-    if (!media) return [];
-    const t = media.title ?? {};
-    const synonyms: string[] = Array.isArray(media.synonyms) ? media.synonyms : [];
-    return [t.romaji, t.english, t.native, ...synonyms].filter((s): s is string => !!s && typeof s === "string");
   } catch {
     return [];
   }
