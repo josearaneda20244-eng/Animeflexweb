@@ -40,6 +40,23 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    sourcemap: false,
+    cssCodeSplit: true,
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (id.includes("hls.js") || id.includes("plyr")) return "vendor-player";
+          if (id.includes("framer-motion")) return "vendor-motion";
+          if (id.includes("@tanstack/react-query")) return "vendor-query";
+          if (id.includes("lucide-react")) return "vendor-icons";
+          if (id.includes("react-dom") || id.includes("scheduler")) return "vendor-react-dom";
+          if (id.includes("/react/") || id.endsWith("/react/index.js")) return "vendor-react";
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     port,

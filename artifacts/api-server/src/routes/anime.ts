@@ -631,6 +631,9 @@ async function serveSwr<T>(
   const now = Date.now();
   const cached = swrCache.get(cacheKey);
 
+  // Allow CDN/browser to cache too: fresh for 5 min, can serve stale for an hour while revalidating.
+  res.set("Cache-Control", "public, max-age=300, s-maxage=300, stale-while-revalidate=3600");
+
   // Hit (fresh): instant response
   if (cached && cached.expires > now) {
     res.json(cached.data);

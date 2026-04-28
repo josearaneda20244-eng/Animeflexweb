@@ -38,10 +38,30 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
   });
   const { user } = useAuth();
   const prevUserIdRef = useRef<number | null>(null);
+  // Debounce backend PUTs per episode so timeupdate (~4 fires/s) doesn't hammer the API.
+  const pendingTimers = useRef<Map<string, number>>(new Map());
+  const lastSentAt = useRef<Map<string, number>>(new Map());
+  const PROGRESS_DEBOUNCE_MS = 5000; // batch: only push every 5s per episode
+  const PROGRESS_FLUSH_MAX_MS = 15000; // hard flush: push at least every 15s
 
   const save = useCallback((list: WatchProgressEntry[]) => {
     setProgress(list);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
+  }, []);
+
+  // Flush all pending progress on unload so we don't lose the very last seek.
+  useEffect(() => {
+    const flush = () => {
+      pendingTimers.current.forEach((id) => window.clearTimeout(id));
+      pendingTimers.current.clear();
+    };
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
+      flush();
+    };
   }, []);
 
   useEffect(() => {
@@ -84,8 +104,19 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
       const updated: WatchProgressEntry = { ...entry, updatedAt: Date.now() };
       const filtered = progress.filter((p) => p.episodeId !== entry.episodeId);
       save([updated, ...filtered].slice(0, MAX_ENTRIES));
-      if (user) {
-        apiClient.put(`/user/progress/${encodeURIComponent(entry.episodeId)}`, {
+      if (!user) return;
+
+      // Backend sync: debounced per-episode to avoid spamming the API on every timeupdate.
+      const epId = entry.episodeId;
+      const now = Date.now();
+      const last = lastSentAt.current.get(epId) ?? 0;
+      const existingTimer = pendingTimers.current.get(epId);
+      if (existingTimer) window.clearTimeout(existingTimer);
+
+      const flushNow = () => {
+        pendingTimers.current.delete(epId);
+        lastSentAt.current.set(epId, Date.now());
+        apiClient.put(`/user/progress/${encodeURIComponent(epId)}`, {
           animeId: entry.animeId,
           animeTitle: entry.animeTitle,
           animeImage: entry.animeImage,
@@ -93,7 +124,15 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
           watchTime: entry.currentTime,
           duration: entry.duration,
         }).catch(() => {});
+      };
+
+      // If it's been long enough since the last send, force an immediate flush.
+      if (now - last >= PROGRESS_FLUSH_MAX_MS) {
+        flushNow();
+        return;
       }
+      const timer = window.setTimeout(flushNow, PROGRESS_DEBOUNCE_MS);
+      pendingTimers.current.set(epId, timer);
     },
     [progress, save, user]
   );

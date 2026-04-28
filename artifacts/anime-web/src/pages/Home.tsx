@@ -725,12 +725,34 @@ export default function Home() {
   const recentList = recent.data?.results ?? [];
   const seasonalList = seasonal.data ?? [];
 
-  // SEO meta tags
+  // SEO meta tags + JSON-LD structured data for rich snippets.
   const heroTitle = trendList[heroIdx] ? resolveTitle(trendList[heroIdx].title) : "";
+  const homeJsonLd = useMemo(() => ([
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "AnimeFlex",
+      "url": "https://animeflex.lat/",
+      "inLanguage": "es",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://animeflex.lat/search?q={search_term_string}",
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "AnimeFlex",
+      "url": "https://animeflex.lat/",
+      "logo": "https://animeflex.lat/icon-512.png",
+    },
+  ]), []);
   usePageMeta({
     title: "AnimeFlex — Anime online sub español, manga y noticias",
     description: "Mira anime online gratis con subtítulos en español. Tendencias, calendario de emisión, últimos episodios, mangas al día y novedades del mundo anime.",
     image: trendList[heroIdx]?.cover || trendList[heroIdx]?.image,
+    jsonLd: homeJsonLd,
   });
 
   const prevHero = useCallback(() => setHeroIdx(i => (i > 0 ? i - 1 : Math.max(0, trendList.length - 1))), [trendList.length]);

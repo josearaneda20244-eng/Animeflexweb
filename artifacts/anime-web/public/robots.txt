@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Block API & internal endpoints from indexing
+Disallow: /api/
+Disallow: /admin
+Disallow: /admin/
+
+# Sitemap
+Sitemap: https://animeflex.lat/sitemap.xml
