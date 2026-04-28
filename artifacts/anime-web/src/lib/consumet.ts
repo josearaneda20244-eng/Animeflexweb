@@ -215,10 +215,10 @@ const BY_FORMAT_QUERY = `
   }
 `;
 
-export async function byFormatDirect(
+async function byFormatAniList(
   format: "MOVIE" | "OVA" | "ONA" | "SPECIAL",
-  page = 1,
-  perPage = 24,
+  page: number,
+  perPage: number,
 ): Promise<SearchResult> {
   const resp = await fetch(ANILIST_GQL_URL, {
     method: "POST",
@@ -243,4 +243,84 @@ export async function byFormatDirect(
       genres: m.genres ?? [],
     })),
   };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Jikan (MyAnimeList) fallback — used when AniList GraphQL is down or rate-limits
+// us. Returns the same `SearchResult` shape so the rest of the UI doesn't change.
+// ──────────────────────────────────────────────────────────────────────────────
+const JIKAN_BASE_URL = "https://api.jikan.moe/v4";
+
+const JIKAN_TYPE_BY_FORMAT: Record<"MOVIE" | "OVA" | "ONA" | "SPECIAL", string> = {
+  MOVIE: "movie",
+  OVA: "ova",
+  ONA: "ona",
+  SPECIAL: "special",
+};
+
+async function byFormatJikan(
+  format: "MOVIE" | "OVA" | "ONA" | "SPECIAL",
+  page: number,
+  perPage: number,
+): Promise<SearchResult> {
+  const type = JIKAN_TYPE_BY_FORMAT[format];
+  // Jikan caps `limit` at 25.
+  const limit = Math.min(Math.max(perPage, 1), 25);
+  const url =
+    `${JIKAN_BASE_URL}/anime?type=${type}` +
+    `&order_by=popularity&sort=asc` +
+    `&page=${page}&limit=${limit}`;
+  const resp = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!resp.ok) throw new Error(`Jikan error ${resp.status}`);
+  const json: any = await resp.json();
+  const raw: any[] = json.data ?? [];
+  return {
+    currentPage: json.pagination?.current_page ?? page,
+    hasNextPage: Boolean(json.pagination?.has_next_page),
+    results: raw.map((m: any) => ({
+      // Use the MAL id as the result id. Many popular titles share the same
+      // numeric id between MAL and AniList, so the detail route still works
+      // for the common case while AniList is unreachable.
+      id: String(m.mal_id),
+      title: {
+        english: m.title_english ?? undefined,
+        romaji: m.title ?? undefined,
+        userPreferred: m.title_english || m.title,
+        native: m.title_japanese ?? undefined,
+      },
+      image:
+        m.images?.webp?.large_image_url ??
+        m.images?.jpg?.large_image_url ??
+        m.images?.webp?.image_url ??
+        m.images?.jpg?.image_url ??
+        "",
+      // Jikan's `score` is 0-10; AniList's `averageScore` is 0-100. Normalise
+      // so the existing UI which divides by 10 keeps producing the right value.
+      rating: m.score != null ? Math.round(m.score * 10) : 0,
+      type: format,
+      totalEpisodes: m.episodes ?? 0,
+      status: (m.status ?? "").toUpperCase().replace(/\s+/g, "_"),
+      genres: Array.isArray(m.genres) ? m.genres.map((g: any) => g.name).filter(Boolean) : [],
+      releaseDate: m.aired?.prop?.from?.year ?? m.year ?? undefined,
+    })),
+  };
+}
+
+export async function byFormatDirect(
+  format: "MOVIE" | "OVA" | "ONA" | "SPECIAL",
+  page = 1,
+  perPage = 24,
+): Promise<SearchResult> {
+  // 1. Try AniList GraphQL first (richer data, AniList ids work everywhere).
+  try {
+    return await byFormatAniList(format, page, perPage);
+  } catch (err) {
+    if (typeof console !== "undefined") {
+      // eslint-disable-next-line no-console
+      console.warn("[byFormatDirect] AniList failed, falling back to Jikan:", err);
+    }
+  }
+  // 2. Fall back to Jikan (MyAnimeList) so the page still renders something
+  //    when AniList is unreachable / rate-limited / temporarily disabled.
+  return await byFormatJikan(format, page, perPage);
 }
