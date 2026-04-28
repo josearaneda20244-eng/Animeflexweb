@@ -1,4 +1,14 @@
-const ANILIST_URL = "https://graphql.anilist.co";
+// ──────────────────────────────────────────────────────────────────────────────
+// Source switched from AniList GraphQL → Jikan (MyAnimeList) REST API.
+// AniList disabled their public GraphQL API "due to severe stability issues"
+// so we now pull the same data from Jikan and shape it into the original
+// types so the rest of the app keeps working unchanged.
+//
+// Notes on IDs:
+//   `id` is now the MAL ID (Jikan's `mal_id`), not the AniList ID.
+//   The backend's /anime/anilist-info endpoint accepts MAL IDs as well.
+// ──────────────────────────────────────────────────────────────────────────────
+const JIKAN_URL = "https://api.jikan.moe/v4";
 
 export interface AiringEntry {
   airingAt: number;
@@ -28,62 +38,89 @@ export interface SeasonAnime {
   seasonYear: number;
 }
 
-async function anilistQuery<T>(query: string, variables: Record<string, unknown>): Promise<T> {
-  const res = await fetch(ANILIST_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query, variables }),
-  });
-  if (!res.ok) throw new Error(`AniList error ${res.status}`);
-  const json = await res.json();
-  if (json.errors?.length) throw new Error(json.errors[0].message);
-  return json.data as T;
+function pickJikanImage(images: any): string {
+  return (
+    images?.webp?.large_image_url ??
+    images?.jpg?.large_image_url ??
+    images?.webp?.image_url ??
+    images?.jpg?.image_url ??
+    ""
+  );
+}
+
+function normalizeStatus(s: string | undefined): string {
+  return (s ?? "").toUpperCase().replace(/\s+/g, "_");
+}
+
+function jikanGenres(g: any): string[] {
+  return Array.isArray(g) ? g.map((x: any) => x?.name).filter(Boolean) : [];
 }
 
 export async function fetchAiringSchedule(): Promise<AiringEntry[]> {
-  const query = `
-    query ($page: Int, $perPage: Int) {
-      Page(page: $page, perPage: $perPage) {
-        airingSchedules(notYetAired: false, sort: TIME_DESC) {
-          airingAt
-          episode
-          media {
-            id
-            title { romaji english }
-            coverImage { large }
-            format
-            episodes
-            averageScore
-            genres
-            status
-          }
-        }
-      }
-    }
-  `;
-  const data = await anilistQuery<{
-    Page: { airingSchedules: Array<{ airingAt: number; episode: number; media: any }> };
-  }>(query, { page: 1, perPage: 50 });
+  const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const dayToWeekday: Record<string, number> = {
+    sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
+  };
+  const today = new Date();
+  const out: AiringEntry[] = [];
+  const seen = new Set<number>();
 
-  return (data.Page.airingSchedules ?? [])
-    .filter((e) => e.media && e.media.format === "TV")
-    .map((e) => ({
-      airingAt: e.airingAt,
-      episode: e.episode,
-      media: {
-        id: e.media.id,
-        title: {
-          romaji: e.media.title?.romaji ?? "",
-          english: e.media.title?.english ?? undefined,
+  const responses = await Promise.all(
+    days.map(async (d) => {
+      try {
+        const r = await fetch(`${JIKAN_URL}/schedules?filter=${d}&sfw=true`, {
+          headers: { Accept: "application/json" },
+        });
+        if (!r.ok) return { day: d, data: [] as any[] };
+        const j: any = await r.json();
+        return { day: d, data: (j.data ?? []) as any[] };
+      } catch {
+        return { day: d, data: [] as any[] };
+      }
+    }),
+  );
+
+  for (const { day, data } of responses) {
+    const weekday = dayToWeekday[day] ?? 1;
+    const ref = new Date(today);
+    const offset = (weekday - ref.getDay() + 7) % 7;
+    ref.setDate(ref.getDate() + offset);
+
+    for (const m of data) {
+      if (!m || seen.has(m.mal_id)) continue;
+      if (m.type !== "TV") continue;
+      seen.add(m.mal_id);
+
+      const broadcastTime: string | undefined = m.broadcast?.time;
+      const airingDate = new Date(ref);
+      if (broadcastTime && /^\d{2}:\d{2}$/.test(broadcastTime)) {
+        const [hh, mm] = broadcastTime.split(":").map(Number);
+        airingDate.setHours(hh, mm, 0, 0);
+      } else {
+        airingDate.setHours(12, 0, 0, 0);
+      }
+
+      out.push({
+        airingAt: Math.floor(airingDate.getTime() / 1000),
+        episode: 0,
+        media: {
+          id: m.mal_id,
+          title: {
+            romaji: m.title ?? "",
+            english: m.title_english ?? undefined,
+          },
+          coverImage: { large: pickJikanImage(m.images) },
+          format: m.type ?? "TV",
+          episodes: m.episodes ?? undefined,
+          averageScore: m.score != null ? Math.round(m.score * 10) : undefined,
+          genres: jikanGenres(m.genres),
+          status: normalizeStatus(m.status),
         },
-        coverImage: { large: e.media.coverImage?.large ?? "" },
-        format: e.media.format ?? "TV",
-        episodes: e.media.episodes ?? undefined,
-        averageScore: e.media.averageScore ?? undefined,
-        genres: e.media.genres ?? [],
-        status: e.media.status ?? "",
-      },
-    }));
+      });
+    }
+  }
+
+  return out;
 }
 
 export function getCurrentSeason(): { season: string; year: number } {
@@ -109,50 +146,25 @@ export function seasonLabel(s: string): string {
 
 export async function fetchSeasonalAnime(): Promise<SeasonAnime[]> {
   const { season, year } = getCurrentSeason();
-  const query = `
-    query ($season: MediaSeason, $seasonYear: Int, $page: Int, $perPage: Int) {
-      Page(page: $page, perPage: $perPage) {
-        media(
-          season: $season
-          seasonYear: $seasonYear
-          type: ANIME
-          sort: POPULARITY_DESC
-          format_in: [TV, MOVIE, OVA, ONA, SPECIAL]
-        ) {
-          id
-          title { romaji english }
-          coverImage { large }
-          format
-          episodes
-          averageScore
-          genres
-          status
-          season
-          seasonYear
-        }
-      }
-    }
-  `;
-  const data = await anilistQuery<{ Page: { media: any[] } }>(query, {
+  const r = await fetch(`${JIKAN_URL}/seasons/now?limit=25&sfw=true`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!r.ok) throw new Error(`Jikan error ${r.status}`);
+  const j: any = await r.json();
+  const raw: any[] = j.data ?? [];
+  return raw.map((m): SeasonAnime => ({
+    id: m.mal_id,
+    title: {
+      romaji: m.title ?? "",
+      english: m.title_english ?? undefined,
+    },
+    coverImage: { large: pickJikanImage(m.images) },
+    format: (m.type ?? "TV").toUpperCase(),
+    episodes: m.episodes ?? undefined,
+    averageScore: m.score != null ? Math.round(m.score * 10) : undefined,
+    genres: jikanGenres(m.genres),
+    status: normalizeStatus(m.status),
     season,
     seasonYear: year,
-    page: 1,
-    perPage: 30,
-  });
-
-  return (data.Page.media ?? []).map((m): SeasonAnime => ({
-    id: m.id,
-    title: {
-      romaji: m.title?.romaji ?? "",
-      english: m.title?.english ?? undefined,
-    },
-    coverImage: { large: m.coverImage?.large ?? "" },
-    format: m.format ?? "TV",
-    episodes: m.episodes ?? undefined,
-    averageScore: m.averageScore ?? undefined,
-    genres: m.genres ?? [],
-    status: m.status ?? "",
-    season: m.season ?? season,
-    seasonYear: m.seasonYear ?? year,
   }));
 }
