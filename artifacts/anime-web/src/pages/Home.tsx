@@ -300,18 +300,150 @@ function HeroBanner({ animes, idx, onPrev, onNext, onSetIdx }: { animes: AnimeRe
 }
 
 /* ── SECTION HEADER ── */
-function SectionHeader({ title, onSeeAll, id }: { title: string; onSeeAll?: () => void; id?: string }) {
+/* Auto-derive a module code from the section id so each block has its own
+   MOD-XX label (e.g. trending → MOD-02). Keeps call sites unchanged. */
+const MODULE_MAP: Record<string, string> = {
+  continue: "MOD-01",
+  trending: "MOD-02",
+  featured: "MOD-03",
+  seasonal: "MOD-04",
+  recent: "MOD-05",
+  popular: "MOD-06",
+  top: "MOD-07",
+  genres: "MOD-08",
+  schedule: "MOD-09",
+};
+
+function SectionHeader({ title, onSeeAll, id, count }: { title: string; onSeeAll?: () => void; id?: string; count?: number }) {
+  /* Split a leading emoji/symbol from the title into its own icon capsule. */
+  const m = title.match(/^([^\sA-Za-z0-9]+)\s+(.+)$/u);
+  const iconChar = m ? m[1] : null;
+  const cleanTitle = m ? m[2] : title;
+  const moduleLabel = id ? (MODULE_MAP[id] ?? `MOD-${id.slice(0, 3).toUpperCase()}`) : "SISTEMA";
+
   return (
-    <div id={id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 18px", marginBottom: 18, scrollMarginTop: 70 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-        <div style={{ width: 4, height: 22, borderRadius: 4, background: "linear-gradient(180deg, #DC2626, #991B1B)", flexShrink: 0, boxShadow: "0 0 14px rgba(220,38,38,0.55)" }} />
-        <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: "#FF6680", letterSpacing: 2, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", textTransform: "uppercase", lineHeight: 1, marginBottom: 3 }}>[ SISTEMA ]</span>
-          <span style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: -0.3, lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
+    <div
+      id={id}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "0 18px",
+        marginBottom: 18,
+        scrollMarginTop: 70,
+      }}
+    >
+      {/* Vertical accent bar with glow */}
+      <div
+        style={{
+          width: 4,
+          height: 26,
+          borderRadius: 2,
+          background: "linear-gradient(180deg,#FCA5A5,#DC2626 50%,#991B1B)",
+          boxShadow: "0 0 14px rgba(220,38,38,0.6)",
+          flexShrink: 0,
+        }}
+      />
+      {/* Icon capsule */}
+      {iconChar && (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            background: "linear-gradient(135deg, rgba(220,38,38,0.22), rgba(220,38,38,0.04))",
+            border: "1px solid rgba(220,38,38,0.35)",
+            flexShrink: 0,
+            fontSize: 15,
+            lineHeight: 1,
+          }}
+        >
+          {iconChar}
         </div>
+      )}
+      {/* Title + module */}
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.05 }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 7,
+            fontSize: 17,
+            fontWeight: 800,
+            color: "#fff",
+            letterSpacing: -0.3,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {cleanTitle}
+          {count != null && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: 0.4,
+                color: "#FCA5A5",
+                background: "rgba(220,38,38,0.14)",
+                border: "1px solid rgba(220,38,38,0.3)",
+                padding: "1px 7px",
+                borderRadius: 999,
+                lineHeight: 1.4,
+              }}
+            >
+              {count}
+            </span>
+          )}
+        </span>
+        <span
+          style={{
+            color: "rgba(252,165,165,0.6)",
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: 1.5,
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            textTransform: "uppercase",
+            marginTop: 3,
+          }}
+        >
+          ▸ {moduleLabel}
+        </span>
       </div>
+      {/* Horizontal accent line filling the rest */}
+      <div
+        style={{
+          flex: 1,
+          height: 1,
+          minWidth: 12,
+          background:
+            "linear-gradient(90deg, rgba(220,38,38,0.35) 0%, rgba(220,38,38,0.05) 60%, transparent 100%)",
+          marginLeft: 4,
+        }}
+      />
       {onSeeAll && (
-        <button onClick={onSeeAll} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.22)", borderRadius: 20, color: "#FECACA", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}>
+        <button
+          onClick={onSeeAll}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "6px 12px",
+            background: "linear-gradient(135deg, rgba(220,38,38,0.18), rgba(220,38,38,0.04))",
+            border: "1px solid rgba(220,38,38,0.35)",
+            borderRadius: 999,
+            color: "#FECACA",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.3,
+            cursor: "pointer",
+            flexShrink: 0,
+            transition: "all 0.2s",
+          }}
+        >
           <span>Ver todo</span>
           <ChevronRight size={13} color="#FECACA" />
         </button>
