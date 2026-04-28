@@ -1,4 +1,5 @@
 import { ANIME, META } from "@consumet/extensions";
+import { logger } from "../lib/logger.js";
 import { createDecipheriv } from "crypto";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
 import { Readable } from "stream";
@@ -670,19 +671,106 @@ async function serveSwr<T>(
   }
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Jikan (MyAnimeList) fallback for trending / popular / recent.
+// Used when AniList GraphQL is unreachable, rate-limited, or temporarily
+// disabled. Returns the same shape we ship for AniList results so the rest
+// of the pipeline (filters, the SWR cache, the frontend) doesn't change.
+// ──────────────────────────────────────────────────────────────────────────────
+const JIKAN_BASE = "https://api.jikan.moe/v4";
+
+async function loadFromJikanTop(filter: "airing" | "bypopularity") {
+  const url = `${JIKAN_BASE}/top/anime?filter=${filter}&limit=25`;
+  const r = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!r.ok) throw new Error(`Jikan ${r.status}`);
+  const j: any = await r.json();
+  const raw: any[] = j.data ?? [];
+  const results = raw.map((m: any) => ({
+    id: String(m.mal_id),
+    title: {
+      romaji: m.title ?? "",
+      english: m.title_english ?? undefined,
+      userPreferred: m.title_english || m.title || "",
+      native: m.title_japanese ?? undefined,
+    },
+    image:
+      m.images?.webp?.large_image_url ??
+      m.images?.jpg?.large_image_url ??
+      m.images?.webp?.image_url ??
+      m.images?.jpg?.image_url ??
+      "",
+    type: (m.type ?? "TV").toUpperCase(),
+    status: (m.status ?? "").toUpperCase().replace(/\s+/g, "_"),
+    totalEpisodes: m.episodes ?? 0,
+    rating: m.score != null ? Math.round(m.score * 10) : 0,
+    genres: Array.isArray(m.genres) ? m.genres.map((g: any) => g.name).filter(Boolean) : [],
+    releaseDate: m.year ?? m.aired?.prop?.from?.year ?? undefined,
+  })).filter((a) => isAnimeFormat(a.type));
+  return {
+    currentPage: j.pagination?.current_page ?? 1,
+    hasNextPage: Boolean(j.pagination?.has_next_page),
+    results,
+  };
+}
+
+async function loadFromJikanRecent() {
+  // Jikan exposes recently-aired episodes from the community watch feed.
+  const url = `${JIKAN_BASE}/watch/episodes`;
+  const r = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!r.ok) throw new Error(`Jikan ${r.status}`);
+  const j: any = await r.json();
+  const raw: any[] = j.data ?? [];
+  const seen = new Set<string>();
+  const results: any[] = [];
+  for (const item of raw) {
+    const e = item?.entry;
+    if (!e || seen.has(String(e.mal_id))) continue;
+    seen.add(String(e.mal_id));
+    const epList: any[] = item.episodes ?? [];
+    const lastEp = epList[0]?.mal_id ?? epList.length;
+    results.push({
+      id: String(e.mal_id),
+      title: { romaji: e.title ?? "", english: undefined, userPreferred: e.title ?? "" },
+      image:
+        e.images?.webp?.large_image_url ??
+        e.images?.jpg?.large_image_url ??
+        e.images?.webp?.image_url ??
+        e.images?.jpg?.image_url ??
+        "",
+      currentEpisode: typeof lastEp === "number" ? lastEp : 0,
+      type: "TV",
+      status: "RELEASING",
+      totalEpisodes: 0,
+      rating: 0,
+      genres: [],
+    });
+  }
+  return { currentPage: 1, hasNextPage: false, results };
+}
+
 async function loadTrending() {
-  const data = await getAnilist().fetchTrendingAnime(1, 28);
-  const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
-  return { currentPage: data.currentPage, hasNextPage: data.hasNextPage, results };
+  try {
+    const data = await getAnilist().fetchTrendingAnime(1, 28);
+    const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
+    return { currentPage: data.currentPage, hasNextPage: data.hasNextPage, results };
+  } catch (err) {
+    logger.warn({ err }, "[loadTrending] AniList failed, falling back to Jikan");
+    return await loadFromJikanTop("airing");
+  }
 }
 
 async function loadPopular() {
-  const data = await getAnilist().fetchPopularAnime(1, 28);
-  const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
-  return { currentPage: data.currentPage, hasNextPage: data.hasNextPage, results };
+  try {
+    const data = await getAnilist().fetchPopularAnime(1, 28);
+    const results = (data.results || []).filter((a: any) => isAnimeFormat(a.type));
+    return { currentPage: data.currentPage, hasNextPage: data.hasNextPage, results };
+  } catch (err) {
+    logger.warn({ err }, "[loadPopular] AniList failed, falling back to Jikan");
+    return await loadFromJikanTop("bypopularity");
+  }
 }
 
-async function loadRecent() {
+async function loadRecentAniList() {
   const now = Math.floor(Date.now() / 1000);
   const weekAgo = now - 7 * 24 * 60 * 60;
   const gqlResp = await fetch("https://graphql.anilist.co", {
@@ -715,6 +803,15 @@ async function loadRecent() {
     });
   }
   return { currentPage: 1, hasNextPage: false, results };
+}
+
+async function loadRecent() {
+  try {
+    return await loadRecentAniList();
+  } catch (err) {
+    logger.warn({ err }, "[loadRecent] AniList failed, falling back to Jikan");
+    return await loadFromJikanRecent();
+  }
 }
 
 // Pre-warm cache at module load so the very first user request is instant.
