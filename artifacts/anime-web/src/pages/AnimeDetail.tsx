@@ -463,27 +463,30 @@ export default function AnimeDetail() {
         <TrailerModal trailerId={trailer!.id} onClose={() => setShowTrailer(false)} />
       )}
 
-      {/* Cover with Ken Burns + cinematic gradient */}
-      <div className="relative w-full overflow-hidden" style={{ height: "min(420px, 60vw)" }}>
+      {/* ── HERO: Cinematic backdrop with parallax-style Ken Burns ─────── */}
+      <div className="relative w-full overflow-hidden" style={{ height: "min(560px, 78vw)" }}>
         <motion.img
           src={cover || image}
           alt={title}
           loading="lazy"
-          initial={{ scale: 1.12, opacity: 0 }}
-          animate={{ scale: 1.02, opacity: 1 }}
-          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ scale: 1.18, opacity: 0 }}
+          animate={{ scale: 1.04, opacity: 1 }}
+          transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
           className="w-full h-full object-cover"
-          style={{ objectPosition: "center 30%" }}
+          style={{ objectPosition: "center 28%" }}
         />
-        {/* Bottom fade to black */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.35) 55%, #000 100%)" }} />
-        {/* Side fade */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.7) 0%, transparent 50%, rgba(0,0,0,0.4) 100%)" }} />
-        {/* Crimson vignette */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 80% 0%, rgba(220,38,38,0.22) 0%, transparent 60%)" }} />
-        {/* SL system frame */}
-        <ScanLines color="rgba(220,38,38,0.045)" />
-        <CornerBrackets color="#DC2626" size={20} thickness={2} inset={12} />
+        {/* Bottom fade to black — taller, smoother */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.55) 65%, #000 100%)" }} />
+        {/* Side fade for left-side info readability */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.4) 100%)" }} />
+        {/* Crimson glow top-right */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 78% 5%, rgba(220,38,38,0.35) 0%, transparent 55%)" }} />
+        {/* Orange accent bottom-left */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 8% 95%, rgba(249,115,22,0.18) 0%, transparent 45%)" }} />
+        {/* Subtle grid lines */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.07]" style={{ backgroundImage: "linear-gradient(rgba(220,38,38,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.4) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
+        <ScanLines color="rgba(220,38,38,0.05)" />
+        <CornerBrackets color="#DC2626" size={26} thickness={2} inset={14} />
         <div className="absolute" style={{ top: 14, right: 16, zIndex: 4 }}>
           <SystemTag color="#DC2626">[ EXPEDIENTE · ANIMEFLEX ]</SystemTag>
         </div>
@@ -492,84 +495,353 @@ export default function AnimeDetail() {
           onClick={() => navigate("/")}
           whileHover={{ scale: 1.08, x: -2 }}
           whileTap={{ scale: 0.92 }}
-          className="absolute top-16 left-4 md:left-8 p-2.5 rounded-full text-white"
+          className="absolute top-16 left-4 md:left-8 p-2.5 rounded-full text-white z-10"
           style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.12)" }}
         >
           <ArrowLeft size={18} />
         </motion.button>
+
+        {/* ── Floating title block over the hero ─────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute left-0 right-0 px-4 md:px-10"
+          style={{ bottom: "26%", zIndex: 5 }}
+        >
+          <div className="max-w-3xl">
+            {anime?.studios && anime.studios.length > 0 && (
+              <div
+                style={{
+                  display: "inline-block",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  color: "#FCA5A5",
+                  marginBottom: 10,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                }}
+              >
+                ▸ {anime.studios[0]}
+              </div>
+            )}
+            <h1
+              className="font-black text-[#F0F0FF] line-clamp-2"
+              style={{
+                fontSize: "clamp(28px, 5.5vw, 56px)",
+                lineHeight: 1.05,
+                letterSpacing: -0.5,
+                textShadow: "0 4px 24px rgba(0,0,0,0.85), 0 2px 8px rgba(220,38,38,0.35)",
+                marginBottom: 12,
+              }}
+            >
+              {title}
+            </h1>
+            {anime?.title && typeof anime.title === "object" && (anime.title as any).native && (
+              <div
+                style={{
+                  color: "rgba(255,255,255,0.45)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  fontStyle: "italic",
+                  marginTop: -4,
+                }}
+              >
+                {(anime.title as any).native}
+              </div>
+            )}
+          </div>
+        </motion.div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 md:px-8">
-        {/* Info row */}
-        <div className="flex gap-4 -mt-16 md:-mt-24 mb-6 items-end relative z-10">
-          <div className="w-28 md:w-36 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl border border-[#2A2A42]">
-            <img src={image} alt={title} loading="lazy" className="w-full h-full object-cover" />
-          </div>
+        {/* ── Info row: poster on the left + stats grid on the right ──── */}
+        <div className="flex gap-4 md:gap-6 -mt-24 md:-mt-32 mb-6 items-end relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="w-32 md:w-44 flex-shrink-0 rounded-2xl overflow-hidden relative"
+            style={{
+              boxShadow: "0 25px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(220,38,38,0.25), 0 0 40px rgba(220,38,38,0.15)",
+            }}
+          >
+            <img src={image} alt={title} loading="lazy" className="w-full h-full object-cover block" />
+            {/* Glossy reflection */}
+            <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.2) 100%)" }} />
+            {anime?.status === "Ongoing" && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  left: 8,
+                  background: "linear-gradient(135deg,#22C55E,#16A34A)",
+                  color: "#fff",
+                  fontSize: 9,
+                  fontWeight: 800,
+                  letterSpacing: 0.6,
+                  padding: "3px 7px",
+                  borderRadius: 6,
+                  boxShadow: "0 4px 12px rgba(34,197,94,0.45)",
+                }}
+              >
+                ● EN EMISIÓN
+              </div>
+            )}
+          </motion.div>
+
           <div className="flex-1 min-w-0 pb-1">
-            <h1 className="text-xl md:text-3xl font-bold text-[#F0F0FF] line-clamp-2 mb-2">{title}</h1>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {genres.slice(0, 5).map((g) => (
-                <span key={g} className="genre-badge">{g}</span>
+            {/* Genre chips */}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{ visible: { transition: { staggerChildren: 0.05, delayChildren: 0.3 } } }}
+              className="flex flex-wrap gap-1.5 md:gap-2 mb-4"
+            >
+              {genres.slice(0, 6).map((g) => (
+                <motion.span
+                  key={g}
+                  variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+                  whileHover={{ y: -2, scale: 1.04 }}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: 0.5,
+                    padding: "5px 11px",
+                    borderRadius: 999,
+                    color: "#FECACA",
+                    background: "linear-gradient(135deg, rgba(220,38,38,0.22), rgba(153,27,27,0.1))",
+                    border: "1px solid rgba(220,38,38,0.35)",
+                    backdropFilter: "blur(8px)",
+                    textTransform: "uppercase",
+                    cursor: "default",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+                  }}
+                >
+                  {g}
+                </motion.span>
               ))}
-            </div>
-            <div className="flex flex-wrap gap-4 text-xs text-[#9090B0]">
+            </motion.div>
+
+            {/* Stats grid — visible "cards" instead of tiny inline text */}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{ visible: { transition: { staggerChildren: 0.06, delayChildren: 0.4 } } }}
+              className="flex flex-wrap gap-2"
+            >
               {anime?.rating != null && (
-                <span className="flex items-center gap-1 text-yellow-400">
-                  <Star size={12} fill="currentColor" />
-                  {(anime.rating / 10).toFixed(1)}
-                </span>
+                <motion.div
+                  variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "7px 11px",
+                    borderRadius: 10,
+                    background: "linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.04))",
+                    border: "1px solid rgba(245,158,11,0.3)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <Star size={13} color="#F59E0B" fill="#F59E0B" />
+                  <span style={{ color: "#F59E0B", fontSize: 13, fontWeight: 800, lineHeight: 1 }}>
+                    {(anime.rating / 10).toFixed(1)}
+                  </span>
+                  <span style={{ color: "rgba(245,158,11,0.55)", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>/10</span>
+                </motion.div>
               )}
-              {anime?.type && <span className="flex items-center gap-1"><Tv size={12} />{anime.type}</span>}
-              {anime?.status && <span>{anime.status}</span>}
-              {anime?.releaseDate && <span className="flex items-center gap-1"><Calendar size={12} />{anime.releaseDate}</span>}
+              {anime?.type && (
+                <motion.div
+                  variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "7px 11px", borderRadius: 10,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <Tv size={12} color="#9090B0" />
+                  <span style={{ color: "#F0F0FF", fontSize: 12, fontWeight: 700, lineHeight: 1 }}>{anime.type}</span>
+                </motion.div>
+              )}
               {anime?.totalEpisodes != null && (
-                <span className="flex items-center gap-1">
-                  <Film size={12} />
-                  {episodes.length > 0 && episodes.length < anime.totalEpisodes
-                    ? `${episodes.length}/${anime.totalEpisodes} eps`
-                    : `${anime.totalEpisodes} eps`}
-                </span>
+                <motion.div
+                  variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "7px 11px", borderRadius: 10,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <Film size={12} color="#9090B0" />
+                  <span style={{ color: "#F0F0FF", fontSize: 12, fontWeight: 700, lineHeight: 1 }}>
+                    {episodes.length > 0 && episodes.length < anime.totalEpisodes
+                      ? `${episodes.length}/${anime.totalEpisodes}`
+                      : anime.totalEpisodes}
+                  </span>
+                  <span style={{ color: "rgba(144,144,176,0.7)", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>eps</span>
+                </motion.div>
               )}
-              {anime?.studios && anime.studios.length > 0 && (
-                <span className="flex items-center gap-1">{anime.studios[0]}</span>
+              {anime?.releaseDate && (
+                <motion.div
+                  variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "7px 11px", borderRadius: 10,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <Calendar size={12} color="#9090B0" />
+                  <span style={{ color: "#F0F0FF", fontSize: 12, fontWeight: 700, lineHeight: 1 }}>{anime.releaseDate}</span>
+                </motion.div>
               )}
-            </div>
+              {anime?.status && anime.status !== "Ongoing" && (
+                <motion.div
+                  variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "7px 11px", borderRadius: 10,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <span style={{ color: "#F0F0FF", fontSize: 12, fontWeight: 700, lineHeight: 1 }}>{anime.status}</span>
+                </motion.div>
+              )}
+            </motion.div>
           </div>
         </div>
 
-        {/* Action buttons */}
+        {/* ── Action buttons: BIG primary CTA + secondary actions ───── */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={{ visible: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } } }}
-          className="flex flex-wrap gap-2.5 mb-6"
+          className="flex flex-wrap gap-2.5 mb-6 items-stretch"
         >
           {animeProgress ? (
             <motion.button
               variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
-              whileHover={{ scale: 1.04, y: -2 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 const ep = episodes.find((e) => e.number === animeProgress.episodeNum);
                 if (ep) handleEpisode(ep);
               }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold text-white justify-center"
-              style={{ background: "linear-gradient(135deg,#FCA5A5 0%,#DC2626 50%,#991B1B 100%)", boxShadow: "0 8px 24px rgba(220,38,38,0.5), inset 0 1px 0 rgba(255,255,255,0.25)" }}
+              className="relative overflow-hidden flex items-center gap-3 text-white"
+              style={{
+                padding: "16px 28px",
+                borderRadius: 16,
+                fontSize: 16,
+                fontWeight: 800,
+                letterSpacing: 0.3,
+                background:
+                  "linear-gradient(135deg,#FCA5A5 0%,#DC2626 45%,#991B1B 100%)",
+                boxShadow:
+                  "0 14px 40px rgba(220,38,38,0.55), 0 4px 12px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.18)",
+              }}
             >
-              <Play size={15} fill="currentColor" />
-              Continuar Ep. {animeProgress.episodeNum}
+              {/* Shine sweep on hover */}
+              <motion.div
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%)",
+                  pointerEvents: "none",
+                }}
+                initial={{ x: "-120%" }}
+                animate={{ x: "220%" }}
+                transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.6, ease: "easeInOut" }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.22)",
+                  backdropFilter: "blur(8px)",
+                  border: "1.5px solid rgba(255,255,255,0.4)",
+                  position: "relative",
+                  zIndex: 1,
+                }}
+              >
+                <Play size={16} fill="currentColor" style={{ marginLeft: 2 }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.1, position: "relative", zIndex: 1 }}>
+                <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.5, opacity: 0.85, textTransform: "uppercase" }}>
+                  ▸ Continuar viendo
+                </span>
+                <span style={{ marginTop: 3 }}>Episodio {animeProgress.episodeNum}</span>
+              </div>
             </motion.button>
           ) : episodes.length > 0 ? (
             <motion.button
               variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
-              whileHover={{ scale: 1.04, y: -2 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => handleEpisode(episodes[0])}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold text-white justify-center"
-              style={{ background: "linear-gradient(135deg,#FCA5A5 0%,#DC2626 50%,#991B1B 100%)", boxShadow: "0 8px 24px rgba(220,38,38,0.5), inset 0 1px 0 rgba(255,255,255,0.25)" }}
+              className="relative overflow-hidden flex items-center gap-3 text-white"
+              style={{
+                padding: "16px 28px",
+                borderRadius: 16,
+                fontSize: 16,
+                fontWeight: 800,
+                letterSpacing: 0.3,
+                background:
+                  "linear-gradient(135deg,#FCA5A5 0%,#DC2626 45%,#991B1B 100%)",
+                boxShadow:
+                  "0 14px 40px rgba(220,38,38,0.55), 0 4px 12px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -2px 0 rgba(0,0,0,0.18)",
+              }}
             >
-              <Play size={15} fill="currentColor" />
-              Reproducir
+              <motion.div
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%)",
+                  pointerEvents: "none",
+                }}
+                initial={{ x: "-120%" }}
+                animate={{ x: "220%" }}
+                transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.6, ease: "easeInOut" }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.22)",
+                  backdropFilter: "blur(8px)",
+                  border: "1.5px solid rgba(255,255,255,0.4)",
+                  position: "relative",
+                  zIndex: 1,
+                }}
+              >
+                <Play size={16} fill="currentColor" style={{ marginLeft: 2 }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.1, position: "relative", zIndex: 1 }}>
+                <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.5, opacity: 0.85, textTransform: "uppercase" }}>
+                  ▸ Empezar ahora
+                </span>
+                <span style={{ marginTop: 3 }}>Reproducir Ep. 1</span>
+              </div>
             </motion.button>
           ) : null}
 
@@ -653,21 +925,85 @@ export default function AnimeDetail() {
           )}
         </AnimatePresence>
 
-        {/* Description */}
+        {/* ── Description with quote-style design ─────────────────────── */}
         {rawDesc && (
-          <div className="mb-6 p-4 rounded-xl" style={{ background: "#100e22" }}>
-            <p className={`text-sm text-[#9090B0] leading-relaxed ${!descExpanded ? "line-clamp-3" : ""}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mb-6 relative overflow-hidden"
+            style={{
+              padding: "20px 22px 18px",
+              borderRadius: 16,
+              background:
+                "linear-gradient(135deg, rgba(220,38,38,0.06) 0%, rgba(16,14,34,0.95) 30%, rgba(13,12,28,0.95) 100%)",
+              border: "1px solid rgba(220,38,38,0.15)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.3)",
+            }}
+          >
+            {/* Big opening quote mark */}
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: -8,
+                left: 8,
+                fontSize: 80,
+                lineHeight: 1,
+                color: "rgba(220,38,38,0.2)",
+                fontFamily: "Georgia, serif",
+                fontWeight: 800,
+                pointerEvents: "none",
+                userSelect: "none",
+              }}
+            >
+              "
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 10,
+                position: "relative",
+              }}
+            >
+              <div className="section-accent" />
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  color: "#FCA5A5",
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                }}
+              >
+                Sinopsis
+              </span>
+            </div>
+            <p
+              className={`text-sm text-[#C5C5DD] leading-relaxed ${!descExpanded ? "line-clamp-4" : ""}`}
+              style={{ position: "relative", fontWeight: 400 }}
+            >
               {rawDesc}
             </p>
             {rawDesc.length > 200 && (
               <button
                 onClick={() => setDescExpanded(!descExpanded)}
-                className="flex items-center gap-1 mt-2 text-xs text-[#DC2626] hover:underline"
+                className="flex items-center gap-1 mt-3 text-xs font-bold transition-colors"
+                style={{
+                  color: "#FCA5A5",
+                  padding: "5px 11px",
+                  borderRadius: 8,
+                  background: "rgba(220,38,38,0.1)",
+                  border: "1px solid rgba(220,38,38,0.3)",
+                }}
               >
-                {descExpanded ? <><ChevronUp size={12} />Menos</> : <><ChevronDown size={12} />Más</>}
+                {descExpanded ? <><ChevronUp size={12} />Mostrar menos</> : <><ChevronDown size={12} />Leer más</>}
               </button>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* User Rating */}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearch, useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import Hls from "hls.js";
 import {
   ArrowLeft, SkipForward, AlertCircle, Loader2, Play, Pause, X,

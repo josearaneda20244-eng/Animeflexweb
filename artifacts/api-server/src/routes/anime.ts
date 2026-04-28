@@ -1437,14 +1437,16 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
   }
   const fetchAnimeKaiSources = async (sourceId: string) => {
     try {
-      return await retryFetch(() => getAnimeKai().fetchEpisodeSources(sourceId), 4, 600);
+      // Reduced retries (was 4): we now race AnimeKai against other providers,
+      // so we want it to fail fast if it can't deliver quickly.
+      return await retryFetch(() => getAnimeKai().fetchEpisodeSources(sourceId), 2, 400);
     } catch (directErr) {
-      const servers = await retryFetch(() => getAnimeKai().fetchEpisodeServers(sourceId), 3, 500);
+      const servers = await retryFetch(() => getAnimeKai().fetchEpisodeServers(sourceId), 2, 400);
       if (!servers || servers.length === 0) throw directErr;
       let lastServerErr: unknown = directErr;
-      for (const server of servers) {
+      for (const server of servers.slice(0, 2)) {
         try {
-          const data = await retryFetch(() => getAnimeKai().fetchEpisodeSources(server.url), 3, 500);
+          const data = await retryFetch(() => getAnimeKai().fetchEpisodeSources(server.url), 2, 400);
           req.log.info({ server: server.name }, "AnimeKai fallback server succeeded");
           return data;
         } catch (err) {
@@ -1455,85 +1457,121 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
     }
   };
 
-  let lastPlaybackErr: unknown;
-
   const animeKaiTokenMatch = id.match(/\$token=([^$&]+)/);
   const animeKaiToken = animeKaiTokenMatch?.[1] ?? "";
   const hasValidToken = animeKaiToken.length >= 12;
   const syntheticAnilistMatch = id.match(/^(\d+)-episode-\d+$/);
   const anilistCandidates = [...new Set([animeId, syntheticAnilistMatch?.[1]].filter(Boolean))] as string[];
 
-  if (hasValidToken) {
-    try {
-      const data = await fetchAnimeKaiSources(id);
-      res.json(data);
-      return;
-    } catch (err) {
-      lastPlaybackErr = err;
-      req.log.warn({ err, episodeId: id }, "AnimeKai direct episode source failed");
-    }
-  } else {
-    req.log.warn({ episodeId: id, token: animeKaiToken }, "AnimeKai token missing or short — trying fresh AnimeKai lookup");
-  }
+  /* Helper: returns true if the data has at least one playable M3U8 source.
+   * We treat anything else as a failed attempt so we keep racing other providers. */
+  const isPlayable = (data: any): boolean => {
+    if (!data) return false;
+    const sources = (data.sources ?? []) as any[];
+    return sources.some(
+      (s) => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8")),
+    );
+  };
 
-  if (episodeNum && anilistCandidates.length > 0) {
-    for (const candidateAnilistId of anilistCandidates) {
-      try {
-        const info = await retryFetch(() => getAnilistWithKai().fetchAnimeInfo(candidateAnilistId), 2, 500) as any;
-        if (animeTitle && !titleMatchesRequestedSeason(animeTitle, info?.title)) continue;
-        const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
-        if (!ep?.id) continue;
-        const data = await fetchAnimeKaiSources(ep.id as string);
-        req.log.info({ provider: "AnimeKai", animeId: candidateAnilistId, episodeNum }, "AnimeKai AniList episode lookup succeeded");
-        res.json(data);
-        return;
-      } catch (err) {
-        lastPlaybackErr = err;
+  /* Wrap a result: rejects if not playable, so Promise.any keeps waiting for
+   * a real winner. */
+  const requirePlayable = (name: string, dataPromise: Promise<any>): Promise<any> =>
+    dataPromise.then((data) => {
+      if (!isPlayable(data)) {
+        throw new Error(`${name}: no playable sources`);
       }
-    }
+      return data;
+    });
+
+  /* ── Build all provider attempts as independent promises ─────────────
+   * They race via Promise.any: the first PLAYABLE response wins. This is
+   * dramatically faster than the previous sequential cascade where a slow
+   * AnimeKai retry-storm (~5-15s) blocked the fallbacks entirely. */
+  const attempts: Promise<any>[] = [];
+
+  // ── Branch 1: AnimeKai with the existing token (fastest path) ──────
+  if (hasValidToken) {
+    attempts.push(
+      requirePlayable("animekai-direct", fetchAnimeKaiSources(id)).then((d) => {
+        req.log.info({ provider: "AnimeKai-direct", episodeId: id }, "AnimeKai direct hit");
+        return d;
+      }),
+    );
   }
 
-  if (animeTitle && episodeNum) {
-    const titleVariantList = titleVariants(animeTitle);
-    req.log.warn({ animeTitle, episodeNum, titleVariantList }, "Trying fresh AnimeKai lookup for episode");
-    for (const variant of titleVariantList) {
-      try {
-        const searchData = await retryFetch(() => getAnimeKai().search(variant), 2, 400) as any;
-        const candidates = (searchData.results ?? []).slice(0, 4);
-        for (const candidate of candidates) {
-          if (!candidate?.id) continue;
+  // ── Branch 2: AnimeKai via AniList ID lookup ──────────────────────
+  if (episodeNum && anilistCandidates.length > 0) {
+    attempts.push(
+      (async () => {
+        for (const candidateAnilistId of anilistCandidates) {
           try {
-            const info = await retryFetch(() => getAnimeKai().fetchAnimeInfo(candidate.id as string), 2, 400) as any;
-            if (!titleMatchesRequestedSeason(animeTitle, info?.title ?? candidate.title)) continue;
+            const info = await retryFetch(
+              () => getAnilistWithKai().fetchAnimeInfo(candidateAnilistId),
+              1,
+              400,
+            ) as any;
+            if (animeTitle && !titleMatchesRequestedSeason(animeTitle, info?.title)) continue;
             const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
             if (!ep?.id) continue;
             const data = await fetchAnimeKaiSources(ep.id as string);
-            req.log.info({ provider: "AnimeKai", variant, animeId: candidate.id, episodeNum }, "Fresh AnimeKai episode lookup succeeded");
-            res.json(data);
-            return;
-          } catch (err) {
-            lastPlaybackErr = err;
-          }
+            if (!isPlayable(data)) continue;
+            req.log.info(
+              { provider: "AnimeKai-anilist", animeId: candidateAnilistId, episodeNum },
+              "AnimeKai AniList lookup hit",
+            );
+            return data;
+          } catch { /* try next */ }
         }
-      } catch (err) {
-        lastPlaybackErr = err;
-      }
-    }
+        throw new Error("animekai-anilist exhausted");
+      })(),
+    );
   }
 
-  // ── Fallbacks: HiAnime, AnimePahe, KickAssAnime corriendo EN PARALELO ────────
-  // Ejecutar los 3 proveedores al mismo tiempo y usar el primero que responda.
-  // Esto es mucho más rápido que el modo secuencial anterior (que podía tardar >60s).
+  // ── Branch 3: AnimeKai via title search (slowest AnimeKai path) ────
   if (animeTitle && episodeNum) {
-    req.log.warn({ animeTitle, episodeNum }, "AnimeKai failed — running fallback providers in parallel");
+    attempts.push(
+      (async () => {
+        const variants = titleVariants(animeTitle).slice(0, 2);
+        for (const variant of variants) {
+          try {
+            const searchData = await retryFetch(() => getAnimeKai().search(variant), 1, 300) as any;
+            const candidates = (searchData.results ?? []).slice(0, 3);
+            for (const candidate of candidates) {
+              if (!candidate?.id) continue;
+              try {
+                const info = await retryFetch(
+                  () => getAnimeKai().fetchAnimeInfo(candidate.id as string),
+                  1,
+                  300,
+                ) as any;
+                if (!titleMatchesRequestedSeason(animeTitle, info?.title ?? candidate.title)) continue;
+                const ep = (info.episodes ?? []).find((e: any) => String(e.number) === episodeNum);
+                if (!ep?.id) continue;
+                const data = await fetchAnimeKaiSources(ep.id as string);
+                if (!isPlayable(data)) continue;
+                req.log.info(
+                  { provider: "AnimeKai-search", variant, episodeNum },
+                  "AnimeKai search hit",
+                );
+                return data;
+              } catch { /* try next */ }
+            }
+          } catch { /* try next */ }
+        }
+        throw new Error("animekai-search exhausted");
+      })(),
+    );
+  }
 
+  // ── Branches 4-6: HiAnime / AnimePahe / KickAssAnime in parallel ───
+  if (animeTitle && episodeNum) {
     const tryProvider = async (
       name: string,
       searcher: (q: string) => Promise<any>,
       infoFetcher: (id: string) => Promise<any>,
       sourcesFetcher: (id: string) => Promise<any>,
     ): Promise<any> => {
-      const variants = titleVariants(animeTitle).slice(0, 3);
+      const variants = titleVariants(animeTitle).slice(0, 2);
       for (const variant of variants) {
         let searchData: any;
         try { searchData = await searcher(variant); } catch { continue; }
@@ -1547,12 +1585,11 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
           if (!ep?.id) continue;
           try {
             const data = await sourcesFetcher(String(ep.id));
-            // Only accept this result if it has actual playable M3U8 sources
-            const playableSources = (data?.sources ?? []).filter(
-              (s: any) => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8"))
+            if (!isPlayable(data)) continue;
+            req.log.info(
+              { provider: name, variant, episodeNum },
+              `${name} race hit`,
             );
-            if (playableSources.length === 0) continue;
-            req.log.info({ provider: name, variant, episodeNum, sourceCount: playableSources.length }, `${name} parallel fallback succeeded`);
             return data;
           } catch { continue; }
         }
@@ -1560,45 +1597,48 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
       throw new Error(`${name} exhausted`);
     };
 
-    try {
-      const result = await Promise.any([
-        tryProvider("hianime",      q => getHianime().search(q),      id => getHianime().fetchAnimeInfo(id),      id => getHianime().fetchEpisodeSources(id)),
-        tryProvider("animepahe",    q => getAnimePahe().search(q),    id => getAnimePahe().fetchAnimeInfo(id),    id => getAnimePahe().fetchEpisodeSources(id)),
-        tryProvider("kickassanime", q => getKickAssAnime().search(q), id => getKickAssAnime().fetchAnimeInfo(id), id => getKickAssAnime().fetchEpisodeSources(id)),
-      ]);
-      res.json(result);
-      return;
-    } catch (err) {
-      lastPlaybackErr = err;
-      req.log.error({ err, animeTitle, episodeNum }, "All parallel fallback providers failed");
-    }
+    attempts.push(
+      tryProvider("hianime", q => getHianime().search(q), id => getHianime().fetchAnimeInfo(id), id => getHianime().fetchEpisodeSources(id)),
+      tryProvider("animepahe", q => getAnimePahe().search(q), id => getAnimePahe().fetchAnimeInfo(id), id => getAnimePahe().fetchEpisodeSources(id)),
+      tryProvider("kickassanime", q => getKickAssAnime().search(q), id => getKickAssAnime().fetchAnimeInfo(id), id => getKickAssAnime().fetchEpisodeSources(id)),
+    );
   }
 
-  // ── Final fallback: JKAnime (wide Spanish-language coverage) ─────────────
+  // ── Branch 7: JKAnime (wide Spanish-language coverage) ─────────────
   if (animeTitle && episodeNum) {
-    try {
-      req.log.warn({ animeTitle, episodeNum }, "Trying JKAnime as last-resort fallback");
-      let extraTitles: string[] = [];
-      if (animeId && /^\d+$/.test(animeId)) {
-        try { extraTitles = await fetchAnilistTitles(animeId); } catch {}
-      }
-      const jkData = await getJkAnimeWatch(animeTitle, parseInt(episodeNum, 10), extraTitles, animeId);
-      const playable = (jkData?.sources ?? []).filter(
-        (s: any) => s.isM3U8 === true || (typeof s.url === "string" && s.url.includes(".m3u8"))
-      );
-      if (playable.length > 0) {
-        req.log.info({ animeTitle, episodeNum, sourceCount: playable.length }, "JKAnime last-resort fallback succeeded");
-        res.json(jkData);
-        return;
-      }
-    } catch (jkErr) {
-      lastPlaybackErr = jkErr;
-      req.log.warn({ err: jkErr, animeTitle, episodeNum }, "JKAnime last-resort fallback failed");
-    }
+    attempts.push(
+      (async () => {
+        let extraTitles: string[] = [];
+        if (animeId && /^\d+$/.test(animeId)) {
+          try { extraTitles = await fetchAnilistTitles(animeId); } catch {}
+        }
+        const jkData = await getJkAnimeWatch(animeTitle, parseInt(episodeNum, 10), extraTitles, animeId);
+        if (!isPlayable(jkData)) throw new Error("jkanime: no playable sources");
+        req.log.info({ provider: "jkanime", animeTitle, episodeNum }, "JKAnime race hit");
+        return jkData;
+      })(),
+    );
   }
 
-  req.log.error({ err: lastPlaybackErr, episodeId: id, animeTitle, episodeNum }, "All streaming providers failed for this episode");
-  res.status(503).json({ error: "All streaming providers failed for this episode" });
+  if (attempts.length === 0) {
+    res.status(400).json({ error: "Insufficient parameters to fetch sources" });
+    return;
+  }
+
+  /* Race them all. First playable response wins — typical p50 should
+   * drop from ~5-15s to ~1-3s because we no longer block on AnimeKai
+   * retries before starting the cheap providers. */
+  try {
+    const result = await Promise.any(attempts);
+    res.json(result);
+    return;
+  } catch (err) {
+    req.log.error(
+      { err, episodeId: id, animeTitle, episodeNum, attempted: attempts.length },
+      "All streaming providers failed for this episode",
+    );
+    res.status(503).json({ error: "All streaming providers failed for this episode" });
+  }
 });
 
 /**
