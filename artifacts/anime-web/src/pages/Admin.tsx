@@ -904,7 +904,8 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 }
 
 /* ── Users Section ── */
-function UsersSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err") => void; confirm: (m: string, cb: () => void) => void }) {
+function UsersSection({ toast, confirm, role }: { toast: (m: string, t: "ok" | "err") => void; confirm: (m: string, cb: () => void) => void; role: "user" | "admin" | "owner" }) {
+  const canModifyRole = role === "owner";
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState("");
@@ -1000,8 +1001,23 @@ function UsersSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err") 
                 </div>
                 {expanding === u.id && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <select value={u.role} onChange={e => { const newRole = e.target.value as AdminUser["role"]; confirm(`¿Cambiar rol de ${u.username} a ${newRole}?`, () => update(u.id, { role: newRole })); }}
-                      style={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "7px 10px", color: "#F1F1F5", fontSize: 13, cursor: "pointer" }}>
+                    <select
+                      value={u.role}
+                      disabled={!canModifyRole}
+                      title={canModifyRole ? "Cambiar rol del usuario" : "Solo el propietario puede cambiar roles"}
+                      onChange={e => {
+                        const newRole = e.target.value as AdminUser["role"];
+                        if (!canModifyRole) { toast("Solo el propietario puede cambiar roles", "err"); return; }
+                        confirm(`¿Cambiar rol de ${u.username} a ${newRole}?`, () => update(u.id, { role: newRole }));
+                      }}
+                      style={{
+                        background: "#1a1a2e",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 8, padding: "7px 10px",
+                        color: canModifyRole ? "#F1F1F5" : "rgba(255,255,255,0.3)",
+                        fontSize: 13, cursor: canModifyRole ? "pointer" : "not-allowed",
+                        opacity: canModifyRole ? 1 : 0.55,
+                      }}>
                       <option value="user">Rol: User</option>
                       <option value="admin">Rol: Admin</option>
                       <option value="owner">Rol: Owner</option>
@@ -1225,7 +1241,9 @@ interface PromoCode {
 }
 
 /* ── Monetization Section ── */
-function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "ok" | "err") => void; refreshConfig: () => Promise<void> }) {
+function MonetizationSection({ toast, refreshConfig, role }: { toast: (m: string, t: "ok" | "err") => void; refreshConfig: () => Promise<void>; role: "user" | "admin" | "owner" }) {
+  const canDeletePromo = role === "owner";
+  const canEditConfig = role === "owner";
   const [config, setConfig]       = useState<Record<string, string>>({});
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
@@ -1301,24 +1319,35 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
 
   if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} /></div>;
 
+  const lockStyle = canEditConfig ? {} : { opacity: 0.55, pointerEvents: "none" as const };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 0 }}>Control de Monetización</h2>
 
+      {!canEditConfig && (
+        <div style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+          <Crown size={14} color="#F59E0B" />
+          <span style={{ color: "#FCD34D", fontSize: 13 }}>
+            Modo lectura: la configuración monetaria solo puede modificarla el propietario. Puedes crear y activar cupones.
+          </span>
+        </div>
+      )}
+
       {/* Daily limit */}
-      <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20, ...lockStyle }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
             <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15 }}>Sistema de límite diario</div>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Episodios gratuitos por día</div>
           </div>
-          <button onClick={() => save({ daily_limit_enabled: isEnabled ? "false" : "true" })} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          <button disabled={!canEditConfig} onClick={() => save({ daily_limit_enabled: isEnabled ? "false" : "true" })} style={{ background: "none", border: "none", cursor: canEditConfig ? "pointer" : "not-allowed", padding: 0 }}>
             {isEnabled ? <ToggleRight size={40} color="#22C55E" /> : <ToggleLeft size={40} color="rgba(255,255,255,0.2)" />}
           </button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 13 }}>Límite diario:</label>
-          <input type="number" min={1} max={100} value={config["daily_limit"] ?? "5"}
+          <input type="number" min={1} max={100} value={config["daily_limit"] ?? "5"} disabled={!canEditConfig}
             onChange={e => setConfig(prev => ({ ...prev, daily_limit: e.target.value }))}
             onBlur={e => save({ daily_limit: e.target.value })}
             style={{ width: 70, background: "#0D0D1A", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 15, fontWeight: 800, textAlign: "center", outline: "none" }} />
@@ -1327,20 +1356,20 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
       </div>
 
       {/* Messages */}
-      <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20, ...lockStyle }}>
         <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Mensaje de límite alcanzado</div>
         <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 12 }}>Lo que ve el usuario al superar su límite diario</div>
-        <textarea value={config["limit_message"] ?? ""}
+        <textarea value={config["limit_message"] ?? ""} disabled={!canEditConfig}
           onChange={e => setConfig(prev => ({ ...prev, limit_message: e.target.value }))}
           onBlur={e => save({ limit_message: e.target.value })}
           rows={3}
           style={{ width: "100%", background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 12px", color: "#F1F1F5", fontSize: 14, resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
       </div>
 
-      <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20 }}>
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 20, ...lockStyle }}>
         <div style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Mensaje "Hazte MegaFan"</div>
         <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginBottom: 12 }}>Propuesta de valor para convertir a premium</div>
-        <textarea value={config["megafan_message"] ?? ""}
+        <textarea value={config["megafan_message"] ?? ""} disabled={!canEditConfig}
           onChange={e => setConfig(prev => ({ ...prev, megafan_message: e.target.value }))}
           onBlur={e => save({ megafan_message: e.target.value })}
           rows={3}
@@ -1473,13 +1502,15 @@ function MonetizationSection({ toast, refreshConfig }: { toast: (m: string, t: "
                           >
                             {c.active ? <EyeOff size={13} /> : <Eye size={13} />}
                           </button>
-                          <button
-                            onClick={() => deleteCode(c.id)}
-                            title="Eliminar"
-                            style={{ background: "none", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#EF4444" }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {canDeletePromo && (
+                            <button
+                              onClick={() => deleteCode(c.id)}
+                              title="Eliminar (solo Owner)"
+                              style={{ background: "none", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 7, padding: "5px 8px", cursor: "pointer", color: "#EF4444" }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1984,21 +2015,26 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
   );
 }
 
-/* ── Sidebar nav ── */
-const NAV: { key: Section; label: string; icon: ReactNode }[] = [
-  { key: "dashboard",    label: "Dashboard",      icon: <LayoutDashboard size={18} /> },
-  { key: "users",        label: "Usuarios",       icon: <Users size={18} /> },
-  { key: "content",      label: "Contenido",      icon: <Film size={18} /> },
-  { key: "comments",     label: "Comentarios",    icon: <MessageSquare size={18} /> },
-  { key: "monetization", label: "Monetización",   icon: <Crown size={18} /> },
-  { key: "transactions", label: "Transacciones",  icon: <CreditCard size={18} /> },
-  { key: "emails",       label: "Emails",         icon: <Mail size={18} /> },
-  { key: "config",       label: "Configuración",  icon: <Settings size={18} /> },
+/* ── Sidebar nav (with per-section role gating) ── */
+type Role = "user" | "admin" | "owner";
+type NavItem = { key: Section; label: string; icon: ReactNode; group: "ops" | "system"; ownerOnly?: boolean };
+
+const NAV: NavItem[] = [
+  { key: "dashboard",    label: "Dashboard",      icon: <LayoutDashboard size={18} />, group: "ops" },
+  { key: "users",        label: "Usuarios",       icon: <Users size={18} />,           group: "ops" },
+  { key: "content",      label: "Contenido",      icon: <Film size={18} />,            group: "ops" },
+  { key: "comments",     label: "Comentarios",    icon: <MessageSquare size={18} />,   group: "ops" },
+  { key: "monetization", label: "Monetización",   icon: <Crown size={18} />,           group: "ops" },
+  { key: "transactions", label: "Transacciones",  icon: <CreditCard size={18} />,      group: "system", ownerOnly: true },
+  { key: "emails",       label: "Emails",         icon: <Mail size={18} />,            group: "system", ownerOnly: true },
+  { key: "config",       label: "Configuración",  icon: <Settings size={18} />,        group: "system", ownerOnly: true },
 ];
+
+const isStaff = (r?: string): r is "admin" | "owner" => r === "admin" || r === "owner";
 
 /* ── Main Admin Page ── */
 export default function Admin() {
-  const { user, isOwner, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [, navigate] = useLocation();
   const { refreshConfig } = useLimitsConfig();
   const [section, setSection] = useState<Section>("dashboard");
@@ -2006,17 +2042,45 @@ export default function Admin() {
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [confirmState, setConfirmState] = useState<{ msg: string; cb: () => void } | null>(null);
 
+  const role: Role = (user?.role as Role) ?? "user";
+  const isOwnerStrict = role === "owner";
+  const canAccess = isStaff(role);
+
   const showToast = useCallback((msg: string, type: "ok" | "err") => setToast({ msg, type }), []);
   const showConfirm = useCallback((msg: string, cb: () => void) => setConfirmState({ msg, cb }), []);
-  const handleNavigate = useCallback((s: Section) => { setSection(s); setSidebarOpen(false); }, []);
+  const handleNavigate = useCallback((s: Section) => {
+    // Defensive: prevent admins from navigating to owner-only sections via state.
+    const target = NAV.find(n => n.key === s);
+    if (target?.ownerOnly && !isOwnerStrict) {
+      showToast("Sección restringida al propietario", "err");
+      return;
+    }
+    setSection(s);
+    setSidebarOpen(false);
+  }, [isOwnerStrict, showToast]);
 
-  useEffect(() => { if (!loading && (!user || !isOwner)) navigate("/"); }, [loading, user, isOwner]);
+  useEffect(() => { if (!loading && (!user || !canAccess)) navigate("/"); }, [loading, user, canAccess]);
 
-  if (loading || !user || !isOwner) return (
+  // Fallback: if landed on an owner-only section but role changed, return to dashboard.
+  useEffect(() => {
+    const cur = NAV.find(n => n.key === section);
+    if (cur?.ownerOnly && !isOwnerStrict) setSection("dashboard");
+  }, [section, isOwnerStrict]);
+
+  if (loading || !user || !canAccess) return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Loader2 size={32} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} />
     </div>
   );
+
+  const visibleNav = NAV.filter(n => !n.ownerOnly || isOwnerStrict);
+  const opsItems    = visibleNav.filter(n => n.group === "ops");
+  const systemItems = visibleNav.filter(n => n.group === "system");
+
+  // Role badge style (gold for owner, red for admin).
+  const roleBadge = isOwnerStrict
+    ? { label: "OWNER", color: "#F59E0B", bg: "rgba(245,158,11,0.16)", border: "rgba(245,158,11,0.45)" }
+    : { label: "ADMIN", color: "#FCA5A5", bg: "rgba(220,38,38,0.16)", border: "rgba(220,38,38,0.45)" };
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", position: "relative", overflowX: "hidden" }}>
@@ -2072,8 +2136,12 @@ export default function Admin() {
             </div>
           </div>
         </div>
-        <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
-          {NAV.map(n => {
+        <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
+          {/* Operaciones — todo el staff */}
+          <div style={{ color: "rgba(255,255,255,0.28)", fontSize: 10, fontWeight: 800, letterSpacing: 1.2, padding: "8px 12px 4px", textTransform: "uppercase" }}>
+            Operaciones
+          </div>
+          {opsItems.map(n => {
             const active = section === n.key;
             return (
               <button
@@ -2094,6 +2162,36 @@ export default function Admin() {
               </button>
             );
           })}
+
+          {/* Sistema — solo owner */}
+          {systemItems.length > 0 && (
+            <>
+              <div style={{ color: "rgba(245,158,11,0.55)", fontSize: 10, fontWeight: 800, letterSpacing: 1.2, padding: "16px 12px 4px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
+                <Crown size={11} color="rgba(245,158,11,0.8)" /> Sistema · Owner
+              </div>
+              {systemItems.map(n => {
+                const active = section === n.key;
+                return (
+                  <button
+                    key={n.key}
+                    onClick={() => handleNavigate(n.key)}
+                    style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, border: "none", cursor: "pointer", textAlign: "left", fontSize: 14, fontWeight: 600, background: "transparent", color: active ? "#fff" : "rgba(255,255,255,0.68)", transition: "color 0.2s ease" }}
+                    onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
+                    onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.68)"; }}
+                  >
+                    {active && (
+                      <motion.div
+                        layoutId="admin-nav-pill"
+                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        style={{ position: "absolute", inset: 0, borderRadius: 10, background: "linear-gradient(135deg, rgba(245,158,11,0.20), rgba(245,158,11,0.06))", borderLeft: "3px solid #F59E0B", boxShadow: "0 8px 24px rgba(245,158,11,0.16) inset", zIndex: 0 }}
+                      />
+                    )}
+                    <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 10 }}>{n.icon} {n.label}</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
         </nav>
         <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
           <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", borderRadius: 10, border: "none", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: 13 }}>
@@ -2123,6 +2221,19 @@ export default function Admin() {
             />
             <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>Online</span>
             <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.08)" }} />
+            <span
+              title={isOwnerStrict ? "Acceso completo al panel" : "Acceso limitado · sin transacciones, emails ni configuración"}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                background: roleBadge.bg, color: roleBadge.color,
+                border: `1px solid ${roleBadge.border}`,
+                borderRadius: 7, padding: "3px 9px",
+                fontSize: 11, fontWeight: 900, letterSpacing: 0.6,
+              }}
+            >
+              {isOwnerStrict ? <Crown size={11} /> : <Shield size={11} />}
+              {roleBadge.label}
+            </span>
             <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#DC2626,#991B1B)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 900 }}>
               {user.username.charAt(0).toUpperCase()}
             </div>
@@ -2141,13 +2252,13 @@ export default function Admin() {
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             >
               {section === "dashboard"    && <DashboardSection toast={showToast} user={user} onNavigate={handleNavigate} />}
-              {section === "users"        && <UsersSection toast={showToast} confirm={showConfirm} />}
+              {section === "users"        && <UsersSection toast={showToast} confirm={showConfirm} role={role} />}
               {section === "content"      && <ContentSection toast={showToast} confirm={showConfirm} />}
               {section === "comments"     && <CommentsSection toast={showToast} confirm={showConfirm} />}
-              {section === "monetization" && <MonetizationSection toast={showToast} refreshConfig={refreshConfig} />}
-              {section === "transactions" && <TransactionsSection toast={showToast} />}
-              {section === "emails"       && <EmailsSection toast={showToast} confirm={showConfirm} />}
-              {section === "config"       && <ConfigSection toast={showToast} refreshConfig={refreshConfig} />}
+              {section === "monetization" && <MonetizationSection toast={showToast} refreshConfig={refreshConfig} role={role} />}
+              {section === "transactions" && isOwnerStrict && <TransactionsSection toast={showToast} />}
+              {section === "emails"       && isOwnerStrict && <EmailsSection toast={showToast} confirm={showConfirm} />}
+              {section === "config"       && isOwnerStrict && <ConfigSection toast={showToast} refreshConfig={refreshConfig} />}
             </motion.div>
           </AnimatePresence>
         </div>

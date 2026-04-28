@@ -1,7 +1,36 @@
 import { Router } from "express";
 import pool from "../db.js";
 import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
-import { requireAdmin } from "../middleware/requireAdmin.js";
+import { requireAdmin, requireOwner } from "../middleware/requireAdmin.js";
+
+/**
+ * Permissions matrix for the admin panel.
+ * Single source of truth used both by the per-route guards below and by
+ * GET /admin/me/permissions so the UI can render only what the role can do.
+ */
+const PERMISSIONS = {
+  user: {
+    accessPanel: false, viewStats: false, viewUsers: false, modifyRoles: false,
+    deactivateUsers: false, exportUsers: false, manageContent: false,
+    moderateComments: false, viewMonetization: false, createPromoCodes: false,
+    deletePromoCodes: false, sendAnnouncements: false, viewTransactions: false,
+    sendMassEmail: false, manageSystemConfig: false,
+  },
+  admin: {
+    accessPanel: true,  viewStats: true,  viewUsers: true,  modifyRoles: false,
+    deactivateUsers: true,  exportUsers: true,  manageContent: true,
+    moderateComments: true, viewMonetization: true,  createPromoCodes: true,
+    deletePromoCodes: false, sendAnnouncements: true, viewTransactions: false,
+    sendMassEmail: false, manageSystemConfig: false,
+  },
+  owner: {
+    accessPanel: true, viewStats: true, viewUsers: true, modifyRoles: true,
+    deactivateUsers: true, exportUsers: true, manageContent: true,
+    moderateComments: true, viewMonetization: true, createPromoCodes: true,
+    deletePromoCodes: true, sendAnnouncements: true, viewTransactions: true,
+    sendMassEmail: true, manageSystemConfig: true,
+  },
+} as const;
 import { sendEmail, emailTemplate } from "../lib/email.js";
 import {
   isPayPalConfigured, getPayPalToken, fetchSubscription, fetchReportingTransactions,
@@ -315,6 +344,30 @@ router.get("/admin/users", async (req: AuthRequest, res) => {
 router.patch("/admin/users/:id", async (req: AuthRequest, res) => {
   const { role, membership_tier, is_active } = req.body as Record<string, string | boolean>;
   const userId = parseInt(req.params.id as string);
+  const callerRole = (req as AuthRequest & { userRole?: string }).userRole;
+
+  // Only owners can change roles; admins can only touch tier / activation.
+  if (role !== undefined && callerRole !== "owner") {
+    res.status(403).json({ error: "Solo el propietario puede cambiar roles." });
+    return;
+  }
+
+  // Prevent demoting / deactivating yourself by mistake.
+  if (req.userId === userId && (role !== undefined || is_active === false)) {
+    res.status(400).json({ error: "No puedes modificar tu propio rol o desactivarte." });
+    return;
+  }
+
+  // Owner protection: don't let someone disable / demote another owner.
+  if (role !== undefined || is_active === false) {
+    const { rows: targetRows } = await pool.query(`SELECT role FROM users WHERE id = $1`, [userId]);
+    const targetRole = targetRows[0]?.role;
+    if (targetRole === "owner" && req.userId !== userId) {
+      res.status(403).json({ error: "No se puede modificar a otro propietario." });
+      return;
+    }
+  }
+
   try {
     const updates: string[] = [];
     const values: (string | boolean | number)[] = [];
@@ -337,6 +390,12 @@ router.patch("/admin/users/:id", async (req: AuthRequest, res) => {
   }
 });
 
+/* ── GET /admin/me/permissions — UI uses this to render only allowed sections ── */
+router.get("/admin/me/permissions", async (req: AuthRequest, res) => {
+  const role = (req as AuthRequest & { userRole?: string }).userRole as keyof typeof PERMISSIONS;
+  res.json({ role, permissions: PERMISSIONS[role] ?? PERMISSIONS.user });
+});
+
 /* ── GET /admin/config ── */
 router.get("/admin/config", async (_req: AuthRequest, res) => {
   try {
@@ -349,8 +408,8 @@ router.get("/admin/config", async (_req: AuthRequest, res) => {
   }
 });
 
-/* ── PUT /admin/config ── */
-router.put("/admin/config", async (req: AuthRequest, res) => {
+/* ── PUT /admin/config ── owner only (can toggle maintenance, registration, limits) */
+router.put("/admin/config", requireOwner, async (req: AuthRequest, res) => {
   const updates = req.body as Record<string, string>;
   try {
     for (const [key, value] of Object.entries(updates)) {
@@ -509,8 +568,8 @@ router.patch("/admin/promo-codes/:id", async (req: AuthRequest, res) => {
   }
 });
 
-/* ── DELETE /admin/promo-codes/:id ── */
-router.delete("/admin/promo-codes/:id", async (req: AuthRequest, res) => {
+/* ── DELETE /admin/promo-codes/:id ── owner only (admins create/toggle, can't delete history) */
+router.delete("/admin/promo-codes/:id", requireOwner, async (req: AuthRequest, res) => {
   try {
     await pool.query(`DELETE FROM promo_codes WHERE id = $1`, [parseInt(req.params.id as string)]);
     res.json({ ok: true });
@@ -519,8 +578,8 @@ router.delete("/admin/promo-codes/:id", async (req: AuthRequest, res) => {
   }
 });
 
-/* ── GET /admin/transactions ── */
-router.get("/admin/transactions", async (req: AuthRequest, res) => {
+/* ── GET /admin/transactions ── owner only (financial data is sensitive) */
+router.get("/admin/transactions", requireOwner, async (req: AuthRequest, res) => {
   const { from, to, page = "1", limit = "20" } = req.query as Record<string, string>;
   const offset = (parseInt(page) - 1) * parseInt(limit);
   const paypalConfigured = isPayPalConfigured();
@@ -624,8 +683,8 @@ router.get("/admin/transactions", async (req: AuthRequest, res) => {
   }
 });
 
-/* ── POST /admin/send-email ── */
-router.post("/admin/send-email", async (req: AuthRequest, res) => {
+/* ── POST /admin/send-email ── owner only (mass mailing) */
+router.post("/admin/send-email", requireOwner, async (req: AuthRequest, res) => {
   const { to, subject, body } = req.body as { to: "all" | "megafan" | "free"; subject: string; body: string };
   if (!to || !subject || !body) {
     res.status(400).json({ error: "to, subject y body son requeridos" });
