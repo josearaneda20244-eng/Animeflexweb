@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Heart, HeartOff, Star, Play, ChevronDown, ChevronUp,
@@ -257,6 +257,7 @@ export default function AnimeDetail() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToHistory } = useHistory();
   const { getAnimeProgress } = useWatchProgress();
+  const queryClient = useQueryClient();
   // const { addNotification } = useNotifications(); // Commented out - using new notification system
   const [descExpanded, setDescExpanded] = useState(false);
   const [watchedEps, setWatchedEps] = useState<Set<string>>(new Set());
@@ -355,6 +356,28 @@ export default function AnimeDetail() {
     genres: genres,
   };
 
+  /* Prefetch streaming source for faster perceived player load.
+   * Same query keys as Player.tsx so the cache is reused.
+   */
+  const prefetchStream = useCallback(
+    (epId: string, epNum: number) => {
+      if (!epId || !title) return;
+      queryClient.prefetchQuery({
+        queryKey: ["stream", epId, title, String(epNum), id],
+        queryFn: () =>
+          consumet.streaming(epId, title || undefined, String(epNum), id || undefined),
+        staleTime: 1000 * 60 * 15,
+      });
+      queryClient.prefetchQuery({
+        queryKey: ["animeflv", title, String(epNum), id],
+        queryFn: () =>
+          consumet.animeflvWatch(title, epNum, id || undefined),
+        staleTime: 1000 * 60 * 15,
+      });
+    },
+    [queryClient, title, id],
+  );
+
   const handleEpisode = (ep: Episode) => {
     if (!ep?.id) return;
     setWatchedEps((prev) => new Set([...prev, ep.id]));
@@ -367,6 +390,11 @@ export default function AnimeDetail() {
     const nextEp = episodes.find((e) => e.number === ep.number + 1);
     const nextPahe = nextEp ? paheEpisodes.find((e) => e.number === nextEp.number) : undefined;
     const nextResolvedId = nextPahe?.id ?? nextEp?.id;
+
+    /* Fire prefetch RIGHT NOW (before navigation) so by the time the Player
+     * mounts and runs its useQuery, the in-flight request is already underway
+     * or the cache is already populated. */
+    prefetchStream(resolvedId, ep.number);
 
     const params = new URLSearchParams({
       episodeId: resolvedId,
@@ -381,6 +409,22 @@ export default function AnimeDetail() {
     }
     navigate(`/watch?${params.toString()}`);
   };
+
+  /* Auto-prefetch the most likely "next-to-watch" episode when episodes load.
+   * This warms the cache so clicking "Continuar" / "Reproducir" feels instant. */
+  useEffect(() => {
+    if (!title || episodes.length === 0) return;
+    const target =
+      (animeProgress && episodes.find((e) => e.number === animeProgress.episodeNum)) ||
+      episodes[0];
+    if (!target?.id) return;
+    const paheEpisodes = paheQuery.data?.episodes ?? [];
+    const paheEp = paheEpisodes.find((e) => e.number === target.number);
+    const resolvedId = paheEp?.id ?? target.id;
+    /* Small delay so we don't compete with the initial page render */
+    const t = setTimeout(() => prefetchStream(resolvedId, target.number), 800);
+    return () => clearTimeout(t);
+  }, [episodes, animeProgress, title, paheQuery.data, prefetchStream]);
 
   const normalizedEpSearch = epSearch.trim().toLowerCase();
   const filteredEps = episodes.filter((ep) => {
@@ -725,29 +769,74 @@ export default function AnimeDetail() {
               <p className="text-sm">Sin episodios disponibles</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-2 max-h-[600px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 gap-2 max-h-[640px] overflow-y-auto pr-1 ep-scroll">
               {filteredEps.map((ep, idx) => {
                 const watched = watchedEps.has(ep.id);
+                const inProgress =
+                  !watched && animeProgress?.episodeNum === ep.number;
+                /* Resolve real provider id for prefetch (handles synthetic ids) */
+                const paheEpisodes = paheQuery.data?.episodes ?? [];
+                const paheEp = paheEpisodes.find((e) => e.number === ep.number);
+                const resolvedId = paheEp?.id ?? ep.id;
                 return (
                   <motion.button
                     key={ep.id}
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: Math.min(idx * 0.025, 0.4), ease: [0.16, 1, 0.3, 1] }}
-                    whileHover={{ x: 4, borderColor: "rgba(220,38,38,0.4)" }}
+                    transition={{ duration: 0.28, delay: Math.min(idx * 0.022, 0.35), ease: [0.16, 1, 0.3, 1] }}
+                    whileHover={{ x: 4 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleEpisode(ep)}
-                    className={`flex items-center gap-3 p-3 rounded-xl text-left group w-full ${watched ? "opacity-55" : ""}`}
+                    onMouseEnter={() => prefetchStream(resolvedId, ep.number)}
+                    onTouchStart={() => prefetchStream(resolvedId, ep.number)}
+                    className={`relative flex items-center gap-3 p-3 rounded-xl text-left group w-full overflow-hidden ${watched ? "opacity-60" : ""}`}
                     style={{
-                      background: "linear-gradient(135deg, #100e22 0%, #0d0c1c 100%)",
-                      border: "1px solid rgba(255,255,255,0.06)",
+                      background: inProgress
+                        ? "linear-gradient(135deg, rgba(220,38,38,0.14) 0%, #110d20 60%, #0d0c1c 100%)"
+                        : "linear-gradient(135deg, #110e22 0%, #0c0b1a 100%)",
+                      border: inProgress
+                        ? "1px solid rgba(220,38,38,0.35)"
+                        : "1px solid rgba(255,255,255,0.05)",
+                      boxShadow: inProgress
+                        ? "0 0 0 1px rgba(220,38,38,0.2), 0 8px 24px rgba(220,38,38,0.12)"
+                        : "0 1px 0 rgba(255,255,255,0.02)",
+                      transition: "border-color .2s, box-shadow .2s, background .2s",
                     }}
                   >
+                    {/* Thin accent stripe on the left */}
+                    <span
+                      aria-hidden
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: 8,
+                        bottom: 8,
+                        width: 3,
+                        borderRadius: 3,
+                        background: watched
+                          ? "rgba(34,197,94,0.55)"
+                          : inProgress
+                            ? "linear-gradient(180deg,#FCA5A5,#DC2626)"
+                            : "transparent",
+                        opacity: watched || inProgress ? 1 : 0,
+                        transition: "opacity .2s",
+                      }}
+                    />
                     <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-black"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-black"
                       style={watched
-                        ? { background: "#1A1A27", color: "#4A4A6A" }
-                        : { background: "linear-gradient(135deg, rgba(220,38,38,0.22), rgba(153,27,27,0.12))", color: "#FCA5A5", boxShadow: "inset 0 0 0 1px rgba(220,38,38,0.25)" }
+                        ? { background: "#171627", color: "#5A5A7A", border: "1px solid rgba(34,197,94,0.18)" }
+                        : inProgress
+                          ? {
+                              background: "linear-gradient(135deg,#DC2626,#991B1B)",
+                              color: "#fff",
+                              boxShadow: "0 6px 18px rgba(220,38,38,0.45), inset 0 1px 0 rgba(255,255,255,0.25)",
+                            }
+                          : {
+                              background: "linear-gradient(135deg, rgba(220,38,38,0.18), rgba(153,27,27,0.08))",
+                              color: "#FCA5A5",
+                              boxShadow: "inset 0 0 0 1px rgba(220,38,38,0.22)",
+                            }
                       }
                     >
                       {ep.number}
@@ -756,18 +845,53 @@ export default function AnimeDetail() {
                       <p className="text-sm font-semibold text-[#F0F0FF] line-clamp-1">
                         {ep.title ?? `Episodio ${ep.number}`}
                       </p>
-                      {ep.airDate && (
-                        <p className="text-xs text-[#5A5A7A] mt-0.5">{ep.airDate}</p>
-                      )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {ep.airDate && (
+                          <p className="text-[11px] text-[#5A5A7A]">{ep.airDate}</p>
+                        )}
+                        {inProgress && (
+                          <span
+                            style={{
+                              fontSize: 9,
+                              color: "#FCA5A5",
+                              fontWeight: 800,
+                              letterSpacing: 0.6,
+                              textTransform: "uppercase",
+                              padding: "1px 6px",
+                              borderRadius: 4,
+                              background: "rgba(220,38,38,0.15)",
+                              border: "1px solid rgba(220,38,38,0.3)",
+                            }}
+                          >
+                            En curso
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {watched && (
-                      <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 700, letterSpacing: 0.5 }}>VISTO</span>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: 10,
+                          color: "#22C55E",
+                          fontWeight: 800,
+                          letterSpacing: 0.6,
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          background: "rgba(34,197,94,0.08)",
+                          border: "1px solid rgba(34,197,94,0.22)",
+                        }}
+                      >
+                        <CheckCircle2 size={10} /> VISTO
+                      </span>
                     )}
                     <motion.div
                       initial={{ x: -4, opacity: 0 }}
                       whileHover={{ x: 0, opacity: 1 }}
-                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ background: "linear-gradient(135deg,#DC2626,#991B1B)", boxShadow: "0 4px 12px rgba(220,38,38,0.45)" }}
+                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: "linear-gradient(135deg,#FCA5A5,#DC2626 60%,#991B1B)", boxShadow: "0 6px 16px rgba(220,38,38,0.5)" }}
                     >
                       <Play size={12} fill="#fff" color="#fff" />
                     </motion.div>

@@ -174,6 +174,265 @@ function AutoNextOverlay({ nextNum, onSkip, onCancel }: { nextNum: string; onSki
   );
 }
 
+/* ── PLAYER LOADING SCREEN ─────────────────────────────────────────────
+ * Cinematic loading screen shown while the backend probes streaming
+ * sources. Uses the anime cover as a blurred backdrop, displays anime
+ * + episode info, and rotates through reassuring progress messages so
+ * the wait feels intentional instead of broken.
+ */
+function PlayerLoadingScreen({
+  animeImage,
+  animeTitle,
+  episodeNum,
+}: {
+  animeImage?: string;
+  animeTitle?: string;
+  episodeNum?: string;
+}) {
+  const messages = [
+    "Conectando con servidores...",
+    "Buscando la mejor fuente...",
+    "Verificando calidad disponible...",
+    "Casi listo, preparando reproductor...",
+  ];
+  const [msgIdx, setMsgIdx] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setMsgIdx((i) => (i + 1) % messages.length), 1800);
+    const e = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => { clearInterval(t); clearInterval(e); };
+  }, []); // eslint-disable-line
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        overflow: "hidden",
+        background: "#000",
+      }}
+    >
+      {/* Blurred backdrop using the anime cover */}
+      {animeImage && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: -40,
+            backgroundImage: `url(${animeImage})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(28px) saturate(1.15) brightness(0.55)",
+            transform: "scale(1.15)",
+            opacity: 0.55,
+          }}
+        />
+      )}
+      {/* Crimson radial glow */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(circle at 50% 55%, rgba(220,38,38,0.22) 0%, rgba(0,0,0,0.0) 55%), linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.85) 100%)",
+        }}
+      />
+      {/* Subtle scan lines */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage:
+            "repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 3px)",
+          mixBlendMode: "overlay",
+          opacity: 0.6,
+        }}
+      />
+
+      {/* Center content */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "0 24px",
+          gap: 18,
+          textAlign: "center",
+        }}
+      >
+        {/* Animated dual-ring loader with pulse */}
+        <div style={{ position: "relative", width: 76, height: 76 }}>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1.8, ease: "linear" }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              border: "2px solid rgba(220,38,38,0.18)",
+              borderTopColor: "#DC2626",
+              borderRightColor: "rgba(220,38,38,0.55)",
+            }}
+          />
+          <motion.div
+            animate={{ rotate: -360 }}
+            transition={{ repeat: Infinity, duration: 2.6, ease: "linear" }}
+            style={{
+              position: "absolute",
+              inset: 10,
+              borderRadius: "50%",
+              border: "2px solid rgba(252,165,165,0.15)",
+              borderBottomColor: "#FCA5A5",
+            }}
+          />
+          <motion.div
+            animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+            style={{
+              position: "absolute",
+              inset: 22,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle, #DC2626 0%, #991B1B 60%, transparent 100%)",
+              boxShadow: "0 0 24px rgba(220,38,38,0.6)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              pointerEvents: "none",
+            }}
+          >
+            <Play size={18} fill="#fff" />
+          </div>
+        </div>
+
+        {/* Anime / episode label */}
+        {(animeTitle || episodeNum) && (
+          <div style={{ maxWidth: 480 }}>
+            {episodeNum && (
+              <div
+                style={{
+                  display: "inline-block",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 1.5,
+                  textTransform: "uppercase",
+                  color: "#FCA5A5",
+                  background: "rgba(220,38,38,0.12)",
+                  border: "1px solid rgba(220,38,38,0.35)",
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  marginBottom: 8,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                }}
+              >
+                EP · {episodeNum}
+              </div>
+            )}
+            {animeTitle && (
+              <div
+                style={{
+                  color: "#F1F1F5",
+                  fontSize: 16,
+                  fontWeight: 800,
+                  lineHeight: 1.3,
+                  textShadow: "0 2px 12px rgba(0,0,0,0.7)",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                } as React.CSSProperties}
+              >
+                {animeTitle}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Rotating status message */}
+        <div style={{ minHeight: 22, position: "relative", width: "100%", maxWidth: 360 }}>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={msgIdx}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.35 }}
+              style={{
+                color: "rgba(255,255,255,0.72)",
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: 0.2,
+                margin: 0,
+              }}
+            >
+              {messages[msgIdx]}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+
+        {/* Indeterminate progress bar */}
+        <div
+          style={{
+            width: "min(280px, 80%)",
+            height: 3,
+            borderRadius: 2,
+            background: "rgba(255,255,255,0.06)",
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: "200%" }}
+            transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "50%",
+              height: "100%",
+              background:
+                "linear-gradient(90deg, transparent, #DC2626 30%, #FCA5A5 50%, #DC2626 70%, transparent)",
+              boxShadow: "0 0 12px rgba(220,38,38,0.6)",
+            }}
+          />
+        </div>
+
+        {/* Helpful hint after a few seconds */}
+        {elapsed >= 6 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+              color: "rgba(255,255,255,0.4)",
+              fontSize: 11,
+              fontWeight: 500,
+              maxWidth: 320,
+              margin: 0,
+              lineHeight: 1.5,
+            }}
+          >
+            Estamos buscando la fuente más rápida disponible. Si tarda demasiado,
+            podrás cambiar de servidor desde el panel inferior.
+          </motion.p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── PLYR PLAYER ── */
 export interface HlsSubTrack { id: number; lang: string; name: string; }
 
@@ -1535,10 +1794,11 @@ export default function Player() {
               </div>
             )}
             {isLoadingAny && !isErrorAll && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
-                <Loader2 size={36} color="#F59E0B" className="animate-spin" />
-                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14 }}>Buscando fuentes de video...</p>
-              </div>
+              <PlayerLoadingScreen
+                animeImage={animeImage}
+                animeTitle={animeTitle}
+                episodeNum={episodeNum}
+              />
             )}
             {!selected && !showLimitModal && !isLoadingAny && !isErrorAll && (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 12, position: "absolute", inset: 0 }}>
