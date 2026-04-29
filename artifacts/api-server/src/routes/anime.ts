@@ -732,16 +732,46 @@ async function loadPopular() {
 const recentMetaCache = new Map<number, { at: number; data: any }>();
 const RECENT_META_TTL = 30 * 60 * 1000;
 
+// MAL serves a placeholder for entries whose YouTube-linked promo was banned.
+// We must NOT use this URL as the anime cover — it's a tiny grey rectangle.
+const MAL_PLACEHOLDER_RE = /icon-banned-youtube-rect|questionmark/i;
+
+function pickEntryImage(images: any): string {
+  const url =
+    images?.webp?.large_image_url ??
+    images?.jpg?.large_image_url ??
+    images?.webp?.image_url ??
+    images?.jpg?.image_url ??
+    "";
+  if (!url || MAL_PLACEHOLDER_RE.test(url)) return "";
+  return url;
+}
+
+async function jikanFetchWithRetry(path: string, retries = 2): Promise<any> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await jikanFetch(path);
+    } catch (e: any) {
+      const status = e?.status ?? e?.response?.status ?? 0;
+      const isRateLimit = status === 429 || status === 503;
+      if (attempt === retries || !isRateLimit) throw e;
+      // Exponential backoff: 1s, 2s, 4s.
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
+    }
+  }
+}
+
 async function loadRecent() {
   // Jikan's /watch/episodes feed lists the most recently-aired episodes
-  // reported by the MAL community. Each entry only carries
-  // {mal_id, url, title} for the anime — no images — so we hydrate the
-  // top N unique anime via /anime/{id} (with an in-memory cache and a
-  // small delay between requests to respect Jikan's ~3 req/s limit).
+  // reported by the MAL community. Each entry already carries an `images`
+  // object — sometimes a real cover, sometimes a "banned youtube" placeholder
+  // (which we filter out). We use that as the base image and enrich each
+  // entry with /anime/{id} for richer metadata (rating, genres, totals).
   const j = await jikanFetch(`/watch/episodes`);
   const raw: any[] = j.data ?? [];
 
-  const uniqueEntries: Array<{ mal_id: number; title: string; lastEp: number }> = [];
+  type Entry = { mal_id: number; title: string; lastEp: number; baseImage: string };
+  const uniqueEntries: Entry[] = [];
   const seen = new Set<number>();
   for (const item of raw) {
     const e = item?.entry;
@@ -750,7 +780,12 @@ async function loadRecent() {
     seen.add(id);
     const epList: any[] = item.episodes ?? [];
     const lastEp = typeof epList[0]?.mal_id === "number" ? epList[0].mal_id : epList.length;
-    uniqueEntries.push({ mal_id: id, title: e.title ?? "", lastEp });
+    uniqueEntries.push({
+      mal_id: id,
+      title: e.title ?? "",
+      lastEp,
+      baseImage: pickEntryImage(e.images),
+    });
     if (uniqueEntries.length >= 20) break;
   }
 
@@ -762,28 +797,33 @@ async function loadRecent() {
       detail = hit.data;
     } else {
       try {
-        const d = await jikanFetch(`/anime/${entry.mal_id}`);
+        const d = await jikanFetchWithRetry(`/anime/${entry.mal_id}`);
         detail = d?.data ?? null;
         if (detail) recentMetaCache.set(entry.mal_id, { at: Date.now(), data: detail });
       } catch {
         detail = null;
       }
-      // Stay under Jikan's ~3 req/s rate limit.
-      await new Promise((r) => setTimeout(r, 350));
+      // Stay comfortably under Jikan's ~3 req/s rate limit.
+      await new Promise((r) => setTimeout(r, 600));
     }
 
     if (detail) {
+      const mapped = mapJikanAnime(detail);
       results.push({
-        ...mapJikanAnime(detail),
+        ...mapped,
+        // Prefer the hydrated cover; fall back to the feed's image only if
+        // hydration somehow returned nothing usable.
+        image: mapped.image || entry.baseImage,
         currentEpisode: entry.lastEp,
         status: "RELEASING",
       });
     } else {
-      // Fallback: keep the entry visible even if hydration failed.
+      // Hydration failed (network/rate-limit) — degrade gracefully to the
+      // feed image so the card still shows a poster instead of a grey box.
       results.push({
         id: String(entry.mal_id),
         title: { romaji: entry.title, english: undefined, userPreferred: entry.title },
-        image: "",
+        image: entry.baseImage,
         currentEpisode: entry.lastEp,
         type: "TV",
         status: "RELEASING",
