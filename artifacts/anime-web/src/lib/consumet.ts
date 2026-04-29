@@ -192,63 +192,55 @@ export const consumet = {
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Direct browser call to Jikan (MyAnimeList) — bypasses the backend so the
-// Películas / OVAs / Especiales pages keep working even if our API is down.
-// IDs returned here are MAL IDs (`mal_id`).
+// Direct AniList GraphQL call — bypasses the backend, works from the browser.
+// Used for Películas / OVAs pages so they don't depend on Railway being up.
 // ──────────────────────────────────────────────────────────────────────────────
-const JIKAN_URL = "https://api.jikan.moe/v4";
+const ANILIST_GQL_URL = "https://graphql.anilist.co";
 
-function jikanType(format: "MOVIE" | "OVA" | "ONA" | "SPECIAL"): string {
-  switch (format) {
-    case "MOVIE":   return "movie";
-    case "OVA":     return "ova";
-    case "ONA":     return "ona";
-    case "SPECIAL": return "special";
+const BY_FORMAT_QUERY = `
+  query ($format: MediaFormat, $page: Int, $perPage: Int) {
+    Page(page: $page, perPage: $perPage) {
+      pageInfo { currentPage hasNextPage }
+      media(type: ANIME, format: $format, sort: POPULARITY_DESC, isAdult: false) {
+        id
+        title { romaji english native userPreferred }
+        coverImage { extraLarge large }
+        averageScore
+        format
+        episodes
+        status
+        genres
+      }
+    }
   }
-}
+`;
 
 export async function byFormatDirect(
   format: "MOVIE" | "OVA" | "ONA" | "SPECIAL",
   page = 1,
   perPage = 24,
 ): Promise<SearchResult> {
-  const limit = Math.min(perPage, 25); // Jikan caps at 25 per page
-  const url =
-    `${JIKAN_URL}/anime` +
-    `?type=${jikanType(format)}` +
-    `&order_by=popularity` +
-    `&sort=asc` +
-    `&page=${page}` +
-    `&limit=${limit}` +
-    `&sfw=true`;
-
-  const resp = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!resp.ok) throw new Error(`Jikan error ${resp.status}`);
+  const resp = await fetch(ANILIST_GQL_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query: BY_FORMAT_QUERY, variables: { format, page, perPage } }),
+  });
+  if (!resp.ok) throw new Error(`AniList error ${resp.status}`);
   const json: any = await resp.json();
-  const raw: any[] = json.data ?? [];
-
+  if (json.errors?.length) throw new Error(json.errors[0].message);
+  const raw: any[] = json.data.Page.media ?? [];
   return {
-    currentPage: json.pagination?.current_page ?? page,
-    hasNextPage: Boolean(json.pagination?.has_next_page),
+    currentPage: json.data.Page.pageInfo.currentPage,
+    hasNextPage: json.data.Page.pageInfo.hasNextPage,
     results: raw.map((m: any) => ({
-      id: String(m.mal_id),
-      title: {
-        romaji: m.title ?? "",
-        english: m.title_english ?? undefined,
-        userPreferred: m.title_english || m.title || "",
-        native: m.title_japanese ?? undefined,
-      },
-      image:
-        m.images?.webp?.large_image_url ??
-        m.images?.jpg?.large_image_url ??
-        m.images?.webp?.image_url ??
-        m.images?.jpg?.image_url ??
-        "",
-      rating: m.score != null ? Math.round(m.score * 10) : 0,
-      type: (m.type ?? format).toUpperCase(),
+      id: String(m.id),
+      title: m.title,
+      image: m.coverImage?.extraLarge ?? m.coverImage?.large ?? "",
+      rating: m.averageScore ?? 0,
+      type: m.format ?? format,
       totalEpisodes: m.episodes ?? 0,
-      status: (m.status ?? "").toUpperCase().replace(/\s+/g, "_"),
-      genres: Array.isArray(m.genres) ? m.genres.map((g: any) => g.name).filter(Boolean) : [],
+      status: m.status ?? "",
+      genres: m.genres ?? [],
     })),
   };
 }
