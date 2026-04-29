@@ -726,113 +726,34 @@ async function loadPopular() {
   };
 }
 
-// Tiny per-process cache of hydrated anime details, keyed by MAL id.
-// Used by loadRecent to avoid re-fetching the same anime metadata across
-// repeated SWR refreshes within a short window.
-const recentMetaCache = new Map<number, { at: number; data: any }>();
-const RECENT_META_TTL = 30 * 60 * 1000;
-
-// MAL serves a placeholder for entries whose YouTube-linked promo was banned.
-// We must NOT use this URL as the anime cover — it's a tiny grey rectangle.
-const MAL_PLACEHOLDER_RE = /icon-banned-youtube-rect|questionmark/i;
-
-function pickEntryImage(images: any): string {
-  const url =
-    images?.webp?.large_image_url ??
-    images?.jpg?.large_image_url ??
-    images?.webp?.image_url ??
-    images?.jpg?.image_url ??
-    "";
-  if (!url || MAL_PLACEHOLDER_RE.test(url)) return "";
-  return url;
-}
-
-async function jikanFetchWithRetry(path: string, retries = 2): Promise<any> {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      return await jikanFetch(path);
-    } catch (e: any) {
-      const status = e?.status ?? e?.response?.status ?? 0;
-      const isRateLimit = status === 429 || status === 503;
-      if (attempt === retries || !isRateLimit) throw e;
-      // Exponential backoff: 1s, 2s, 4s.
-      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
-    }
-  }
-}
-
 async function loadRecent() {
-  // Jikan's /watch/episodes feed lists the most recently-aired episodes
-  // reported by the MAL community. Each entry already carries an `images`
-  // object — sometimes a real cover, sometimes a "banned youtube" placeholder
-  // (which we filter out). We use that as the base image and enrich each
-  // entry with /anime/{id} for richer metadata (rating, genres, totals).
-  const j = await jikanFetch(`/watch/episodes`);
+  // "Últimos Episodios" surfaces anime currently on air. Jikan's
+  // /watch/episodes feed has rich episode metadata but its `entry.images`
+  // is always a "youtube banned" placeholder, so cards came out grey.
+  //
+  // /seasons/now returns the current season's TV anime in ONE call with
+  // proper covers, titles and metadata — no per-anime hydration, no rate
+  // limit dance, and every card is guaranteed to have a poster.
+  // We filter to "currently airing" so it really represents shows that are
+  // releasing new episodes right now.
+  const j = await jikanFetch(`/seasons/now?filter=tv&limit=24`);
   const raw: any[] = j.data ?? [];
 
-  type Entry = { mal_id: number; title: string; lastEp: number; baseImage: string };
-  const uniqueEntries: Entry[] = [];
-  const seen = new Set<number>();
-  for (const item of raw) {
-    const e = item?.entry;
-    const id = typeof e?.mal_id === "number" ? e.mal_id : null;
-    if (id == null || seen.has(id)) continue;
-    seen.add(id);
-    const epList: any[] = item.episodes ?? [];
-    const lastEp = typeof epList[0]?.mal_id === "number" ? epList[0].mal_id : epList.length;
-    uniqueEntries.push({
-      mal_id: id,
-      title: e.title ?? "",
-      lastEp,
-      baseImage: pickEntryImage(e.images),
-    });
-    if (uniqueEntries.length >= 20) break;
-  }
-
-  const results: any[] = [];
-  for (const entry of uniqueEntries) {
-    let detail: any = null;
-    const hit = recentMetaCache.get(entry.mal_id);
-    if (hit && Date.now() - hit.at < RECENT_META_TTL) {
-      detail = hit.data;
-    } else {
-      try {
-        const d = await jikanFetchWithRetry(`/anime/${entry.mal_id}`);
-        detail = d?.data ?? null;
-        if (detail) recentMetaCache.set(entry.mal_id, { at: Date.now(), data: detail });
-      } catch {
-        detail = null;
-      }
-      // Stay comfortably under Jikan's ~3 req/s rate limit.
-      await new Promise((r) => setTimeout(r, 600));
-    }
-
-    if (detail) {
-      const mapped = mapJikanAnime(detail);
-      results.push({
-        ...mapped,
-        // Prefer the hydrated cover; fall back to the feed's image only if
-        // hydration somehow returned nothing usable.
-        image: mapped.image || entry.baseImage,
-        currentEpisode: entry.lastEp,
-        status: "RELEASING",
-      });
-    } else {
-      // Hydration failed (network/rate-limit) — degrade gracefully to the
-      // feed image so the card still shows a poster instead of a grey box.
-      results.push({
-        id: String(entry.mal_id),
-        title: { romaji: entry.title, english: undefined, userPreferred: entry.title },
-        image: entry.baseImage,
-        currentEpisode: entry.lastEp,
-        type: "TV",
-        status: "RELEASING",
-        totalEpisodes: 0,
-        rating: 0,
-        genres: [],
-      });
-    }
-  }
+  const results = raw
+    .filter((m) => {
+      const status = String(m.status ?? "").toLowerCase();
+      return status.includes("airing") || status.includes("currently");
+    })
+    .slice(0, 20)
+    .map((m) => ({
+      ...mapJikanAnime(m),
+      // For airing shows, "currentEpisode" represents the latest released
+      // episode. Jikan exposes the *planned* total via `episodes`, which is
+      // null/0 for many ongoing shows; we expose 1 as a safe minimum so the
+      // UI's "EP N" badge always renders.
+      currentEpisode: typeof m.episodes === "number" && m.episodes > 0 ? m.episodes : 1,
+      status: "RELEASING",
+    }));
 
   return { currentPage: 1, hasNextPage: false, results };
 }
