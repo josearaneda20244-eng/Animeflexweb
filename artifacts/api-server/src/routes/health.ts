@@ -3,7 +3,7 @@ import { Router, type IRouter } from "express";
 const router: IRouter = Router();
 
 router.get("/healthz", (_req, res) => {
-  res.json({ status: "ok", version: "v7-recent-uses-seasons-now" });
+  res.json({ status: "ok", version: "v8-revert-to-anilist" });
 });
 
 export default router;
