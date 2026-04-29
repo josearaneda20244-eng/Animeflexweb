@@ -726,31 +726,74 @@ async function loadPopular() {
   };
 }
 
+// Tiny per-process cache of hydrated anime details, keyed by MAL id.
+// Used by loadRecent to avoid re-fetching the same anime metadata across
+// repeated SWR refreshes within a short window.
+const recentMetaCache = new Map<number, { at: number; data: any }>();
+const RECENT_META_TTL = 30 * 60 * 1000;
+
 async function loadRecent() {
-  // Jikan exposes the watch feed of recently-aired episodes from the MAL
-  // community. Each entry has {entry, episodes:[]}. We deduplicate by anime.
+  // Jikan's /watch/episodes feed lists the most recently-aired episodes
+  // reported by the MAL community. Each entry only carries
+  // {mal_id, url, title} for the anime — no images — so we hydrate the
+  // top N unique anime via /anime/{id} (with an in-memory cache and a
+  // small delay between requests to respect Jikan's ~3 req/s limit).
   const j = await jikanFetch(`/watch/episodes`);
   const raw: any[] = j.data ?? [];
-  const seen = new Set<string>();
-  const results: any[] = [];
+
+  const uniqueEntries: Array<{ mal_id: number; title: string; lastEp: number }> = [];
+  const seen = new Set<number>();
   for (const item of raw) {
     const e = item?.entry;
-    if (!e || seen.has(String(e.mal_id))) continue;
-    seen.add(String(e.mal_id));
+    const id = typeof e?.mal_id === "number" ? e.mal_id : null;
+    if (id == null || seen.has(id)) continue;
+    seen.add(id);
     const epList: any[] = item.episodes ?? [];
     const lastEp = typeof epList[0]?.mal_id === "number" ? epList[0].mal_id : epList.length;
-    results.push({
-      id: String(e.mal_id),
-      title: { romaji: e.title ?? "", english: undefined, userPreferred: e.title ?? "" },
-      image: jikanImage(e.images),
-      currentEpisode: lastEp,
-      type: "TV",
-      status: "RELEASING",
-      totalEpisodes: 0,
-      rating: 0,
-      genres: [],
-    });
+    uniqueEntries.push({ mal_id: id, title: e.title ?? "", lastEp });
+    if (uniqueEntries.length >= 20) break;
   }
+
+  const results: any[] = [];
+  for (const entry of uniqueEntries) {
+    let detail: any = null;
+    const hit = recentMetaCache.get(entry.mal_id);
+    if (hit && Date.now() - hit.at < RECENT_META_TTL) {
+      detail = hit.data;
+    } else {
+      try {
+        const d = await jikanFetch(`/anime/${entry.mal_id}`);
+        detail = d?.data ?? null;
+        if (detail) recentMetaCache.set(entry.mal_id, { at: Date.now(), data: detail });
+      } catch {
+        detail = null;
+      }
+      // Stay under Jikan's ~3 req/s rate limit.
+      await new Promise((r) => setTimeout(r, 350));
+    }
+
+    if (detail) {
+      results.push({
+        ...mapJikanAnime(detail),
+        currentEpisode: entry.lastEp,
+        status: "RELEASING",
+      });
+    } else {
+      // Fallback: keep the entry visible even if hydration failed.
+      results.push({
+        id: String(entry.mal_id),
+        title: { romaji: entry.title, english: undefined, userPreferred: entry.title },
+        image: "",
+        currentEpisode: entry.lastEp,
+        type: "TV",
+        status: "RELEASING",
+        totalEpisodes: 0,
+        rating: 0,
+        genres: [],
+      });
+    }
+  }
+
   return { currentPage: 1, hasNextPage: false, results };
 }
 
