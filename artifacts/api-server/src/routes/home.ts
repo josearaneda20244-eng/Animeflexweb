@@ -4,32 +4,7 @@ import { requireAuth, type AuthRequest } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-// Source switched from AniList GraphQL → Jikan (MyAnimeList) REST API.
-const JIKAN_URL = "https://api.jikan.moe/v4";
-
-async function jikanGetAnime(malId: number): Promise<any | null> {
-  try {
-    const r = await fetch(`${JIKAN_URL}/anime/${malId}`, { headers: { Accept: "application/json" } });
-    if (!r.ok) return null;
-    const j: any = await r.json();
-    return j?.data ?? null;
-  } catch {
-    return null;
-  }
-}
-
-// Fetch many anime sequentially with a small delay so we don't trip Jikan's
-// per-second rate limit (≈3 req/s). Cap at 20 lookups per call.
-async function jikanBatchAnime(ids: number[]): Promise<any[]> {
-  const out: any[] = [];
-  const capped = ids.slice(0, 20);
-  for (const id of capped) {
-    const m = await jikanGetAnime(id);
-    if (m) out.push(m);
-    await new Promise((r) => setTimeout(r, 350));
-  }
-  return out;
-}
+const ANILIST_URL = "https://graphql.anilist.co";
 
 const featuredCache = new Map<string, { at: number; data: any }>();
 const FEATURED_TTL = 60 * 1000;
@@ -137,40 +112,55 @@ router.get("/user/watchlist/new-episodes", requireAuth, async (req: AuthRequest,
     );
     const lastSeen = new Map(lastSeenRes.rows.map((r) => [r.anime_id, r.max_ep ?? 0]));
 
-    // Jikan has no "media by ids" batch endpoint, so we fetch each watched
-    // anime individually with a polite delay. Capped at 20 to stay within
-    // the per-request budget. Jikan also doesn't expose `nextAiringEpisode`
-    // with episode-level precision, so "new episodes" is approximated from
-    // the airing flag and the episode total.
-    const media = await jikanBatchAnime(ids);
+    const query = `
+      query ($ids: [Int]) {
+        Page(perPage: 50) {
+          media(id_in: $ids, type: ANIME) {
+            id
+            title { romaji english }
+            coverImage { large }
+            status
+            episodes
+            nextAiringEpisode { airingAt episode timeUntilAiring }
+          }
+        }
+      }
+    `;
+    const aniRes = await fetch(ANILIST_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query, variables: { ids } }),
+    });
+    if (!aniRes.ok) throw new Error("anilist");
+    const aniJson: any = await aniRes.json();
+    const media: any[] = aniJson?.data?.Page?.media ?? [];
 
+    const now = Math.floor(Date.now() / 1000);
     const items = media
-      .map((m: any) => {
-        const id = String(m.mal_id);
+      .map((m) => {
+        const id = String(m.id);
         const seen = lastSeen.get(id) ?? 0;
-        const isAiring = Boolean(m.airing) || /currently/i.test(m.status ?? "");
-        const total = typeof m.episodes === "number" ? m.episodes : 0;
-        // For airing anime with unknown total, assume at least seen+1 has aired.
-        const aired = isAiring ? (total > 0 ? total : seen + 1) : total;
+        const next = m.nextAiringEpisode?.episode ?? null;
+        const aired = next ? Math.max(0, next - 1) : m.episodes ?? 0;
+        const timeUntil: number | null = m.nextAiringEpisode?.timeUntilAiring ?? null;
+        const justAired = m.nextAiringEpisode?.airingAt
+          ? now - m.nextAiringEpisode.airingAt < 7 * 24 * 3600 && now > m.nextAiringEpisode.airingAt
+          : false;
         const hasNew = aired > seen;
-        if (!hasNew && !isAiring) return null;
+        const upcomingSoon = timeUntil != null && timeUntil > 0 && timeUntil < 24 * 3600;
+        if (!hasNew && !upcomingSoon) return null;
         const fallback = rows.find((r) => r.anime_id === id);
-        const titleEn: string | undefined = m.title_english ?? undefined;
         return {
           animeId: id,
-          title: titleEn || m.title || fallback?.anime_title || "",
-          image:
-            m.images?.webp?.large_image_url ??
-            m.images?.jpg?.large_image_url ??
-            fallback?.anime_image ??
-            "",
+          title: m.title?.english || m.title?.romaji || fallback?.anime_title || "",
+          image: m.coverImage?.large || fallback?.anime_image || "",
           airedEpisodes: aired,
           lastSeenEpisode: seen,
           newEpisodes: Math.max(0, aired - seen),
-          nextEpisode: null,
-          nextAiringAt: null,
-          timeUntilAiring: null,
-          status: (m.status ?? "").toUpperCase().replace(/\s+/g, "_"),
+          nextEpisode: next,
+          nextAiringAt: m.nextAiringEpisode?.airingAt ?? null,
+          timeUntilAiring: timeUntil,
+          status: m.status,
         };
       })
       .filter(Boolean)
