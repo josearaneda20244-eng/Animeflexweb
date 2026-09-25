@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { CornerBrackets, SystemTag, ScanLines } from "@/components/SystemUI";
-import { Play, Info, Star, ChevronLeft, ChevronRight, Tv, X, BookmarkCheck } from "lucide-react";
+import { Play, Info, Star, ChevronLeft, ChevronRight, Tv, X, BookmarkCheck, Home as HomeIcon, Compass, TrendingUp, CalendarDays, ListVideo, History, Settings, Crown, Search, Clock3 } from "lucide-react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { fetchAiringSchedule, fetchSeasonalAnime, getCurrentSeason, seasonLabel, type SeasonAnime } from "@/lib/anilist";
 import { useWatchProgress } from "@/context/WatchProgressContext";
@@ -300,158 +300,27 @@ function HeroBanner({ animes, idx, onPrev, onNext, onSetIdx }: { animes: AnimeRe
 }
 
 /* ── SECTION HEADER ── */
-/* Auto-derive a module code from the section id so each block has its own
-   MOD-XX label (e.g. trending → MOD-02). Keeps call sites unchanged. */
-const MODULE_MAP: Record<string, string> = {
-  continue: "MOD-01",
-  trending: "MOD-02",
-  featured: "MOD-03",
-  seasonal: "MOD-04",
-  recent: "MOD-05",
-  popular: "MOD-06",
-  top: "MOD-07",
-  genres: "MOD-08",
-  schedule: "MOD-09",
-};
-
 function SectionHeader({ title, onSeeAll, id, count }: { title: string; onSeeAll?: () => void; id?: string; count?: number }) {
-  /* Split a leading emoji/symbol from the title into its own icon capsule. */
   const m = title.match(/^([^\sA-Za-z0-9]+)\s+(.+)$/u);
   const iconChar = m ? m[1] : null;
   const cleanTitle = m ? m[2] : title;
-  const moduleLabel = id ? (MODULE_MAP[id] ?? `MOD-${id.slice(0, 3).toUpperCase()}`) : "SISTEMA";
-
   return (
-    <div
-      id={id}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "0 18px",
-        marginBottom: 18,
-        scrollMarginTop: 70,
-      }}
-    >
-      {/* Vertical accent bar with glow */}
-      <div
-        style={{
-          width: 4,
-          height: 26,
-          borderRadius: 2,
-          background: "linear-gradient(180deg,#FCA5A5,#DC2626 50%,#991B1B)",
-          boxShadow: "0 0 14px rgba(220,38,38,0.6)",
-          flexShrink: 0,
-        }}
-      />
-      {/* Icon capsule */}
-      {iconChar && (
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 30,
-            height: 30,
-            borderRadius: 8,
-            background: "linear-gradient(135deg, rgba(220,38,38,0.22), rgba(220,38,38,0.04))",
-            border: "1px solid rgba(220,38,38,0.35)",
-            flexShrink: 0,
-            fontSize: 15,
-            lineHeight: 1,
-          }}
-        >
-          {iconChar}
+    <div id={id} className="home-section-heading">
+      <div className="home-section-heading__title">
+        {iconChar && <span className="home-section-heading__icon">{iconChar}</span>}
+        <div>
+          <span className="home-section-heading__eyebrow">Descubre</span>
+          <h2>{cleanTitle}{count != null && <small>{count}</small>}</h2>
         </div>
-      )}
-      {/* Title + module */}
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.05 }}>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            fontSize: 17,
-            fontWeight: 800,
-            color: "#fff",
-            letterSpacing: -0.3,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {cleanTitle}
-          {count != null && (
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 0.4,
-                color: "#FCA5A5",
-                background: "rgba(220,38,38,0.14)",
-                border: "1px solid rgba(220,38,38,0.3)",
-                padding: "1px 7px",
-                borderRadius: 999,
-                lineHeight: 1.4,
-              }}
-            >
-              {count}
-            </span>
-          )}
-        </span>
-        <span
-          style={{
-            color: "rgba(252,165,165,0.6)",
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: 1.5,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            textTransform: "uppercase",
-            marginTop: 3,
-          }}
-        >
-          ▸ {moduleLabel}
-        </span>
       </div>
-      {/* Horizontal accent line filling the rest */}
-      <div
-        style={{
-          flex: 1,
-          height: 1,
-          minWidth: 12,
-          background:
-            "linear-gradient(90deg, rgba(220,38,38,0.35) 0%, rgba(220,38,38,0.05) 60%, transparent 100%)",
-          marginLeft: 4,
-        }}
-      />
       {onSeeAll && (
-        <button
-          onClick={onSeeAll}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            padding: "6px 12px",
-            background: "linear-gradient(135deg, rgba(220,38,38,0.18), rgba(220,38,38,0.04))",
-            border: "1px solid rgba(220,38,38,0.35)",
-            borderRadius: 999,
-            color: "#FECACA",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 0.3,
-            cursor: "pointer",
-            flexShrink: 0,
-            transition: "all 0.2s",
-          }}
-        >
-          <span>Ver todo</span>
-          <ChevronRight size={13} color="#FECACA" />
+        <button onClick={onSeeAll} className="home-see-all">
+          <span>Ver todo</span><ChevronRight size={14} />
         </button>
       )}
     </div>
   );
 }
-
 function SectionSurface({ children }: { children: React.ReactNode }) {
   return (
     <section className="home-section-surface">
@@ -460,6 +329,34 @@ function SectionSurface({ children }: { children: React.ReactNode }) {
   );
 }
 
+function DesktopSidebar() {
+  const [location, navigate] = useLocation();
+  const items = [
+    { label: "Inicio", href: "/", icon: <HomeIcon size={18} /> }, { label: "Explorar", href: "/search", icon: <Compass size={18} /> },
+    { label: "Tendencias", href: "/search?q=trending", icon: <TrendingUp size={18} /> }, { label: "Últimos episodios", href: "#recent", icon: <Clock3 size={18} /> },
+    { label: "Calendario", href: "/schedule", icon: <CalendarDays size={18} /> }, { label: "Mi lista", href: "/watchlist", icon: <ListVideo size={18} /> },
+    { label: "Historial", href: "/history", icon: <History size={18} /> }, { label: "Ajustes", href: "/settings", icon: <Settings size={18} /> },
+  ];
+  const go = (href: string) => { if (href.startsWith("#")) document.getElementById(href.slice(1))?.scrollIntoView({ behavior: "smooth" }); else navigate(href); };
+  return (
+    <aside className="home-sidebar" aria-label="Navegación principal">
+      <button className="home-sidebar__brand" onClick={() => navigate("/")}><span>▶</span><strong>Anime<em>FLEX</em></strong></button>
+      <nav className="home-sidebar__nav">{items.map((item) => { const active = item.href === "/" ? location === "/" : location.startsWith(item.href.split("?")[0]); return <button key={item.label} className={active ? "is-active" : ""} onClick={() => go(item.href)}>{item.icon}<span>{item.label}</span></button>; })}</nav>
+      <div className="home-sidebar__membership"><Crown size={22} /><strong>Anime sin límites</strong><p>Guarda tus series y continúa donde lo dejaste.</p><button onClick={() => navigate("/membership")}>Ver planes</button></div>
+      <div className="home-sidebar__status"><i /> Todo al día</div>
+    </aside>
+  );
+}
+
+function WeeklyRanking({ items }: { items: AnimeResult[] }) {
+  const [, navigate] = useLocation();
+  return (
+    <aside className="home-weekly-ranking">
+      <div className="home-weekly-ranking__head"><div><span>Esta semana</span><h2>Tendencias</h2></div><TrendingUp size={18} /></div>
+      <div className="home-weekly-ranking__list">{items.slice(0, 5).map((anime, index) => { const title = resolveTitle(anime.title); return <button key={anime.id} onClick={() => nav(navigate, anime.id)}><strong>{index + 1}</strong><img src={anime.image} alt="" loading="lazy" /><span><b>{title}</b><small>{anime.genres?.slice(0, 2).join(" · ") || anime.type || "Anime"}</small></span><Star size={11} fill="currentColor" /></button>; })}</div>
+    </aside>
+  );
+}
 /* ── CARD HELPERS ── */
 function airedEpisodeCount(a: AnimeResult): number | undefined {
   // Prefer the actually-aired count when consumet provides it.
@@ -603,7 +500,7 @@ function TopAnimeRow({ anime, rank }: { anime: AnimeResult; rank: number }) {
   const [, navigate] = useLocation();
   const title = resolveTitle(anime.title);
   return (
-    <div onClick={() => nav(navigate, anime.id)}
+    <div className="home-top-anime-row" onClick={() => nav(navigate, anime.id)}
       style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)", cursor: "pointer", borderRadius: 8, transition: "background 0.15s" }}
       onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
@@ -930,18 +827,26 @@ export default function Home() {
 
   return (
     <div className="home-page" style={{ minHeight: "100vh" }}>
+      <DesktopSidebar />
       <Navbar />
+      <div className="home-workspace">
       <div className="home-main" style={{ paddingTop: 56 }}>
-        {/* Hero */}
-        {trendList.length > 0
-          ? <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} onSetIdx={setHeroIdx} />
-          : <HeroSkeleton />}
+        <div className="home-dashboard-intro">
+          <div><span>Tu espacio personal</span><h1>¿Qué quieres ver hoy?</h1></div>
+          <button onClick={() => navigate("/search")}><Search size={17} /><span>Buscar anime, género o estudio...</span><kbd>Ctrl K</kbd></button>
+        </div>
+        <div className="home-top-grid">
+          {trendList.length > 0
+            ? <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} onSetIdx={setHeroIdx} />
+            : <HeroSkeleton />}
+          <WeeklyRanking items={popularList.length ? popularList : trendList} />
+        </div>
 
         {/* Watchlist new episodes banner — top priority for logged-in users */}
         <WatchlistNewEpisodesBanner />
 
         {/* Quick filters / section jump chips */}
-        <QuickFilters onJump={handleJump} />
+        <div className="home-quick-filters"><QuickFilters onJump={handleJump} /></div>
 
         {/* Continue watching */}
         {cwItems.length > 0 && (
@@ -1059,7 +964,7 @@ export default function Home() {
         <LazySection>
           <SectionSurface>
             <SectionHeader id="top" title="🏆 Top Anime" />
-            <div style={{ padding: "0 18px" }}>
+            <div className="home-ranking-grid">
               {popular.isLoading
                 ? Array.from({ length: 5 }).map((_, i) => <div key={i} style={{ height: 72, background: "#111", borderRadius: 8, marginBottom: 4, border: "1px solid #222" }} />)
                 : popularList.slice(0, 10).map((a, i) => <TopAnimeRow key={`top-${a.id}`} anime={a} rank={i + 1} />)}
@@ -1089,6 +994,7 @@ export default function Home() {
 
       </div>
       <Footer />
+    </div>
     </div>
   );
 }
