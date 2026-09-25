@@ -124,7 +124,7 @@ function ScrollableCarousel({ children, scrollAmount = 420 }: { children: React.
 /* ── HERO SKELETON (cinematic loading state) ── */
 function HeroSkeleton() {
   return (
-    <div style={{
+    <div className="home-hero home-hero--skeleton" style={{
       position: "relative",
       height: "clamp(440px, 70vw, 580px)",
       overflow: "hidden",
@@ -235,7 +235,7 @@ function HeroBanner({ animes, idx, onPrev, onNext, onSetIdx }: { animes: AnimeRe
   const title = resolveTitle(anime.title);
 
   return (
-    <div style={{ position: "relative", height: "clamp(440px, 70vw, 580px)", overflow: "hidden", margin: "0" }}>
+    <div className="home-hero" style={{ position: "relative", height: "clamp(440px, 70vw, 580px)", overflow: "hidden" }}>
       <img
         src={anime.cover || anime.image}
         alt={title}
@@ -454,9 +454,9 @@ function SectionHeader({ title, onSeeAll, id, count }: { title: string; onSeeAll
 
 function SectionSurface({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ margin: "12px 0", padding: "24px 0 28px", background: "linear-gradient(180deg, rgba(8,8,14,0.95) 0%, #000 100%)" }}>
-      {children}
-    </div>
+    <section className="home-section-surface">
+      <div className="home-section-inner">{children}</div>
+    </section>
   );
 }
 
@@ -824,7 +824,7 @@ function ContinueWatchingCard({ entry, onRemove }: { entry: WatchEntry; onRemove
 }
 
 function SectionDivider() {
-  return <div style={{ height: 1, margin: "4px 18px 0", background: "linear-gradient(90deg, transparent, rgba(220,38,38,0.15), rgba(129,140,248,0.15), transparent)" }} />;
+  return <div className="home-section-divider" />;
 }
 
 function SkeletonP() { return <div className="skeleton" style={{ width: 130, height: 197, borderRadius: 8, flexShrink: 0, border: "1px solid #222" }} />; }
@@ -929,9 +929,9 @@ export default function Home() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh" }}>
+    <div className="home-page" style={{ minHeight: "100vh" }}>
       <Navbar />
-      <div style={{ paddingTop: 56 }}>
+      <div className="home-main" style={{ paddingTop: 56 }}>
         {/* Hero */}
         {trendList.length > 0
           ? <HeroBanner animes={trendList} idx={heroIdx} onPrev={prevHero} onNext={nextHero} onSetIdx={setHeroIdx} />
@@ -1029,11 +1029,11 @@ export default function Home() {
         {/* Recommendations */}
         <LazySection minHeight={200}>
           {user ? (
-            <div style={{ marginTop: 28 }}>
+            <div className="home-contained" style={{ marginTop: 28 }}>
               <AnimeRecommendations userId={user.id} type="personal" limit={14} />
             </div>
           ) : (
-            <div style={{ marginTop: 28 }}>
+            <div className="home-contained" style={{ marginTop: 28 }}>
               <AnimeRecommendations type="trending" title="Recomendaciones para ti" limit={14} />
             </div>
           )}
@@ -1043,14 +1043,14 @@ export default function Home() {
 
         {/* News preview */}
         <LazySection minHeight={220}>
-          <NewsPreview />
+          <div className="home-contained"><NewsPreview /></div>
         </LazySection>
 
         <SectionDivider />
 
         {/* Active discussions — community */}
         <LazySection minHeight={180}>
-          <ActiveDiscussions />
+          <div className="home-contained"><ActiveDiscussions /></div>
         </LazySection>
 
         <SectionDivider />
@@ -1071,7 +1071,7 @@ export default function Home() {
 
         {/* Manga banner with recent chapters */}
         <LazySection minHeight={120}>
-          <div style={{ padding: "0 18px" }}>
+          <div className="home-contained">
             <MangaRecentBanner />
           </div>
         </LazySection>
