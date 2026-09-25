@@ -143,12 +143,12 @@ export default function Navbar() {
   return (
     <>
       <nav
-        className="fixed top-0 left-0 right-0 z-50"
+        className="site-navbar fixed top-0 left-0 right-0 z-50"
         style={{ background: "rgba(7,7,11,0.78)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderBottom: "1px solid rgba(220,38,38,0.14)", boxShadow: "0 6px 28px rgba(0,0,0,0.45)" }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 58 }}>
+        <div className="site-navbar__inner" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 58 }}>
           {/* Logo */}
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
+          <Link className="site-navbar__brand" href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
             <div style={{
               width: 32, height: 32, borderRadius: 10,
               display: "flex", alignItems: "center", justifyContent: "center",
