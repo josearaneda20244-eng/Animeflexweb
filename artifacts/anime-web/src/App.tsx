@@ -108,245 +108,68 @@ function formatMaintenanceTime(ms: number) {
 }
 
 function SplashLoader() {
-  const mono = "'JetBrains Mono', ui-monospace, monospace";
-  const bootLines = [
-    "> INIT::CORE_SYSTEM................OK",
-    "> AUTH::SESSION_HANDSHAKE..........OK",
-    "> NETWORK::SHADOW_LINK.............OK",
-    "> CACHE::PREWARM...................OK",
-    "> RENDER::INTERFACE_BOOT...........●",
-  ];
+  const loadingItems = ["Perfil", "Catálogo", "Recomendaciones"];
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      flexDirection: "column", gap: 32,
-      background: "radial-gradient(ellipse at center, #1a0610 0%, #07060b 70%)",
-      position: "relative", overflow: "hidden",
-      padding: 20,
-      fontFamily: mono,
-    }}>
-      {/* Hex grid backdrop */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "linear-gradient(rgba(220,38,38,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.07) 1px, transparent 1px)",
-        backgroundSize: "32px 32px",
-        maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-        WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
-        pointerEvents: "none",
-      }} />
+    <div className="af-splash" role="status" aria-live="polite" aria-label="Cargando AnimeFlex">
+      <div className="af-splash__aurora af-splash__aurora--one" />
+      <div className="af-splash__aurora af-splash__aurora--two" />
+      <div className="af-splash__grain" />
 
-      {/* Scan lines */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "repeating-linear-gradient(0deg, rgba(249,115,22,0.04) 0px, rgba(249,115,22,0.04) 1px, transparent 1px, transparent 4px)",
-        pointerEvents: "none",
-      }} />
-
-      {/* Animated scan line sweep */}
       <motion.div
-        animate={{ y: ["-100vh", "100vh"] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: "linear" }}
-        style={{
-          position: "absolute", left: 0, right: 0, height: 2,
-          background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.6), transparent)",
-          boxShadow: "0 0 18px rgba(249,115,22,0.7)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Ambient red glow pulse */}
-      <motion.div
-        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.85, 0.5] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          position: "absolute", width: 520, height: 520, borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(220,38,38,0.32) 0%, transparent 70%)",
-          filter: "blur(60px)", pointerEvents: "none",
-        }}
-      />
-
-      {/* Magic Circle stack — three rotating layers */}
-      <div style={{ position: "relative", width: 280, height: 280, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>
-        {/* Outer ring */}
-        <motion.svg
-          width={280} height={280} viewBox="0 0 200 200"
-          style={{ position: "absolute", filter: "drop-shadow(0 0 18px #DC2626)" }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 32, repeat: Infinity, ease: "linear" }}
-        >
-          <circle cx="100" cy="100" r="96" fill="none" stroke="#DC2626" strokeWidth="0.6" strokeDasharray="2 6" />
-          <circle cx="100" cy="100" r="88" fill="none" stroke="#F97316" strokeWidth="0.4" strokeDasharray="1 3" opacity="0.7" />
-          {Array.from({ length: 12 }).map((_, i) => {
-            const a = (i / 12) * Math.PI * 2;
-            const x1 = 100 + Math.cos(a) * 88;
-            const y1 = 100 + Math.sin(a) * 88;
-            const x2 = 100 + Math.cos(a) * 96;
-            const y2 = 100 + Math.sin(a) * 96;
-            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#FDBA74" strokeWidth="0.8" />;
-          })}
-        </motion.svg>
-        {/* Middle ring (counter-rotating) */}
-        <motion.svg
-          width={220} height={220} viewBox="0 0 200 200"
-          style={{ position: "absolute", filter: "drop-shadow(0 0 12px #F97316)" }}
-          animate={{ rotate: -360 }}
-          transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-        >
-          <circle cx="100" cy="100" r="80" fill="none" stroke="#F97316" strokeWidth="0.7" />
-          <circle cx="100" cy="100" r="62" fill="none" stroke="#DC2626" strokeWidth="0.5" strokeDasharray="4 4" />
-          <polygon points="100,28 162,134 38,134" fill="none" stroke="#FDBA74" strokeWidth="0.9" />
-          <polygon points="100,172 38,66 162,66" fill="none" stroke="#FCA5A5" strokeWidth="0.7" opacity="0.7" />
-        </motion.svg>
-        {/* Inner ring (faster) */}
-        <motion.svg
-          width={150} height={150} viewBox="0 0 200 200"
-          style={{ position: "absolute", filter: "drop-shadow(0 0 10px #FDBA74)" }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-        >
-          <circle cx="100" cy="100" r="44" fill="none" stroke="#FDBA74" strokeWidth="0.8" />
-          <circle cx="100" cy="100" r="30" fill="none" stroke="#F97316" strokeWidth="0.5" strokeDasharray="2 2" />
-          {Array.from({ length: 6 }).map((_, i) => {
-            const a = (i / 6) * Math.PI * 2;
-            const x = 100 + Math.cos(a) * 44;
-            const y = 100 + Math.sin(a) * 44;
-            return <circle key={i} cx={x} cy={y} r="2" fill="#FDBA74" />;
-          })}
-        </motion.svg>
-
-        {/* Center logo */}
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 220, damping: 18, delay: 0.15 }}
-          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, zIndex: 3 }}
-        >
-          <motion.div
-            animate={{ boxShadow: [
-              "0 0 24px rgba(220,38,38,0.5), inset 0 1px 0 rgba(255,255,255,0.22)",
-              "0 0 48px rgba(220,38,38,0.95), 0 0 80px rgba(249,115,22,0.4), inset 0 1px 0 rgba(255,255,255,0.22)",
-              "0 0 24px rgba(220,38,38,0.5), inset 0 1px 0 rgba(255,255,255,0.22)",
-            ] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-            style={{
-              width: 60, height: 60,
-              background: "linear-gradient(135deg, #FCA5A5 0%, #DC2626 50%, #991B1B 100%)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              clipPath: "polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px)",
-            }}
-          >
-            <span style={{ color: "#fff", fontSize: 26, fontWeight: 900, marginLeft: 3, lineHeight: 1 }}>▶</span>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Brand name */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        style={{ textAlign: "center", zIndex: 2, marginTop: -12 }}
+        className="af-splash__panel"
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div style={{
-          fontSize: 36, fontWeight: 900, letterSpacing: -1, lineHeight: 1,
-          fontFamily: mono,
-          textShadow: "0 0 24px rgba(220,38,38,0.6)",
-        }}>
-          <span style={{ color: "#F1F1F5" }}>Anime</span>
-          <span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626,#F97316)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
-        </div>
-        <div style={{
-          marginTop: 10,
-          fontSize: 9.5, color: "#FDBA74", letterSpacing: 5, fontWeight: 800,
-          textShadow: "0 0 10px rgba(249,115,22,0.7)",
-        }}>
-          [ SISTEMA · INICIANDO ]
-        </div>
-      </motion.div>
-
-      {/* Boot terminal */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.4 }}
-        style={{
-          position: "relative",
-          width: "100%", maxWidth: 420,
-          background: "rgba(4,3,10,0.85)",
-          border: "1px solid rgba(220,38,38,0.45)",
-          padding: "14px 16px 12px",
-          clipPath: "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
-          boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 0 28px rgba(220,38,38,0.25)",
-          zIndex: 2,
-        }}
-      >
-        {/* Top accent line */}
-        <div style={{
-          position: "absolute", top: 0, left: 14, right: 14, height: 1,
-          background: "linear-gradient(90deg, transparent, #F97316, transparent)",
-          boxShadow: "0 0 8px #F97316",
-        }} />
-
-        {bootLines.map((line, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7 + i * 0.18, duration: 0.25 }}
-            style={{
-              fontFamily: mono,
-              fontSize: 10.5,
-              color: i === bootLines.length - 1 ? "#FDBA74" : "rgba(253,186,116,0.65)",
-              letterSpacing: 0.3,
-              lineHeight: 1.7,
-              textShadow: i === bootLines.length - 1 ? "0 0 8px rgba(249,115,22,0.7)" : "none",
-            }}
+        <div className="af-splash__mark" aria-hidden>
+          <motion.span
+            className="af-splash__orbit af-splash__orbit--outer"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.span
+            className="af-splash__orbit af-splash__orbit--inner"
+            animate={{ rotate: -360 }}
+            transition={{ duration: 9, repeat: Infinity, ease: "linear" }}
+          />
+          <motion.span
+            className="af-splash__logo"
+            animate={{ scale: [1, 1.06, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           >
-            {line}
-          </motion.div>
-        ))}
+            ▶
+          </motion.span>
+        </div>
 
-        {/* Progress bar */}
-        <div style={{ marginTop: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 9, color: "#FDBA74", letterSpacing: 1.5, fontWeight: 800 }}>// CARGANDO INTERFACE</span>
+        <div className="af-splash__eyebrow"><span /> Tu espacio para descubrir anime</div>
+        <h1 className="af-splash__title">Anime<span>FLEX</span></h1>
+        <p className="af-splash__copy">Preparando una experiencia hecha a tu medida.</p>
+
+        <div className="af-splash__steps" aria-hidden>
+          {loadingItems.map((item, index) => (
             <motion.span
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 1.2, repeat: Infinity }}
-              style={{ fontSize: 9, color: "#FECACA", fontWeight: 900 }}
+              key={item}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.28 + index * 0.12 }}
             >
-              ▌
+              <i>✓</i> {item}
             </motion.span>
-          </div>
-          <div style={{
-            position: "relative",
-            height: 6,
-            background: "rgba(8,4,18,0.95)",
-            border: "1px solid rgba(249,115,22,0.3)",
-            overflow: "hidden",
-            clipPath: "polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px)",
-          }}>
-            <motion.div
-              animate={{ x: ["-100%", "100%"] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-              style={{
-                position: "absolute", top: 0, bottom: 0, width: "55%",
-                background: "linear-gradient(90deg, transparent, #DC2626 30%, #F97316 60%, #FDBA74 80%, transparent)",
-                boxShadow: "0 0 12px rgba(249,115,22,0.7)",
-              }}
-            />
-          </div>
+          ))}
         </div>
 
-        {/* Bottom accent line */}
-        <div style={{
-          position: "absolute", bottom: 0, left: 14, right: 14, height: 1,
-          background: "linear-gradient(90deg, transparent, #DC2626, transparent)",
-          boxShadow: "0 0 8px #DC2626",
-        }} />
+        <div className="af-splash__progress" aria-hidden>
+          <motion.div
+            initial={{ width: "8%" }}
+            animate={{ width: ["8%", "62%", "84%", "96%"] }}
+            transition={{ duration: 3.2, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+          />
+        </div>
+        <div className="af-splash__status">Sincronizando catálogo <b>•••</b></div>
       </motion.div>
+
+      <div className="af-splash__footer">ANIMEFLEX <span>•</span> MIRA <span>•</span> DESCUBRE <span>•</span> CONTINÚA</div>
     </div>
   );
 }
