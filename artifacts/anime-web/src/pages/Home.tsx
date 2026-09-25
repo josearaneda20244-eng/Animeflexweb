@@ -321,9 +321,9 @@ function SectionHeader({ title, onSeeAll, id, count }: { title: string; onSeeAll
     </div>
   );
 }
-function SectionSurface({ children }: { children: React.ReactNode }) {
+function SectionSurface({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <section className="home-section-surface">
+    <section className={`home-section-surface ${className}`.trim()}>
       <div className="home-section-inner">{children}</div>
     </section>
   );
@@ -331,23 +331,55 @@ function SectionSurface({ children }: { children: React.ReactNode }) {
 
 function DesktopSidebar() {
   const [location, navigate] = useLocation();
-  const items = [
-    { label: "Inicio", href: "/", icon: <HomeIcon size={18} /> }, { label: "Explorar", href: "/search", icon: <Compass size={18} /> },
-    { label: "Tendencias", href: "/search?q=trending", icon: <TrendingUp size={18} /> }, { label: "Últimos episodios", href: "#recent", icon: <Clock3 size={18} /> },
-    { label: "Calendario", href: "/schedule", icon: <CalendarDays size={18} /> }, { label: "Mi lista", href: "/watchlist", icon: <ListVideo size={18} /> },
-    { label: "Historial", href: "/history", icon: <History size={18} /> }, { label: "Ajustes", href: "/settings", icon: <Settings size={18} /> },
+  const { user, isMegaFan } = useAuth();
+  const groups = [
+    { label: "Descubrir", items: [
+      { label: "Inicio", detail: "Tu selección diaria", href: "/", icon: <HomeIcon size={17} />, accent: "#fb7185" },
+      { label: "Explorar", detail: "Busca algo nuevo", href: "/search", icon: <Compass size={17} />, accent: "#a78bfa" },
+      { label: "Tendencias", detail: "Lo más visto ahora", href: "/search?q=trending", icon: <TrendingUp size={17} />, accent: "#fb923c", badge: "HOT" },
+      { label: "Últimos episodios", detail: "Recién publicados", href: "#recent", icon: <Clock3 size={17} />, accent: "#38bdf8" },
+      { label: "Calendario", detail: "Estrenos de la semana", href: "/schedule", icon: <CalendarDays size={17} />, accent: "#4ade80" },
+    ] },
+    { label: "Tu biblioteca", items: [
+      { label: "Mi lista", detail: "Guardados para después", href: "/watchlist", icon: <ListVideo size={17} />, accent: "#f472b6" },
+      { label: "Historial", detail: "Vuelve a tus historias", href: "/history", icon: <History size={17} />, accent: "#818cf8" },
+      { label: "Ajustes", detail: "Personaliza AnimeFlex", href: "/settings", icon: <Settings size={17} />, accent: "#94a3b8" },
+    ] },
   ];
   const go = (href: string) => { if (href.startsWith("#")) document.getElementById(href.slice(1))?.scrollIntoView({ behavior: "smooth" }); else navigate(href); };
   return (
     <aside className="home-sidebar" aria-label="Navegación principal">
-      <button className="home-sidebar__brand" onClick={() => navigate("/")}><span>▶</span><strong>Anime<em>FLEX</em></strong></button>
-      <nav className="home-sidebar__nav">{items.map((item) => { const active = item.href === "/" ? location === "/" : location.startsWith(item.href.split("?")[0]); return <button key={item.label} className={active ? "is-active" : ""} onClick={() => go(item.href)}>{item.icon}<span>{item.label}</span></button>; })}</nav>
-      <div className="home-sidebar__membership"><Crown size={22} /><strong>Anime sin límites</strong><p>Guarda tus series y continúa donde lo dejaste.</p><button onClick={() => navigate("/membership")}>Ver planes</button></div>
-      <div className="home-sidebar__status"><i /> Todo al día</div>
+      <button className="home-sidebar__brand" onClick={() => navigate("/")}>
+        <span className="home-sidebar__brand-mark"><b>▶</b><i /></span>
+        <span className="home-sidebar__brand-copy"><strong>Anime<em>FLEX</em></strong><small>STREAMING HUB</small></span>
+      </button>
+      <nav className="home-sidebar__nav">
+        {groups.map((group) => <div className="home-sidebar__group" key={group.label}>
+          <span className="home-sidebar__group-label">{group.label}</span>
+          {group.items.map((item) => {
+            const active = item.href === "/" ? location === "/" : !item.href.startsWith("#") && location.startsWith(item.href.split("?")[0]);
+            return <button key={item.label} className={active ? "is-active" : ""} style={{ "--nav-accent": item.accent } as React.CSSProperties} onClick={() => go(item.href)}>
+              <span className="home-sidebar__nav-icon">{item.icon}</span>
+              <span className="home-sidebar__nav-copy"><b>{item.label}</b><small>{item.detail}</small></span>
+              {item.badge && <em>{item.badge}</em>}
+            </button>;
+          })}
+        </div>)}
+      </nav>
+      <div className="home-sidebar__bottom">
+        {!isMegaFan && <button className="home-sidebar__membership" onClick={() => navigate("/membership")}>
+          <span><Crown size={17} /></span><div><strong>Desbloquea MegaFan</strong><small>Sin límites · más control</small></div><ChevronRight size={15} />
+        </button>}
+        <button className="home-sidebar__profile" onClick={() => navigate(user ? "/settings" : "/membership")}>
+          <span>{user?.avatar_url ? <img src={user.avatar_url} alt="" /> : (user?.username?.[0] || "A").toUpperCase()}</span>
+          <div><strong>{user?.username || "Modo invitado"}</strong><small>{isMegaFan ? "Cuenta MegaFan" : user ? "Cuenta gratuita" : "Inicia sesión para sincronizar"}</small></div>
+          <ChevronRight size={14} />
+        </button>
+        <div className="home-sidebar__status"><i /> Catálogo sincronizado <span>LIVE</span></div>
+      </div>
     </aside>
   );
 }
-
 function WeeklyRanking({ items }: { items: AnimeResult[] }) {
   const [, navigate] = useLocation();
   return (
@@ -832,8 +864,12 @@ export default function Home() {
       <div className="home-workspace">
       <div className="home-main" style={{ paddingTop: 56 }}>
         <div className="home-dashboard-intro">
-          <div><span>Tu espacio personal</span><h1>¿Qué quieres ver hoy?</h1></div>
-          <button onClick={() => navigate("/search")}><Search size={17} /><span>Buscar anime, género o estudio...</span><kbd>Ctrl K</kbd></button>
+          <div className="home-dashboard-intro__copy">
+            <span><i /> Para ti · actualizado ahora</span>
+            <h1>Tu próxima historia empieza aquí.</h1>
+            <p>Una selección viva de estrenos, clásicos y mundos que vale la pena descubrir.</p>
+          </div>
+          <button className="home-command-search" onClick={() => navigate("/search")}><span className="home-command-search__icon"><Search size={17} /></span><span><b>Busca en AnimeFlex</b><small>Anime, género, estudio o personaje</small></span><kbd>CTRL K</kbd></button>
         </div>
         <div className="home-top-grid">
           {trendList.length > 0
@@ -850,13 +886,22 @@ export default function Home() {
 
         {/* Continue watching */}
         {cwItems.length > 0 && (
-          <SectionSurface>
+          <SectionSurface className="home-continue-section">
             <SectionHeader id="continue" title="▶ Continuar viendo" onSeeAll={() => navigate("/history")} />
-            <ScrollableCarousel scrollAmount={460}>
-              {cwItems.map((e) => (
-                <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} onRemove={() => removeProgress(e.episodeId)} />
-              ))}
-            </ScrollableCarousel>
+            <div className="home-continue-layout">
+              <div className="home-continue-rail">
+                <ScrollableCarousel scrollAmount={460}>
+                  {cwItems.map((e) => (
+                    <ContinueWatchingCard key={`cw-${e.episodeId}`} entry={e} onRemove={() => removeProgress(e.episodeId)} />
+                  ))}
+                </ScrollableCarousel>
+              </div>
+              <aside className="home-continue-summary">
+                <span><Play size={19} fill="currentColor" /></span>
+                <div><strong>Retoma justo donde lo dejaste</strong><small>Tu progreso se guarda automáticamente en este dispositivo.</small></div>
+                <button onClick={() => navigate("/history")} aria-label="Ver historial"><ChevronRight size={16} /></button>
+              </aside>
+            </div>
           </SectionSurface>
         )}
 
