@@ -238,7 +238,7 @@ export default function Navbar() {
           ) : (
             <>
               {/* Desktop nav links */}
-              <div style={{ alignItems: "center", gap: 2, flex: 1 }} className="hidden md:flex">
+              <div style={{ alignItems: "center", gap: 2, flex: 1 }} className="site-navbar__links hidden md:flex">
                 <NavBtn href="/" icon={<Home size={15} />} label="Inicio" active={isActive("/")} />
                 <NavBtn href="/manga" icon={<BookOpen size={15} />} label="Manga" active={isActive("/manga")} />
                 <NavBtn href="/noticias" icon={<Newspaper size={15} />} label="Noticias" active={isActive("/noticias")} />
@@ -291,7 +291,7 @@ export default function Navbar() {
               <div className="flex md:hidden" style={{ flex: 1 }} />
 
               {/* Right actions */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="site-navbar__actions" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {/* Aleatorio - desktop only */}
                 <button
                   onClick={handleRandom}
@@ -301,7 +301,7 @@ export default function Navbar() {
                     background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
                     color: "#fff", fontSize: 12, fontWeight: 500, cursor: "pointer",
                   }}
-                  className="hidden md:flex"
+                  className="site-navbar__random hidden md:flex"
                 >
                   <Shuffle size={14} /> Aleatorio
                 </button>
@@ -920,8 +920,9 @@ function NavBtn({
   active: boolean;
 }) {
   return (
-    <Link href={href} style={{ textDecoration: "none" }}>
+    <Link className="site-navbar__link" href={href} style={{ textDecoration: "none" }}>
       <div
+        className={`site-navbar__link-inner ${active ? "is-active" : ""}`}
         style={{
           display: "flex", alignItems: "center", gap: 5, padding: "6px 10px",
           borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
