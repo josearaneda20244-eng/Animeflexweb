@@ -2091,9 +2091,13 @@ router.get("/anime/sources", async (req, res) => {
         const sources = (stream.videoSources ?? [])
           .filter((s) => { if (!s?.url || seen.has(s.url)) return false; seen.add(s.url); return true; })
           .map((s) => {
-            const isM3U8 = s.type === "m3u8" || s.url.includes(".m3u8");
+            const isM3U8 = s.type === "m3u8" || /\.m3u8(?:$|[?#])/i.test(s.url);
+            const isMp4 = s.type === "mp4" || /\.mp4(?:$|[?#])/i.test(s.url);
             const referer = s.headers?.Referer || s.headers?.referer || "";
-            const isEmbed = s.type === "embed" || s.type === "iframe";
+            // Las fuentes "unknown" (mp4upload, voe, byselapuix, zilla…) son páginas de
+            // reproductor: la app las abre en un WebView y la web en un iframe. NO se
+            // pueden pasar por el proxy HLS ni reproducir en <video>.
+            const isEmbed = !isM3U8 && !isMp4;
             return {
               url: isEmbed
                 ? s.url
@@ -2102,6 +2106,7 @@ router.get("/anime/sources", async (req, res) => {
                   : s.url,
               quality: s.quality || "auto",
               isM3U8,
+              isMp4,
               isEmbed,
               server: s.server || s.label || "Servidor",
               referer: referer || undefined,

@@ -1429,6 +1429,29 @@ function EpisodePanel({
 }
 
 /* ── MAIN PLAYER ── */
+/**
+ * Las fuentes del motor (AnimeFLV/AnimeAV1/JKAnime) suelen ser PÁGINAS de reproductor
+ * (mp4upload, voe, byselapuix…), no videos. La app las abre en un WebView; aquí van en
+ * un iframe. Versiones anteriores del backend las envolvían en el proxy HLS, lo que hacía
+ * fallar todas las fuentes: aquí se detecta y se desenvuelve la URL original.
+ */
+function normalizeEngineSource<T extends { url: string; isM3U8?: boolean; quality?: string }>(src: T) {
+  let url = src.url;
+  let inner = url;
+  if (/\/anime\/hls-proxy\?/.test(url)) {
+    try { inner = new URL(url, "https://x.invalid").searchParams.get("url") || url; } catch { /* */ }
+  }
+  const declaredEmbed = (src as { isEmbed?: boolean }).isEmbed;
+  const looksM3u8 = /\.m3u8(?:$|[?#])/i.test(inner) || src.isM3U8 === true;
+  const looksMp4 = /\.mp4(?:$|[?#])/i.test(inner) || (src as { isMp4?: boolean }).isMp4 === true;
+  const isEmbed = declaredEmbed ?? (!looksM3u8 && !looksMp4);
+  if (isEmbed) url = inner;
+  return { ...src, url, isDub: false, provider: "sub", isM3U8: !isEmbed && looksM3u8, isEmbed };
+}
+function sourceRank(s: { isM3U8?: boolean; isEmbed?: boolean }) {
+  return s.isM3U8 ? 0 : s.isEmbed ? 2 : 1;
+}
+
 export default function Player() {
   const rawSearch = useSearch();
   const [, navigate] = useLocation();
@@ -1600,14 +1623,9 @@ export default function Player() {
 
   const animeflvSources = animeflvQuery.data
     ? (animeflvQuery.data.sources ?? [])
-        .map(s => ({
-          ...s,
-          isDub: false,
-          provider: "sub",
-          isM3U8: s.isM3U8 !== false,
-          isEmbed: (s as { isEmbed?: boolean }).isEmbed ?? (!s.isM3U8 && (s.quality ?? "").includes("[embed]"))
-        }))
-        .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
+        .map(s => normalizeEngineSource(s))
+        // Directos (HLS/MP4) primero; los reproductores web (iframe) como respaldo
+        .sort((a, b) => sourceRank(a) - sourceRank(b))
     : [];
 
   const streamSources = streamQuery.data
@@ -2005,7 +2023,7 @@ export default function Player() {
                     allowFullScreen
                     allow="autoplay; fullscreen; picture-in-picture"
                     referrerPolicy="origin"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                   />
                 ) : (
                   <video

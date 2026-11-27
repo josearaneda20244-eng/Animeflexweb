@@ -17,7 +17,7 @@ import ActiveDiscussions from "@/components/ActiveDiscussions";
 import NewsPreview from "@/components/NewsPreview";
 import MangaRecentBanner from "@/components/MangaRecentBanner";
 import { usePageMeta, SITE_NAME, SITE_URL } from "@/lib/usePageMeta";
-import { Rail, SectionHead, PosterCard, WideCard, PosterSkeletons, WideSkeletons, toScore10 } from "@/components/iz/ui";
+import { Rail, SectionHead, PosterCard, WideCard, PosterSkeletons, WideSkeletons, HeroBackdrop, toScore10 } from "@/components/iz/ui";
 
 const HERO_MS = 7000;
 const LANDING_URL = "https://anime-app-landing.vercel.app";
@@ -133,10 +133,7 @@ function Hero({ items }: { items: AnimeResult[] }) {
 
   return (
     <section className="iz-hero" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} aria-roledescription="carrusel" aria-label="Destacados">
-      <div className="iz-hero__bg" key={anime.id}>
-        {/* @ts-expect-error fetchpriority es un atributo HTML válido */}
-        <img src={anime.cover || anime.image} alt="" fetchpriority="high" decoding="async" />
-      </div>
+      <HeroBackdrop key={anime.id} banner={anime.cover} poster={anime.image} />
       <div className="iz-hero__grid" />
       <div className="iz-hero__content">
         <div className="iz-container">

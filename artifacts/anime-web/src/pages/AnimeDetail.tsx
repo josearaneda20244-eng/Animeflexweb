@@ -15,7 +15,7 @@ import CommentsSection from "@/components/CommentsSection";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageMeta, SITE_URL } from "@/lib/usePageMeta";
-import { Rail, SectionHead, PosterCard, EmptyState, toScore10 } from "@/components/iz/ui";
+import { Rail, SectionHead, PosterCard, EmptyState, HeroBackdrop, toScore10 } from "@/components/iz/ui";
 import { useAuth } from "@/context/AuthContext";
 import AdBanner from "@/components/AdBanner";
 
@@ -483,7 +483,7 @@ export default function AnimeDetail() {
 
       {/* ── Backdrop ── */}
       <section className="iz-hero" style={{ height: "clamp(380px, 58svh, 560px)" }}>
-        <div className="iz-hero__bg"><img src={cover || image} alt="" decoding="async" style={{ objectPosition: "center 25%", filter: cover ? undefined : "blur(18px) saturate(1.2)" }} /></div>
+        <HeroBackdrop banner={cover || undefined} poster={image || undefined} />
         <div className="iz-hero__grid" />
       </section>
 

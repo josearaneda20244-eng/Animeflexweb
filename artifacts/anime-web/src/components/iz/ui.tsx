@@ -201,3 +201,52 @@ export function toScore10(v?: number | null): number | null {
   if (v == null || !Number.isFinite(v) || v <= 0) return null;
   return v > 10 ? v / 10 : v;
 }
+
+/**
+ * Fondo del hero sin pixelado: los banners de AniList miden ~1900×400, así que
+ * estirarlos a pantalla completa los vuelve borrosos. Según la imagen real:
+ *  - "cover": la imagen es lo bastante grande → pantalla completa normal.
+ *  - "banner": se muestra a su tamaño nativo arriba (nítida) + fondo ambiental difuminado.
+ *  - "poster": imagen vertical → póster nítido a la derecha + ambiente difuminado.
+ * En móvil se prefiere el póster vertical, que encaja con la pantalla.
+ */
+export function HeroBackdrop({ banner, poster }: { banner?: string; poster?: string }) {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+  const [mode, setMode] = useState<"cover" | "banner" | "poster" | "pending">("pending");
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const on = () => setIsMobile(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+
+  const src = (isMobile ? poster || banner : banner || poster) ?? "";
+  useEffect(() => { setMode("pending"); }, [src]);
+
+  const onLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const box = boxRef.current?.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cw = (box?.width || window.innerWidth) * dpr;
+    const ch = (box?.height || window.innerHeight) * dpr;
+    if (!w || !h) { setMode("cover"); return; }
+    const ratio = w / h;
+    // Escala necesaria para cubrir la caja (object-fit: cover)
+    const scale = Math.max(cw / w, ch / h);
+    if (scale <= 1.35) setMode("cover");
+    else if (ratio < 1.2 && !isMobile) setMode("poster");
+    else if (isMobile) setMode("cover");
+    else setMode("banner");
+  };
+
+  if (!src) return null;
+  return (
+    <div ref={boxRef} className={`iz-hero__bg iz-hero__bg--${mode}`}>
+      {mode !== "cover" && mode !== "pending" && <img className="iz-hero__ambient" src={src} alt="" aria-hidden />}
+      <img className="iz-hero__main" src={src} alt="" decoding="async" onLoad={onLoad} />
+    </div>
+  );
+}

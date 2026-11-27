@@ -6,7 +6,7 @@ import { apiClient } from "@/lib/apiClient";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { usePageMeta, SITE_URL } from "@/lib/usePageMeta";
-import { EmptyState, toScore10 } from "@/components/iz/ui";
+import { EmptyState, HeroBackdrop, toScore10 } from "@/components/iz/ui";
 import { getMangaProgress, getReadChapters } from "@/lib/mangaProgress";
 
 interface ChapterInfo { id: string; title?: string; chapterNumber?: string | number; volumeNumber?: string | number; pages?: number; releaseDate?: string }
@@ -118,7 +118,7 @@ export default function MangaDetail() {
     <div className="iz-page iz-page--flush">
       <Navbar transparent />
       <section className="iz-hero" style={{ height: "clamp(340px, 50svh, 480px)" }}>
-        {bg && <div className="iz-hero__bg"><img src={bg} alt="" style={{ filter: manga.cover ? undefined : "blur(24px) saturate(1.3)", transform: manga.cover ? undefined : "scale(1.2)" }} /></div>}
+        {bg && <HeroBackdrop banner={manga.cover || undefined} poster={manga.image || undefined} />}
         <div className="iz-hero__grid" />
       </section>
 

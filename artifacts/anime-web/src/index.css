@@ -1222,7 +1222,18 @@ button:active { transform: scale(0.97); }
 /* ═══════════ HERO ═══════════ */
 .iz-hero { position: relative; height: clamp(520px, 86svh, 820px); overflow: hidden; isolation: isolate; background: #000; }
 .iz-hero__bg { position: absolute; inset: 0; z-index: -2; }
-.iz-hero__bg img { width: 100%; height: 100%; object-fit: cover; object-position: center 22%; animation: izKen 18s ease-out both; }
+.iz-hero__bg img { width: 100%; height: 100%; object-fit: cover; object-position: center 22%; }
+.iz-hero__bg .iz-hero__main { transition: opacity .5s; }
+.iz-hero__bg--pending .iz-hero__main { opacity: 0; }
+.iz-hero__bg--cover .iz-hero__main { animation: izKen 18s ease-out both; }
+/* Ambiente difuminado a propósito (no se nota la baja resolución) */
+.iz-hero__ambient { position: absolute; inset: -40px; width: calc(100% + 80px) !important; height: calc(100% + 80px) !important; object-fit: cover; filter: blur(48px) saturate(1.25) brightness(.55); transform: scale(1.1); }
+/* Banner a tamaño nativo, nítido, fundido hacia abajo */
+.iz-hero__bg--banner .iz-hero__main { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 2000px; height: auto; max-height: 82%; object-fit: cover; object-position: center top;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%); mask-image: linear-gradient(180deg, #000 55%, transparent 100%); }
+/* Solo póster: nítido a la derecha */
+.iz-hero__bg--poster .iz-hero__main { position: absolute; right: max(var(--iz-pad), calc((100vw - var(--iz-max)) / 2 + var(--iz-pad))); top: calc(var(--iz-nav-h) + 24px); width: auto; height: min(62%, 520px); aspect-ratio: auto; object-fit: contain; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.8); border: 1px solid rgba(255,255,255,.14); }
+@media (max-width: 1100px) { .iz-hero__bg--poster .iz-hero__main { display: none; } }
 .iz-hero__bg::after { content: ""; position: absolute; inset: 0; background:
   linear-gradient(0deg, #000 0%, rgba(0,0,0,.82) 22%, rgba(0,0,0,.25) 58%, rgba(0,0,0,.55) 100%),
   linear-gradient(90deg, rgba(0,0,0,.88) 0%, rgba(0,0,0,.45) 42%, transparent 72%); }
@@ -1244,7 +1255,7 @@ button:active { transform: scale(0.97); }
 .iz-hero__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .iz-hero__thumb:hover { opacity: .85; }
 .iz-hero__thumb.is-active { opacity: 1; border-color: #fff; transform: translateY(-6px); box-shadow: 0 10px 30px rgba(0,0,0,.6); }
-.iz-hero__progress { position: absolute; left: var(--iz-pad); right: var(--iz-pad); bottom: 64px; display: flex; gap: 6px; max-width: 280px; }
+.iz-hero__progress { position: absolute; left: max(var(--iz-pad), calc((100% - var(--iz-max)) / 2 + var(--iz-pad))); bottom: 64px; display: flex; gap: 6px; width: 240px; }
 .iz-hero__progress button { flex: 1; height: 3px; border: 0; padding: 0; border-radius: 3px; background: rgba(255,255,255,.2); cursor: pointer; overflow: hidden; }
 .iz-hero__progress button.is-active > i { display: block; height: 100%; background: #fff; animation: izBar var(--iz-hero-ms, 7s) linear both; }
 .iz-hero__progress button.is-done { background: rgba(255,255,255,.7); }
