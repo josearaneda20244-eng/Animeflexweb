@@ -1448,6 +1448,7 @@ function normalizeEngineSource<T extends { url: string; isM3U8?: boolean; qualit
   if (isEmbed) url = inner;
   return { ...src, url, isDub: false, provider: "sub", isM3U8: !isEmbed && looksM3u8, isEmbed };
 }
+const EMBED_HOST_RE = /(mp4upload|voe\.sx|byselapuix|zilla-networks|animeav1|streamwish|filemoon|ok\.ru|uqload|dsvplay|mega\.nz|lulu(vid|stream)|mxdrop|listeamed|yourupload|streamtape|vidhide|swhoi)/i;
 function sourceRank(s: { isM3U8?: boolean; isEmbed?: boolean }) {
   return s.isM3U8 ? 0 : s.isEmbed ? 2 : 1;
 }
@@ -1611,10 +1612,20 @@ export default function Player() {
     refetchOnWindowFocus: false,
   });
 
+  // El motor de la app es la fuente principal. Los proveedores antiguos (lentos)
+  // solo se consultan si el motor no dio ningún video directo, y con tiempo límite.
+  const engineHasDirect = !!animeflvQuery.data?.sources?.some(
+    (s) => !normalizeEngineSource(s).isEmbed,
+  );
+  const engineSettled = !shouldFetchAnimeFlv || animeflvQuery.isSuccess || animeflvQuery.isError;
   const streamQuery = useQuery({
     queryKey: ["stream", episodeId, animeTitle, episodeNum, animeId],
-    queryFn: () => consumet.streaming(episodeId, animeTitle || undefined, episodeNum || undefined, animeId || undefined),
-    enabled: !!episodeId && audio === "sub",
+    queryFn: () =>
+      Promise.race([
+        consumet.streaming(episodeId, animeTitle || undefined, episodeNum || undefined, animeId || undefined),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 20_000)),
+      ]),
+    enabled: !!episodeId && audio === "sub" && engineSettled && !engineHasDirect,
     retry: 1,
     staleTime: 1000 * 60 * 15,
     gcTime: 1000 * 60 * 30,
@@ -1630,14 +1641,19 @@ export default function Player() {
 
   const streamSources = streamQuery.data
     ? (streamQuery.data.sources ?? [])
-        .map(s => ({
-          ...s,
-          isDub: false,
-          provider: "sub",
-          isM3U8: s.isM3U8 !== false || (typeof s.url === "string" && (s.url.includes(".m3u8") || s.url.includes("hls-proxy"))),
-          isEmbed: false
-        }))
-        .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
+        .map(s => {
+          // Si es una página de reproductor conocida (aunque venga envuelta en el proxy) → iframe
+          const n = normalizeEngineSource(s);
+          if (n.isEmbed && EMBED_HOST_RE.test(n.url)) return n;
+          return {
+            ...s,
+            isDub: false,
+            provider: "sub",
+            isM3U8: s.isM3U8 !== false || (typeof s.url === "string" && (s.url.includes(".m3u8") || s.url.includes("hls-proxy"))),
+            isEmbed: false,
+          };
+        })
+        .sort((a, b) => sourceRank(a) - sourceRank(b))
     : [];
 
   // En modo latino solo se usan las fuentes del motor (las demás son subtituladas)
@@ -1648,8 +1664,10 @@ export default function Player() {
   const selected = sources[selectedIdx] ?? null;
   const selectedIsBackup = !!selected && ((selected as any).provider === "lat" || (selected as any).provider === "sub");
 
-  const isLoadingAny = (animeflvQuery.isLoading && streamQuery.isLoading) || (sources.length === 0 && (animeflvQuery.isLoading || streamQuery.isLoading));
-  const isErrorAll = animeflvQuery.isError && (audio === "lat" || streamQuery.isError) && sources.length === 0;
+  // Se reproduce apenas exista una fuente; no se espera a los proveedores lentos.
+  const streamEnabled = !!episodeId && audio === "sub" && engineSettled && !engineHasDirect;
+  const isLoadingAny = sources.length === 0 && (animeflvQuery.isLoading || (streamEnabled && streamQuery.isPending));
+  const isErrorAll = sources.length === 0 && (animeflvQuery.isError || !shouldFetchAnimeFlv) && (audio === "lat" || !episodeId || streamQuery.isError || (streamQuery.isSuccess && !streamQuery.data?.sources?.length));
 
   useEffect(() => { setSelectedIdx(0); setPlaybackFailureCount(0); }, [audio]);
 

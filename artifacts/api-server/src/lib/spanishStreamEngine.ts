@@ -1590,6 +1590,8 @@ export function normalizeAnimeflexStream(
 ): Onlinestream_EpisodeSource {
     const subtitleReferer = data.headers?.Referer ?? data.headers?.referer
     const subtitles: Onlinestream_Subtitle[] = (data.subtitles ?? []).map((subtitle, index) => ({
+        id: String(index),
+        lang: subtitle.lang ?? subtitle.language ?? "Unknown",
         url: buildAnimeflexSubtitleProxyUrl(subtitle.url, subtitleReferer),
         language: subtitle.lang ?? subtitle.language ?? "Unknown",
         isDefault: index === 0,
@@ -2704,6 +2706,7 @@ export async function getAnimeflexStream({
     animeTitles,
     signal,
     dubbed,
+    collectWindowMs = 4_000,
 }: {
     anilistId: string | number
     episodeNumber: number
@@ -2711,6 +2714,8 @@ export async function getAnimeflexStream({
     animeTitles?: string[]
     signal?: AbortSignal
     dubbed?: boolean
+    /** Tiempo extra para juntar servidores de respaldo tras la primera fuente válida */
+    collectWindowMs?: number
 }): Promise<Onlinestream_EpisodeSource> {
     const raceController = new AbortController()
     const abortFromCaller = () => raceController.abort(signal?.reason)
@@ -2868,7 +2873,7 @@ export async function getAnimeflexStream({
         // being stranded when the first URL expires or rejects the device.
         await Promise.any(trackedAttempts)
         const backupWindow = new Promise<void>(resolve => {
-            backupTimer = setTimeout(resolve, 4_000)
+            backupTimer = setTimeout(resolve, collectWindowMs)
         })
         await Promise.race([allSettled.then(() => undefined), backupWindow])
 

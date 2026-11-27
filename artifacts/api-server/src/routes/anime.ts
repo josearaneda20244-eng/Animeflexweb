@@ -1,7 +1,7 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
-import { getAnimeflexStream, ENGINE_HOP_HEADER } from "../lib/spanishStreamEngine.js";
+import { getAnimeflexStream, ENGINE_HOP_HEADER, extractMp4UploadDirectUrl, extractOkRuDirectStreams, extractLuluvidDirectHls } from "../lib/spanishStreamEngine.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -394,7 +394,8 @@ router.get("/anime/hls-proxy", async (req, res) => {
       res.set("Accept-Ranges", ar ?? "bytes");
       // Force video/MP2T: CDNs disguise HLS segments with fake extensions (.gif, .png, etc.)
       // HLS.js rejects segments with wrong MIME types, causing silent playback failure
-      res.set("Content-Type", "video/MP2T");
+      const isMp4 = /\.mp4(?:$|[?#])/i.test(targetUrl) || contentType.includes("mp4");
+      res.set("Content-Type", isMp4 ? "video/mp4" : "video/MP2T");
       res.status(upstream.status); // preserve 206 Partial Content for range requests
       const nodeStream = Readable.fromWeb(upstream.body as any);
       nodeStream.pipe(res);
@@ -2044,6 +2045,39 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
  *   dub=1 → español latino (doblaje). Sin dub → subtitulado en español.
  * Respuesta: { sources: [{ url, quality, isM3U8, server, referer }], subtitles, dub }
  */
+type DirectSource = { url: string; quality: string; isM3U8: boolean; isMp4: boolean; isEmbed: false; server: string; referer?: string };
+
+async function resolveDirectSources(embeds: Array<{ url: string; referer?: string; server: string }>): Promise<DirectSource[]> {
+  const proxied = (u: string, referer?: string) =>
+    `/api/anime/hls-proxy?url=${encodeURIComponent(u)}${referer ? `&referer=${encodeURIComponent(referer)}` : ""}`;
+  const tasks = embeds.slice(0, 8).map(async (e): Promise<DirectSource[]> => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5_000);
+    try {
+      const host = new URL(e.url).hostname;
+      if (host.includes("mp4upload.com")) {
+        const mp4 = await extractMp4UploadDirectUrl(e.url, ctrl.signal);
+        return mp4 ? [{ url: proxied(mp4, "https://www.mp4upload.com/"), quality: "1080p", isM3U8: false, isMp4: true, isEmbed: false, server: "Mp4Upload · Directo" }] : [];
+      }
+      if (host.includes("ok.ru") || host.includes("odnoklassniki")) {
+        const streams = await extractOkRuDirectStreams(e.url, ctrl.signal);
+        return streams.slice(0, 2).map((st) => ({ url: proxied(st.url, "https://ok.ru/"), quality: st.quality, isM3U8: false, isMp4: true, isEmbed: false as const, server: `OK.ru · ${st.quality}` }));
+      }
+      if (host.includes("luluvid") || host.includes("lulustream")) {
+        const hls = await extractLuluvidDirectHls(e.url, ctrl.signal);
+        return hls ? [{ url: proxied(hls, e.url), quality: "auto", isM3U8: true, isMp4: false, isEmbed: false, server: "Luluvid · HLS" }] : [];
+      }
+      return [];
+    } catch {
+      return [];
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+  const settled = await Promise.allSettled(tasks);
+  return settled.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+}
+
 type EngineCacheEntry = { at: number; data: unknown };
 const engineCache = new Map<string, EngineCacheEntry>();
 const engineInflight = new Map<string, Promise<unknown>>();
@@ -2086,6 +2120,7 @@ router.get("/anime/sources", async (req, res) => {
           animeTitle: title,
           animeTitles: [title, ...extraTitles],
           dubbed: dub,
+          collectWindowMs: 1_500,
         });
         const seen = new Set<string>();
         const sources = (stream.videoSources ?? [])
@@ -2113,6 +2148,12 @@ router.get("/anime/sources", async (req, res) => {
             };
           });
         if (sources.length === 0) throw new Error("no sources");
+
+        // Igual que la app: de los reproductores web (con anuncios) se extrae el video
+        // directo cuando se puede (Mp4Upload, OK.ru, Luluvid) → se reproduce en nuestro
+        // reproductor, sin anuncios. Los iframes quedan solo como respaldo.
+        const direct = await resolveDirectSources(sources.filter((s) => s.isEmbed).map((s) => ({ url: s.url, referer: s.referer, server: s.server })));
+        sources.unshift(...direct);
         const data = { sources, subtitles: (stream.videoSources ?? []).flatMap((s) => s.subtitles ?? []), dub, provider: "engine" };
         engineCache.set(key, { at: Date.now(), data });
         if (engineCache.size > ENGINE_CACHE_MAX) {
