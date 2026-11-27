@@ -291,7 +291,7 @@ export default function Navbar() {
               <div className="site-navbar__actions" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {/* Descargar App button */}
                 <a
-                  href="https://zerinho23.github.io/anime-app-landing/#descargas"
+                  href="https://anime-app-landing.vercel.app/#descargas"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
@@ -715,7 +715,7 @@ export default function Navbar() {
               </button>
 
               <a
-                href="https://zerinho23.github.io/anime-app-landing/#descargas"
+                href="https://anime-app-landing.vercel.app/#descargas"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

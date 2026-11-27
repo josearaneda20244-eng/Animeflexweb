@@ -20,7 +20,7 @@ const NAV_LINKS = [
   { label: "Películas", to: "/movies" },
   { label: "OVAs & ONAs", to: "/ovas" },
   { label: "Horario", to: "/schedule" },
-  { label: "Descargar Apps", to: "https://zerinho23.github.io/anime-app-landing/#descargas", external: true },
+  { label: "Descargar Apps", to: "https://anime-app-landing.vercel.app/#descargas", external: true },
   { label: "Buscar", to: "/search" },
   { label: "Favoritos", to: "/favorites" },
   { label: "Historial", to: "/history" },
