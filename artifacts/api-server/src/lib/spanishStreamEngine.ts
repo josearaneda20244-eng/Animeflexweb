@@ -1,3 +1,5 @@
+import { scrapeFetch } from "./scrapeRelay.js"
+
 export type Onlinestream_Subtitle = {
     id: string
     url: string
@@ -808,7 +810,7 @@ async function getExternalJson<T>(url: string, init: RequestInit = {}, signal?: 
     signal?.addEventListener("abort", abortFromCaller, { once: true })
 
     try {
-        const response = await fetch(url, { ...init, signal: controller.signal })
+        const response = await scrapeFetch(url, { ...init, signal: controller.signal })
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         return await response.json() as T
     } finally {
@@ -824,7 +826,7 @@ async function getExternalText(url: string, init: RequestInit = {}, signal?: Abo
     signal?.addEventListener("abort", abortFromCaller, { once: true })
 
     try {
-        const response = await fetch(url, { ...init, signal: controller.signal })
+        const response = await scrapeFetch(url, { ...init, signal: controller.signal })
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         return await response.text()
     } finally {

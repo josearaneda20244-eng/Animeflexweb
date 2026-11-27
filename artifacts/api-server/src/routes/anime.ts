@@ -3,6 +3,7 @@ import { createDecipheriv } from "crypto";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
 import { getAnimeflexStream, ENGINE_HOP_HEADER, providerStability, recordProviderPlayback, getProviderHealthSnapshot, PROVIDER_NAMES, extractMp4UploadDirectUrl, extractOkRuDirectStreams, extractLuluvidDirectHls } from "../lib/spanishStreamEngine.js";
 import { Readable } from "stream";
+import { probeProviders, relayConfig, getScrapeRouteStats } from "../lib/scrapeRelay.js";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import pool from "../db.js";
@@ -265,19 +266,25 @@ router.get("/anime/hls-proxy", async (req, res) => {
     return;
   }
 
+  // Express ya decodifica la query; solo se decodifica otra vez si sigue codificada
+  // (decodificar dos veces rompe tokens con %2B / %2F de algunos CDN).
+  const safeDecode = (v: string) => (/^https?%3A/i.test(v) ? decodeURIComponent(v) : v);
   let targetUrl: string;
   try {
-    targetUrl = decodeURIComponent(rawUrl);
+    targetUrl = safeDecode(rawUrl);
+    new URL(targetUrl);
   } catch {
     res.status(400).json({ error: "Invalid url" });
     return;
   }
+  res.set("Access-Control-Allow-Origin", "*");
 
   const rawKey = req.query.key as string | undefined;
   const seq = parseInt((req.query.seq as string) || "0", 10);
 
   const rawReferer = req.query.referer as string | undefined;
-  const proxyReferer = rawReferer ? decodeURIComponent(rawReferer) : undefined;
+  let proxyReferer: string | undefined;
+  try { proxyReferer = rawReferer ? safeDecode(rawReferer) : undefined; } catch { proxyReferer = rawReferer; }
   const proxyHeaders = buildProxyHeaders(proxyReferer);
 
   // Forward Range header so MP4 seeking works (browser sends Range for partial content)
@@ -285,25 +292,37 @@ router.get("/anime/hls-proxy", async (req, res) => {
   if (rangeHeader) proxyHeaders["Range"] = rangeHeader;
 
   try {
-    const upstream = await fetch(targetUrl, { headers: proxyHeaders });
+    // Si el CDN no responde en 20 s se corta: el reproductor pasa a otra fuente
+    // en vez de quedarse "Cargando..." indefinidamente.
+    const upstreamCtrl = new AbortController();
+    const upstreamTimer = setTimeout(() => upstreamCtrl.abort(), 20_000);
+    res.on("close", () => upstreamCtrl.abort());
+    let upstream: Awaited<ReturnType<typeof fetch>>;
+    try {
+      upstream = await fetch(targetUrl, { headers: proxyHeaders, signal: upstreamCtrl.signal });
+    } finally {
+      clearTimeout(upstreamTimer);
+    }
     if (!upstream.ok && upstream.status !== 206) {
+      res.set("Cache-Control", "no-store");
       res.status(upstream.status).send(`Upstream error: ${upstream.status}`);
       return;
     }
 
     const contentType = upstream.headers.get("content-type") ?? "";
+    const finalUrl = upstream.url || targetUrl;
     const isM3U8 =
-      targetUrl.includes(".m3u8") ||
+      /\.m3u8(?:$|[?#])/i.test(targetUrl) || targetUrl.includes(".m3u8") ||
       contentType.includes("mpegurl") ||
       contentType.includes("x-mpegURL");
 
-    res.set("Access-Control-Allow-Origin", "*");
     res.set("Cache-Control", "public, max-age=300");
 
     if (isM3U8) {
       res.set("Content-Type", "application/vnd.apple.mpegurl");
+      res.set("Cache-Control", "no-store");
       const text = await upstream.text();
-      const baseUrl = targetUrl.slice(0, targetUrl.lastIndexOf("/") + 1);
+      const resolve = (u: string) => { try { return new URL(u, finalUrl).href; } catch { return u; } };
 
       const clientBase = req.query.base as string | undefined;
       const selfBase = clientBase
@@ -335,19 +354,29 @@ router.get("/anime/hls-proxy", async (req, res) => {
 
           if (trimmed.startsWith("#EXT-X-KEY")) {
             const uriMatch = trimmed.match(/URI="([^"]+)"/);
-            if (uriMatch) {
-              currentKeyUrl = uriMatch[1].startsWith("http")
-                ? uriMatch[1]
-                : baseUrl + uriMatch[1];
+            const ivMatch = trimmed.match(/IV=(0x[0-9a-f]+)/i);
+            const method = trimmed.match(/METHOD=([A-Z0-9-]+)/i)?.[1] ?? "";
+            // Con IV explícito o un método que no sea AES-128 (o NONE), hls.js descifra:
+            // se deja la etiqueta con la clave pasada por el proxy.
+            if (uriMatch && (ivMatch || !/^AES-128$/i.test(method))) {
+              const keyProxied = `${selfBase}?url=${encodeURIComponent(resolve(uriMatch[1]))}${proxyReferer ? `&referer=${encodeURIComponent(proxyReferer)}` : ""}`;
+              return trimmed.replace(uriMatch[0], `URI="${keyProxied}"`);
             }
+            currentKeyUrl = uriMatch ? resolve(uriMatch[1]) : "";
             return "";
           }
 
-          if (trimmed.startsWith("#")) return line;
+          if (trimmed.startsWith("#")) {
+            // Pistas de audio/subtítulos, segmento de inicio (fMP4) e iframes también
+            // deben pasar por el proxy, o el navegador las bloquea (CORS / Referer).
+            return line.replace(/URI="([^"]+)"/g, (_m, u: string) => {
+              let proxied = `${selfBase}?url=${encodeURIComponent(resolve(u))}`;
+              if (proxyReferer) proxied += `&referer=${encodeURIComponent(proxyReferer)}`;
+              return `URI="${proxied}"`;
+            });
+          }
 
-          const absSegUrl = trimmed.startsWith("http")
-            ? trimmed
-            : baseUrl + trimmed;
+          const absSegUrl = resolve(trimmed);
           const segSeq = mediaSeq + segCount;
           segCount++;
 
@@ -402,7 +431,8 @@ router.get("/anime/hls-proxy", async (req, res) => {
     }
   } catch (err) {
     if (!res.headersSent) {
-      res.status(500).json({ error: "Proxy failed" });
+      res.set("Cache-Control", "no-store");
+      res.status(504).json({ error: "Proxy failed" });
     }
   }
 });
@@ -2184,17 +2214,42 @@ function rankByStability(data: unknown) {
 }
 
 // El reproductor informa si un servidor reprodujo o falló → aprende cuál es el más estable
+/** Últimos fallos de reproducción reportados por los navegadores (diagnóstico). */
+const recentPlaybackFailures: Array<{ at: string; provider: string; server: string; reason: string }> = [];
 router.post("/anime/source-report", (req, res) => {
   const provider = String(req.body?.provider ?? "");
   const ok = req.body?.ok === true;
   if (PROVIDER_NAMES.includes(provider)) recordProviderPlayback(provider, ok);
+  if (!ok) {
+    recentPlaybackFailures.unshift({
+      at: new Date().toISOString(),
+      provider: provider.slice(0, 40),
+      server: String(req.body?.server ?? "").slice(0, 80),
+      reason: String(req.body?.reason ?? "").slice(0, 160),
+    });
+    recentPlaybackFailures.length = Math.min(recentPlaybackFailures.length, 40);
+  }
   res.status(204).end();
 });
 
 // Estado de los proveedores (los mismos de la app), ordenados por estabilidad
+let probeCache: { at: number; data: unknown } | null = null;
+/** Diagnóstico: ¿qué proveedores bloquean la IP del servidor? (cache 60 s) */
+router.get("/anime/providers-probe", async (_req, res) => {
+  try {
+    if (!probeCache || Date.now() - probeCache.at > 60_000) {
+      probeCache = { at: Date.now(), data: await probeProviders() };
+    }
+    res.set("Cache-Control", "no-store");
+    res.json({ checkedAt: new Date(probeCache.at).toISOString(), routes: relayConfig(), stats: getScrapeRouteStats(), providers: probeCache.data });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "probe failed" });
+  }
+});
+
 router.get("/anime/providers-status", (_req, res) => {
   res.set("Cache-Control", "no-store");
-  res.json({ providers: getProviderHealthSnapshot() });
+  res.json({ providers: getProviderHealthSnapshot(), recentFailures: recentPlaybackFailures });
 });
 
 router.get("/anime/sources", async (req, res) => {
@@ -2212,8 +2267,11 @@ router.get("/anime/sources", async (req, res) => {
   }
 
   const key = `${animeId || title.toLowerCase()}:${episode}:${dub ? "lat" : "sub"}`;
+  // fresh=… → el reproductor pide enlaces nuevos tras fallar (tokens caducados)
+  const fresh = Boolean(req.query.fresh);
+  if (fresh) engineCache.delete(key);
   const hit = engineCache.get(key);
-  if (hit && Date.now() - hit.at < ENGINE_CACHE_MS) {
+  if (!fresh && hit && Date.now() - hit.at < ENGINE_CACHE_MS) {
     res.setHeader("X-Cache", "HIT");
     res.json(rankByStability(hit.data));
     return;

@@ -25,6 +25,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
 import { useSkipTimes } from "@/lib/aniskip";
 import { usePageMeta } from "@/lib/usePageMeta";
+import { recordSourceHealth, sortSourcesByHealth } from "@/lib/sourceHealth";
 import {
   canWatchEpisodeSync,
   registerEpisodeView,
@@ -465,7 +466,7 @@ interface PlyrPlayerProps {
   activeHlsSubId?: number;
   onSubtitleCue?: (text: string | null) => void;
   controlsRef?: React.MutableRefObject<PlyrControls | null>;
-  onPlaybackError?: () => void;
+  onPlaybackError?: (reason?: string) => void;
   onFullscreenChange?: (isFs: boolean) => void;
   /** Hay otros servidores a los que cambiar si este va lento */
   hasAlternatives?: boolean;
@@ -740,7 +741,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
 
     let loadTimeout: ReturnType<typeof setTimeout> | null = null;
     let errSent = false;
-    const notifyErr = () => { if (errSent) return; errSent = true; onPlaybackErrorRef.current?.(); };
+    const notifyErr = (reason?: string) => { if (errSent) return; errSent = true; onPlaybackErrorRef.current?.(reason); };
 
     const onTimeUpd = () => {
       if (video.duration > 0) {
@@ -777,7 +778,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
       if (video.buffered.length && video.duration)
         setBufferedFrac(video.buffered.end(video.buffered.length - 1) / video.duration);
     };
-    const onNativeErr = () => { setError("Error al cargar fuente. Probando otra..."); setLoading(false); notifyErr(); };
+    const onNativeErr = () => { setError("Error al cargar fuente. Probando otra..."); setLoading(false); notifyErr(`native:${video.error?.code ?? "?"}`); };
     const onMeta = () => trySeek();
 
     // Seeking/buffering handlers — keep the UI responsive during HLS segment loads
@@ -798,7 +799,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
       waitStart = Date.now();
       if (stuckTimer) clearTimeout(stuckTimer);
       stuckTimer = setTimeout(() => {
-        if (hasAltRef.current && !video.paused && video.readyState < 3) { setError("Servidor lento. Cambiando de servidor..."); notifyErr(); }
+        if (hasAltRef.current && !video.paused && video.readyState < 3) { setError("Servidor lento. Cambiando de servidor..."); notifyErr("stall:25s"); }
       }, 25_000);
     };
     const onPlayingEv = () => {
@@ -809,7 +810,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
         waitStart = 0;
         const now = Date.now();
         if (waited > 6_000) longStalls = [...longStalls.filter((t) => now - t < 120_000), now];
-        if (longStalls.length >= 3 && hasAltRef.current) { longStalls = []; setError("Servidor lento. Cambiando de servidor..."); notifyErr(); }
+        if (longStalls.length >= 3 && hasAltRef.current) { longStalls = []; setError("Servidor lento. Cambiando de servidor..."); notifyErr("stall:repeated"); }
       }
     };
 
@@ -845,9 +846,14 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
         const tracks = (data.subtitleTracks ?? []).map(t => ({ id: t.id, lang: t.lang ?? t.name ?? "", name: t.name ?? t.lang ?? "" }));
         if (tracks.length > 0) onSubtitleTracksRef.current?.(tracks);
       });
-      loadTimeout = setTimeout(() => { setError("Tiempo agotado. Probando otra fuente..."); setLoading(false); notifyErr(); }, 20000);
+      loadTimeout = setTimeout(() => { setError("Tiempo agotado. Probando otra fuente..."); setLoading(false); notifyErr("timeout:manifest"); }, 20000);
       hls.on(Hls.Events.MANIFEST_PARSED, (_e, data) => {
         if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
+        // Si en 15 s no llegó video suficiente para mostrar imagen, la fuente no arranca:
+        // se pasa a la siguiente en vez de quedarse "Cargando..." para siempre.
+        loadTimeout = setTimeout(() => {
+          if (video.readyState < 2 && !errSent) { setError("Esta fuente no arranca. Probando otra..."); setLoading(false); notifyErr("timeout:start"); }
+        }, 15000);
         const lv = (data.levels ?? [])
           .map((l, index) => ({ index, height: l.height || 0, bitrate: l.bitrate || 0 }))
           .filter((l) => l.height > 0);
@@ -873,15 +879,16 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
       hls.on(Hls.Events.FRAG_LOADED, () => { netErr = 0; });
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (!data.fatal) return;
+        const errDetail = `${data.details}${(data as { response?: { code?: number } }).response?.code ? `:${(data as { response?: { code?: number } }).response?.code}` : ""}`;
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           netErr++;
-          if (netErr > 4) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de red. Probando otra..."); setLoading(false); notifyErr(); }
+          if (netErr > 4 || (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR && netErr > 1)) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de red. Probando otra..."); setLoading(false); notifyErr(`net:${errDetail}`); }
           else setTimeout(() => hls.startLoad(), 1500);
         } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
           mediaErr++;
-          if (mediaErr > 5) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de medios. Probando otra..."); setLoading(false); notifyErr(); }
+          if (mediaErr > 5) { if (loadTimeout) clearTimeout(loadTimeout); setError("Error de medios. Probando otra..."); setLoading(false); notifyErr(`media:${errDetail}`); }
           else { const st = video.currentTime; hls.recoverMediaError(); setTimeout(() => { if (st > 5) video.currentTime = st; }, 300); }
-        } else { if (loadTimeout) clearTimeout(loadTimeout); setError("Error en esta fuente. Probando otra..."); setLoading(false); notifyErr(); }
+        } else { if (loadTimeout) clearTimeout(loadTimeout); setError("Error en esta fuente. Probando otra..."); setLoading(false); notifyErr(`other:${errDetail}`); }
       });
 
       // Detección de video trabado: si lleva 8s sin avanzar y no está pausado, recuperar
@@ -1636,12 +1643,15 @@ export default function Player() {
 
   // Motor unificado (el mismo de la app): /anime/sources. Si el backend aún no
   // tiene ese endpoint, cae al anterior /anime/animeflv-watch.
+  const freshSourcesRef = useRef(false);
   const animeflvQuery = useQuery({
     queryKey: ["engine-sources", animeId, episodeNum, animeTitle, audio],
     queryFn: async () => {
       const ep = parseInt(episodeNum || "1");
       try {
-        return await consumet.sources(animeId, ep, animeTitle, audio === "lat");
+        const fresh = freshSourcesRef.current;
+        freshSourcesRef.current = false;
+        return await consumet.sources(animeId, ep, animeTitle, audio === "lat", fresh);
       } catch (err) {
         if (audio === "lat") throw err;
         return consumet.animeflvWatch(animeTitle, ep, animeId || undefined);
@@ -1701,7 +1711,11 @@ export default function Player() {
     : [];
 
   // En modo latino solo se usan las fuentes del motor (las demás son subtituladas)
-  const sources = audio === "lat" ? animeflvSources : [...animeflvSources, ...streamSources];
+  // Siempre primero el servidor más estable (lo que ha funcionado en este navegador).
+  // El orden se fija al llegar las fuentes, para que no cambie mientras se reproduce.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const unsortedSources = audio === "lat" ? animeflvSources : [...animeflvSources, ...streamSources];
+  const sources: typeof unsortedSources = useMemo(() => sortSourcesByHealth(unsortedSources), [animeflvQuery.data, streamQuery.data, audio]);
   const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
   const streamHeaders = (streamQuery.data as any)?.headers ?? {};
   const latReferer = animeflvHeaders["Referer"] ?? animeflvHeaders["referer"];
@@ -1758,19 +1772,34 @@ export default function Player() {
 
   const allSourcesFailed = sources.length > 0 && playbackFailureCount >= sources.length;
 
+  // Si fallan todas, se piden enlaces nuevos al servidor una vez (los tokens de
+  // VOE/Zilla caducan o cambian de nodo) antes de mostrar el error.
+  const autoRetriedRef = useRef("");
+  useEffect(() => {
+    if (!allSourcesFailed) return;
+    const key = `${episodeId}|${audio}`;
+    if (autoRetriedRef.current === key) return;
+    autoRetriedRef.current = key;
+    freshSourcesRef.current = true;
+    animeflvQuery.refetch().then(() => { setPlaybackFailureCount(0); setSelectedIdx(0); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allSourcesFailed, episodeId, audio]);
+
   // Informa al servidor qué proveedor reproduce bien o falla → el más estable queda primero
   const reportedRef = useRef<string>("");
-  const reportSource = useCallback((ok: boolean) => {
+  const reportSource = useCallback((ok: boolean, reason?: string) => {
     const origin = (selected as { origin?: string } | null)?.origin;
-    if (!origin) return;
     const key = `${episodeId}|${selectedIdx}|${ok}`;
     if (reportedRef.current === key) return;
     reportedRef.current = key;
-    consumet.reportSource(origin, ok);
+    const server = (selected as { server?: string } | null)?.server;
+    recordSourceHealth(server, ok);
+    if (!origin) return;
+    consumet.reportSource(origin, ok, { server, reason });
   }, [selected, episodeId, selectedIdx]);
 
-  const handlePlaybackError = useCallback(() => {
-    reportSource(false);
+  const handlePlaybackError = useCallback((reason?: string) => {
+    reportSource(false, reason);
     setPlaybackFailureCount((count) => count + 1);
     setSelectedIdx((idx) => (idx + 1 < sources.length ? idx + 1 : idx));
   }, [sources.length, reportSource]);
@@ -2082,7 +2111,7 @@ export default function Player() {
                 <div style={{ fontSize: 16, fontWeight: 600 }}>No se pudo reproducir en ningún servidor</div>
                 <div style={{ color: "#a1a1aa", fontSize: 13, maxWidth: 380 }}>Probamos {sources.length} {sources.length === 1 ? "fuente" : "fuentes"}. Puede ser un corte temporal del proveedor.</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                  <button type="button" className="iz-btn iz-btn--primary iz-btn--sm" onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); streamQuery.refetch(); }}>Reintentar</button>
+                  <button type="button" className="iz-btn iz-btn--primary iz-btn--sm" onClick={() => { freshSourcesRef.current = true; setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); streamQuery.refetch(); }}>Reintentar</button>
                   {sources.map((src, i) => (
                     <button key={i} type="button" className="iz-btn iz-btn--ghost iz-btn--sm" onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(i); }}>{parseLatLabel(src, i)}</button>
                   ))}

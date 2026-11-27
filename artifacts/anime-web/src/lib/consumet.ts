@@ -184,12 +184,12 @@ export const consumet = {
   info: (id: string): Promise<AnimeInfo> => get<AnimeInfo>(`/anime/info?id=${encodeURIComponent(id)}`),
   anilistInfo: (id: string): Promise<AnimeInfo> => get<AnimeInfo>(`/anime/anilist-info?id=${encodeURIComponent(id)}`),
   /** Informa si un servidor de un proveedor reprodujo bien o falló */
-  reportSource: (provider: string, ok: boolean) => {
+  reportSource: (provider: string, ok: boolean, extra?: { server?: string; reason?: string }) => {
     try {
       fetch(`${BASE_URL}/anime/source-report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, ok }),
+        body: JSON.stringify({ provider, ok, server: extra?.server, reason: extra?.reason }),
         keepalive: true,
       }).catch(() => {});
     } catch { /* */ }
@@ -220,9 +220,9 @@ export const consumet = {
   byFormat: (format: "MOVIE" | "OVA" | "ONA" | "SPECIAL", page = 1): Promise<SearchResult> =>
     get<SearchResult>(`/anime/by-format?format=${format}&page=${page}`),
   /** Mismo motor de fuentes que la app (AnimeFLV, JKAnime, AnimeAV1, Anipub, TioAnime, AnimeFenix, LatAnime). */
-  sources: (animeId: string, episode: number, title: string, dub = false): Promise<EngineSourcesResponse> =>
+  sources: (animeId: string, episode: number, title: string, dub = false, fresh = false): Promise<EngineSourcesResponse> =>
     get<EngineSourcesResponse>(
-      `/anime/sources?animeId=${encodeURIComponent(animeId)}&episode=${episode}&title=${encodeURIComponent(title)}${dub ? "&dub=1" : ""}`,
+      `/anime/sources?animeId=${encodeURIComponent(animeId)}&episode=${episode}&title=${encodeURIComponent(title)}${dub ? "&dub=1" : ""}${fresh ? `&fresh=${Date.now()}` : ""}`,
       true,
     ),
 };
