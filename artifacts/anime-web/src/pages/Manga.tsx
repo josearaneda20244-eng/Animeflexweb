@@ -1,31 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Search, BookOpen, TrendingUp, Clock, ChevronLeft, ChevronRight, Star, X, Loader2 } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, RefreshCw, BookOpen } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { SystemTag, MagicCircle } from "@/components/SystemUI";
-
+import { usePageMeta } from "@/lib/usePageMeta";
+import { PosterCard, PosterSkeletons, EmptyState, Rail, SectionHead, WideCard, toScore10 } from "@/components/iz/ui";
+import { getAllMangaProgress, removeMangaProgress, type MangaProgress } from "@/lib/mangaProgress";
 
 interface MangaResult {
   id: string;
   title: string | { english?: string; romaji?: string; userPreferred?: string; native?: string };
   image?: string;
   cover?: string;
-  description?: string;
   status?: string;
   genres?: string[];
   rating?: number;
-  volumes?: number;
   chapters?: number;
 }
-
-interface MangaListResponse {
-  results: MangaResult[];
-  hasNextPage?: boolean;
-  currentPage?: number;
-}
+interface MangaListResponse { results: MangaResult[]; hasNextPage?: boolean; currentPage?: number }
 
 function resolveTitle(title: MangaResult["title"]): string {
   if (!title) return "Sin título";
@@ -33,303 +27,115 @@ function resolveTitle(title: MangaResult["title"]): string {
   return title.english || title.romaji || title.userPreferred || title.native || "Sin título";
 }
 
-function MangaCard({ manga, onClick }: { manga: MangaResult; onClick: () => void }) {
-  const [imgError, setImgError] = useState(false);
-  const title = resolveTitle(manga.title);
-  return (
-    <div className="sys-card" onClick={onClick}>
-      <div className="sys-card-img-wrap">
-        {!imgError && manga.image ? (
-          <img src={manga.image} alt={title} onError={() => setImgError(true)} loading="lazy" />
-        ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#1a0b0b,#2a0808)" }}>
-            <BookOpen size={40} color="rgba(255,255,255,0.15)" />
-          </div>
-        )}
-        <span className="corner tl" />
-        <span className="corner tr" />
-        <span className="corner bl" />
-        <span className="corner br" />
-        {manga.status && (
-          <div className={`sys-tag ${manga.status === "Completed" ? "success" : ""}`}>
-            {manga.status === "Completed" ? "■ Completo" : manga.status === "Ongoing" ? "▶ En curso" : manga.status}
-          </div>
-        )}
-        {manga.rating != null && manga.rating > 0 && (
-          <div className="sys-tag gold" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <Star size={9} fill="#FCD34D" /> {(manga.rating / 10).toFixed(1)}
-          </div>
-        )}
-      </div>
-      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 6, position: "relative", zIndex: 2 }}>
-        <div style={{ color: "#c7d2fe", fontSize: 13, fontWeight: 800, lineHeight: 1.3, letterSpacing: 0.2 }} className="line-clamp-2">{title}</div>
-        {manga.genres && manga.genres.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {manga.genres.slice(0, 2).map(g => (
-              <span key={g} style={{
-                background: "rgba(63,46,178,0.18)",
-                color: "#a5b4fc",
-                fontSize: 9.5,
-                fontWeight: 700,
-                padding: "2px 7px",
-                letterSpacing: 0.5,
-                textTransform: "uppercase",
-                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                border: "1px solid rgba(63,46,178,0.3)",
-                }}>{g}</span>
-            ))}
-          </div>
-        )}
-        {manga.chapters != null && (
-          <div style={{ color: "rgba(165,180,252,0.65)", fontSize: 10.5, marginTop: 2, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1 }}>
-            ✦ {manga.chapters} CAPS
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => { const t = window.setTimeout(() => setV(value), ms); return () => window.clearTimeout(t); }, [value, ms]);
+  return v;
 }
 
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
-
-const TABS = [
-  { id: "trending", label: "Populares", icon: <TrendingUp size={13} /> },
-  { id: "recent", label: "Recientes", icon: <Clock size={13} /> },
-];
+const STATUS_ES: Record<string, string> = { Ongoing: "EN CURSO", Completed: "COMPLETO", Hiatus: "PAUSA", Cancelled: "CANCELADO" };
 
 export default function Manga() {
   const [, navigate] = useLocation();
   const [tab, setTab] = useState<"trending" | "recent">("trending");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const debouncedQuery = useDebounce(query, 400);
-  const isSearching = debouncedQuery.trim().length >= 2;
+  const [reading, setReading] = useState<MangaProgress[]>(() => getAllMangaProgress());
+  const debounced = useDebounced(query.trim(), 400);
+  const isSearching = debounced.length >= 2;
 
-  const trendingQuery = useQuery<MangaListResponse>({
-    queryKey: ["manga", "trending", page],
-    queryFn: () => apiClient.get<MangaListResponse>(`/manga/trending?page=${page}`),
-    enabled: !isSearching && tab === "trending",
+  usePageMeta({ title: "Manga online en español HD", description: "Lee manga, manhwa y manhua online en HD y en español. Modo webtoon, capítulos al día y tu progreso guardado." });
+
+  useEffect(() => { setPage(1); }, [tab, debounced]);
+
+  const endpoint = isSearching ? `/manga/search?q=${encodeURIComponent(debounced)}&page=${page}` : `/manga/${tab}?page=${page}`;
+  const list = useQuery<MangaListResponse>({
+    queryKey: ["manga", isSearching ? "search" : tab, debounced, page],
+    queryFn: () => apiClient.get<MangaListResponse>(endpoint),
     staleTime: 1000 * 60 * 5,
+    placeholderData: (prev) => prev,
+    retry: 1,
   });
 
-  const recentQuery = useQuery<MangaListResponse>({
-    queryKey: ["manga", "recent", page],
-    queryFn: () => apiClient.get<MangaListResponse>(`/manga/recent?page=${page}`),
-    enabled: !isSearching && tab === "recent",
-    staleTime: 1000 * 60 * 5,
+  const mangas = list.data?.results ?? [];
+  const hasNext = list.data?.hasNextPage ?? false;
+  const loadingFresh = list.isLoading || (list.isFetching && list.isPlaceholderData);
+
+  const toPoster = (m: MangaResult) => ({
+    id: m.id,
+    title: resolveTitle(m.title),
+    image: m.image ?? "",
+    href: `/manga/${m.id}`,
+    score: toScore10(m.rating),
+    badge: m.status ? STATUS_ES[m.status] ?? m.status.toUpperCase() : undefined,
+    accentBadge: m.status === "Ongoing",
+    meta: [m.chapters != null ? `${m.chapters} caps` : null, m.genres?.slice(0, 2).join(" · ")].filter(Boolean).join(" · ") || undefined,
   });
 
-  const searchQuery = useQuery<MangaListResponse>({
-    queryKey: ["manga", "search", debouncedQuery, page],
-    queryFn: () => apiClient.get<MangaListResponse>(`/manga/search?q=${encodeURIComponent(debouncedQuery)}&page=${page}`),
-    enabled: isSearching,
-    staleTime: 1000 * 60 * 2,
-  });
-
-  const active = isSearching ? searchQuery : (tab === "trending" ? trendingQuery : recentQuery);
-  const mangas: MangaResult[] = active.data?.results ?? [];
-  const hasNextPage = active.data?.hasNextPage ?? false;
-
-  useEffect(() => { setPage(1); }, [tab, debouncedQuery]);
+  const changePage = (n: number) => { setPage(n); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const headline = useMemo(() => (isSearching ? <>Resultados para <span className="iz-serif">“{debounced}”</span></> : <>Manga <span className="iz-serif">al día</span></>), [isSearching, debounced]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#04030a", display: "flex", flexDirection: "column", position: "relative" }}>
+    <div className="iz-page">
       <Navbar />
+      <main className="iz-container">
+        <header className="iz-pagehead">
+          <div className="iz-head__eyebrow"><BookOpen size={13} /> Lector HD · Webtoon</div>
+          <h1>{headline}</h1>
+          <p>Manga, manhwa y manhua en español. Tu último capítulo se guarda automáticamente.</p>
+        </header>
 
-      {/* HERO HEADER WITH MAGIC CIRCLE */}
-      <div style={{
-        position: "relative",
-        borderBottom: "1px solid rgba(63,46,178,0.25)",
-        padding: "calc(56px + 48px) 24px 48px",
-        textAlign: "center",
-        overflow: "hidden",
-        background:
-          "radial-gradient(ellipse at center, rgba(63,46,178,0.18), transparent 60%), linear-gradient(180deg, #0a0307, #04030a)",
-      }}>
-        {/* Magic circle behind title */}
-        <div style={{ position: "absolute", left: "50%", top: 60, transform: "translateX(-50%)", opacity: 0.55 }}>
-          <MagicCircle size={320} color="#3f2eb2" opacity={0.55} />
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ position: "relative", flex: "1 1 300px", maxWidth: 520 }}>
+            <Search size={17} color="#71717a" style={{ position: "absolute", left: 14, top: 13 }} />
+            <input className="iz-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Busca un manga…" style={{ paddingLeft: 42, paddingRight: 40 }} aria-label="Buscar manga" />
+            {query && <button type="button" onClick={() => setQuery("")} aria-label="Limpiar" style={{ position: "absolute", right: 10, top: 10, background: "none", border: 0, color: "#a1a1aa", cursor: "pointer" }}><X size={18} /></button>}
+          </div>
+          {!isSearching && (
+            <>
+              <button type="button" className={`iz-chip ${tab === "trending" ? "is-active" : ""}`} onClick={() => setTab("trending")}>Populares</button>
+              <button type="button" className={`iz-chip ${tab === "recent" ? "is-active" : ""}`} onClick={() => setTab("recent")}>Recientes</button>
+            </>
+          )}
         </div>
-        {/* Hex grid */}
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage:
-            "linear-gradient(rgba(63,46,178,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.06) 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 70%)",
-          WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
 
-        <div style={{ position: "relative", zIndex: 2, maxWidth: 720, margin: "0 auto" }}>
-          <div style={{ marginBottom: 18 }}>
-            <SystemTag color="#6366f1">[ SYSTEM ] BIBLIOTECA DE MANGA</SystemTag>
-          </div>
-          <h1 className="sys-title" style={{ fontSize: 44, marginBottom: 16 }}>
-            MANGA
-          </h1>
-          <p style={{
-            color: "rgba(165,180,252,0.75)",
-            fontSize: 14,
-            margin: "20px 0 28px",
-            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-            letterSpacing: 1.5,
-          }}>
-            ▸ ACCESO CONCEDIDO — LEE LOS MEJORES TÍTULOS EN ANIMEFLEX
-          </p>
-
-          {/* SYSTEM SEARCH */}
-          <div style={{ position: "relative", maxWidth: 540, margin: "0 auto" }}>
-            <Search size={16} color="#6366f1" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", zIndex: 2, filter: "drop-shadow(0 0 4px #6366f1)" }} />
-            <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="BUSCAR EN LA BIBLIOTECA..."
-              className="sys-input"
-              style={{ paddingLeft: 44, letterSpacing: 1.5, fontSize: 13, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
-            />
-            {query && (
-              <button
-                onClick={() => setQuery("")}
-                style={{
-                  position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
-                  background: "rgba(63,46,178,0.2)", border: "1px solid rgba(63,46,178,0.4)",
-                  width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", color: "#a5b4fc", zIndex: 2,
-                  }}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 1280, margin: "0 auto", width: "100%", padding: "32px 20px 60px", flex: 1, position: "relative", zIndex: 1 }}>
-        {/* TABS — system style */}
-        {!isSearching && (
-          <div style={{ display: "flex", gap: 10, marginBottom: 28, flexWrap: "wrap" }}>
-            {TABS.map(t => {
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id as any)}
-                  className={`sys-btn ${active ? "primary" : ""}`}
-                  style={{ padding: "9px 20px" }}
-                >
-                  {t.icon} {t.label}
-                </button>
-              );
-            })}
-          </div>
+        {!isSearching && reading.length > 0 && page === 1 && (
+          <section className="iz-section" style={{ marginTop: 28 }}>
+            <SectionHead eyebrow="Tu progreso" title="Continuar" serif="leyendo" />
+            <Rail label="Continuar leyendo">
+              {reading.slice(0, 12).map((r) => (
+                <WideCard key={r.mangaId} title={r.mangaTitle} image={r.mangaImage ?? ""}
+                  meta={r.chapterNumber != null ? `Capítulo ${r.chapterNumber}` : "Continuar"}
+                  right={r.totalPages ? `pág. ${r.page + 1}/${r.totalPages}` : undefined}
+                  progress={r.totalPages ? (r.page + 1) / r.totalPages : undefined}
+                  onRemove={() => { removeMangaProgress(r.mangaId); setReading(getAllMangaProgress()); }}
+                  onClick={() => navigate(`/manga/${r.mangaId}/leer/${r.chapterId}`)} />
+              ))}
+            </Rail>
+          </section>
         )}
 
-        {isSearching && (
-          <div style={{
-            marginBottom: 24,
-            color: "#a5b4fc",
-            fontSize: 12,
-            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-            letterSpacing: 1.5,
-            display: "flex", alignItems: "center", gap: 10,
-          }}>
-            <span style={{ width: 8, height: 8, background: "#6366f1", boxShadow: "0 0 10px #6366f1" }} />
-            {searchQuery.isFetching ? "ESCANEANDO..." : `${mangas.length} RESULTADOS · "${debouncedQuery}"`}
-          </div>
-        )}
+        <section className="iz-section" style={{ marginTop: 28 }}>
+          {loadingFresh ? (
+            <div className="iz-grid"><PosterSkeletons count={18} /></div>
+          ) : list.isError && mangas.length === 0 ? (
+            <EmptyState title="No pudimos cargar los mangas" text="El servidor de manga no respondió. Inténtalo en unos segundos."
+              action={<button type="button" className="iz-btn iz-btn--primary" onClick={() => list.refetch()}><RefreshCw size={16} /> Reintentar</button>} />
+          ) : mangas.length === 0 ? (
+            <EmptyState title={isSearching ? "Sin resultados" : "No hay mangas disponibles"} text={isSearching ? "Prueba con otro nombre." : undefined} />
+          ) : (
+            <div className="iz-grid">{mangas.map((m) => <PosterCard key={m.id} data={toPoster(m)} />)}</div>
+          )}
 
-        {/* Loading */}
-        {active.isLoading && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "80px 0" }}>
-            <Loader2 size={36} color="#3f2eb2" style={{ animation: "spin 1s linear infinite", filter: "drop-shadow(0 0 12px #3f2eb2)" }} />
-            <div style={{ color: "#a5b4fc", fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11, letterSpacing: 2 }}>
-              CARGANDO DATOS DEL SISTEMA...
+          {(page > 1 || hasNext) && (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 36 }}>
+              <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" disabled={page <= 1 || list.isFetching} onClick={() => changePage(page - 1)}><ChevronLeft size={16} /> Anterior</button>
+              <span style={{ fontFamily: "var(--iz-mono)", color: "var(--iz-muted)", fontSize: 13 }}>Página {page}</span>
+              <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" disabled={!hasNext || list.isFetching} onClick={() => changePage(page + 1)}>Siguiente <ChevronRight size={16} /></button>
             </div>
-          </div>
-        )}
-
-        {/* Error */}
-        {active.isError && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(165,180,252,0.7)" }}>
-            <BookOpen size={48} style={{ marginBottom: 16, opacity: 0.4, color: "#3f2eb2" }} />
-            <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, color: "#a5b4fc" }}>
-              ⚠ ERROR · NO SE PUDIERON CARGAR LOS DATOS
-            </p>
-            <button onClick={() => active.refetch()} className="sys-btn" style={{ marginTop: 20 }}>
-              ↻ REINTENTAR
-            </button>
-          </div>
-        )}
-
-        {/* GRID */}
-        {!active.isLoading && mangas.length > 0 && (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))",
-            gap: 16,
-          }}>
-            {mangas.map(manga => (
-              <MangaCard
-                key={manga.id}
-                manga={manga}
-                onClick={() => navigate(`/manga/${manga.id}`)}
-              />
-            ))}
-          </div>
-        )}
-
-        {!active.isLoading && !active.isError && mangas.length === 0 && (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "rgba(165,180,252,0.4)" }}>
-            <BookOpen size={56} style={{ marginBottom: 16, opacity: 0.25, color: "#3f2eb2" }} />
-            <p style={{ fontSize: 14, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1.5 }}>
-              ◇ SIN RESULTADOS EN LA BIBLIOTECA
-            </p>
-          </div>
-        )}
-
-        {/* PAGINATION */}
-        {mangas.length > 0 && (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 48 }}>
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="sys-btn"
-              style={{ opacity: page <= 1 ? 0.35 : 1, cursor: page <= 1 ? "not-allowed" : "pointer" }}
-            >
-              <ChevronLeft size={14} /> ANTERIOR
-            </button>
-            <span style={{
-              padding: "8px 18px",
-              color: "#a5b4fc",
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: 2,
-              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-              background: "rgba(63,46,178,0.08)",
-              border: "1px solid rgba(63,46,178,0.3)",
-              }}>
-              PÁG · {String(page).padStart(2, "0")}
-            </span>
-            <button
-              onClick={() => setPage(p => p + 1)}
-              disabled={!hasNextPage}
-              className={`sys-btn ${hasNextPage ? "primary" : ""}`}
-              style={{ opacity: !hasNextPage ? 0.35 : 1, cursor: !hasNextPage ? "not-allowed" : "pointer" }}
-            >
-              SIGUIENTE <ChevronRight size={14} />
-            </button>
-          </div>
-        )}
-      </div>
-
+          )}
+        </section>
+      </main>
       <Footer />
     </div>
   );

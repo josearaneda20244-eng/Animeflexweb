@@ -3,7 +3,7 @@ import App from "./App";
 import "./index.css";
 
 if ("serviceWorker" in navigator) {
-  // 1. Registrar el SW de AnimeFlex que bloquea notificaciones push de anuncios
+  // 1. SW de IZIFF ANIME: app instalable, modo offline y bloqueo de push publicitario
   navigator.serviceWorker
     .register(`${import.meta.env.BASE_URL}afsw.js`)
     .catch(() => {});

@@ -39,6 +39,7 @@ const MangaDetail = lazy(() => import("@/pages/MangaDetail"));
 const Dmca = lazy(() => import("@/pages/Dmca"));
 const MangaReader = lazy(() => import("@/pages/MangaReader"));
 const News = lazy(() => import("@/pages/News"));
+const NotFoundPage = lazy(() => import("@/pages/not-found"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -543,7 +544,7 @@ function Router() {
         <Route path="/manga/:id"><MangaDetail /></Route>
         <Route path="/legal/dmca"><Dmca /></Route>
         <Route path="/dmca"><Dmca /></Route>
-        <Route><NotFound /></Route>
+        <Route><NotFoundPage /></Route>
       </Switch>
     </Suspense>
   );
@@ -551,7 +552,7 @@ function Router() {
 
 function Layout() {
   return (
-    <main className="page-enter page-transition" style={{ position: "relative", zIndex: 1, minHeight: "100vh", overflow: "hidden" }}>
+    <main className="page-enter page-transition" style={{ position: "relative", minHeight: "100vh", overflowX: "clip" }}>
       <MaintenanceGate>
         <AnnouncementBanner />
         <Router />

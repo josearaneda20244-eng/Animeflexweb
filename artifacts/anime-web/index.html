@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<!-- build: 2026-04-25-fix-entities-v2 -->
+<!-- build: 2026-11-27-iziff-v2 -->
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
     <title>IZIFF ANIME — Anime y Manga en 1080p Sub Español HD</title>
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
@@ -18,21 +19,42 @@
     <meta name="apple-mobile-web-app-title" content="IZIFF ANIME" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="IZIFF ANIME" />
-    <meta name="description" content="IZIFF ANIME — El centro definitivo para anime y manga en 1080p Sub Español HD." />
+    <meta name="description" content="Mira anime y lee manga online en 1080p con subtítulos en español latino y castellano. Tendencias, calendario de emisión y últimos episodios." />
 
-    <!-- Open Graph / Facebook / WhatsApp -->
+    <link rel="canonical" href="https://animeflex.lat/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Open Graph / Facebook / WhatsApp / Discord -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="IZIFF ANIME" />
+    <meta property="og:locale" content="es_LA" />
+    <meta property="og:url" content="https://animeflex.lat/" />
     <meta property="og:title" content="IZIFF ANIME — Anime y Manga en 1080p Sub Español HD" />
-    <meta property="og:description" content="Streaming en 1080p a 60 FPS sin anuncios, biblioteca instantánea y lector de manga." />
-    <meta property="og:locale" content="es_ES" />
+    <meta property="og:description" content="Mira anime y lee manga online en 1080p con subtítulos en español. Web, Android y Windows." />
+    <meta property="og:image" content="https://animeflex.lat/opengraph.jpg" />
+    <meta property="og:image:secure_url" content="https://animeflex.lat/opengraph.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="IZIFF ANIME — Anime y manga en 1080p" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="IZIFF ANIME — Anime y Manga en 1080p Sub Español HD" />
+    <meta name="twitter:description" content="Mira anime y lee manga online en 1080p con subtítulos en español." />
+    <meta name="twitter:image" content="https://animeflex.lat/opengraph.jpg" />
+    <meta name="twitter:image:alt" content="IZIFF ANIME — Anime y manga en 1080p" />
 
     <!-- Google Fonts: Inter + Instrument Serif + Space Grotesk (Seanime Design System) -->
+    <link rel="preconnect" href="https://animeflex-api-production.up.railway.app" crossorigin />
+    <link rel="preconnect" href="https://graphql.anilist.co" crossorigin />
+    <link rel="dns-prefetch" href="https://s4.anilist.co" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body>
+  <body style="background:#000">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -5,6 +5,8 @@ import { useWatchList, type WatchStatus } from "@/context/WatchListContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DraggableWatchlist from "@/components/DraggableWatchlist";
+import { EmptyState } from "@/components/iz/ui";
+import { usePageMeta } from "@/lib/usePageMeta";
 
 const TABS: { value: WatchStatus; label: string; icon: React.ReactNode; color: string }[] = [
   { value: "watching", label: "Viendo", icon: <Play size={14} fill="currentColor" />, color: "#3f2eb2" },
@@ -19,6 +21,7 @@ export default function WatchList() {
   const { getByStatus, setStatus } = useWatchList();
 
   const currentTab = TABS.find((t) => t.value === activeTab)!;
+  usePageMeta({ title: "Mi lista", noindex: true });
 
   const handleStatusChange = (animeId: string, newStatus: WatchStatus) => {
     // Buscar el anime en todas las listas para cambiar su estado
@@ -49,85 +52,35 @@ export default function WatchList() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000" }}>
+    <div className="iz-page">
       <Navbar />
-      <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, paddingBottom: 20, paddingTop: 4 }}>
-          <div style={{ width: 4, height: 28, borderRadius: 2, background: "#3f2eb2" }} />
-          <div>
-            <div style={{ color: "#F1F1F5", fontSize: 24, fontWeight: 900, letterSpacing: -0.5 }}>Mi Lista</div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 1 }}>Tu colección personal de anime</div>
-          </div>
-        </div>
+      <main className="iz-container" style={{ maxWidth: 1100 }}>
+        <header className="iz-pagehead">
+          <div className="iz-head__eyebrow"><span className="iz-dot" />Tu biblioteca</div>
+          <h1>Mi <span className="iz-serif">lista</span></h1>
+          <p>Organiza lo que ves. Arrastra para reordenar o cambia el estado de cada anime.</p>
+        </header>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
           {TABS.map((tab) => {
             const count = getByStatus(tab.value).length;
-            const isActive = activeTab === tab.value;
             return (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6, padding: "9px 16px",
-                  borderRadius: 12, border: `1px solid ${isActive ? tab.color + "55" : "rgba(255,255,255,0.1)"}`,
-                  background: isActive ? tab.color + "18" : "#0a0a0a",
-                  color: isActive ? tab.color : "rgba(255,255,255,0.5)",
-                  fontSize: 13, fontWeight: 700, cursor: "pointer",
-                }}
-              >
-                {tab.icon}
-                {tab.label}
-                {count > 0 && (
-                  <span style={{
-                    background: isActive ? tab.color + "33" : "rgba(255,255,255,0.08)",
-                    color: isActive ? tab.color : "rgba(255,255,255,0.4)",
-                    borderRadius: 20, padding: "1px 7px", fontSize: 11, fontWeight: 800,
-                  }}>
-                    {count}
-                  </span>
-                )}
+              <button key={tab.value} type="button" className={`iz-chip ${activeTab === tab.value ? "is-active" : ""}`} onClick={() => setActiveTab(tab.value)}>
+                {tab.icon}{tab.label}
+                {count > 0 && <span style={{ fontFamily: "var(--iz-mono)", fontSize: 11, opacity: .7 }}>{count}</span>}
               </button>
             );
           })}
         </div>
 
-        {/* Draggable Watchlist */}
-        <DraggableWatchlist
-          status={activeTab}
-          onStatusChange={handleStatusChange}
-          onRemove={handleRemove}
-          className="max-w-4xl mx-auto"
-        />
-
-        {/* Empty State Alternative */}
-        {getByStatus(activeTab).length === 0 && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 40, gap: 12 }}>
-            <div style={{ opacity: 0.15, color: currentTab.color, fontSize: 64 }}>
-              {currentTab.icon}
-            </div>
-            <div style={{ color: "#F1F1F5", fontWeight: 700, fontSize: 16 }}>
-              Sin anime en "{currentTab.label}"
-            </div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, textAlign: "center", maxWidth: 260 }}>
-              {activeTab === "dropped"
-                ? "Aquí aparecerán los anime que hayas abandonado."
-                : "Explora anime y márcalos con \"Mi Lista\" en cada página de detalles."}
-            </div>
-            <button
-              onClick={() => navigate("/")}
-              style={{
-                marginTop: 8, padding: "10px 20px", borderRadius: 12,
-                background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
-                border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
-              }}
-            >
-              Explorar anime
-            </button>
-          </div>
+        {getByStatus(activeTab).length === 0 ? (
+          <EmptyState title={`Nada en “${currentTab.label}”`}
+            text={activeTab === "dropped" ? "Aquí aparecerán los animes que abandones." : "Añade animes desde su página con el botón “Mi lista”."}
+            action={<button type="button" className="iz-btn iz-btn--primary" onClick={() => navigate("/search")}>Explorar anime</button>} />
+        ) : (
+          <DraggableWatchlist status={activeTab} onStatusChange={handleStatusChange} onRemove={handleRemove} />
         )}
-      </div>
+      </main>
       <Footer />
     </div>
   );

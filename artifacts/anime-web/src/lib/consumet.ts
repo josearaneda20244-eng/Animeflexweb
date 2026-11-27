@@ -1,10 +1,23 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
+const BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "/api";
 const PROXY_ENDPOINT = `${BASE_URL}/anime/hls-proxy`;
+/** Origen del backend (sin /api). Vacío en desarrollo (proxy de Vite). */
+export const API_ORIGIN = BASE_URL.replace(/\/api\/?$/, "");
+
+/**
+ * El backend devuelve algunas URLs relativas ("/api/anime/hls-proxy?..."). En producción
+ * la web vive en Vercel y la API en Railway, así que hay que anteponer el origen de la API;
+ * si no, el navegador las pide a Vercel (que responde index.html) y la fuente falla.
+ */
+export function absolutizeApiUrl(url: string): string {
+  if (!url) return url;
+  if (url.startsWith("/api/") && API_ORIGIN) return `${API_ORIGIN}${url}`;
+  return url;
+}
 
 export function proxyStreamUrl(directUrl: string, referer?: string): string {
   if (!directUrl) return "";
   if (directUrl.startsWith("/api/anime/hls-proxy") || directUrl.includes("/anime/hls-proxy?url=")) {
-    return directUrl;
+    return absolutizeApiUrl(directUrl);
   }
   let url =
     `${PROXY_ENDPOINT}` +
@@ -17,6 +30,7 @@ export function proxyStreamUrl(directUrl: string, referer?: string): string {
 }
 
 export function proxySubtitleUrl(directUrl: string, referer?: string): string {
+  if (directUrl.startsWith("/api/")) return absolutizeApiUrl(directUrl);
   let url = `${BASE_URL}/anime/subtitle-proxy?url=${encodeURIComponent(directUrl)}`;
   if (referer) url += `&referer=${encodeURIComponent(referer)}`;
   return url;
@@ -172,7 +186,8 @@ export const consumet = {
   episodesById: (anilistId: string): Promise<AnimeInfo> =>
     get<AnimeInfo>(`/anime/episodes?anilistId=${encodeURIComponent(anilistId)}`),
   streaming: (episodeId: string, animeTitle?: string, episodeNum?: string, animeId?: string): Promise<StreamingData> => {
-    let url = `/anime/watch?episodeId=${encodeURIComponent(episodeId)}`;
+    // skipEngine=1: el motor unificado ya se consulta aparte vía /anime/sources
+    let url = `/anime/watch?skipEngine=1&episodeId=${encodeURIComponent(episodeId)}`;
     if (animeTitle) url += `&animeTitle=${encodeURIComponent(animeTitle)}`;
     if (episodeNum)  url += `&episodeNum=${encodeURIComponent(episodeNum)}`;
     if (animeId) url += `&animeId=${encodeURIComponent(animeId)}`;
@@ -193,7 +208,24 @@ export const consumet = {
     ),
   byFormat: (format: "MOVIE" | "OVA" | "ONA" | "SPECIAL", page = 1): Promise<SearchResult> =>
     get<SearchResult>(`/anime/by-format?format=${format}&page=${page}`),
+  /** Mismo motor de fuentes que la app (AnimeFLV, JKAnime, AnimeAV1, Anipub, TioAnime, AnimeFenix, LatAnime). */
+  sources: (animeId: string, episode: number, title: string, dub = false): Promise<EngineSourcesResponse> =>
+    get<EngineSourcesResponse>(
+      `/anime/sources?animeId=${encodeURIComponent(animeId)}&episode=${episode}&title=${encodeURIComponent(title)}${dub ? "&dub=1" : ""}`,
+      true,
+    ),
 };
+
+export interface EngineSource extends StreamingSource {
+  server?: string;
+  referer?: string;
+  isEmbed?: boolean;
+}
+export interface EngineSourcesResponse {
+  sources: EngineSource[];
+  subtitles?: Array<{ url: string; lang: string }>;
+  dub?: boolean;
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Direct AniList GraphQL call — bypasses the backend, works from the browser.

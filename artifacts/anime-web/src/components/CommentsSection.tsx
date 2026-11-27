@@ -132,7 +132,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <Avatar username={r.author} avatar_url={r.avatar_url} size={26} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700 }}>{r.author}</span>
+                    <span style={{ color: "#f4f4f5", fontSize: 12, fontWeight: 700 }}>{r.author}</span>
                     <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, marginLeft: 6 }}>
                       {new Date(r.created_at).toLocaleDateString("es", { day: "2-digit", month: "short" })}
                     </span>
@@ -182,7 +182,7 @@ function ReplyThread({ animeId, parentId, parentAuthor, onClose, onReplyCountCha
               placeholder={`Responder a @${parentAuthor}...`}
               maxLength={500}
               rows={2}
-              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", color: "#F1F1F5", fontSize: 12, outline: "none", fontFamily: "inherit", resize: "none", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "7px 10px", borderRadius: 8, background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)", color: "#f4f4f5", fontSize: 12, outline: "none", fontFamily: "inherit", resize: "none", boxSizing: "border-box" }}
               onFocus={(e) => (e.target.style.borderColor = "rgba(63,46,178,0.4)")}
               onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
             />
@@ -316,7 +316,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 3, height: 20, borderRadius: 2, background: "#3f2eb2" }} />
           <MessageCircle size={16} color="#3f2eb2" />
-          <span style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>
+          <span style={{ color: "#f4f4f5", fontSize: 16, fontWeight: 800 }}>
             Comentarios <span style={{ color: "rgba(255,255,255,0.35)", fontWeight: 600 }}>({comments.length})</span>
           </span>
         </div>
@@ -345,7 +345,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
               placeholder="Escribe un comentario..."
               maxLength={500}
               rows={3}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", color: "#F1F1F5", fontSize: 13, outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)", color: "#f4f4f5", fontSize: 13, outline: "none", fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
               onFocus={(e) => (e.target.style.borderColor = "rgba(63,46,178,0.4)")}
               onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.08)")}
             />
@@ -394,7 +394,7 @@ export default function CommentsSection({ animeId }: { animeId: string }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                   <Avatar username={c.author} avatar_url={c.avatar_url} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>{c.author}</div>
+                    <div style={{ color: "#f4f4f5", fontSize: 13, fontWeight: 700 }}>{c.author}</div>
                     <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10 }}>
                       {new Date(c.created_at).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" })}
                     </div>

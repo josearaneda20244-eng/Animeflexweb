@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Heart, HeartOff, Star, Play, ChevronDown, ChevronUp,
-  Tv, Calendar, Film, List, Share2, BookOpen, CheckCircle2, Clock3,
-  X, Users, Clapperboard, Sparkles, ChevronRight, XCircle,
+  Heart, Star, Play, ChevronDown, ChevronUp, Calendar, Share2, BookOpen, CheckCircle2, Clock3,
+  X, Clapperboard, XCircle, RefreshCw, Search as SearchIcon,
 } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { consumet, resolveTitle, type Episode, type AnimeResult } from "@/lib/consumet";
@@ -14,7 +12,10 @@ import { useHistory } from "@/context/HistoryContext";
 import { useWatchProgress } from "@/context/WatchProgressContext";
 import { useWatchList, type WatchStatus } from "@/context/WatchListContext";
 import CommentsSection from "@/components/CommentsSection";
-import { CornerBrackets, SystemTag, ScanLines } from "@/components/SystemUI";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { usePageMeta, SITE_URL } from "@/lib/usePageMeta";
+import { Rail, SectionHead, PosterCard, EmptyState, toScore10 } from "@/components/iz/ui";
 import { useAuth } from "@/context/AuthContext";
 import AdBanner from "@/components/AdBanner";
 
@@ -33,30 +34,13 @@ function WatchStatusButton({ animeForList, onStatusChange }: { animeForList: Ani
 
   return (
     <div style={{ position: "relative" }}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          display: "flex", alignItems: "center", gap: 6,
-          height: 38, padding: "0 14px",
-          borderRadius: 10, border: `1px solid ${currentOpt ? currentOpt.color + "55" : "rgba(255,255,255,0.14)"}`,
-          background: currentOpt ? currentOpt.color + "18" : "rgba(255,255,255,0.05)",
-          backdropFilter: "blur(10px)",
-          color: currentOpt ? currentOpt.color : "#B8B8D1",
-          fontSize: 12, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap",
-        }}
-      >
+      <button type="button" className={`iz-btn iz-btn--lg ${currentOpt ? "iz-btn--accent" : "iz-btn--ghost"}`} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
         {currentOpt ? currentOpt.icon : <BookOpen size={13} />}
-        {currentOpt ? currentOpt.label : "Mi Lista"}
-        <ChevronDown size={11} style={{ marginLeft: 2, opacity: 0.6 }} />
+        {currentOpt ? currentOpt.label : "Mi lista"}
+        <ChevronDown size={14} style={{ opacity: 0.6 }} />
       </button>
       {open && (
-        <div
-          style={{
-            position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 300,
-            background: "#1A1A28", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14,
-            padding: 6, minWidth: 170, boxShadow: "0 16px 40px rgba(0,0,0,0.6)",
-          }}
-        >
+        <div className="iz-menu" style={{ left: 0, right: "auto", minWidth: 190 }}>
           {STATUS_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -134,11 +118,9 @@ function UserRatingWidget({ animeId }: { animeId: string }) {
 
   const display = hover || rating;
   return (
-    <div className="mb-6">
+    <div className="iz-panel iz-panel--pad">
       <div className="flex items-center gap-2 mb-3">
-        <div className="section-accent" />
-        <Star size={14} className="text-[#3f2eb2]" />
-        <h2 className="text-sm font-bold text-[#F0F0FF]">Tu valoración</h2>
+        <div className="iz-head__eyebrow" style={{ margin: 0 }}><span className="iz-dot" />Tu valoración</div>
         {communityTotal > 0 && (
           <span style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.3)", fontSize: 11, marginLeft: "auto" }}>
             <Star size={10} color="#F59E0B" fill="#F59E0B" />
@@ -161,9 +143,9 @@ function UserRatingWidget({ animeId }: { animeId: string }) {
             }}
           >
             <Star
-              size={30}
-              color="#F59E0B"
-              fill={display >= n ? "#F59E0B" : "transparent"}
+              size={26}
+              color="#fbbf24"
+              fill={display >= n ? "#fbbf24" : "transparent"}
             />
           </button>
         ))}
@@ -210,159 +192,6 @@ function TrailerModal({ trailerId, onClose }: { trailerId: string; onClose: () =
   );
 }
 
-/* ── Reusable section header with system aesthetic ─────────────── */
-function SectionHeader({
-  icon,
-  label,
-  count,
-  module,
-  noBottomMargin,
-}: {
-  icon: ReactNode;
-  label: string;
-  count?: number;
-  module?: string;
-  noBottomMargin?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        marginBottom: noBottomMargin ? 0 : 14,
-      }}
-    >
-      {/* Vertical accent bar */}
-      <div
-        style={{
-          width: 4,
-          height: 22,
-          borderRadius: 2,
-          background: "linear-gradient(180deg,#a5b4fc,#3f2eb2 50%,#2e218a)",
-          boxShadow: "0 0 12px rgba(63,46,178,0.5)",
-          flexShrink: 0,
-        }}
-      />
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 26,
-          height: 26,
-          borderRadius: 7,
-          background: "linear-gradient(135deg, rgba(63,46,178,0.18), rgba(63,46,178,0.04))",
-          border: "1px solid rgba(63,46,178,0.3)",
-          color: "#a5b4fc",
-          flexShrink: 0,
-        }}
-      >
-        {icon}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.05, minWidth: 0 }}>
-        <h2
-          style={{
-            color: "#F0F0FF",
-            fontSize: 15,
-            fontWeight: 800,
-            letterSpacing: -0.2,
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-          }}
-        >
-          {label}
-          {count != null && (
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 0.4,
-                color: "#a5b4fc",
-                background: "rgba(63,46,178,0.14)",
-                border: "1px solid rgba(63,46,178,0.3)",
-                padding: "1px 7px",
-                borderRadius: 999,
-                lineHeight: 1.4,
-              }}
-            >
-              {count}
-            </span>
-          )}
-        </h2>
-        {module && (
-          <span
-            style={{
-              color: "rgba(165,180,252,0.55)",
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: 1.5,
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              textTransform: "uppercase",
-              marginTop: 2,
-            }}
-          >
-            ▸ {module}
-          </span>
-        )}
-      </div>
-      {/* Horizontal accent line filling the rest */}
-      <div
-        style={{
-          flex: 1,
-          height: 1,
-          background:
-            "linear-gradient(90deg, rgba(63,46,178,0.35) 0%, rgba(63,46,178,0.05) 60%, transparent 100%)",
-          marginLeft: 6,
-        }}
-      />
-    </div>
-  );
-}
-
-function RecommendationCard({ anime }: { anime: AnimeResult }) {
-  const [, navigate] = useLocation();
-  const title = resolveTitle(anime.title);
-  return (
-    <div
-      onClick={() => navigate(`/anime/${anime.id}`)}
-      style={{
-        flexShrink: 0, width: 120, cursor: "pointer",
-        transition: "transform 0.18s",
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = ""; }}
-    >
-      <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "2/3", position: "relative", background: "#0a0a0a" }}>
-        <img
-          src={anime.image}
-          alt={title}
-          loading="lazy"
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-        />
-        {anime.rating != null && anime.rating > 0 && (
-          <div style={{
-            position: "absolute", top: 6, right: 6, display: "flex", alignItems: "center", gap: 2,
-            background: "rgba(0,0,0,0.8)", borderRadius: 4, padding: "2px 5px",
-          }}>
-            <Star size={8} color="#F59E0B" fill="#F59E0B" />
-            <span style={{ color: "#F59E0B", fontSize: 9, fontWeight: 800 }}>{(anime.rating / 10).toFixed(1)}</span>
-          </div>
-        )}
-      </div>
-      <div style={{ marginTop: 7 }}>
-        <div style={{ color: "#F1F1F5", fontSize: 11, fontWeight: 700, lineHeight: 1.35, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as any}>
-          {title}
-        </div>
-        {anime.type && (
-          <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 9, fontWeight: 600, marginTop: 2 }}>{anime.type}</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function AnimeDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -373,10 +202,12 @@ export default function AnimeDetail() {
   const queryClient = useQueryClient();
   // const { addNotification } = useNotifications(); // Commented out - using new notification system
   const [descExpanded, setDescExpanded] = useState(false);
-  const [watchedEps, setWatchedEps] = useState<Set<string>>(new Set());
+  const { progress } = useWatchProgress();
+  const [clickedEps, setClickedEps] = useState<Set<number>>(new Set());
+  const [epRange, setEpRange] = useState(0);
   const [epFilter, setEpFilter] = useState<"all" | "unwatched">("all");
   const [epSearch, setEpSearch] = useState("");
-  const [shareToast, setShareToast] = useState(false);
+  const [shareToast, setShareToast] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
 
 
@@ -411,25 +242,6 @@ export default function AnimeDetail() {
     image: ep.image ?? null,
     url: ep.url ?? null,
   }));
-
-  /* ── T006: Dynamic SEO — must be before conditional returns ── */
-  useEffect(() => {
-    if (!anime) return;
-    const t = resolveTitle(anime.title);
-    const desc = (anime.description ?? "").replace(/<[^>]+>/g, "").slice(0, 160);
-    const img = anime.cover ?? anime.image ?? "";
-    document.title = `${t} – AnimeFlex`;
-    const setMeta = (prop: string, content: string) => {
-      let el = document.querySelector<HTMLMetaElement>(`meta[property="${prop}"]`);
-      if (!el) { el = document.createElement("meta"); el.setAttribute("property", prop); document.head.appendChild(el); }
-      el.setAttribute("content", content);
-    };
-    setMeta("og:title", t);
-    setMeta("og:description", desc);
-    if (img) setMeta("og:image", img);
-    setMeta("og:type", "video.tv_show");
-    return () => { document.title = "AnimeFlex"; };
-  }, [anime]);
 
   const fav = isFavorite(id!);
   const animeProgress = getAnimeProgress(id!);
@@ -481,11 +293,16 @@ export default function AnimeDetail() {
           consumet.streaming(epId, title || undefined, String(epNum), id || undefined),
         staleTime: 1000 * 60 * 15,
       });
+      // Mismas claves que Player.tsx → el reproductor arranca con la caché caliente
+      let audio: "sub" | "lat" = "sub";
+      try { audio = localStorage.getItem("iz_audio") === "lat" ? "lat" : "sub"; } catch { /* */ }
       queryClient.prefetchQuery({
-        queryKey: ["animeflv", title, String(epNum), id],
-        queryFn: () =>
-          consumet.animeflvWatch(title, epNum, id || undefined),
-        staleTime: 1000 * 60 * 15,
+        queryKey: ["engine-sources", id, String(epNum), title, audio],
+        queryFn: async () => {
+          try { return await consumet.sources(id!, epNum, title, audio === "lat"); }
+          catch (err) { if (audio === "lat") throw err; return consumet.animeflvWatch(title, epNum, id || undefined); }
+        },
+        staleTime: 1000 * 60 * 10,
       });
     },
     [queryClient, title, id],
@@ -493,7 +310,7 @@ export default function AnimeDetail() {
 
   const handleEpisode = (ep: Episode) => {
     if (!ep?.id) return;
-    setWatchedEps((prev) => new Set([...prev, ep.id]));
+    setClickedEps((prev) => new Set([...prev, ep.number]));
     addToHistory(animeForFav, ep.number);
 
     const paheEpisodes = paheQuery.data?.episodes ?? [];
@@ -539,896 +356,306 @@ export default function AnimeDetail() {
     return () => clearTimeout(t);
   }, [episodes, animeProgress, title, paheQuery.data, prefetchStream]);
 
+  /* Episodios vistos / en curso: derivados del progreso guardado (persisten entre sesiones). */
+  const { watchedNums, progressByNum } = useMemo(() => {
+    const watched = new Set<number>(clickedEps);
+    const byNum = new Map<number, number>();
+    for (const p of progress) {
+      if (String(p.animeId) !== String(id)) continue;
+      const ratio = p.duration > 0 ? p.currentTime / p.duration : 0;
+      byNum.set(p.episodeNum, ratio);
+      if (ratio >= 0.85) watched.add(p.episodeNum);
+    }
+    return { watchedNums: watched, progressByNum: byNum };
+  }, [progress, id, clickedEps]);
+
+  const RANGE = 100;
+  const ranges = useMemo(() => {
+    if (episodes.length <= RANGE) return [] as { label: string; from: number; to: number }[];
+    const out: { label: string; from: number; to: number }[] = [];
+    for (let i = 0; i < episodes.length; i += RANGE) {
+      const from = episodes[i].number;
+      const to = episodes[Math.min(i + RANGE, episodes.length) - 1].number;
+      out.push({ label: `${from}–${to}`, from: i, to: Math.min(i + RANGE, episodes.length) });
+    }
+    return out;
+  }, [episodes]);
+
+  // Abrir el rango donde está el episodio en curso
+  useEffect(() => {
+    if (!ranges.length || !animeProgress) return;
+    const idx = episodes.findIndex((e) => e.number === animeProgress.episodeNum);
+    if (idx >= 0) setEpRange(Math.floor(idx / RANGE));
+  }, [ranges.length, animeProgress?.episodeNum]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const normalizedEpSearch = epSearch.trim().toLowerCase();
-  const filteredEps = episodes.filter((ep) => {
-    if (epFilter === "unwatched" && watchedEps.has(ep.id)) return false;
-    if (!normalizedEpSearch) return true;
-    return String(ep.number).includes(normalizedEpSearch) || (ep.title ?? "").toLowerCase().includes(normalizedEpSearch);
+  const visibleEps = useMemo(() => {
+    let list = episodes;
+    if (normalizedEpSearch) {
+      list = list.filter((ep) => String(ep.number) === normalizedEpSearch || String(ep.number).startsWith(normalizedEpSearch) || (ep.title ?? "").toLowerCase().includes(normalizedEpSearch));
+    } else if (ranges.length) {
+      const r = ranges[Math.min(epRange, ranges.length - 1)];
+      list = list.slice(r.from, r.to);
+    }
+    if (epFilter === "unwatched") list = list.filter((ep) => !watchedNums.has(ep.number));
+    return list;
+  }, [episodes, normalizedEpSearch, ranges, epRange, epFilter, watchedNums]);
+
+  /* ── SEO dinámico: OG/Twitter para compartir ── */
+  const seoDesc = rawDesc ? rawDesc.slice(0, 190) : `Mira ${title} online en HD con subtítulos en español.`;
+  const jsonLd = useMemo(() => (anime ? {
+    "@context": "https://schema.org",
+    "@type": anime.type === "MOVIE" ? "Movie" : "TVSeries",
+    name: title,
+    image: image || undefined,
+    description: seoDesc,
+    genre: genres,
+    numberOfEpisodes: anime.totalEpisodes ?? undefined,
+    url: `${SITE_URL}/anime/${id}`,
+    aggregateRating: anime.rating ? { "@type": "AggregateRating", ratingValue: (anime.rating / 10).toFixed(1), bestRating: "10", ratingCount: 100 } : undefined,
+  } : undefined), [anime, title, image, seoDesc, genres, id]);
+  usePageMeta({
+    title: anime ? `Ver ${title} sub español` : "Cargando anime",
+    description: seoDesc,
+    image: cover || image,
+    imageAlt: title,
+    url: `${SITE_URL}/anime/${id}`,
+    type: anime?.type === "MOVIE" ? "video.movie" : "video.tv_show",
+    jsonLd,
   });
+
+  const share = async () => {
+    const url = `${SITE_URL}/anime/${id}`;
+    try {
+      if (navigator.share) { await navigator.share({ title, text: `Mira ${title} en IZIFF ANIME`, url }); return; }
+      await navigator.clipboard.writeText(url);
+      setShareToast("Enlace copiado");
+    } catch { return; }
+    window.setTimeout(() => setShareToast(null), 2200);
+  };
+
+  const playMain = () => {
+    if (animeProgress) {
+      const ep = episodes.find((e) => e.number === animeProgress.episodeNum);
+      if (ep) { handleEpisode(ep); return; }
+    }
+    if (episodes[0]) handleEpisode(episodes[0]);
+  };
 
   if (infoQuery.isLoading) {
     return (
-      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#000" }}>
-        <div className="flex flex-col items-center gap-3 text-[#71717a]">
-          <div className="w-8 h-8 border-2 border-[#3f2eb2] border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm">Cargando...</p>
+      <div className="iz-page iz-page--flush">
+        <Navbar transparent />
+        <section className="iz-hero" style={{ height: "clamp(420px, 62svh, 600px)" }}><div className="iz-hero__grid" /></section>
+        <div className="iz-container iz-overlap" style={{ display: "flex", gap: 24 }}>
+          <div className="iz-skel" style={{ width: 200, aspectRatio: "2/3", flexShrink: 0 }} />
+          <div style={{ flex: 1, display: "grid", gap: 12, alignContent: "start", paddingTop: 40 }}>
+            <div className="iz-skel" style={{ height: 40, width: "60%" }} /><div className="iz-skel" style={{ height: 16, width: "80%" }} /><div className="iz-skel" style={{ height: 16, width: "70%" }} />
+          </div>
         </div>
       </div>
     );
   }
 
-  if (infoQuery.isError) {
+  if (infoQuery.isError || !anime) {
     return (
-      <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#000" }}>
-        <div className="text-center text-[#71717a]">
-          <p className="text-[#F0F0FF] font-medium mb-2">No se pudo cargar el anime</p>
-          <button onClick={() => navigate("/")} className="text-sm text-[#3f2eb2] hover:underline">
-            Volver al inicio
-          </button>
+      <div className="iz-page">
+        <Navbar />
+        <div className="iz-container" style={{ paddingTop: 80 }}>
+          <EmptyState title="No se pudo cargar el anime" text="Puede ser un problema temporal del servidor."
+            action={<div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <button type="button" className="iz-btn iz-btn--primary" onClick={() => infoQuery.refetch()}><RefreshCw size={16} /> Reintentar</button>
+              <button type="button" className="iz-btn iz-btn--ghost" onClick={() => navigate("/")}>Volver al inicio</button>
+            </div>} />
         </div>
       </div>
     );
   }
+
+  const score = toScore10(anime.rating);
+  const nativeTitle = typeof anime.title === "object" ? (anime.title as { native?: string }).native : undefined;
+  const airing = anime.status === "Ongoing" || anime.status === "RELEASING";
 
   return (
-    <div className="min-h-screen pb-16" style={{ background: "#000" }}>
-      {showTrailer && hasYouTubeTrailer && (
-        <TrailerModal trailerId={trailer!.id} onClose={() => setShowTrailer(false)} />
-      )}
+    <div className="iz-page iz-page--flush">
+      <Navbar transparent />
+      {showTrailer && hasYouTubeTrailer && <TrailerModal trailerId={trailer!.id} onClose={() => setShowTrailer(false)} />}
 
-      {/* ── HERO: Cinematic backdrop with parallax-style Ken Burns ─────── */}
-      <div className="relative w-full overflow-hidden" style={{ height: "min(560px, 78vw)" }}>
-        <motion.img
-          src={cover || image}
-          alt={title}
-          loading="lazy"
-          initial={{ scale: 1.18, opacity: 0 }}
-          animate={{ scale: 1.04, opacity: 1 }}
-          transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full h-full object-cover"
-          style={{ objectPosition: "center 28%" }}
-        />
-        {/* Bottom fade to black — taller, smoother */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.65) 65%, #000 100%)" }} />
-        {/* Side fade for left-side info readability */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.4) 100%)" }} />
+      {/* ── Backdrop ── */}
+      <section className="iz-hero" style={{ height: "clamp(380px, 58svh, 560px)" }}>
+        <div className="iz-hero__bg"><img src={cover || image} alt="" decoding="async" style={{ objectPosition: "center 25%", filter: cover ? undefined : "blur(18px) saturate(1.2)" }} /></div>
+        <div className="iz-hero__grid" />
+      </section>
 
-        <motion.button
-          onClick={() => navigate("/")}
-          whileHover={{ scale: 1.08, x: -2 }}
-          whileTap={{ scale: 0.92 }}
-          className="absolute top-16 left-4 md:left-8 p-2.5 rounded-full text-white z-10"
-          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.12)" }}
-        >
-          <ArrowLeft size={18} />
-        </motion.button>
-
-        {/* ── Floating title block over the hero ─────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute left-0 right-0 px-4 md:px-10"
-          style={{ bottom: "26%", zIndex: 5 }}
-        >
-          <div className="max-w-3xl">
-            {anime?.studios && anime.studios.length > 0 && (
-              <div
-                style={{
-                  display: "inline-block",
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: 2,
-                  textTransform: "uppercase",
-                  color: "#a5b4fc",
-                  marginBottom: 10,
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                }}
-              >
-                ▸ {anime.studios[0]}
-              </div>
-            )}
-            <h1
-              className="font-black text-[#F0F0FF] line-clamp-2"
-              style={{
-                fontSize: "clamp(28px, 5.5vw, 56px)",
-                lineHeight: 1.05,
-                letterSpacing: -0.5,
-                textShadow: "0 4px 24px rgba(0,0,0,0.85), 0 2px 8px rgba(63,46,178,0.35)",
-                marginBottom: 12,
-              }}
-            >
-              {title}
-            </h1>
-            {anime?.title && typeof anime.title === "object" && (anime.title as any).native && (
-              <div
-                style={{
-                  color: "rgba(255,255,255,0.45)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  fontStyle: "italic",
-                  marginTop: -4,
-                }}
-              >
-                {(anime.title as any).native}
-              </div>
-            )}
-          </div>
-        </motion.div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-4 md:px-8">
-        {/* ── Poster row (just poster + studio strip on the side) ──── */}
-        <div className="flex gap-4 md:gap-6 -mt-20 md:-mt-32 mb-4 items-end relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="w-28 md:w-44 flex-shrink-0 rounded-2xl overflow-hidden relative"
-            style={{
-              boxShadow: "0 25px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(63,46,178,0.25), 0 0 40px rgba(63,46,178,0.15)",
-            }}
-          >
-            <img src={image} alt={title} loading="lazy" className="w-full h-full object-cover block" />
-            {/* Glossy reflection */}
-            <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 35%, transparent 65%, rgba(0,0,0,0.2) 100%)" }} />
-            {anime?.status === "Ongoing" && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  left: 8,
-                  background: "linear-gradient(135deg,#22C55E,#16A34A)",
-                  color: "#fff",
-                  fontSize: 9,
-                  fontWeight: 800,
-                  letterSpacing: 0.6,
-                  padding: "3px 7px",
-                  borderRadius: 6,
-                  boxShadow: "0 4px 12px rgba(34,197,94,0.45)",
-                }}
-              >
-                ● EN EMISIÓN
-              </div>
-            )}
-          </motion.div>
-
-          {/* Right of poster: rating prominently shown, plus type/eps as a compact pair */}
-          <div className="flex-1 min-w-0 pb-1 flex flex-col gap-2">
-            {anime?.rating != null && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  background: "linear-gradient(135deg, rgba(245,158,11,0.18), rgba(245,158,11,0.04))",
-                  border: "1px solid rgba(245,158,11,0.35)",
-                  backdropFilter: "blur(8px)",
-                  alignSelf: "flex-start",
-                }}
-              >
-                <Star size={16} color="#F59E0B" fill="#F59E0B" />
-                <span style={{ color: "#F59E0B", fontSize: 18, fontWeight: 900, lineHeight: 1 }}>
-                  {(anime.rating / 10).toFixed(1)}
-                </span>
-                <span style={{ color: "rgba(245,158,11,0.6)", fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>/ 10</span>
-              </motion.div>
-            )}
-            {/* Compact type + episodes on one line for mobile */}
-            <div className="flex flex-wrap gap-2">
-              {anime?.type && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.42 }}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "6px 10px", borderRadius: 8,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    backdropFilter: "blur(8px)",
-                  }}
-                >
-                  <Tv size={11} color="#a1a1aa" />
-                  <span style={{ color: "#F0F0FF", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{anime.type}</span>
-                </motion.div>
-              )}
-              {anime?.totalEpisodes != null && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.48 }}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "6px 10px", borderRadius: 8,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    backdropFilter: "blur(8px)",
-                  }}
-                >
-                  <Film size={11} color="#a1a1aa" />
-                  <span style={{ color: "#F0F0FF", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
-                    {episodes.length > 0 && episodes.length < anime.totalEpisodes
-                      ? `${episodes.length}/${anime.totalEpisodes}`
-                      : anime.totalEpisodes}{" "}eps
-                  </span>
-                </motion.div>
-              )}
-              {anime?.releaseDate && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.54 }}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "6px 10px", borderRadius: 8,
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    backdropFilter: "blur(8px)",
-                  }}
-                >
-                  <Calendar size={11} color="#a1a1aa" />
-                  <span style={{ color: "#F0F0FF", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{anime.releaseDate}</span>
-                </motion.div>
-              )}
+      <main className="iz-container" style={{ position: "relative", zIndex: 2, marginTop: "clamp(-260px, -22svh, -150px)" }}>
+        <div className="iz-detail">
+          <div className="iz-detail__poster">
+            <div className="iz-poster__frame" style={{ borderRadius: 16 }}>
+              <img src={image} alt={title} />
             </div>
+          </div>
+
+          <div className="iz-detail__info">
+            <div className="iz-hero__eyebrow" style={{ marginBottom: 12 }}>
+              {airing && <span className="iz-tag iz-tag--accent"><span className="iz-dot" /> En emisión</span>}
+              {anime.type && <span className="iz-tag">{anime.type}</span>}
+              {anime.studios?.[0] && <span className="iz-tag">{anime.studios[0]}</span>}
+              <span className="iz-tag">SUB ESP</span>
+            </div>
+            <h1 className="iz-detail__title">{title}</h1>
+            {nativeTitle && <div className="iz-serif" style={{ color: "var(--iz-muted)", fontSize: 18, marginTop: 6 }}>{nativeTitle}</div>}
+
+            <div className="iz-hero__meta" style={{ marginTop: 14 }}>
+              {score && <span className="iz-score" style={{ fontSize: 15 }}><Star size={14} fill="currentColor" /> {score.toFixed(1)}</span>}
+              {anime.releaseDate && <span>{anime.releaseDate}</span>}
+              {anime.totalEpisodes ? <span>{episodes.length > 0 && episodes.length < anime.totalEpisodes ? `${episodes.length} de ${anime.totalEpisodes}` : anime.totalEpisodes} episodios</span> : episodes.length > 0 ? <span>{episodes.length} episodios</span> : null}
+              {anime.duration && <span>{anime.duration}</span>}
+            </div>
+
+            <div className="iz-hero__cta" style={{ marginTop: 22 }}>
+              {(animeProgress || episodes.length > 0) && (
+                <button type="button" className="iz-btn iz-btn--primary iz-btn--lg" onClick={playMain}>
+                  <Play size={18} fill="#000" />
+                  {animeProgress ? `Continuar · Ep. ${animeProgress.episodeNum}` : "Ver episodio 1"}
+                </button>
+              )}
+              <WatchStatusButton animeForList={animeForFav} />
+              <button type="button" className={`iz-btn iz-btn--lg iz-btn--icon ${fav ? "iz-btn--accent" : "iz-btn--ghost"}`} style={{ width: 50 }} onClick={() => toggleFavorite(animeForFav)} title={fav ? "Quitar de favoritos" : "Añadir a favoritos"} aria-label="Favorito" aria-pressed={fav}>
+                <Heart size={18} fill={fav ? "currentColor" : "none"} />
+              </button>
+              {hasYouTubeTrailer && (
+                <button type="button" className="iz-btn iz-btn--ghost iz-btn--lg" onClick={() => setShowTrailer(true)}><Clapperboard size={17} /> Tráiler</button>
+              )}
+              <button type="button" className="iz-btn iz-btn--ghost iz-btn--lg iz-btn--icon" style={{ width: 50 }} onClick={share} title="Compartir" aria-label="Compartir"><Share2 size={17} /></button>
+            </div>
+            {shareToast && <div className="iz-tag iz-tag--accent" style={{ marginTop: 12 }}>✓ {shareToast}</div>}
+
+            {genres.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 22 }}>
+                {genres.slice(0, 8).map((g) => (
+                  <button key={g} type="button" className="iz-chip" style={{ height: 30, fontSize: 12 }} onClick={() => navigate(`/search?genre=${encodeURIComponent(g)}`)}>{g}</button>
+                ))}
+              </div>
+            )}
+
+            {rawDesc && (
+              <div style={{ marginTop: 22, maxWidth: 820 }}>
+                <p style={{ margin: 0, color: "var(--iz-text-2)", fontSize: 15, lineHeight: 1.7 }} className={descExpanded ? "" : "line-clamp-4"}>{rawDesc}</p>
+                {rawDesc.length > 280 && (
+                  <button type="button" className="iz-head__link" style={{ marginTop: 6, paddingLeft: 0 }} onClick={() => setDescExpanded((v) => !v)}>
+                    {descExpanded ? <>Mostrar menos <ChevronUp size={14} /></> : <>Leer más <ChevronDown size={14} /></>}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── Genre chips: full-width row below poster, no longer cramped ── */}
-        {genres.length > 0 && (
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.04, delayChildren: 0.6 } } }}
-            className="flex flex-wrap gap-1.5 md:gap-2 mb-5"
-          >
-            {genres.slice(0, 8).map((g) => (
-              <motion.span
-                key={g}
-                variants={{ hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0 } }}
-                whileHover={{ y: -2, scale: 1.04 }}
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: 0.5,
-                  padding: "5px 11px",
-                  borderRadius: 999,
-                  color: "#e4e4e7",
-                  background: "rgba(255,255,255,0.07)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  backdropFilter: "blur(8px)",
-                  textTransform: "uppercase",
-                  cursor: "default",
-                }}
-              >
-                {g}
-              </motion.span>
-            ))}
-          </motion.div>
-        )}
-
-        {/* ── Action buttons: primary full-width on mobile, secondary aligned ── */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={{ visible: { transition: { staggerChildren: 0.05, delayChildren: 0.15 } } }}
-          className="mb-6"
-        >
-          {/* Primary CTA — single line, full width on mobile, auto on desktop */}
-          {(animeProgress || episodes.length > 0) && (
-            <motion.button
-              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                if (animeProgress) {
-                  const ep = episodes.find((e) => e.number === animeProgress.episodeNum);
-                  if (ep) handleEpisode(ep);
-                } else {
-                  handleEpisode(episodes[0]);
-                }
-              }}
-              className="relative overflow-hidden w-full md:w-auto flex items-center justify-center gap-2.5 text-black mb-2.5"
-              style={{
-                height: 48,
-                padding: "0 24px",
-                borderRadius: 9999,
-                fontSize: 14,
-                fontWeight: 700,
-                letterSpacing: 0.2,
-                background: "#ffffff",
-              }}
-            >
-              {/* Animated shine sweep */}
-              <motion.div
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%)",
-                  pointerEvents: "none",
-                }}
-                initial={{ x: "-120%" }}
-                animate={{ x: "220%" }}
-                transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.6, ease: "easeInOut" }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 26,
-                  height: 26,
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.25)",
-                  border: "1.5px solid rgba(255,255,255,0.4)",
-                  position: "relative",
-                  zIndex: 1,
-                  flexShrink: 0,
-                }}
-              >
-                <Play size={12} fill="currentColor" style={{ marginLeft: 1 }} />
-              </div>
-              <span style={{ position: "relative", zIndex: 1, whiteSpace: "nowrap" }}>
-                {animeProgress
-                  ? `Continuar viendo · Ep. ${animeProgress.episodeNum}`
-                  : "Reproducir Episodio 1"}
-              </span>
-            </motion.button>
-          )}
-
-          {/* Secondary actions — uniform height, neat horizontal row */}
-          <div className="flex flex-wrap gap-2 items-stretch">
-            {hasYouTubeTrailer && (
-              <motion.button
-                variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
-                whileHover={{ scale: 1.04, y: -1 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => setShowTrailer(true)}
-                className="flex items-center justify-center gap-1.5 text-xs font-bold border"
-                style={{
-                  height: 38,
-                  padding: "0 14px",
-                  borderRadius: 10,
-                  color: "#c7d2fe",
-                  borderColor: "rgba(63,46,178,0.4)",
-                  background: "rgba(63,46,178,0.1)",
-                  backdropFilter: "blur(10px)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <Clapperboard size={13} /> Trailer
-              </motion.button>
-            )}
-
-            <div style={{ display: "inline-flex", alignItems: "stretch" }}>
-              <WatchStatusButton
-                animeForList={animeForFav}
-                onStatusChange={() => {}}
-              />
+        {/* ── Episodios ── */}
+        <section className="iz-section" id="episodios">
+          <div className="iz-head">
+            <div>
+              <div className="iz-head__eyebrow"><span className="iz-dot" />{episodes.length} disponibles</div>
+              <h2 className="iz-head__title">Episodios</h2>
             </div>
-
-            <motion.button
-              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
-              whileHover={{ scale: 1.04, y: -1 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => toggleFavorite(animeForFav)}
-              className="flex items-center justify-center gap-1.5 text-xs font-bold border"
-              style={{
-                height: 38,
-                padding: "0 14px",
-                borderRadius: 10,
-                whiteSpace: "nowrap",
-                ...(fav
-                  ? { color: "#c7d2fe", borderColor: "rgba(63,46,178,0.5)", background: "rgba(63,46,178,0.14)", backdropFilter: "blur(10px)" }
-                  : { color: "#B8B8D1", borderColor: "rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.05)", backdropFilter: "blur(10px)" }),
-              }}
-            >
-              <motion.span animate={fav ? { scale: [1, 1.3, 1] } : { scale: 1 }} transition={{ duration: 0.4 }} style={{ display: "inline-flex" }}>
-                {fav ? <HeartOff size={13} /> : <Heart size={13} fill={fav ? "currentColor" : "none"} />}
-              </motion.span>
-              {fav ? "Quitar" : "Favorito"}
-            </motion.button>
-
-            <motion.button
-              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
-              whileHover={{ scale: 1.04, y: -1 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href).then(() => {
-                  setShareToast(true);
-                  setTimeout(() => setShareToast(false), 2500);
-                });
-              }}
-              className="flex items-center justify-center gap-1.5 text-xs font-bold border"
-              style={{
-                height: 38,
-                padding: "0 14px",
-                borderRadius: 10,
-                color: "#B8B8D1",
-                borderColor: "rgba(255,255,255,0.14)",
-                background: "rgba(255,255,255,0.05)",
-                backdropFilter: "blur(10px)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <Share2 size={13} /> Compartir
-            </motion.button>
-          </div>
-        </motion.div>
-
-        <AnimatePresence>
-          {shareToast && (
-            <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 360, damping: 24 }}
-              style={{ position: "fixed", top: 70, right: 16, background: "linear-gradient(135deg,#22C55E,#16A34A)", color: "#fff", fontSize: 13, fontWeight: 700, borderRadius: 12, padding: "10px 16px", zIndex: 200, boxShadow: "0 12px 32px rgba(34,197,94,0.45)" }}
-            >
-              ✓ Enlace copiado al portapapeles
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Description with quote-style design ─────────────────────── */}
-        {rawDesc && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mb-6 relative overflow-hidden"
-            style={{
-              padding: "20px 22px 18px",
-              borderRadius: 16,
-              background:
-                "linear-gradient(135deg, rgba(63,46,178,0.06) 0%, rgba(16,14,34,0.95) 30%, rgba(13,12,28,0.95) 100%)",
-              border: "1px solid rgba(63,46,178,0.15)",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.3)",
-            }}
-          >
-            {/* Big opening quote mark */}
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                top: -8,
-                left: 8,
-                fontSize: 80,
-                lineHeight: 1,
-                color: "rgba(63,46,178,0.2)",
-                fontFamily: "Georgia, serif",
-                fontWeight: 800,
-                pointerEvents: "none",
-                userSelect: "none",
-              }}
-            >
-              "
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 10,
-                position: "relative",
-              }}
-            >
-              <div className="section-accent" />
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: 2,
-                  textTransform: "uppercase",
-                  color: "#a5b4fc",
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                }}
-              >
-                Sinopsis
-              </span>
-            </div>
-            <p
-              className={`text-sm text-[#C5C5DD] leading-relaxed ${!descExpanded ? "line-clamp-4" : ""}`}
-              style={{ position: "relative", fontWeight: 400 }}
-            >
-              {rawDesc}
-            </p>
-            {rawDesc.length > 200 && (
-              <button
-                onClick={() => setDescExpanded(!descExpanded)}
-                className="flex items-center gap-1 mt-3 text-xs font-bold transition-colors"
-                style={{
-                  color: "#a5b4fc",
-                  padding: "5px 11px",
-                  borderRadius: 8,
-                  background: "rgba(63,46,178,0.1)",
-                  border: "1px solid rgba(63,46,178,0.3)",
-                }}
-              >
-                {descExpanded ? <><ChevronUp size={12} />Mostrar menos</> : <><ChevronDown size={12} />Leer más</>}
-              </button>
-            )}
-          </motion.div>
-        )}
-
-        {/* User Rating */}
-        {id && <UserRatingWidget animeId={id} />}
-
-        {/* ── Characters: tall portrait cards with overlay name ─────── */}
-        {characters.length > 0 && (
-          <div className="mb-7">
-            <SectionHeader icon={<Users size={13} />} label="Personajes" count={characters.length} module="MOD-03" />
-            <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginLeft: -2, marginRight: -2, paddingLeft: 2, paddingRight: 2 }}>
-              {characters.slice(0, 16).map((char, idx) => (
-                <motion.div
-                  key={char.id}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.4) }}
-                  whileHover={{ y: -4 }}
-                  style={{
-                    flexShrink: 0,
-                    width: 96,
-                    cursor: "default",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "relative",
-                      width: 96,
-                      height: 132,
-                      borderRadius: 14,
-                      overflow: "hidden",
-                      background: "linear-gradient(135deg,#1a1530,#0d0c1c)",
-                      border: char.role === "MAIN"
-                        ? "1.5px solid rgba(63,46,178,0.45)"
-                        : "1px solid rgba(255,255,255,0.08)",
-                      boxShadow: char.role === "MAIN"
-                        ? "0 8px 22px rgba(63,46,178,0.25), inset 0 1px 0 rgba(255,255,255,0.05)"
-                        : "0 4px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
-                    }}
-                  >
-                    <img
-                      src={char.image}
-                      alt={char.name}
-                      loading="lazy"
-                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                    />
-                    {/* Bottom dark gradient for text legibility */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        background: "linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.85) 100%)",
-                        pointerEvents: "none",
-                      }}
-                    />
-                    {char.role === "MAIN" && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: 6,
-                          left: 6,
-                          fontSize: 8,
-                          fontWeight: 800,
-                          letterSpacing: 0.6,
-                          color: "#fff",
-                          padding: "2px 6px",
-                          borderRadius: 5,
-                          background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
-                          boxShadow: "0 3px 8px rgba(63,46,178,0.5)",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Principal
-                      </div>
-                    )}
-                    {/* Name overlay at bottom */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        padding: "8px 8px 7px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          color: "#fff",
-                          fontSize: 10,
-                          fontWeight: 800,
-                          lineHeight: 1.2,
-                          overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          textShadow: "0 2px 6px rgba(0,0,0,0.8)",
-                        } as any}
-                      >
-                        {char.name}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Episodes section ──────────────────────────────────────── */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-            <SectionHeader icon={<List size={13} />} label="Episodios" count={episodes.length} module="MOD-04" noBottomMargin />
-            {watchedEps.size > 0 && (
-              <div className="flex rounded-lg overflow-hidden border border-[rgba(255,255,255,0.12)] text-xs">
-                <button
-                  onClick={() => setEpFilter("all")}
-                  className={`px-3 py-1.5 transition-colors ${epFilter === "all" ? "bg-[#3f2eb2] text-white" : "text-[#a1a1aa] hover:text-[#F0F0FF]"}`}
-                >
-                  Todos
-                </button>
-                <button
-                  onClick={() => setEpFilter("unwatched")}
-                  className={`px-3 py-1.5 transition-colors ${epFilter === "unwatched" ? "bg-[#3f2eb2] text-white" : "text-[#a1a1aa] hover:text-[#F0F0FF]"}`}
-                >
-                  Sin ver
-                </button>
-              </div>
-            )}
-          </div>
-
-          {episodes.length > 24 && (
-            <div className="mb-3 flex gap-2">
-              <input
-                value={epSearch}
-                onChange={(e) => setEpSearch(e.target.value)}
-                placeholder="Buscar episodio o número"
-                inputMode="numeric"
-                className="flex-1 min-w-0 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[#0a0a0a] px-3 py-2.5 text-sm text-[#F0F0FF] outline-none placeholder:text-[#71717a] focus:border-[#3f2eb280]"
-              />
-              {epSearch && (
-                <button
-                  onClick={() => setEpSearch("")}
-                  className="rounded-xl border border-[rgba(255,255,255,0.12)] px-3 text-[#a1a1aa]"
-                >
-                  <X size={15} />
-                </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              {episodes.length > 12 && (
+                <div style={{ position: "relative" }}>
+                  <SearchIcon size={15} color="#71717a" style={{ position: "absolute", left: 11, top: 11 }} />
+                  <input className="iz-input" value={epSearch} onChange={(e) => setEpSearch(e.target.value)} placeholder="Nº o título" inputMode="search" style={{ width: 170, height: 38, paddingLeft: 34 }} aria-label="Buscar episodio" />
+                  {epSearch && <button type="button" onClick={() => setEpSearch("")} aria-label="Limpiar" style={{ position: "absolute", right: 8, top: 9, background: "none", border: 0, color: "#a1a1aa", cursor: "pointer" }}><X size={16} /></button>}
+                </div>
               )}
+              {watchedNums.size > 0 && (
+                <>
+                  <button type="button" className={`iz-chip ${epFilter === "all" ? "is-active" : ""}`} onClick={() => setEpFilter("all")}>Todos</button>
+                  <button type="button" className={`iz-chip ${epFilter === "unwatched" ? "is-active" : ""}`} onClick={() => setEpFilter("unwatched")}>Sin ver</button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {ranges.length > 0 && !normalizedEpSearch && (
+            <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 12, scrollbarWidth: "none" }}>
+              {ranges.map((r, i) => (
+                <button key={r.label} type="button" className={`iz-chip ${i === epRange ? "is-active" : ""}`} style={{ height: 30, fontSize: 12, fontFamily: "var(--iz-mono)" }} onClick={() => setEpRange(i)}>{r.label}</button>
+              ))}
             </div>
           )}
 
           {paheQuery.isLoading && (
-            <div className="flex items-center gap-2 text-xs text-[#71717a] mb-3">
-              <div className="w-3 h-3 border border-[#3f2eb2] border-t-transparent rounded-full animate-spin" />
-              Cargando fuentes...
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--iz-dim)", fontSize: 13, marginBottom: 12 }}>
+              <span className="iz-spin" /> Buscando fuentes de video…
             </div>
           )}
 
           {episodes.length === 0 ? (
-            <div className="py-10 text-center text-[#71717a]">
-              <Film size={32} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Sin episodios disponibles</p>
-            </div>
+            <EmptyState title={paheQuery.isLoading ? "Cargando episodios…" : "Sin episodios disponibles"} text={paheQuery.isLoading ? undefined : "Este anime aún no tiene episodios en nuestras fuentes. Vuelve pronto."} />
+          ) : visibleEps.length === 0 ? (
+            <EmptyState title="Ningún episodio coincide" />
           ) : (
-            <div className="grid grid-cols-1 gap-2 max-h-[640px] overflow-y-auto pr-1 ep-scroll">
-              {filteredEps.map((ep, idx) => {
-                const watched = watchedEps.has(ep.id);
-                const inProgress =
-                  !watched && animeProgress?.episodeNum === ep.number;
-                /* Resolve real provider id for prefetch (handles synthetic ids) */
-                const paheEpisodes = paheQuery.data?.episodes ?? [];
-                const paheEp = paheEpisodes.find((e) => e.number === ep.number);
+            <div className="iz-eps">
+              {visibleEps.map((ep) => {
+                const watched = watchedNums.has(ep.number);
+                const ratio = progressByNum.get(ep.number) ?? 0;
+                const current = animeProgress?.episodeNum === ep.number && !watched;
+                const paheEp = (paheQuery.data?.episodes ?? []).find((e) => e.number === ep.number);
                 const resolvedId = paheEp?.id ?? ep.id;
                 return (
-                  <motion.button
-                    key={ep.id}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.28, delay: Math.min(idx * 0.022, 0.35), ease: [0.16, 1, 0.3, 1] }}
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleEpisode(ep)}
-                    onMouseEnter={() => prefetchStream(resolvedId, ep.number)}
-                    onTouchStart={() => prefetchStream(resolvedId, ep.number)}
-                    className={`relative flex items-center gap-3 text-left group w-full overflow-hidden ${watched ? "opacity-65" : ""}`}
-                    style={{
-                      padding: "11px 12px 11px 14px",
-                      borderRadius: 12,
-                      background: inProgress
-                        ? "linear-gradient(135deg, rgba(63,46,178,0.16) 0%, rgba(17,13,32,0.95) 55%, rgba(13,12,28,0.95) 100%)"
-                        : "linear-gradient(135deg, rgba(20,16,40,0.7) 0%, rgba(12,11,26,0.9) 100%)",
-                      border: inProgress
-                        ? "1px solid rgba(63,46,178,0.4)"
-                        : "1px solid rgba(255,255,255,0.06)",
-                      boxShadow: inProgress
-                        ? "0 0 0 1px rgba(63,46,178,0.15), 0 10px 28px rgba(63,46,178,0.18), inset 0 1px 0 rgba(255,255,255,0.04)"
-                        : "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)",
-                      transition: "border-color .2s, box-shadow .2s, background .2s, transform .2s",
-                    }}
-                  >
-                    {/* Left accent stripe */}
-                    <span
-                      aria-hidden
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        top: 6,
-                        bottom: 6,
-                        width: 3,
-                        borderRadius: "0 3px 3px 0",
-                        background: watched
-                          ? "rgba(34,197,94,0.6)"
-                          : inProgress
-                            ? "linear-gradient(180deg,#a5b4fc,#3f2eb2)"
-                            : "transparent",
-                        opacity: watched || inProgress ? 1 : 0,
-                        transition: "opacity .2s",
-                      }}
-                    />
-                    {/* Episode number badge */}
-                    <div
-                      style={{
-                        position: "relative",
-                        width: 48,
-                        height: 48,
-                        borderRadius: 12,
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexDirection: "column",
-                        ...(watched
-                          ? { background: "#171627", color: "#5A5A7A", border: "1px solid rgba(34,197,94,0.2)" }
-                          : inProgress
-                            ? {
-                                background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
-                                color: "#fff",
-                                boxShadow: "0 8px 22px rgba(63,46,178,0.5), inset 0 1px 0 rgba(255,255,255,0.3)",
-                              }
-                            : {
-                                background: "linear-gradient(135deg, rgba(63,46,178,0.22), rgba(46,33,138,0.06))",
-                                color: "#a5b4fc",
-                                boxShadow: "inset 0 0 0 1px rgba(63,46,178,0.28)",
-                              }),
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 8,
-                          fontWeight: 800,
-                          letterSpacing: 1,
-                          opacity: 0.65,
-                          marginBottom: -2,
-                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                        }}
-                      >
-                        EP
+                  <button key={ep.id} type="button" className={`iz-ep ${current ? "is-current" : ""} ${watched ? "is-watched" : ""}`}
+                    onClick={() => handleEpisode(ep)} onMouseEnter={() => prefetchStream(resolvedId, ep.number)} onTouchStart={() => prefetchStream(resolvedId, ep.number)}>
+                    <span className="iz-ep__num">{ep.number}</span>
+                    <span className="iz-ep__body">
+                      <span className="iz-ep__title">{ep.title && !/^episod(e|io)\s*\d+$/i.test(ep.title.trim()) ? ep.title : `Episodio ${ep.number}`}</span>
+                      <span className="iz-ep__meta">
+                        {current ? <><span className="iz-dot" /> Continuar</> : watched ? <><CheckCircle2 size={12} /> Visto</> : ep.airDate ? <><Calendar size={11} /> {ep.airDate}</> : "Sub español"}
+                        {ep.isFiller && <span className="iz-tag" style={{ padding: "1px 5px", fontSize: 9 }}>RELLENO</span>}
                       </span>
-                      <span style={{ fontSize: 16, fontWeight: 900, lineHeight: 1 }}>
-                        {ep.number}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        style={{
-                          fontSize: 13.5,
-                          fontWeight: 700,
-                          color: "#F0F0FF",
-                          lineHeight: 1.25,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 1,
-                          WebkitBoxOrient: "vertical",
-                        } as any}
-                      >
-                        {ep.title ?? `Episodio ${ep.number}`}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {ep.airDate && (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 3,
-                              fontSize: 10,
-                              color: "#7A7A95",
-                              fontWeight: 600,
-                            }}
-                          >
-                            <Calendar size={9} /> {ep.airDate}
-                          </span>
-                        )}
-                        {inProgress && (
-                          <span
-                            style={{
-                              fontSize: 9,
-                              color: "#a5b4fc",
-                              fontWeight: 800,
-                              letterSpacing: 0.7,
-                              textTransform: "uppercase",
-                              padding: "2px 7px",
-                              borderRadius: 4,
-                              background: "rgba(63,46,178,0.18)",
-                              border: "1px solid rgba(63,46,178,0.35)",
-                            }}
-                          >
-                            ▶ En curso
-                          </span>
-                        )}
-                        {watched && (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 3,
-                              fontSize: 9,
-                              color: "#22C55E",
-                              fontWeight: 800,
-                              letterSpacing: 0.5,
-                              padding: "2px 7px",
-                              borderRadius: 4,
-                              background: "rgba(34,197,94,0.1)",
-                              border: "1px solid rgba(34,197,94,0.25)",
-                              textTransform: "uppercase",
-                            }}
-                          >
-                            <CheckCircle2 size={9} /> Visto
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {/* Play CTA — always visible on mobile, animates on desktop hover */}
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                        background: inProgress
-                          ? "linear-gradient(135deg,#fff,#c7d2fe)"
-                          : "linear-gradient(135deg,#a5b4fc,#3f2eb2 60%,#2e218a)",
-                        boxShadow: inProgress
-                          ? "0 6px 18px rgba(255,255,255,0.25)"
-                          : "0 6px 18px rgba(63,46,178,0.45)",
-                        transition: "transform .2s",
-                      }}
-                    >
-                      <Play size={13} fill={inProgress ? "#2e218a" : "#fff"} color={inProgress ? "#2e218a" : "#fff"} style={{ marginLeft: 1 }} />
-                    </div>
-                  </motion.button>
+                    </span>
+                    <span className="iz-ep__play"><Play size={13} fill="currentColor" /></span>
+                    {ratio > 0 && ratio < 0.85 && <span className="iz-ep__bar"><i style={{ width: `${Math.round(ratio * 100)}%` }} /></span>}
+                  </button>
                 );
               })}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* ── Recommendations ───────────────────────────────────────── */}
-        {recommendations.length > 0 && (
-          <div className="mb-6">
-            <SectionHeader icon={<Sparkles size={13} />} label="Animes similares" count={recommendations.length} module="MOD-05" />
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none", marginLeft: -2, marginRight: -2, paddingLeft: 2, paddingRight: 2 }}>
-              {recommendations.map((rec) => (
-                <RecommendationCard key={rec.id} anime={rec} />
+        {characters.length > 0 && (
+          <section className="iz-section">
+            <SectionHead eyebrow="Reparto" title="Personajes" />
+            <Rail label="Personajes">
+              {characters.slice(0, 20).map((c) => (
+                <div key={c.id} style={{ width: 112 }}>
+                  <div className="iz-poster__frame" style={{ borderColor: c.role === "MAIN" ? "rgba(99,102,241,.45)" : undefined }}>
+                    <img src={c.image} alt={c.name} loading="lazy" />
+                  </div>
+                  <div className="iz-poster__title" style={{ fontSize: 12 }}>{c.name}</div>
+                  <div className="iz-poster__meta">{c.role === "MAIN" ? "Principal" : "Secundario"}</div>
+                </div>
               ))}
-            </div>
-          </div>
+            </Rail>
+          </section>
         )}
 
-        <AdBanner variant="horizontal" />
-        <CommentsSection animeId={id!} />
-      </div>
+        {recommendations.length > 0 && (
+          <section className="iz-section">
+            <SectionHead eyebrow="Si te gustó este" title="Animes" serif="similares" />
+            <Rail label="Similares">
+              {recommendations.map((r) => (
+                <PosterCard key={r.id} data={{ id: r.id, title: resolveTitle(r.title), image: r.image, score: toScore10(r.rating), meta: r.type }} />
+              ))}
+            </Rail>
+          </section>
+        )}
+
+        <section className="iz-section" style={{ display: "grid", gap: 16 }}>
+          {id && <UserRatingWidget animeId={id} />}
+          <AdBanner variant="horizontal" />
+        </section>
+        <section className="iz-section"><CommentsSection animeId={id!} /></section>
+      </main>
+      <Footer />
     </div>
   );
 }

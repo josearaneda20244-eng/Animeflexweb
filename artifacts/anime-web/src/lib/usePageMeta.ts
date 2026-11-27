@@ -1,19 +1,39 @@
 import { useEffect } from "react";
 
+export const SITE_NAME = "IZIFF ANIME";
+export const SITE_URL = "https://animeflex.lat";
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/opengraph.jpg`;
+export const DEFAULT_DESCRIPTION =
+  "Mira anime y lee manga online en 1080p con subtítulos en español latino y castellano. Tendencias, calendario de emisión y últimos episodios.";
+
+type OgType = "website" | "video.episode" | "video.tv_show" | "video.movie" | "book" | "article" | "profile";
+
 interface PageMeta {
   title: string;
   description?: string;
+  /** Imagen para la tarjeta al compartir (absoluta o relativa al sitio). */
   image?: string;
+  imageAlt?: string;
   url?: string;
-  /** schema.org JSON-LD object (or array) for rich snippets in search engines. */
+  type?: OgType;
+  /** Evita la indexación (p. ej. perfil, ajustes, lector). */
+  noindex?: boolean;
+  /** schema.org JSON-LD (objeto o array) para resultados enriquecidos. */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const JSON_LD_SCRIPT_ID = "page-jsonld";
 
+function absUrl(u?: string): string {
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("//")) return `https:${u}`;
+  return `${SITE_URL}${u.startsWith("/") ? "" : "/"}${u}`;
+}
+
 function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
-  if (!content) return;
   let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${name}"]`);
+  if (!content) { el?.remove(); return; }
   if (!el) {
     el = document.createElement("meta");
     el.setAttribute(attr, name);
@@ -22,63 +42,67 @@ function setMeta(name: string, content: string, attr: "name" | "property" = "nam
   el.setAttribute("content", content);
 }
 
-export function usePageMeta({ title, description, image, url, jsonLd }: PageMeta) {
+function clip(text: string, max = 200): string {
+  const t = text.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+}
+
+/**
+ * Metadatos dinámicos por página: título, descripción, OpenGraph (Facebook/WhatsApp/Discord),
+ * Twitter Cards, canonical y JSON-LD. Los crawlers que ejecutan JS (Google, Bing, Discord)
+ * leen estos valores; para Facebook/Twitter el servidor también sirve /api/og/* (ver vercel.json).
+ */
+export function usePageMeta({ title, description, image, imageAlt, url, type = "website", noindex, jsonLd }: PageMeta) {
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = title;
+    const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
+    const desc = clip(description || DEFAULT_DESCRIPTION);
+    const img = absUrl(image) || DEFAULT_OG_IMAGE;
+    const finalUrl = url ?? (typeof window !== "undefined" ? `${SITE_URL}${window.location.pathname}${window.location.search}` : SITE_URL);
 
-    if (description) {
-      setMeta("description", description);
-      setMeta("og:description", description, "property");
-      setMeta("twitter:description", description);
-    }
+    document.title = fullTitle;
+    setMeta("description", desc);
+    setMeta("robots", noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large");
 
-    setMeta("og:title", title, "property");
-    setMeta("og:type", "website", "property");
-    setMeta("og:site_name", "AnimeFlex", "property");
-    setMeta("twitter:title", title);
+    setMeta("og:site_name", SITE_NAME, "property");
+    setMeta("og:locale", "es_LA", "property");
+    setMeta("og:type", type, "property");
+    setMeta("og:title", fullTitle, "property");
+    setMeta("og:description", desc, "property");
+    setMeta("og:url", finalUrl, "property");
+    setMeta("og:image", img, "property");
+    setMeta("og:image:secure_url", img.startsWith("https://") ? img : "", "property");
+    setMeta("og:image:alt", imageAlt || fullTitle, "property");
+
     setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", fullTitle);
+    setMeta("twitter:description", desc);
+    setMeta("twitter:image", img);
+    setMeta("twitter:image:alt", imageAlt || fullTitle);
 
-    if (image) {
-      setMeta("og:image", image, "property");
-      setMeta("twitter:image", image);
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
     }
+    canonical.setAttribute("href", finalUrl);
 
-    const finalUrl = url ?? (typeof window !== "undefined" ? window.location.href : "");
-    if (finalUrl) {
-      setMeta("og:url", finalUrl, "property");
-      let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-      if (!canonical) {
-        canonical = document.createElement("link");
-        canonical.setAttribute("rel", "canonical");
-        document.head.appendChild(canonical);
-      }
-      canonical.setAttribute("href", finalUrl);
-    }
-
-    // Structured data (JSON-LD) — rich snippets for Google/Bing without UI changes.
-    let jsonLdEl: HTMLScriptElement | null = null;
     if (jsonLd) {
-      jsonLdEl = document.head.querySelector<HTMLScriptElement>(`script#${JSON_LD_SCRIPT_ID}`);
-      if (!jsonLdEl) {
-        jsonLdEl = document.createElement("script");
-        jsonLdEl.id = JSON_LD_SCRIPT_ID;
-        jsonLdEl.type = "application/ld+json";
-        document.head.appendChild(jsonLdEl);
+      let el = document.head.querySelector<HTMLScriptElement>(`script#${JSON_LD_SCRIPT_ID}`);
+      if (!el) {
+        el = document.createElement("script");
+        el.id = JSON_LD_SCRIPT_ID;
+        el.type = "application/ld+json";
+        document.head.appendChild(el);
       }
-      try {
-        jsonLdEl.textContent = JSON.stringify(jsonLd);
-      } catch {
-        /* ignore serialization errors */
-      }
+      try { el.textContent = JSON.stringify(jsonLd); } catch { /* ignore */ }
     }
 
     return () => {
       document.title = prevTitle;
-      if (jsonLd) {
-        const el = document.head.querySelector<HTMLScriptElement>(`script#${JSON_LD_SCRIPT_ID}`);
-        if (el) el.remove();
-      }
+      if (jsonLd) document.head.querySelector(`script#${JSON_LD_SCRIPT_ID}`)?.remove();
+      if (noindex) setMeta("robots", "index, follow, max-image-preview:large");
     };
-  }, [title, description, image, url, jsonLd]);
+  }, [title, description, image, imageAlt, url, type, noindex, jsonLd]);
 }

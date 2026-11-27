@@ -20,7 +20,7 @@ export function useLimitsConfig() {
     limitMessage: "Has alcanzado tu límite diario de episodios gratuitos.",
     megafanMessage: "¡Hazte MegaFan y disfruta sin límites!",
     maintenanceMode: false,
-    maintenanceMessage: "Estamos realizando mantenimiento para mejorar AnimeFlex.",
+    maintenanceMessage: "Estamos realizando mantenimiento para mejorar IZIFF ANIME.",
     maintenanceUntil: "",
   }, isLoading: loading, refetch } = useQuery({
     queryKey: ["limits-config"],

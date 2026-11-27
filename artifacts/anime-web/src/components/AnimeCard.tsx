@@ -33,7 +33,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
           style={{
             borderRadius: 14,
             overflow: "hidden",
-            background: "#0c0c14",
+            background: "#0f0f0f",
             border: `1px solid ${hovered ? "rgba(63,46,178,0.45)" : "rgba(255,255,255,0.06)"}`,
             cursor: "pointer",
             boxShadow: hovered
@@ -42,7 +42,7 @@ export default function AnimeCard({ anime, progress }: AnimeCardProps) {
             transition: "border-color 0.25s ease, box-shadow 0.32s ease",
           }}
         >
-          <div style={{ position: "relative", aspectRatio: "2/3", overflow: "hidden", background: "#13131f" }}>
+          <div style={{ position: "relative", aspectRatio: "2/3", overflow: "hidden", background: "#171717" }}>
             <motion.img
               src={anime.image}
               alt={title}

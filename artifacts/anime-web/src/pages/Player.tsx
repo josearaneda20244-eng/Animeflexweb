@@ -7,7 +7,7 @@ import {
   ArrowLeft, SkipForward, AlertCircle, Loader2, Play, Pause, X,
   Users, Captions, ChevronLeft, ChevronRight, List, Maximize2, Minimize2,
   Share2, Copy, Check as CheckIcon, HelpCircle, FastForward, Rewind,
-  Download, Settings, Crown, Lock,
+  Download, Settings, Crown, Lock, RotateCcw, RotateCw,
 } from "lucide-react";
 import {
   consumet,
@@ -16,10 +16,13 @@ import {
   type StreamingSource,
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
+import { useHistory } from "@/context/HistoryContext";
 import { useAuth } from "@/context/AuthContext";
 import { CornerBrackets, SystemTag, ScanLines } from "@/components/SystemUI";
 import { apiClient } from "@/lib/apiClient";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
+import { useSkipTimes } from "@/lib/aniskip";
+import { usePageMeta } from "@/lib/usePageMeta";
 import {
   canWatchEpisodeSync,
   registerEpisodeView,
@@ -53,7 +56,12 @@ function parseResolution(src: StreamingSource) {
   if (m2) return m2[1] + "p";
   return (src.quality ?? "").trim() || "Auto";
 }
-function parseLatLabel(src: StreamingSource, index: number): string {
+function parseLatLabel(src: StreamingSource & { server?: string }, index: number): string {
+  if (src.server && src.server.trim() && !/^servidor$/i.test(src.server.trim())) {
+    const name = src.server.trim().replace(/[-_]/g, " ");
+    const q = (src.quality ?? "").match(/(\d{3,4})p/i)?.[1];
+    return `${name.charAt(0).toUpperCase()}${name.slice(1)}${q ? ` · ${q}p` : ""}`;
+  }
   const m = (src.quality ?? "").match(/(\d{3,4})p/i);
   if (m) return m[1] + "p";
   const m2 = (src.quality ?? "").match(/\b(\d{3,4})\b/);
@@ -159,7 +167,7 @@ function AutoNextOverlay({ nextNum, onSkip, onCancel }: { nextNum: string; onSki
   return (
     <div style={{ position: "absolute", bottom: 80, right: 16, zIndex: 50, background: "rgba(10,10,10,0.95)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: "16px 20px", minWidth: 220, backdropFilter: "blur(8px)" }}>
       <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, marginBottom: 6, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase" }}>Siguiente episodio en {secs}s</div>
-      <div style={{ color: "#F1F1F5", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Episodio {nextNum}</div>
+      <div style={{ color: "#f4f4f5", fontWeight: 700, fontSize: 14, marginBottom: 12 }}>Episodio {nextNum}</div>
       <div style={{ height: 3, background: "rgba(255,255,255,0.1)", borderRadius: 2, marginBottom: 12, overflow: "hidden" }}>
         <div style={{ height: "100%", background: "#3f2eb2", borderRadius: 2, width: `${(secs / 10) * 100}%`, transition: "width 1s linear" }} />
       </div>
@@ -299,7 +307,7 @@ function PlayerLoadingScreen({
               inset: 22,
               borderRadius: "50%",
               background:
-                "radial-gradient(circle, #3f2eb2 0%, #1e1b4b 60%, transparent 100%)",
+                "radial-gradient(circle, #3f2eb2 0%, #18181b 60%, transparent 100%)",
               boxShadow: "0 0 24px rgba(63,46,178,0.6)",
             }}
           />
@@ -335,7 +343,7 @@ function PlayerLoadingScreen({
                   padding: "3px 10px",
                   borderRadius: 999,
                   marginBottom: 8,
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  fontFamily: "'Space Grotesk', ui-monospace, monospace",
                 }}
               >
                 EP · {episodeNum}
@@ -344,7 +352,7 @@ function PlayerLoadingScreen({
             {animeTitle && (
               <div
                 style={{
-                  color: "#F1F1F5",
+                  color: "#f4f4f5",
                   fontSize: 16,
                   fontWeight: 800,
                   lineHeight: 1.3,
@@ -492,6 +500,11 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
   const [isFs, setIsFs] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [levels, setLevels] = useState<{ index: number; height: number; bitrate: number }[]>([]);
+  const [qualityPref, setQualityPref] = useState<number>(() => { try { return Number(localStorage.getItem("iz_quality_height")) || -1; } catch { return -1; } });
+  const [activeHeight, setActiveHeight] = useState<number>(0);
+  const pointerTypeRef = useRef<string>("mouse");
+  const tapTimerRef = useRef<number | null>(null);
   const wasPlayingRef = useRef(false);
   const isDraggingRef = useRef(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
@@ -706,7 +719,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
     const video = videoRef.current;
     if (!video) return;
     setLoading(true); setError(null); setCurrentSec(0); setDur(0);
-    setBufferedFrac(0); setPlaying(false);
+    setBufferedFrac(0); setPlaying(false); setLevels([]); setActiveHeight(0);
     seekRestoredRef.current = false;
     if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
 
@@ -794,9 +807,28 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
         if (tracks.length > 0) onSubtitleTracksRef.current?.(tracks);
       });
       loadTimeout = setTimeout(() => { setError("Tiempo agotado. Probando otra fuente..."); setLoading(false); notifyErr(); }, 20000);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      hls.on(Hls.Events.MANIFEST_PARSED, (_e, data) => {
         if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
+        const lv = (data.levels ?? [])
+          .map((l, index) => ({ index, height: l.height || 0, bitrate: l.bitrate || 0 }))
+          .filter((l) => l.height > 0);
+        // Una entrada por resolución (la de mayor bitrate)
+        const byHeight = new Map<number, { index: number; height: number; bitrate: number }>();
+        for (const l of lv) { const prev = byHeight.get(l.height); if (!prev || l.bitrate > prev.bitrate) byHeight.set(l.height, l); }
+        const uniq = Array.from(byHeight.values()).sort((a, b) => b.height - a.height);
+        setLevels(uniq);
+        // Aplicar la calidad preferida guardada (la más cercana por debajo)
+        let pref = -1;
+        try { pref = Number(localStorage.getItem("iz_quality_height")) || -1; } catch { /* */ }
+        if (pref > 0 && uniq.length > 1) {
+          const target = uniq.find((l) => l.height <= pref) ?? uniq[uniq.length - 1];
+          hls.currentLevel = target.index;
+        }
         setLoading(false); video.play().catch(() => {});
+      });
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_e, data) => {
+        const h = hls.levels?.[data.level]?.height;
+        if (h) setActiveHeight(h);
       });
       let netErr = 0, mediaErr = 0;
       hls.on(Hls.Events.FRAG_LOADED, () => { netErr = 0; });
@@ -909,7 +941,28 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
     };
   }, [m3u8Url]);
 
-  const fmt = (t: number) => `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, "0")}`;
+  const changeQuality = (height: number) => {
+    const hls = hlsRef.current;
+    setQualityPref(height);
+    try { if (height > 0) localStorage.setItem("iz_quality_height", String(height)); else localStorage.removeItem("iz_quality_height"); } catch { /* */ }
+    if (!hls) return;
+    if (height <= 0) { hls.currentLevel = -1; return; }
+    const lv = levels.find((l) => l.height === height);
+    if (lv) hls.currentLevel = lv.index;
+  };
+
+  const seekBy = (secs: number) => {
+    const v = videoRef.current;
+    if (!v || !isFinite(v.duration)) return;
+    v.currentTime = Math.max(0, Math.min(v.duration - 0.5, v.currentTime + secs));
+    showControls();
+  };
+
+  const fmt = (t: number) => {
+    if (!isFinite(t) || t < 0) t = 0;
+    const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = Math.floor(t % 60).toString().padStart(2, "0");
+    return h > 0 ? `${h}:${m.toString().padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+  };
 
   const seekFromClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -942,8 +995,21 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
       className="relative w-full h-full bg-black select-none"
       style={{ cursor: controlsVis ? "default" : "none" }}
       onMouseMove={showControls}
-      onTouchStart={showControls}
-      onClick={() => { if (!controlsVis) { showControls(); return; } togglePlay(); }}
+      onPointerDown={(e) => { pointerTypeRef.current = e.pointerType; }}
+      onClick={() => {
+        if (pointerTypeRef.current !== "mouse") {
+          // Táctil: un toque muestra/oculta controles. Se retrasa para no
+          // interferir con el doble toque (±10 s) que gestiona el contenedor padre.
+          if (tapTimerRef.current) { window.clearTimeout(tapTimerRef.current); tapTimerRef.current = null; return; }
+          tapTimerRef.current = window.setTimeout(() => {
+            tapTimerRef.current = null;
+            if (controlsVis) { setControlsVis(false); setSettingsOpen(false); } else showControls();
+          }, 280);
+          return;
+        }
+        if (!controlsVis) { showControls(); return; }
+        togglePlay();
+      }}
     >
       <video
         ref={videoRef}
@@ -968,7 +1034,18 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ background: "rgba(0,0,0,0.85)" }}>
           <AlertCircle size={36} style={{ color: "#EF4444" }} />
-          <p style={{ color: "#F0F0FF", fontSize: 13 }}>{error}</p>
+          <p style={{ color: "#ffffff", fontSize: 13 }}>{error}</p>
+        </div>
+      )}
+
+      {/* Controles centrales (táctil): retroceder · play/pausa · adelantar */}
+      {!loading && !error && (
+        <div className={`iz-pcenter ${controlsVis ? "is-on" : ""}`} style={{ opacity: controlsVis ? 1 : 0 }}>
+          <button type="button" aria-label="Retroceder 10 segundos" onClick={(e) => { e.stopPropagation(); seekBy(-10); }}><RotateCcw size={22} /><small>10</small></button>
+          <button type="button" aria-label={playing ? "Pausar" : "Reproducir"} className="iz-pcenter__main" onClick={(e) => togglePlay(e)}>
+            {playing ? <Pause size={30} fill="currentColor" /> : <Play size={30} fill="currentColor" style={{ marginLeft: 3 }} />}
+          </button>
+          <button type="button" aria-label="Adelantar 10 segundos" onClick={(e) => { e.stopPropagation(); seekBy(10); }}><RotateCw size={22} /><small>10</small></button>
         </div>
       )}
 
@@ -988,27 +1065,42 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
         <div
           ref={progressBarRef}
           style={{
-            height: 18, background: "transparent",
+            height: 22, background: "transparent", touchAction: "none",
             marginBottom: 6, cursor: "pointer", position: "relative",
             display: "flex", alignItems: "center",
           }}
           onClick={seekFromClick}
-          onMouseDown={e => {
+          onPointerDown={e => {
             e.stopPropagation();
-            e.preventDefault();
+            if (e.pointerType === "mouse") e.preventDefault();
             isDraggingRef.current = true;
             wasPlayingRef.current = !(videoRef.current?.paused ?? true);
+            try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* */ }
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
             if (videoRef.current && dur) videoRef.current.currentTime = pct * dur;
           }}
+          onPointerMove={e => {
+            if (!isDraggingRef.current || !dur) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+            if (videoRef.current) videoRef.current.currentTime = pct * dur;
+            showControls();
+          }}
+          onPointerUp={e => {
+            try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* */ }
+            if (!isDraggingRef.current) return;
+            isDraggingRef.current = false;
+            if (wasPlayingRef.current && videoRef.current?.paused) videoRef.current.play().catch(() => {});
+          }}
+          onPointerCancel={() => { isDraggingRef.current = false; }}
         >
           {/* Track background */}
           <div style={{ position: "absolute", left: 0, right: 0, height: 5, background: "rgba(255,255,255,0.18)", borderRadius: 3 }}>
             {/* Buffered fill */}
             <div style={{ position: "absolute", inset: 0, width: `${bufferedFrac * 100}%`, background: "rgba(255,255,255,0.28)", borderRadius: 3 }} />
             {/* Played fill */}
-            <div style={{ position: "absolute", inset: 0, width: `${dur ? (currentSec / dur) * 100 : 0}%`, background: "#ffffff", borderRadius: 3 }} />
+            <div style={{ position: "absolute", inset: 0, width: `${dur ? (currentSec / dur) * 100 : 0}%`, background: "linear-gradient(90deg, #6366f1, #ffffff)", borderRadius: 3 }} />
           </div>
           {/* Thumb */}
           <div style={{
@@ -1033,6 +1125,11 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
           <span style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, fontVariantNumeric: "tabular-nums", padding: "0 4px" }}>
             {fmt(currentSec)} / {fmt(dur)}
           </span>
+          {activeHeight > 0 && (
+            <span style={{ marginLeft: 4, padding: "2px 6px", borderRadius: 5, border: "1px solid rgba(255,255,255,.2)", color: "rgba(255,255,255,.8)", fontSize: 10, fontWeight: 700, fontFamily: "'Space Grotesk', monospace" }}>
+              {activeHeight >= 1080 ? "1080p HD" : `${activeHeight}p`}
+            </span>
+          )}
 
           <div style={{ flex: 1 }} />
 
@@ -1070,8 +1167,8 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
                   position: "absolute",
                   bottom: "calc(100% + 10px)",
                   right: 0,
-                  minWidth: 220,
-                  background: "rgba(15,15,20,0.96)",
+                  minWidth: 250, maxHeight: "min(70vh, 420px)", overflowY: "auto",
+                  background: "rgba(10,10,10,0.96)",
                   border: "1px solid rgba(255,255,255,0.1)",
                   borderRadius: 12,
                   padding: 10,
@@ -1081,6 +1178,22 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
                   zIndex: 50,
                 }}
               >
+                {levels.length > 1 && (
+                  <>
+                    <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "4px 8px 8px" }}>Calidad</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))", gap: 4, marginBottom: 10 }}>
+                      {[{ height: -1 }, ...levels].map((l) => {
+                        const active = l.height === -1 ? qualityPref <= 0 : qualityPref === l.height;
+                        return (
+                          <button key={l.height} type="button" onClick={() => changeQuality(l.height)}
+                            style={{ padding: "7px 6px", borderRadius: 8, border: "1px solid " + (active ? "rgba(255,255,255,.5)" : "rgba(255,255,255,.08)"), background: active ? "rgba(255,255,255,0.14)" : "transparent", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                            {l.height === -1 ? `Auto${qualityPref <= 0 && activeHeight ? ` · ${activeHeight}p` : ""}` : `${l.height}p${l.height >= 1080 ? " HD" : ""}`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
                 <div style={{
                   color: "rgba(255,255,255,0.45)",
                   fontSize: 10,
@@ -1191,7 +1304,7 @@ function EpisodePanel({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <List size={15} color="#ffffff" />
-          <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Episodios</span>
+          <span style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 800 }}>Episodios</span>
           {episodes.length > 0 && <span style={{ background: "rgba(255,255,255,0.1)", color: "#ffffff", borderRadius: 20, padding: "1px 8px", fontSize: 11, fontWeight: 700 }}>{episodes.length}</span>}
         </div>
         {totalPages > 1 && (
@@ -1218,7 +1331,7 @@ function EpisodePanel({
               onKeyDown={(e) => { if (e.key === "Enter") jumpToEpisode(); }}
               placeholder="Número de episodio"
               inputMode="numeric"
-              style={{ minWidth: 0, background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "10px 12px", color: "#F1F1F5", fontSize: 12, outline: "none" }}
+              style={{ minWidth: 0, background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "10px 12px", color: "#f4f4f5", fontSize: 12, outline: "none" }}
             />
             <button
               onClick={jumpToEpisode}
@@ -1298,7 +1411,7 @@ function EpisodePanel({
                   : <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 700 }}>{ep.number}</span>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: isCurrent ? "#ffffff" : "#F1F1F5", fontSize: 12, fontWeight: isCurrent ? 800 : 600 }} className="line-clamp-1">
+                <div style={{ color: isCurrent ? "#ffffff" : "#f4f4f5", fontSize: 12, fontWeight: isCurrent ? 800 : 600 }} className="line-clamp-1">
                   {ep.title ? ep.title : `Episodio ${ep.number}`}
                 </div>
                 {pct > 0 && (
@@ -1327,6 +1440,20 @@ export default function Player() {
   const animeImage = params.get("animeImage") ?? "";
 
   const { saveProgress, getProgress } = useWatchProgress();
+  const { history, addToHistory } = useHistory();
+  const historyRef = useRef(history);
+  historyRef.current = history;
+
+  // Registrar en el historial cada episodio que se abre (también al venir de
+  // "Continuar viendo" o del autoplay del siguiente episodio).
+  useEffect(() => {
+    if (!animeId || !episodeId) return;
+    const num = parseInt(episodeNum) || undefined;
+    const last = historyRef.current.find((h) => String(h.id) === String(animeId));
+    if (last && last.episodeNum === num && Date.now() - last.watchedAt < 60_000) return;
+    addToHistory({ id: animeId, title: animeTitle, image: animeImage }, num);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animeId, episodeId]);
   const savedProgress = getProgress(episodeId);
   const startAt = savedProgress?.currentTime;
 
@@ -1345,6 +1472,15 @@ export default function Player() {
   const nextNextEp = currentEpIdx !== -1 ? allEpisodes[currentEpIdx + 2] : null;
   const nextEpisodeId = nextEp?.id ?? "";
   const nextEpisodeNum = nextEp ? String(nextEp.number) : "";
+  const [videoDurationForSkip, setVideoDurationForSkip] = useState(0);
+  const skipTimes = useSkipTimes(animeId, parseInt(episodeNum) || 0, videoDurationForSkip);
+  usePageMeta({
+    title: animeTitle ? `${animeTitle} · Episodio ${episodeNum}` : "Reproductor",
+    description: animeTitle ? `Mira ${animeTitle} episodio ${episodeNum} online en HD con subtítulos en español.` : undefined,
+    image: animeImage || undefined,
+    imageAlt: animeTitle,
+    type: "video.episode",
+  });
 
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [playbackFailureCount, setPlaybackFailureCount] = useState(0);
@@ -1423,12 +1559,31 @@ export default function Player() {
 
   const shouldFetchAnimeFlv = !!animeTitle && !!episodeNum;
 
+  // Audio: subtitulado (sub) o español latino (lat). Se recuerda entre sesiones.
+  const [audio, setAudio] = useState<"sub" | "lat">(() => {
+    try { return localStorage.getItem("iz_audio") === "lat" ? "lat" : "sub"; } catch { return "sub"; }
+  });
+  const changeAudio = useCallback((a: "sub" | "lat") => {
+    setAudio(a);
+    try { localStorage.setItem("iz_audio", a); } catch { /* */ }
+  }, []);
+
+  // Motor unificado (el mismo de la app): /anime/sources. Si el backend aún no
+  // tiene ese endpoint, cae al anterior /anime/animeflv-watch.
   const animeflvQuery = useQuery({
-    queryKey: ["animeflv", animeTitle, episodeNum, animeId],
-    queryFn: () => consumet.animeflvWatch(animeTitle, parseInt(episodeNum || "1"), animeId || undefined),
+    queryKey: ["engine-sources", animeId, episodeNum, animeTitle, audio],
+    queryFn: async () => {
+      const ep = parseInt(episodeNum || "1");
+      try {
+        return await consumet.sources(animeId, ep, animeTitle, audio === "lat");
+      } catch (err) {
+        if (audio === "lat") throw err;
+        return consumet.animeflvWatch(animeTitle, ep, animeId || undefined);
+      }
+    },
     enabled: shouldFetchAnimeFlv,
     retry: 1,
-    staleTime: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,
   });
@@ -1436,7 +1591,7 @@ export default function Player() {
   const streamQuery = useQuery({
     queryKey: ["stream", episodeId, animeTitle, episodeNum, animeId],
     queryFn: () => consumet.streaming(episodeId, animeTitle || undefined, episodeNum || undefined, animeId || undefined),
-    enabled: !!episodeId,
+    enabled: !!episodeId && audio === "sub",
     retry: 1,
     staleTime: 1000 * 60 * 15,
     gcTime: 1000 * 60 * 30,
@@ -1450,7 +1605,7 @@ export default function Player() {
           isDub: false,
           provider: "sub",
           isM3U8: s.isM3U8 !== false,
-          isEmbed: !s.isM3U8 && (s.quality ?? "").includes("[embed]")
+          isEmbed: (s as { isEmbed?: boolean }).isEmbed ?? (!s.isM3U8 && (s.quality ?? "").includes("[embed]"))
         }))
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
@@ -1467,7 +1622,8 @@ export default function Player() {
         .sort((a, b) => (a.isM3U8 ? 0 : 1) - (b.isM3U8 ? 0 : 1))
     : [];
 
-  const sources = [...animeflvSources, ...streamSources];
+  // En modo latino solo se usan las fuentes del motor (las demás son subtituladas)
+  const sources = audio === "lat" ? animeflvSources : [...animeflvSources, ...streamSources];
   const animeflvHeaders = (animeflvQuery.data as any)?.headers ?? {};
   const streamHeaders = (streamQuery.data as any)?.headers ?? {};
   const latReferer = animeflvHeaders["Referer"] ?? animeflvHeaders["referer"];
@@ -1475,7 +1631,9 @@ export default function Player() {
   const selectedIsBackup = !!selected && ((selected as any).provider === "lat" || (selected as any).provider === "sub");
 
   const isLoadingAny = (animeflvQuery.isLoading && streamQuery.isLoading) || (sources.length === 0 && (animeflvQuery.isLoading || streamQuery.isLoading));
-  const isErrorAll = animeflvQuery.isError && streamQuery.isError && sources.length === 0;
+  const isErrorAll = animeflvQuery.isError && (audio === "lat" || streamQuery.isError) && sources.length === 0;
+
+  useEffect(() => { setSelectedIdx(0); setPlaybackFailureCount(0); }, [audio]);
 
   useEffect(() => {
     setSelectedIdx(0);
@@ -1485,6 +1643,7 @@ export default function Player() {
     setHlsCueText(null);
     setCurrentTime(0);
     setVideoDuration(0);
+    setVideoDurationForSkip(0);
     currentTimeRef.current = 0;
     durationRef.current = 0;
     setShowAutoNext(false);
@@ -1517,6 +1676,8 @@ export default function Player() {
     if (sources.length > 0 && selectedIdx >= sources.length) setSelectedIdx(0);
   }, [selectedIdx, sources.length]);
 
+  const allSourcesFailed = sources.length > 0 && playbackFailureCount >= sources.length;
+
   const handlePlaybackError = useCallback(() => {
     setPlaybackFailureCount((count) => count + 1);
     setSelectedIdx((idx) => (idx + 1 < sources.length ? idx + 1 : idx));
@@ -1527,6 +1688,7 @@ export default function Player() {
     if (duration > 0) {
       durationRef.current = duration;
       setVideoDuration(duration);
+      setVideoDurationForSkip((d) => (Math.abs(d - duration) > 5 ? duration : d));
     }
     setCurrentTime(ct);
     // Anti-exploit: registrar episodio solo tras REGISTER_THRESHOLD_SECONDS segundos vistos
@@ -1672,7 +1834,9 @@ export default function Player() {
 
   // ── Mobile touch gesture handlers ─────────────────────────────────────────
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
+    if (e.touches.length !== 1) { touchStartRef.current = null; return; }
+    // Los toques sobre botones/controles no cuentan como gestos
+    if ((e.target as HTMLElement).closest("button, [role='slider'], input")) { touchStartRef.current = null; return; }
     const t = e.touches[0];
     touchStartRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
     touchStartVolumeRef.current = playerControlsRef.current?.getVolume() ?? 1;
@@ -1704,7 +1868,8 @@ export default function Player() {
       const isDoubleTap = (now - lastTapTimeRef.current) < 350 && Math.abs(t.clientX - lastTapXRef.current) < 70;
       if (isDoubleTap) {
         lastTapTimeRef.current = 0;
-        const isLeft = t.clientX < containerWidth / 2;
+        const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+        const isLeft = t.clientX - rect.left < (rect.width || containerWidth) / 2;
         const SEEK = 10;
         if (isLeft) {
           const target = Math.max(0, currentTimeRef.current - SEEK);
@@ -1735,7 +1900,7 @@ export default function Player() {
         </button>
         <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
           <div style={{ color: "#a1a1aa", fontSize: 10, fontWeight: 700, letterSpacing: 1.5, marginBottom: 1, textTransform: "uppercase" }}>REPRODUCIENDO</div>
-          <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: 0.2 }}>{animeTitle}</div>
+          <div style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: 0.2 }}>{animeTitle}</div>
           <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11 }}>
             EP {String(episodeNum).padStart(2, "0")}
             {!isMegaFan && remaining <= 2 && remaining > 0 && (
@@ -1770,7 +1935,7 @@ export default function Player() {
         {/* Player column */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
-          <div id="plyr-fullscreen-container" style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div id="plyr-fullscreen-container" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{ position: "relative", width: "100%", background: "#000", aspectRatio: "16/9", border: "1px solid rgba(255,255,255,0.08)", borderRadius: isFullscreen ? 0 : 14, overflow: "hidden" }}>
             {/* SISTEMA frame on player */}
             <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 6 }}>
             </div>
@@ -1787,19 +1952,21 @@ export default function Player() {
             )}
 
           {isErrorAll && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 16, position: "absolute", inset: 0, background: "rgba(5,5,12,0.85)", backdropFilter: "blur(6px)" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", gap: 16, position: "absolute", inset: 0, background: "rgba(7,7,7,0.85)", backdropFilter: "blur(6px)" }}>
                 <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <AlertCircle size={28} color="#EF4444" />
                 </div>
                 <div style={{ textAlign: "center", maxWidth: 300, padding: "0 16px" }}>
-                  <p style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800, marginBottom: 6 }}>No disponible</p>
-                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>No se encontró este episodio en ningún servidor. Intenta de nuevo.</p>
+                  <p style={{ color: "#f4f4f5", fontSize: 16, fontWeight: 800, marginBottom: 6 }}>No disponible</p>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>{audio === "lat" ? "Este episodio no está disponible en español latino." : "No se encontró este episodio en ningún servidor. Intenta de nuevo."}</p>
                 </div>
-                <button
-                  onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); streamQuery.refetch(); }}
-                  style={{ padding: "10px 20px", borderRadius: 12, background: "#ffffff", border: "none", color: "#000000", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  Reintentar
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" className="iz-btn iz-btn--primary iz-btn--sm"
+                    onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); if (audio === "sub") streamQuery.refetch(); }}>
+                    Reintentar
+                  </button>
+                  {audio === "lat" && <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" onClick={() => changeAudio("sub")}>Ver subtitulado</button>}
+                </div>
               </div>
             )}
             {isLoadingAny && !isErrorAll && (
@@ -1815,7 +1982,20 @@ export default function Player() {
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>Sin fuentes disponibles</p>
               </div>
             )}
-            {!showLimitModal && selected && !isLoadingAny && !isErrorAll && (
+            {allSourcesFailed && !showLimitModal && (
+              <div style={{ position: "absolute", inset: 0, zIndex: 40, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: 20, textAlign: "center", background: "rgba(0,0,0,.92)" }}>
+                <AlertCircle size={34} color="#f87171" />
+                <div style={{ fontSize: 16, fontWeight: 600 }}>No se pudo reproducir en ningún servidor</div>
+                <div style={{ color: "#a1a1aa", fontSize: 13, maxWidth: 380 }}>Probamos {sources.length} {sources.length === 1 ? "fuente" : "fuentes"}. Puede ser un corte temporal del proveedor.</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button type="button" className="iz-btn iz-btn--primary iz-btn--sm" onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(0); animeflvQuery.refetch(); streamQuery.refetch(); }}>Reintentar</button>
+                  {sources.map((src, i) => (
+                    <button key={i} type="button" className="iz-btn iz-btn--ghost iz-btn--sm" onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(i); }}>{parseLatLabel(src, i)}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!showLimitModal && !allSourcesFailed && selected && !isLoadingAny && !isErrorAll && (
               selected.isM3U8 === false ? (
                 (selected as any).isEmbed ? (
                   <iframe
@@ -1834,6 +2014,10 @@ export default function Player() {
                     autoPlay
                     controls
                     playsInline
+                    onError={handlePlaybackError}
+                    onLoadedMetadata={(e) => { const v = e.currentTarget; if (startAt && startAt > 5 && startAt < v.duration - 5) v.currentTime = startAt; }}
+                    onTimeUpdate={(e) => { const v = e.currentTarget; if (v.duration > 0) handleTimeUpdate(v.currentTime, v.duration); }}
+                    onEnded={handleEnded}
                     style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "#000" }}
                   />
                 )
@@ -1870,48 +2054,26 @@ export default function Player() {
               <AutoNextOverlay nextNum={nextEpisodeNum} onSkip={handleNextEpisode} onCancel={() => setShowAutoNext(false)} />
             )}
 
-            {/* ── Skip intro button (first 90s) ── */}
-            {!showLimitModal && videoDuration > 0 && currentTime < 90 && currentTime > 2 && (
-              <button
-                onClick={() => playerControlsRef.current?.seekTo(90)}
-                style={{
-                  position: "absolute", bottom: 80, right: 16, zIndex: 30,
-                  background: "rgba(9,10,18,0.85)", backdropFilter: "blur(6px)",
-                  border: "1px solid rgba(255,255,255,0.25)", borderRadius: 10,
-                  color: "#F1F1F5", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  padding: "9px 16px", display: "flex", alignItems: "center", gap: 7,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-                }}
-              >
-                <SkipForward size={14} />
-                Saltar intro
-              </button>
-            )}
-
-            {/* ── Skip outro button (last 120s, more than 10s from end) ── */}
-            {!showLimitModal && videoDuration > 0 && currentTime >= videoDuration - 120 && currentTime <= videoDuration - 10 && currentTime >= 90 && (
-              <button
-                onClick={() => playerControlsRef.current?.seekTo(Math.max(0, videoDuration - 8))}
-                style={{
-                  position: "absolute", bottom: 80, right: 16, zIndex: 30,
-                  background: "rgba(9,10,18,0.85)", backdropFilter: "blur(6px)",
-                  border: "1px solid rgba(255,255,255,0.25)", borderRadius: 10,
-                  color: "#F1F1F5", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  padding: "9px 16px", display: "flex", alignItems: "center", gap: 7,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-                }}
-              >
-                <SkipForward size={14} />
-                Saltar final
-              </button>
-            )}
-
-            {/* ── Mobile gesture overlay (upper 80% of video) ── */}
-            <div
-              style={{ position: "absolute", top: 0, left: 0, right: 0, height: "80%", zIndex: 8 }}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-            />
+            {/* ── Saltar opening / ending (tiempos exactos de AniSkip; si no hay datos, heurística) ── */}
+            {!showLimitModal && videoDuration > 0 && (() => {
+              const op = skipTimes.op;
+              const ed = skipTimes.ed;
+              const inOp = op ? currentTime >= op.start - 1 && currentTime < op.end - 1 : currentTime > 2 && currentTime < 90;
+              const edStart = ed ? ed.start : videoDuration - 120;
+              const inEd = ed ? currentTime >= ed.start - 1 && currentTime < ed.end - 1 : currentTime >= edStart && currentTime <= videoDuration - 10 && currentTime >= 90;
+              if (!inOp && !inEd) return null;
+              const label = inOp ? "Saltar opening" : nextEpisodeId && (!ed || ed.end >= videoDuration - 15) ? "Siguiente episodio" : "Saltar ending";
+              const go = () => {
+                if (inOp) playerControlsRef.current?.seekTo(op ? op.end : 90);
+                else if (label === "Siguiente episodio") handleNextEpisode();
+                else playerControlsRef.current?.seekTo(ed ? ed.end : Math.max(0, videoDuration - 8));
+              };
+              return (
+                <button type="button" onClick={go} className="iz-skip">
+                  <SkipForward size={15} /> {label}
+                </button>
+              );
+            })()}
 
             {/* ── Seek feedback overlay ── */}
             {seekFeedback.visible && (
@@ -1954,7 +2116,7 @@ export default function Player() {
             {/* Episode title row */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, padding: "12px 16px", background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16 }}>
               <div>
-                <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>{animeTitle}</div>
+                <div style={{ color: "#f4f4f5", fontSize: 15, fontWeight: 800 }}>{animeTitle}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
                   <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Episodio {episodeNum}</span>
                   <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 12 }}>·</span>
@@ -2008,7 +2170,7 @@ export default function Player() {
                   <button
                     onClick={async () => {
                       const shareUrl = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`;
-                      const shareData = { title: `${animeTitle} — AnimeFlex`, text: `Mira ${animeTitle} en AnimeFlex`, url: shareUrl };
+                      const shareData = { title: `${animeTitle} — IZIFF ANIME`, text: `Mira ${animeTitle} en IZIFF ANIME`, url: shareUrl };
                       if (navigator.share) { try { await navigator.share(shareData); return; } catch {} }
                       setShowShare(v => !v);
                     }}
@@ -2023,12 +2185,12 @@ export default function Player() {
                         {
                           label: "WhatsApp", color: "#25D366",
                           emoji: "💬",
-                          onClick: () => { const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`; window.open(`https://wa.me/?text=${encodeURIComponent(`Mira ${animeTitle} en AnimeFlex 🎌\n${url}`)}`); setShowShare(false); }
+                          onClick: () => { const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`; window.open(`https://wa.me/?text=${encodeURIComponent(`Mira ${animeTitle} en IZIFF ANIME 🎌\n${url}`)}`); setShowShare(false); }
                         },
                         {
                           label: "Twitter / X", color: "#1DA1F2",
                           emoji: "🐦",
-                          onClick: () => { const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`; window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Estoy viendo ${animeTitle} en AnimeFlex 🎌`)}&url=${encodeURIComponent(url)}`); setShowShare(false); }
+                          onClick: () => { const url = `${window.location.origin}${import.meta.env.BASE_URL}anime/${animeId}`; window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Estoy viendo ${animeTitle} en IZIFF ANIME 🎌`)}&url=${encodeURIComponent(url)}`); setShowShare(false); }
                         },
                         {
                           label: shareCopied ? "¡Copiado!" : "Copiar enlace", color: "#ffffff",
@@ -2041,7 +2203,7 @@ export default function Player() {
                           }
                         },
                       ].map(item => (
-                        <button key={item.label} onClick={item.onClick} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "none", color: "#F1F1F5", fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
+                        <button key={item.label} onClick={item.onClick} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "none", color: "#f4f4f5", fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left" }}>
                           <span>{item.emoji}</span> {item.label}
                         </button>
                       ))}
@@ -2051,38 +2213,33 @@ export default function Player() {
               </div>
             </div>
 
-            {/* Quality */}
-            {sources.length > 0 && (
-              <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Servidor</div>
-                  {selected && (
-                    <span style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B", borderRadius: 6, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid rgba(245,158,11,0.25)" }}>
-                      {parseLatLabel(selected, selectedIdx)} activo
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {sources.map((src, i) => (
-                    <button key={i} onClick={() => setSelectedIdx(i)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 5, padding: "7px 16px", borderRadius: 10, cursor: "pointer",
-                        background: i === selectedIdx ? "linear-gradient(135deg,rgba(245,158,11,0.25),rgba(234,88,12,0.15))" : "rgba(255,255,255,0.04)",
-                        border: `1px solid ${i === selectedIdx ? "rgba(245,158,11,0.55)" : "rgba(255,255,255,0.08)"}`,
-                        color: i === selectedIdx ? "#F59E0B" : "rgba(255,255,255,0.35)",
-                        fontSize: 12, fontWeight: 700,
-                        boxShadow: i === selectedIdx ? "0 0 10px rgba(245,158,11,0.15)" : "none",
-                        transition: "all 0.12s ease",
-                      }}>
-                      {parseLatLabel(src, i)}
-                      {(src as any).isEmbed && <span style={{ fontSize: 9, opacity: 0.7, background: "rgba(255,255,255,0.08)", borderRadius: 4, padding: "1px 4px" }}>WEB</span>}
-                    </button>
-                  ))}
-                </div>
+            {/* Audio + servidores (cambio rápido si uno falla) */}
+            <div className="iz-panel" style={{ padding: "14px 16px", display: "grid", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div className="iz-head__eyebrow" style={{ margin: 0 }}>Audio</div>
+                <button type="button" className={`iz-chip ${audio === "sub" ? "is-active" : ""}`} style={{ height: 30, fontSize: 12 }} onClick={() => changeAudio("sub")}>Subtitulado</button>
+                <button type="button" className={`iz-chip ${audio === "lat" ? "is-active" : ""}`} style={{ height: 30, fontSize: 12 }} onClick={() => changeAudio("lat")}>Español latino</button>
+                {animeflvQuery.isFetching && <span className="iz-spin" style={{ marginLeft: 4 }} />}
               </div>
-            )}
-
-
+              {sources.length > 0 && (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                    <div className="iz-head__eyebrow" style={{ margin: 0 }}>Servidores · {sources.length}</div>
+                    {selected && <span className="iz-tag iz-tag--accent">{parseLatLabel(selected, selectedIdx)}</span>}
+                    {playbackFailureCount > 0 && !allSourcesFailed && <span style={{ color: "var(--iz-dim)", fontSize: 12 }}>Cambiado automáticamente tras {playbackFailureCount} {playbackFailureCount === 1 ? "fallo" : "fallos"}</span>}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {sources.map((src, i) => (
+                      <button key={i} type="button" className={`iz-chip ${i === selectedIdx ? "is-active" : ""}`} style={{ height: 32, fontSize: 12 }}
+                        onClick={() => { setPlaybackFailureCount(0); setSelectedIdx(i); }}>
+                        {parseLatLabel(src, i)}
+                        {(src as { isEmbed?: boolean }).isEmbed && <span style={{ fontSize: 9, opacity: 0.7 }}>WEB</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Download section */}
             {sources.length > 0 && (
@@ -2215,7 +2372,7 @@ export default function Player() {
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#ffffff", boxShadow: "0 0 6px rgba(255,255,255,0.8)" }} />
                 <span style={{ color: "#ffffff", fontSize: 10, fontWeight: 800, letterSpacing: 0.5 }}>REPRODUCIENDO</span>
               </div>
-              <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 900, lineHeight: 1.25, marginBottom: 5 }} className="line-clamp-2">
+              <div style={{ color: "#f4f4f5", fontSize: 15, fontWeight: 900, lineHeight: 1.25, marginBottom: 5 }} className="line-clamp-2">
                 {animeTitle}
               </div>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginBottom: 8 }}>Episodio {episodeNum}</div>
@@ -2266,7 +2423,7 @@ export default function Player() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <HelpCircle size={18} color="#ffffff" />
-                <span style={{ color: "#F1F1F5", fontSize: 16, fontWeight: 800 }}>Atajos de teclado</span>
+                <span style={{ color: "#f4f4f5", fontSize: 16, fontWeight: 800 }}>Atajos de teclado</span>
               </div>
               <button onClick={() => setShowShortcuts(false)}
                 style={{ padding: 6, borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", display: "flex" }}>
@@ -2305,7 +2462,7 @@ export default function Player() {
         <div
           style={{
             position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgba(5,5,12,0.96)",
+            background: "rgba(7,7,7,0.96)",
             display: "flex", alignItems: "center", justifyContent: "center",
             padding: 16, overflowY: "auto",
           }}
@@ -2348,7 +2505,7 @@ export default function Player() {
             </div>
 
             <h2 style={{
-              color: "#F1F1F5", fontSize: 20, fontWeight: 900,
+              color: "#f4f4f5", fontSize: 20, fontWeight: 900,
               margin: "0 0 10px", lineHeight: 1.25,
             }}>
               {limitsConfig.limitMessage.split('.')[0] || "Has alcanzado el límite diario"}

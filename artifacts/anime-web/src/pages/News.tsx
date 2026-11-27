@@ -124,7 +124,7 @@ export default function News() {
   const rest = filteredNews.slice(1);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#04030a", display: "flex", flexDirection: "column", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: "#000000", display: "flex", flexDirection: "column", position: "relative" }}>
       <Navbar />
 
       {/* HERO HEADER */}
@@ -132,11 +132,11 @@ export default function News() {
         style={{
           position: "relative",
           borderBottom: "1px solid rgba(63,46,178,0.25)",
-          padding: "calc(56px + 48px) 24px 48px",
+          padding: "calc(var(--iz-nav-h) + 48px) 24px 48px",
           textAlign: "center",
           overflow: "hidden",
           background:
-            "radial-gradient(ellipse at center, rgba(63,46,178,0.18), transparent 60%), linear-gradient(180deg, #0a0307, #04030a)",
+            "radial-gradient(ellipse at center, rgba(63,46,178,0.18), transparent 60%), linear-gradient(180deg, #070707, #000000)",
         }}
       >
         <div style={{ position: "absolute", left: "50%", top: 60, transform: "translateX(-50%)", opacity: 0.55 }}>
@@ -157,7 +157,7 @@ export default function News() {
 
         <div style={{ position: "relative", zIndex: 2, maxWidth: 760, margin: "0 auto" }}>
           <div style={{ marginBottom: 18 }}>
-            <SystemTag color="#6366f1">[ SYSTEM ] FEED DE NOTICIAS</SystemTag>
+            <SystemTag color="#6366f1">Noticias</SystemTag>
           </div>
           <h1 className="sys-title" style={{ fontSize: 44, marginBottom: 16 }}>
             NOTICIAS
@@ -167,7 +167,7 @@ export default function News() {
               color: "rgba(165,180,252,0.75)",
               fontSize: 14,
               margin: "20px 0 8px",
-              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+              fontFamily: "'Space Grotesk', ui-monospace, monospace",
               letterSpacing: 1.5,
             }}
           >
@@ -177,7 +177,7 @@ export default function News() {
             style={{
               color: "rgba(255,255,255,0.4)",
               fontSize: 11,
-              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+              fontFamily: "'Space Grotesk', ui-monospace, monospace",
               letterSpacing: 2,
             }}
           >
@@ -205,7 +205,7 @@ export default function News() {
                 style={{
                   color: "#a5b4fc",
                   fontSize: 11,
-                  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                  fontFamily: "'Space Grotesk', ui-monospace, monospace",
                   letterSpacing: 2,
                   fontWeight: 800,
                   marginRight: 4,
@@ -225,7 +225,7 @@ export default function News() {
                       background: active ? `linear-gradient(135deg, ${accent}, ${accent}cc)` : "rgba(63,46,178,0.06)",
                       border: `1px solid ${active ? accent : "rgba(63,46,178,0.3)"}`,
                       color: active ? "#fff" : "rgba(165,180,252,0.75)",
-                      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                      fontFamily: "'Space Grotesk', ui-monospace, monospace",
                       fontSize: 11,
                       fontWeight: 800,
                       letterSpacing: 1.5,
@@ -251,7 +251,7 @@ export default function News() {
                 background: "rgba(63,46,178,0.08)",
                 border: "1px solid rgba(63,46,178,0.35)",
                 color: "#a5b4fc",
-                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                fontFamily: "'Space Grotesk', ui-monospace, monospace",
                 fontSize: 11,
                 fontWeight: 800,
                 letterSpacing: 1.5,
@@ -269,7 +269,7 @@ export default function News() {
         {isLoading && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "80px 0" }}>
             <Loader2 size={36} color="#3f2eb2" style={{ animation: "spin 1s linear infinite", filter: "drop-shadow(0 0 12px #3f2eb2)" }} />
-            <div style={{ color: "#a5b4fc", fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11, letterSpacing: 2 }}>
+            <div style={{ color: "#a5b4fc", fontFamily: "'Space Grotesk', ui-monospace, monospace", fontSize: 11, letterSpacing: 2 }}>
               CARGANDO FEED DE NOTICIAS...
             </div>
           </div>
@@ -279,7 +279,7 @@ export default function News() {
         {isError && (
           <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(165,180,252,0.7)" }}>
             <Newspaper size={48} style={{ marginBottom: 16, opacity: 0.4, color: "#3f2eb2" }} />
-            <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, color: "#a5b4fc" }}>
+            <p style={{ fontFamily: "'Space Grotesk', ui-monospace, monospace", letterSpacing: 1, color: "#a5b4fc" }}>
               ⚠ ERROR · NO SE PUDIERON CARGAR LAS NOTICIAS
             </p>
             <button
@@ -290,7 +290,7 @@ export default function News() {
                 background: "rgba(63,46,178,0.18)",
                 border: "1px solid rgba(63,46,178,0.5)",
                 color: "#a5b4fc",
-                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                fontFamily: "'Space Grotesk', ui-monospace, monospace",
                 fontSize: 12,
                 letterSpacing: 1.5,
                 fontWeight: 800,
@@ -306,7 +306,7 @@ export default function News() {
         {!isLoading && !isError && filteredNews.length === 0 && (
           <div style={{ textAlign: "center", padding: "80px 0", color: "rgba(165,180,252,0.4)" }}>
             <Newspaper size={56} style={{ marginBottom: 16, opacity: 0.25, color: "#3f2eb2" }} />
-            <p style={{ fontSize: 14, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1.5 }}>
+            <p style={{ fontSize: 14, fontFamily: "'Space Grotesk', ui-monospace, monospace", letterSpacing: 1.5 }}>
               ◇ SIN NOTICIAS EN ESTA FUENTE
             </p>
           </div>
@@ -340,7 +340,7 @@ export default function News() {
                   marginTop: 36,
                   textAlign: "center",
                   color: "rgba(255,255,255,0.3)",
-                  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                  fontFamily: "'Space Grotesk', ui-monospace, monospace",
                   fontSize: 10,
                   letterSpacing: 2,
                 }}
@@ -362,7 +362,7 @@ export default function News() {
           position: relative;
           display: flex;
           flex-direction: column;
-          background: linear-gradient(180deg, rgba(15,8,18,0.95), rgba(8,4,12,0.98));
+          background: linear-gradient(180deg, rgba(10,10,10,0.95), rgba(10,10,10,0.98));
           border: 1px solid rgba(63,46,178,0.22);
           border-radius: 4px;
           overflow: hidden;
@@ -455,7 +455,7 @@ export default function News() {
           display: inline-flex; align-items: center; gap: 6px;
           background: linear-gradient(135deg, var(--accent), #6366f1);
           color: #fff;
-          font-family: 'JetBrains Mono', ui-monospace, monospace;
+          font-family: 'Space Grotesk', ui-monospace, monospace;
           font-size: 10px; font-weight: 900; letter-spacing: 2px;
           padding: 5px 10px;
           border-radius: 2px;
@@ -474,7 +474,7 @@ export default function News() {
           flex: 1;
         }
         .news-card__title {
-          color: #F1F1F5;
+          color: #f4f4f5;
           font-size: 15px;
           font-weight: 800;
           line-height: 1.35;
@@ -508,7 +508,7 @@ export default function News() {
         .news-card:hover .news-card__cta { gap: 12px; }
         .news-card__scanlines {
           position: absolute; inset: 0;
-          background: repeating-linear-gradient(0deg, rgba(63,46,178,0.025) 0px, rgba(63,46,178,0.025) 1px, transparent 1px, transparent 4px);
+          background: none;
           pointer-events: none; opacity: 0.5;
         }
       `}</style>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { useAuth } from "@/context/AuthContext";
 import { apiClient } from "@/lib/apiClient";
+import { Crown } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -134,56 +135,19 @@ export default function Membership() {
     <>
       <Navbar />
 
-      <div style={{ minHeight: "100vh", background: "#07071a", color: "#fff", paddingBottom: 80, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+      <div style={{ minHeight: "100vh", background: "#000", color: "#fff", paddingBottom: 80 }}>
 
         {/* ── Hero banner ── */}
-        <div style={{ position: "relative", overflow: "hidden", padding: "72px 16px 56px", textAlign: "center" }}>
-          {/* Hex grid background */}
-          <div style={{
-            position: "absolute", inset: 0,
-            backgroundImage: "linear-gradient(rgba(63,46,178,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.06) 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-            maskImage: "radial-gradient(ellipse 80% 70% at center, black 20%, transparent 80%)",
-            WebkitMaskImage: "radial-gradient(ellipse 80% 70% at center, black 20%, transparent 80%)",
-            pointerEvents: "none",
-          }} />
-          {/* Scan lines */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "repeating-linear-gradient(0deg, rgba(99,102,241,0.03) 0px, rgba(99,102,241,0.03) 1px, transparent 1px, transparent 4px)",
-            pointerEvents: "none",
-          }} />
-          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(63,46,178,0.22) 0%, transparent 70%)", pointerEvents: "none" }} />
-
-          {/* Magic circle backdrop */}
-          <svg
-            width={420} height={420} viewBox="0 0 200 200"
-            style={{ position: "absolute", top: -40, left: "50%", transform: "translateX(-50%)", opacity: 0.35, filter: "drop-shadow(0 0 20px #3f2eb2)", pointerEvents: "none", animation: "spin 60s linear infinite" }}
-          >
-            <circle cx="100" cy="100" r="96" fill="none" stroke="#3f2eb2" strokeWidth="0.5" strokeDasharray="2 6" />
-            <circle cx="100" cy="100" r="80" fill="none" stroke="#6366f1" strokeWidth="0.4" strokeDasharray="1 3" />
-            <polygon points="100,28 162,134 38,134" fill="none" stroke="#a5b4fc" strokeWidth="0.6" />
-            <polygon points="100,172 38,66 162,66" fill="none" stroke="#a5b4fc" strokeWidth="0.5" />
-          </svg>
-
+        <div style={{ position: "relative", overflow: "hidden", padding: "calc(var(--iz-nav-h) + 48px) 16px 56px", textAlign: "center" }}>
+          <div className="iz-hero__grid" style={{ opacity: .06 }} />
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 60% at 50% 0%, rgba(63,46,178,0.3) 0%, transparent 70%)", pointerEvents: "none" }} />
           <div style={{ position: "relative", zIndex: 1 }}>
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 10,
-              background: "rgba(63,46,178,0.12)",
-              border: "1px solid rgba(99,102,241,0.5)",
-              padding: "6px 16px", marginBottom: 20,
-              boxShadow: "0 0 20px rgba(99,102,241,0.25)",
-            }}>
-              <span style={{ width: 6, height: 6, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 8px #6366f1", animation: "pulse 1.6s ease-in-out infinite" }} />
-              <span style={{ fontSize: 10, fontWeight: 800, color: "#a5b4fc", letterSpacing: 3 }}>[ SISTEMA · CLASE_PREMIUM ]</span>
-            </div>
-
-            <h1 style={{ fontSize: "clamp(28px,6vw,48px)", fontWeight: 900, margin: "0 0 12px", lineHeight: 1.15, letterSpacing: -1, textShadow: "0 0 24px rgba(63,46,178,0.4)" }}>
-              <span style={{ color: "#F1F1F5" }}>Eleva tu rango</span><br />
-              <span style={{ background: "linear-gradient(135deg,#c7d2fe,#3f2eb2,#6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>// MEGAFAN</span>
+            <div className="iz-head__eyebrow" style={{ justifyContent: "center", marginBottom: 16 }}><Crown size={13} color="#fbbf24" /> Membresía MegaFan</div>
+            <h1 style={{ fontSize: "clamp(34px,6vw,64px)", fontWeight: 500, margin: 0, lineHeight: .95, letterSpacing: "-.045em" }}>
+              Anime sin límites,<br /><span className="iz-serif">a tu manera.</span>
             </h1>
-            <p style={{ color: "rgba(165,180,252,0.7)", fontSize: 13, margin: "16px auto 0", maxWidth: 420, letterSpacing: 0.5, lineHeight: 1.7 }}>
-              {">"} Anime sin límites · sin interrupciones · acceso completo al sistema
+            <p style={{ color: "var(--iz-muted)", fontSize: 16, margin: "18px auto 0", maxWidth: 480, lineHeight: 1.6 }}>
+              Episodios ilimitados, sin interrupciones y con acceso a todas las funciones de la web y la app.
             </p>
           </div>
         </div>
@@ -193,7 +157,7 @@ export default function Membership() {
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 32, padding: "0 16px" }}>
             <div style={{
               display: "flex",
-              background: "rgba(8,4,18,0.85)",
+              background: "rgba(10,10,10,0.85)",
               border: "1px solid rgba(63,46,178,0.4)",
               padding: 4, gap: 4,
               boxShadow: "0 0 24px rgba(63,46,178,0.2)",
@@ -205,7 +169,7 @@ export default function Membership() {
                   style={{
                     padding: "11px 26px", border: "none", cursor: "pointer",
                     fontSize: 11, fontWeight: 800, letterSpacing: 2,
-                    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                    fontFamily: "'Space Grotesk', ui-monospace, monospace",
                     transition: "all 0.2s",
                     background: plan === p ? "linear-gradient(135deg,#3f2eb2,#2e218a)" : "transparent",
                     color: plan === p ? "#fff" : "rgba(165,180,252,0.5)",
@@ -213,7 +177,7 @@ export default function Membership() {
                     display: "flex", alignItems: "center", gap: 8, textTransform: "uppercase",
                   }}
                 >
-                  {p === "monthly" ? "// MENSUAL" : "// ANUAL"}
+                  {p === "monthly" ? "Mensual" : "Anual"}
                   {p === "annual" && (
                     <span style={{ background: "#6366f1", color: "#000", fontSize: 9, fontWeight: 900, padding: "2px 6px", letterSpacing: 0.5, }}>
                       −20%
@@ -229,7 +193,7 @@ export default function Membership() {
         <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px 48px" }}>
           <div style={{
             position: "relative",
-            background: "linear-gradient(160deg, rgba(20,6,16,0.95) 0%, rgba(8,4,18,0.98) 100%)",
+            background: "linear-gradient(160deg, rgba(10,10,10,0.95) 0%, rgba(10,10,10,0.98) 100%)",
             border: "1px solid rgba(63,46,178,0.55)",
             boxShadow: "0 0 0 1px rgba(63,46,178,0.12), 0 32px 80px rgba(63,46,178,0.28), 0 8px 32px rgba(0,0,0,0.7)",
           }}>
@@ -273,8 +237,8 @@ export default function Membership() {
                   👑
                 </div>
                 <div>
-                  <div style={{ fontSize: 9, fontWeight: 800, color: "#a5b4fc", letterSpacing: 2.5, textTransform: "uppercase" }}>// PLAN_RANGO</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: "#F1F1F5", letterSpacing: 0.5 }}>MegaFan</div>
+                  <div style={{ fontSize: 9, fontWeight: 800, color: "#a5b4fc", letterSpacing: 2.5, textTransform: "uppercase" }}>Plan MegaFan</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: "#f4f4f5", letterSpacing: 0.5 }}>MegaFan</div>
                 </div>
               </div>
 
@@ -285,7 +249,7 @@ export default function Membership() {
                     {centsToDisplay(promoResult.originalCents)}
                   </span>
                 )}
-                <span style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, background: "linear-gradient(135deg,#fff 30%,#a5b4fc 70%,#6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", textShadow: "0 0 24px rgba(99,102,241,0.4)", letterSpacing: -1 }}>
+                <span style={{ fontSize: 56, fontWeight: 900, lineHeight: 1, background: "linear-gradient(135deg,#fff 30%,#a5b4fc 70%,#6366f1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", letterSpacing: -1 }}>
                   {centsToDisplay(finalAmount)}
                 </span>
                 <span style={{ color: "#a5b4fc", fontSize: 13, marginLeft: 6, fontWeight: 700, letterSpacing: 1 }}>
@@ -364,7 +328,7 @@ export default function Membership() {
               {!isMegaFan && !success && user && (
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ fontSize: 9, color: "#a5b4fc", fontWeight: 800, letterSpacing: 2, textTransform: "uppercase", display: "block", marginBottom: 8 }}>
-                    // CODIGO_DESCUENTO
+                    Código de descuento
                   </label>
                   <div style={{ position: "relative" }}>
                     <input
@@ -374,10 +338,10 @@ export default function Membership() {
                       onChange={e => setCouponInput(e.target.value.toUpperCase())}
                       style={{
                         width: "100%", boxSizing: "border-box",
-                        background: "rgba(8,4,18,0.85)",
+                        background: "rgba(10,10,10,0.85)",
                         border: `1px solid ${couponStatus === "valid" ? "rgba(34,197,94,0.7)" : couponStatus === "invalid" ? "rgba(239,68,68,0.7)" : "rgba(99,102,241,0.4)"}`,
                         padding: "11px 40px 11px 14px",
-                        color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                        color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', ui-monospace, monospace",
                         outline: "none", transition: "border 0.2s", letterSpacing: 2,
                         boxShadow: couponStatus === "valid" ? "0 0 16px rgba(34,197,94,0.3)" : "inset 0 0 12px rgba(63,46,178,0.1)",
                       }}
@@ -400,7 +364,7 @@ export default function Membership() {
               {/* CTA area */}
               {!user ? (
                 <div style={{
-                  background: "rgba(8,4,18,0.7)",
+                  background: "rgba(10,10,10,0.7)",
                   border: "1px solid rgba(99,102,241,0.3)",
                   padding: "18px", textAlign: "center",
                 }}>
@@ -415,8 +379,8 @@ export default function Membership() {
                     boxShadow: "0 0 24px rgba(63,46,178,0.25)",
                   }}>
                     <div style={{ fontSize: 28, marginBottom: 6, filter: "drop-shadow(0 0 12px #6366f1)" }}>👑</div>
-                    <p style={{ color: "#a5b4fc", fontWeight: 900, fontSize: 14, margin: "0 0 4px", letterSpacing: 2 }}>[ RANGO · MEGAFAN ACTIVO ]</p>
-                    <p style={{ color: "rgba(165,180,252,0.6)", fontSize: 11, margin: 0, letterSpacing: 0.5 }}>{">"} Gracias por apoyar AnimeFlex</p>
+                    <p style={{ color: "#a5b4fc", fontWeight: 900, fontSize: 14, margin: "0 0 4px", letterSpacing: 2 }}>MegaFan activo</p>
+                    <p style={{ color: "rgba(165,180,252,0.6)", fontSize: 11, margin: 0, letterSpacing: 0.5 }}>{">"} Gracias por apoyar IZIFF ANIME</p>
                   </div>
                   <button
                     onClick={handleManage}
@@ -426,10 +390,10 @@ export default function Membership() {
                       border: "1px solid rgba(99,102,241,0.5)",
                       background: "rgba(63,46,178,0.08)", color: "#a5b4fc",
                       fontSize: 12, fontWeight: 800, cursor: "pointer", letterSpacing: 2,
-                      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                      fontFamily: "'Space Grotesk', ui-monospace, monospace",
                     }}
                   >
-                    {loading ? "// CARGANDO..." : ">{">>>"} GESTIONAR EN PAYPAL"}
+                    {loading ? "Cargando…" : "Gestionar en PayPal"}
                   </button>
                 </div>
               ) : success ? (
@@ -440,7 +404,7 @@ export default function Membership() {
                   boxShadow: "0 0 24px rgba(34,197,94,0.25)",
                 }}>
                   <div style={{ fontSize: 34, marginBottom: 8, filter: "drop-shadow(0 0 12px #22C55E)" }}>✦</div>
-                  <p style={{ color: "#22C55E", fontWeight: 900, fontSize: 14, margin: "0 0 6px", letterSpacing: 2 }}>[ RANGO · ACTUALIZADO ]</p>
+                  <p style={{ color: "#22C55E", fontWeight: 900, fontSize: 14, margin: "0 0 6px", letterSpacing: 2 }}>¡Membresía activada!</p>
                   <p style={{ color: "rgba(34,197,94,0.7)", fontSize: 11, margin: 0, letterSpacing: 0.5 }}>{">"} Bienvenido MegaFan · Membresia activa</p>
                 </div>
               ) : (
@@ -511,7 +475,7 @@ export default function Membership() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", marginBottom: 24 }}>
             <span style={{ width: 6, height: 6, background: "#3f2eb2", borderRadius: "50%", boxShadow: "0 0 8px #3f2eb2", animation: "pulse 1.6s ease-in-out infinite" }} />
             <h2 style={{ fontSize: 11, fontWeight: 900, color: "#a5b4fc", margin: 0, letterSpacing: 3, textTransform: "uppercase" }}>
-              [ HABILIDADES · MEGAFAN ]
+              Lo que incluye MegaFan
             </h2>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 14 }}>
@@ -523,14 +487,14 @@ export default function Membership() {
             ].map(h => (
               <div key={h.title} style={{
                 position: "relative",
-                background: "linear-gradient(160deg, rgba(20,6,16,0.85), rgba(8,4,18,0.95))",
+                background: "linear-gradient(160deg, rgba(10,10,10,0.85), rgba(10,10,10,0.95))",
                 border: "1px solid rgba(63,46,178,0.3)",
                 padding: "22px 18px", textAlign: "center",
                 boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 0 20px rgba(63,46,178,0.1)",
               }}>
                 <div style={{ position: "absolute", top: 0, left: 14, right: 14, height: 1, background: "linear-gradient(90deg,transparent,#6366f1,transparent)" }} />
                 <div style={{ fontSize: 28, marginBottom: 12, color: "#6366f1", filter: "drop-shadow(0 0 8px #3f2eb2)" }}>{h.icon}</div>
-                <div style={{ fontSize: 12, fontWeight: 900, color: "#a5b4fc", marginBottom: 8, letterSpacing: 2, textTransform: "uppercase" }}>// {h.title}</div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: "#a5b4fc", marginBottom: 8, letterSpacing: 2, textTransform: "uppercase" }}>{h.title}</div>
                 <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", lineHeight: 1.7, fontFamily: "system-ui, sans-serif" }}>{h.desc}</div>
               </div>
             ))}
@@ -542,17 +506,17 @@ export default function Membership() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", marginBottom: 24 }}>
             <span style={{ width: 6, height: 6, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 8px #6366f1", animation: "pulse 1.6s ease-in-out infinite" }} />
             <h2 style={{ fontSize: 11, fontWeight: 900, color: "#a5b4fc", margin: 0, letterSpacing: 3, textTransform: "uppercase" }}>
-              [ COMPARATIVA · CAZADOR_VS_MONARCA ]
+              Gratis vs MegaFan
             </h2>
           </div>
           <div style={{
-            background: "linear-gradient(160deg, rgba(20,6,16,0.85), rgba(8,4,18,0.95))",
+            background: "linear-gradient(160deg, rgba(10,10,10,0.85), rgba(10,10,10,0.95))",
             border: "1px solid rgba(63,46,178,0.4)",
             overflow: "hidden",
             boxShadow: "0 0 24px rgba(63,46,178,0.15)",
           }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px", borderBottom: "1px solid rgba(99,102,241,0.3)" }}>
-              <div style={{ padding: "12px 18px", fontSize: 9, color: "rgba(165,180,252,0.5)", fontWeight: 800, letterSpacing: 2 }}>// FUNCION</div>
+              <div style={{ padding: "12px 18px", fontSize: 9, color: "rgba(165,180,252,0.5)", fontWeight: 800, letterSpacing: 2 }}>Función</div>
               <div style={{ padding: "12px 8px", textAlign: "center", fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.4)", letterSpacing: 1.5 }}>GRATIS</div>
               <div style={{ padding: "12px 8px", textAlign: "center", fontSize: 10, fontWeight: 900, color: "#a5b4fc", background: "rgba(63,46,178,0.12)", letterSpacing: 1.5 }}>MEGAFAN ✦</div>
             </div>
@@ -570,7 +534,7 @@ export default function Membership() {
                   {row.free ? <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>✓</span> : <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 14 }}>—</span>}
                 </div>
                 <div style={{ padding: "13px 8px", textAlign: "center", background: "rgba(63,46,178,0.08)" }}>
-                  {row.pro ? <span style={{ color: "#a5b4fc", fontSize: 14, fontWeight: 800, textShadow: "0 0 8px rgba(99,102,241,0.6)" }}>✓</span> : <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 14 }}>—</span>}
+                  {row.pro ? <span style={{ color: "#a5b4fc", fontSize: 14, fontWeight: 800, }}>✓</span> : <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 14 }}>—</span>}
                 </div>
               </div>
             ))}
@@ -582,13 +546,13 @@ export default function Membership() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", marginBottom: 24 }}>
             <span style={{ width: 6, height: 6, background: "#3f2eb2", borderRadius: "50%", boxShadow: "0 0 8px #3f2eb2", animation: "pulse 1.6s ease-in-out infinite" }} />
             <h2 style={{ fontSize: 11, fontWeight: 900, color: "#a5b4fc", margin: 0, letterSpacing: 3, textTransform: "uppercase" }}>
-              [ CONSULTAS · FRECUENTES ]
+              Preguntas frecuentes
             </h2>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {FAQS.map((faq, i) => (
               <div key={i} style={{
-                background: openFaq === i ? "linear-gradient(160deg, rgba(20,6,16,0.9), rgba(8,4,18,0.98))" : "rgba(8,4,18,0.6)",
+                background: openFaq === i ? "linear-gradient(160deg, rgba(10,10,10,0.9), rgba(10,10,10,0.98))" : "rgba(10,10,10,0.6)",
                 border: `1px solid ${openFaq === i ? "rgba(99,102,241,0.55)" : "rgba(63,46,178,0.2)"}`,
                 overflow: "hidden", transition: "all 0.2s",
                 boxShadow: openFaq === i ? "0 0 18px rgba(99,102,241,0.2)" : "none",
@@ -598,20 +562,20 @@ export default function Membership() {
                   style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "16px 18px", background: "transparent", border: "none", cursor: "pointer",
-                    color: openFaq === i ? "#a5b4fc" : "#F1F1F5",
+                    color: openFaq === i ? "#a5b4fc" : "#f4f4f5",
                     fontSize: 13, fontWeight: 700, textAlign: "left", gap: 12,
                     fontFamily: "system-ui, sans-serif",
                   }}
                 >
                   <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ color: "#6366f1", fontSize: 10, fontWeight: 900, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>0{i+1}</span>
+                    <span style={{ color: "#6366f1", fontSize: 10, fontWeight: 900, fontFamily: "'Space Grotesk', ui-monospace, monospace" }}>0{i+1}</span>
                     {faq.q}
                   </span>
                   <span style={{ color: openFaq === i ? "#6366f1" : "rgba(165,180,252,0.4)", fontSize: 16, flexShrink: 0, transition: "transform 0.2s", transform: openFaq === i ? "rotate(45deg)" : "rotate(0deg)" }}>+</span>
                 </button>
                 {openFaq === i && (
                   <div style={{ padding: "0 18px 16px", color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.7, fontFamily: "system-ui, sans-serif", borderTop: "1px solid rgba(99,102,241,0.15)", paddingTop: 12, marginTop: -2 }}>
-                    <span style={{ color: "#6366f1", fontFamily: "'JetBrains Mono', ui-monospace, monospace", marginRight: 6 }}>{">"}</span>
+                    <span style={{ color: "#6366f1", fontFamily: "'Space Grotesk', ui-monospace, monospace", marginRight: 6 }}>{">"}</span>
                     {faq.a}
                   </div>
                 )}
@@ -629,7 +593,7 @@ export default function Membership() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 15 }}>🧾</span>
-                <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Historial de pagos</span>
+                <span style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 800 }}>Historial de pagos</span>
               </div>
               <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 18, transition: "transform 0.2s", transform: showPayments ? "rotate(45deg)" : "rotate(0deg)" }}>+</span>
             </button>

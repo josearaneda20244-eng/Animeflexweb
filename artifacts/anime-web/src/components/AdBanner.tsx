@@ -46,15 +46,17 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
   const access = getAccess();
   const remaining = Math.max(0, limitsConfig.dailyLimit - access.count);
   const currentLimit = limitsConfig.dailyLimit;
-  const canWatch = remaining > 0 && limitsConfig.dailyLimitEnabled;
+  // Si el límite diario está desactivado no hay nada que mostrar
+  if (!limitsConfig.dailyLimitEnabled) return null;
+  const canWatch = remaining > 0;
 
   if (!canWatch) {
     // Límite alcanzado — CTA de conversión
     return (
       <div className={className} style={{
         borderRadius: 16, overflow: "hidden",
-        background: "linear-gradient(135deg, rgba(63,46,178,0.12), rgba(46,33,138,0.06))",
-        border: "1px solid rgba(63,46,178,0.25)",
+        background: "radial-gradient(ellipse at 0% 0%, rgba(63,46,178,.3), transparent 60%), #0a0a0a",
+        border: "1px solid rgba(99,102,241,0.3)",
         padding: "18px 20px",
         display: "flex", alignItems: "center", gap: 16,
       }}>
@@ -67,7 +69,7 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, marginBottom: 3 }}>
-            {limitsConfig.limitMessage.split('.')[0] || "Límite diario alcanzado"} 😢
+            {limitsConfig.limitMessage.split('.')[0] || "Límite diario alcanzado"}
           </div>
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
             {limitsConfig.megafanMessage}
@@ -91,8 +93,8 @@ export default function AdBanner({ variant = "horizontal", className }: EpisodeC
   return (
     <div className={className} style={{
       borderRadius: 12, overflow: "hidden",
-      background: "rgba(63,46,178,0.05)",
-      border: "1px solid rgba(63,46,178,0.1)",
+      background: "#0a0a0a",
+      border: "1px solid rgba(255,255,255,0.08)",
       padding: "10px 14px",
       display: "flex", alignItems: "center", gap: 12,
     }}>

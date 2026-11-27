@@ -1,9 +1,12 @@
-import { Clock, Trash2, X, Play, ChevronRight } from "lucide-react";
+import { Trash2, X, Play, Compass } from "lucide-react";
 import { useLocation } from "wouter";
 import { useHistory, type HistoryEntry } from "@/context/HistoryContext";
 import { resolveTitle } from "@/lib/consumet";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { usePageMeta } from "@/lib/usePageMeta";
+import { EmptyState } from "@/components/iz/ui";
+import { useWatchProgress } from "@/context/WatchProgressContext";
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts;
@@ -36,40 +39,35 @@ function groupByDay(entries: HistoryEntry[]) {
 
 function HistoryItem({ entry, onRemove }: { entry: HistoryEntry; onRemove: () => void }) {
   const [, navigate] = useLocation();
+  const { getAnimeProgress } = useWatchProgress();
   const title = resolveTitle(entry.title);
+  const p = getAnimeProgress(String(entry.id));
+  const pct = p && p.duration > 0 ? Math.min(1, p.currentTime / p.duration) : 0;
+  const resume = () => {
+    if (p) {
+      const q = new URLSearchParams({ episodeId: p.episodeId, episodeNum: String(p.episodeNum), animeTitle: p.animeTitle, animeId: p.animeId, animeImage: p.animeImage });
+      navigate(`/watch?${q.toString()}`);
+    } else navigate(`/anime/${entry.id}`);
+  };
   return (
-    <div
-      style={{
-        display: "flex", alignItems: "center", gap: 12, padding: "12px 4px",
-        borderBottom: "1px solid rgba(255,255,255,0.07)", borderRadius: 4, cursor: "pointer",
-        transition: "background 0.15s",
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = "#12121E")}
-      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-      onClick={() => navigate(`/anime/${entry.id}`)}
-    >
-      <img src={entry.image} alt={title} style={{ width: 65, height: 90, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-        <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, lineHeight: 1.35 }} className="line-clamp-2">{title}</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {entry.type && <span style={{ color: "#3f2eb2", fontSize: 10, fontWeight: 700, background: "rgba(63,46,178,0.18)", padding: "1px 5px", borderRadius: 4 }}>{entry.type}</span>}
-          {entry.episodeNum && (
-            <span style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.005)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 10, fontWeight: 800 }}>
-              <Play size={9} color="#fff" /> EP {entry.episodeNum}
-            </span>
-          )}
-        </div>
-        <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{timeAgo(entry.watchedAt)}</div>
+    <div className="iz-rank__row" style={{ gridTemplateColumns: "60px minmax(0,1fr) auto", borderBottom: "1px solid var(--iz-line)" }} onClick={resume} role="button" tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter") resume(); }}>
+      <img src={entry.image} alt="" loading="lazy" style={{ width: 60, height: 84 }} />
+      <div style={{ minWidth: 0 }}>
+        <strong>{title}</strong>
+        <small>
+          {entry.episodeNum ? `Episodio ${entry.episodeNum} · ` : ""}{timeAgo(entry.watchedAt)}
+        </small>
+        {pct > 0 && (
+          <div style={{ marginTop: 8, height: 3, maxWidth: 240, borderRadius: 3, background: "rgba(255,255,255,.12)", overflow: "hidden" }}>
+            <div style={{ width: `${Math.round(pct * 100)}%`, height: "100%", background: "linear-gradient(90deg,var(--iz-accent),var(--iz-accent-2))" }} />
+          </div>
+        )}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0 }}>
-        <button
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", display: "flex" }}
-          title="Eliminar"
-        >
-          <X size={14} color="rgba(255,255,255,0.5)" />
-        </button>
-        <ChevronRight size={16} color="rgba(255,255,255,0.35)" />
+      <div style={{ display: "flex", gap: 6 }}>
+        <span className="iz-btn iz-btn--ghost iz-btn--sm iz-hide-m" aria-hidden><Play size={14} fill="currentColor" /> {p ? "Continuar" : "Ver"}</span>
+        <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm" title="Eliminar del historial" aria-label="Eliminar del historial"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}><X size={15} /></button>
       </div>
     </div>
   );
@@ -79,73 +77,36 @@ export default function History() {
   const [, navigate] = useLocation();
   const { history, removeFromHistory, clearHistory } = useHistory();
   const sections = groupByDay(history);
+  usePageMeta({ title: "Historial", noindex: true });
 
   const handleClearAll = () => {
-    if (confirm("¿Estás seguro de que quieres borrar todo el historial?")) {
-      clearHistory();
-    }
+    if (confirm("¿Seguro que quieres borrar todo el historial?")) clearHistory();
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000" }}>
+    <div className="iz-page">
       <Navbar />
-
-      <div style={{ padding: "0 16px 40px", paddingTop: 72 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 14, paddingTop: 4 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 4, height: 28, borderRadius: 2, background: "#3f2eb2" }} />
-            <div>
-              <div style={{ color: "#F1F1F5", fontSize: 24, fontWeight: 900, letterSpacing: -0.5 }}>Historial</div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginTop: 1 }}>
-                {history.length > 0 ? `${history.length} anime${history.length !== 1 ? "s" : ""} vistos` : "Tu actividad reciente"}
-              </div>
-            </div>
-          </div>
-          {history.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "7px 12px", color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-              onMouseEnter={e => { e.currentTarget.style.color = "#EF4444"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
-            >
-              <Trash2 size={13} /> Borrar todo
-            </button>
-          )}
-        </div>
-
-        <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 8 }} />
-
-        {history.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 14 }}>
-            <div style={{ width: 110, height: 110, borderRadius: 55, background: "rgba(63,46,178,0.1)", border: "1px solid rgba(63,46,178,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Clock size={48} color="#3f2eb2" />
-            </div>
-            <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 800 }}>Sin historial todavía</div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 14, textAlign: "center", lineHeight: 1.6, maxWidth: 280 }}>
-              Los animes que veas aparecerán aquí
-            </div>
-            <button
-              onClick={() => navigate("/")}
-              style={{ background: "rgba(63,46,178,0.15)", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 20, padding: "9px 16px", color: "#3f2eb2", fontSize: 13, fontWeight: 700, cursor: "pointer", marginTop: 4 }}
-            >
-              Explorar anime
-            </button>
-          </div>
-        ) : (
+      <main className="iz-container" style={{ maxWidth: 1000 }}>
+        <header className="iz-pagehead" style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div>
-            {sections.map((section) => (
-              <div key={section.title} style={{ marginTop: 20 }}>
-                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 4, paddingLeft: 4 }}>
-                  {section.title}
-                </div>
-                {section.data.map((entry) => (
-                  <HistoryItem key={entry.id} entry={entry} onRemove={() => removeFromHistory(entry.id)} />
-                ))}
-              </div>
-            ))}
+            <div className="iz-head__eyebrow"><span className="iz-dot" />Tu biblioteca</div>
+            <h1>Historial <span className="iz-serif">reciente</span></h1>
+            <p>Retoma cualquier episodio justo donde lo dejaste.</p>
           </div>
+          {history.length > 0 && <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" onClick={handleClearAll}><Trash2 size={15} /> Borrar todo</button>}
+        </header>
+        {history.length === 0 ? (
+          <EmptyState title="Tu historial está vacío" text="Los animes que veas aparecerán aquí automáticamente."
+            action={<button type="button" className="iz-btn iz-btn--primary" onClick={() => navigate("/")}><Compass size={16} /> Descubrir anime</button>} />
+        ) : (
+          sections.map((sec) => (
+            <section key={sec.title} style={{ marginBottom: 32 }}>
+              <div className="iz-head__eyebrow" style={{ marginBottom: 8 }}>{sec.title}</div>
+              {sec.data.map((e) => <HistoryItem key={`${e.id}-${e.watchedAt}`} entry={e} onRemove={() => removeFromHistory(e.id)} />)}
+            </section>
+          ))
         )}
-      </div>
+      </main>
       <Footer />
     </div>
   );

@@ -1,479 +1,359 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen, Loader2, ZoomIn, ZoomOut, List, X, RotateCcw } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeft, ChevronLeft, ChevronRight, List, X, Settings2, RefreshCw, Rows3, BookOpen, Maximize, Minimize,
+} from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
+import { usePageMeta } from "@/lib/usePageMeta";
+import {
+  getMangaProgress, saveMangaProgress, markChapterRead, getReaderPrefs, saveReaderPrefs,
+  type ReaderPrefs,
+} from "@/lib/mangaProgress";
 
-interface ChapterPage {
-  img: string;
-  page: number;
-  headerForImage?: Record<string, string>;
-}
-
+interface ChapterPage { img: string; page: number }
+interface ChapterRef { id: string; chapterNumber?: string | number; title?: string }
 interface MangaInfoSmall {
   id?: string;
-  title?: string | { english?: string; romaji?: string };
-  chapters?: Array<{ id: string; chapterNumber?: string | number; title?: string }>;
+  title?: string | { english?: string; romaji?: string; userPreferred?: string; native?: string };
+  image?: string;
+  chapters?: ChapterRef[];
 }
 
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
-const CLIP_8 = "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)";
-const CLIP_6 = "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)";
-const CLIP_10 = "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)";
-
-function resolveTitle(t: any): string {
+function resolveTitle(t: MangaInfoSmall["title"]): string {
   if (!t) return "";
   if (typeof t === "string") return t;
   return t.english || t.romaji || t.userPreferred || t.native || "";
 }
 
+const chapterNum = (c?: ChapterRef) => parseFloat(String(c?.chapterNumber ?? 0)) || 0;
+const WIDTHS = [600, 820, 1000, 1400];
+
+/* ─────────────────────────────────────────────────────────────
+   Página del lector con carga progresiva:
+   - El <img> solo se monta cuando la página está a ~2.5 pantallas.
+   - Cuando se aleja más de ~6 pantallas se desmonta (libera RAM/decodificación)
+     conservando su altura medida, así no hay saltos de scroll.
+───────────────────────────────────────────────────────────── */
+const ReaderPage = memo(function ReaderPage({
+  page, index, eager, onVisible, onAspect, aspect,
+}: {
+  page: ChapterPage;
+  index: number;
+  eager: boolean;
+  onVisible: (index: number) => void;
+  onAspect: (index: number, ratio: number) => void;
+  aspect?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [near, setNear] = useState(eager);
+  const [failed, setFailed] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") { setNear(true); return; }
+    const mountObs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setNear(true); }, { rootMargin: "250% 0px" });
+    const unmountObs = new IntersectionObserver(([e]) => { if (!e.isIntersecting) setNear(false); }, { rootMargin: "600% 0px" });
+    const visObs = new IntersectionObserver(([e]) => { if (e.isIntersecting) onVisible(index); }, { threshold: 0, rootMargin: "-45% 0px -45% 0px" });
+    mountObs.observe(el); unmountObs.observe(el); visObs.observe(el);
+    return () => { mountObs.disconnect(); unmountObs.disconnect(); visObs.disconnect(); };
+  }, [index, onVisible]);
+
+  const src = failed > 0 ? `${page.img}${page.img.includes("?") ? "&" : "?"}r=${failed}` : page.img;
+
+  return (
+    <div ref={ref} className="iz-reader__page" style={{ aspectRatio: aspect ? String(aspect) : undefined, minHeight: aspect ? undefined : "70vh" }} data-page={index + 1}>
+      {near && failed < 4 && (
+        <img
+          src={src}
+          alt={`Página ${index + 1}`}
+          decoding="async"
+          // @ts-expect-error fetchpriority es un atributo HTML válido
+          fetchpriority={index < 2 ? "high" : "low"}
+          draggable={false}
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            if (img.naturalWidth && img.naturalHeight) onAspect(index, img.naturalWidth / img.naturalHeight);
+            setLoaded(true);
+          }}
+          onError={() => setFailed((n) => n + 1)}
+          style={{ opacity: loaded ? 1 : 0 }}
+        />
+      )}
+      {!loaded && failed < 4 && <div className="iz-reader__ph"><span className="iz-spin" /><span>{index + 1}</span></div>}
+      {failed >= 4 && (
+        <div className="iz-reader__ph">
+          <span>No se pudo cargar la página {index + 1}</span>
+          <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" onClick={() => { setFailed(1); setLoaded(false); }}><RefreshCw size={14} /> Reintentar</button>
+        </div>
+      )}
+    </div>
+  );
+});
+
 export default function MangaReader() {
   const { id: mangaId, chapterId } = useParams<{ id: string; chapterId: string }>();
   const [, navigate] = useLocation();
-  const [zoom, setZoom] = useState(100);
-  const [showChapterList, setShowChapterList] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [scrollPct, setScrollPct] = useState(0);
+  const queryClient = useQueryClient();
+  const [prefs, setPrefs] = useState<ReaderPrefs>(() => getReaderPrefs());
+  const [showList, setShowList] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showUI, setShowUI] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [aspects, setAspects] = useState<Record<number, number>>({});
+  const [isFs, setIsFs] = useState(false);
+  const hideTimer = useRef<number | null>(null);
+  const restoredRef = useRef<string | null>(null);
 
-  const { data: pages, isLoading, isError } = useQuery<ChapterPage[]>({
+  const updatePrefs = (patch: Partial<ReaderPrefs>) => setPrefs((p) => { const n = { ...p, ...patch }; saveReaderPrefs(n); return n; });
+
+  const { data: pages = [], isLoading, isError, refetch } = useQuery<ChapterPage[]>({
     queryKey: ["manga", "chapter", chapterId],
     queryFn: () => apiClient.get<ChapterPage[]>(`/manga/chapter/${chapterId}`),
     staleTime: 1000 * 60 * 30,
+    retry: 2,
   });
 
-  const { data: mangaInfo } = useQuery<MangaInfoSmall>({
+  const { data: info } = useQuery<MangaInfoSmall>({
     queryKey: ["manga", "info", mangaId],
     queryFn: () => apiClient.get<MangaInfoSmall>(`/manga/info/${mangaId}`),
     staleTime: 1000 * 60 * 10,
   });
 
-  const sortedChapters = [...(mangaInfo?.chapters ?? [])].sort((a, b) => {
-    return parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0));
+  const chapters = useMemo(() => [...(info?.chapters ?? [])].sort((a, b) => chapterNum(a) - chapterNum(b)), [info?.chapters]);
+  const idx = chapters.findIndex((c) => c.id === chapterId);
+  const chapter = idx >= 0 ? chapters[idx] : undefined;
+  const prev = idx > 0 ? chapters[idx - 1] : null;
+  const next = idx >= 0 && idx < chapters.length - 1 ? chapters[idx + 1] : null;
+  const mangaTitle = resolveTitle(info?.title);
+
+  usePageMeta({
+    title: `${mangaTitle || "Manga"}${chapter ? ` · Capítulo ${chapter.chapterNumber}` : ""}`,
+    description: `Lee ${mangaTitle || "manga"}${chapter ? ` capítulo ${chapter.chapterNumber}` : ""} online en HD, en español.`,
+    image: info?.image,
+    type: "book",
   });
-  const currentIdx = sortedChapters.findIndex(c => c.id === chapterId);
-  const prevChapter = currentIdx > 0 ? sortedChapters[currentIdx - 1] : null;
-  const nextChapter = currentIdx < sortedChapters.length - 1 ? sortedChapters[currentIdx + 1] : null;
-  const currentChapter = sortedChapters[currentIdx];
 
-  const showControlsTemporarily = useCallback(() => {
-    setShowControls(true);
-    if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
-    hideControlsTimer.current = setTimeout(() => setShowControls(false), 3000);
-  }, []);
+  const goChapter = useCallback((c: ChapterRef | null) => {
+    if (!c) return;
+    setShowList(false);
+    navigate(`/manga/${mangaId}/leer/${c.id}`);
+  }, [mangaId, navigate]);
 
+  // Reiniciar estado al cambiar de capítulo y restaurar la página guardada
   useEffect(() => {
-    const onMove = () => showControlsTemporarily();
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("touchstart", onMove);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("touchstart", onMove);
-    };
-  }, [showControlsTemporarily]);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const h = document.documentElement.scrollHeight - window.innerHeight;
-      const p = h > 0 ? Math.min(100, Math.max(0, (window.scrollY / h) * 100)) : 0;
-      setScrollPct(p);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
+    setAspects({});
+    setCurrent(0);
     window.scrollTo(0, 0);
   }, [chapterId]);
 
-  const barStyle: React.CSSProperties = {
-    position: "fixed", left: 0, right: 0, zIndex: 100,
-    background: "linear-gradient(180deg, rgba(8,4,18,0.96) 0%, rgba(20,6,16,0.92) 100%)",
-    backdropFilter: "blur(14px)",
-    transition: "opacity 0.3s, transform 0.3s",
-    opacity: showControls ? 1 : 0,
-    pointerEvents: showControls ? "auto" : "none",
-    fontFamily: MONO,
+  useEffect(() => {
+    if (!pages.length || restoredRef.current === chapterId) return;
+    restoredRef.current = chapterId;
+    const saved = getMangaProgress(mangaId);
+    if (saved && saved.chapterId === chapterId && saved.page > 0 && saved.page < pages.length - 1) {
+      const target = saved.page;
+      if (prefs.mode === "paged") setCurrent(target);
+      else window.setTimeout(() => document.querySelector(`[data-page="${target + 1}"]`)?.scrollIntoView({ block: "start" }), 120);
+    }
+  }, [pages.length, chapterId, mangaId, prefs.mode]);
+
+  // Guardar progreso (debounced) y marcar como leído al llegar al final
+  useEffect(() => {
+    if (!pages.length || !chapterId) return;
+    const t = window.setTimeout(() => {
+      saveMangaProgress({
+        mangaId, mangaTitle: mangaTitle || "Manga", mangaImage: info?.image,
+        chapterId, chapterNumber: chapter?.chapterNumber, page: current, totalPages: pages.length,
+      });
+      if (current >= pages.length - 2) markChapterRead(mangaId, chapterId);
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [current, pages.length, chapterId, mangaId, mangaTitle, info?.image, chapter?.chapterNumber]);
+
+  // Precargar el siguiente capítulo cuando se pasa del 70 %
+  useEffect(() => {
+    if (!next || !pages.length || current < pages.length * 0.7) return;
+    queryClient.prefetchQuery({ queryKey: ["manga", "chapter", next.id], queryFn: () => apiClient.get<ChapterPage[]>(`/manga/chapter/${next.id}`), staleTime: 1000 * 60 * 30 });
+  }, [current, pages.length, next, queryClient]);
+
+  // Modo páginas: precargar las 3 siguientes imágenes
+  useEffect(() => {
+    if (prefs.mode !== "paged") return;
+    for (let i = current + 1; i <= current + 3 && i < pages.length; i++) { const img = new Image(); img.src = pages[i].img; }
+  }, [current, pages, prefs.mode]);
+
+  const onVisible = useCallback((i: number) => setCurrent(i), []);
+  const onAspect = useCallback((i: number, r: number) => setAspects((a) => (a[i] === r ? a : { ...a, [i]: r })), []);
+
+  // Mostrar/ocultar controles
+  const poke = useCallback(() => {
+    setShowUI(true);
+    if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => { setShowUI(false); setShowSettings(false); }, 3200);
+  }, []);
+  useEffect(() => {
+    poke();
+    window.addEventListener("mousemove", poke, { passive: true });
+    return () => { window.removeEventListener("mousemove", poke); if (hideTimer.current) window.clearTimeout(hideTimer.current); };
+  }, [poke]);
+
+  const pageStep = useCallback((dir: 1 | -1) => {
+    if (prefs.mode !== "paged") return;
+    const n = current + dir;
+    if (n < 0) { goChapter(prev); return; }
+    if (n >= pages.length) { goChapter(next); return; }
+    window.scrollTo(0, 0);
+    setCurrent(n);
+  }, [prefs.mode, current, pages.length, prev, next, goChapter]);
+
+  // Teclado
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === "INPUT") return;
+      if (e.key === "ArrowRight" || e.key === "d") { e.preventDefault(); prefs.mode === "paged" ? pageStep(1) : goChapter(next); }
+      else if (e.key === "ArrowLeft" || e.key === "a") { e.preventDefault(); prefs.mode === "paged" ? pageStep(-1) : goChapter(prev); }
+      else if (e.key === "Escape") { setShowList(false); setShowSettings(false); }
+      else if (e.key === "f") toggleFs();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const onFs = () => setIsFs(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+  const toggleFs = () => {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => {});
   };
 
-  const sysBtn = (active = false): React.CSSProperties => ({
-    background: active ? "linear-gradient(135deg,#3f2eb2,#2e218a)" : "rgba(63,46,178,0.08)",
-    border: `1px solid ${active ? "rgba(99,102,241,0.6)" : "rgba(99,102,241,0.35)"}`,
-    color: active ? "#fff" : "#a5b4fc",
-    cursor: "pointer", display: "flex", alignItems: "center",
-    fontFamily: MONO, fontWeight: 800, letterSpacing: 1,
-    clipPath: CLIP_6,
-    boxShadow: active ? "0 0 12px rgba(63,46,178,0.5)" : "none",
-    transition: "all 0.15s",
-  });
+  const pct = pages.length ? Math.round(((current + 1) / pages.length) * 100) : 0;
+
+  // Toque en modo páginas: tercio izquierdo = anterior, derecho = siguiente, centro = controles
+  const onPagedTap = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    if (x < 0.33) pageStep(-1);
+    else if (x > 0.67) pageStep(1);
+    else setShowUI((v) => !v);
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at top, #14060c 0%, #07060b 60%)", position: "relative" }} onClick={showControlsTemporarily}>
-      {/* Background scan lines (subtle) */}
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg, rgba(99,102,241,0.025) 0px, rgba(99,102,241,0.025) 1px, transparent 1px, transparent 4px)",
-      }} />
-
-      {/* Top bar */}
-      <div style={{ ...barStyle, top: 0, padding: "10px 14px 12px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(99,102,241,0.35)", boxShadow: "0 0 18px rgba(63,46,178,0.2)" }}>
-        {/* Top accent */}
-        <div style={{ position: "absolute", top: 0, left: 16, right: 16, height: 1, background: "linear-gradient(90deg,transparent,#6366f1,#3f2eb2,#6366f1,transparent)", boxShadow: "0 0 8px #6366f1" }} />
-
-        <button
-          onClick={() => navigate(`/manga/${mangaId}`)}
-          style={{ ...sysBtn(false), padding: "8px 10px", flexShrink: 0 }}
-          title="Volver"
-        >
-          <ArrowLeft size={14} />
-        </button>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 800, letterSpacing: 2, display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 5, height: 5, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 6px #6366f1", animation: "syspulse 1.6s ease-in-out infinite" }} />
-            [ LECTOR · {resolveTitle(mangaInfo?.title)?.toUpperCase().slice(0, 30) || "MANGA"} ]
-          </div>
-          <div style={{ color: "#c7d2fe", fontSize: 13, fontWeight: 800, letterSpacing: 0.5, marginTop: 2, fontFamily: "system-ui, sans-serif", textShadow: "0 0 12px rgba(63,46,178,0.4)" }}>
-            {currentChapter ? `Cap. ${currentChapter.chapterNumber}${currentChapter.title ? ` · ${currentChapter.title}` : ""}` : "// CARGANDO..."}
+    <div className="iz-reader" onClick={() => { if (prefs.mode === "webtoon") poke(); }}>
+      {/* Barra superior */}
+      <header className={`iz-reader__bar iz-reader__bar--top ${showUI ? "" : "is-hidden"}`}>
+        <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm" onClick={() => navigate(`/manga/${mangaId}`)} aria-label="Volver al manga"><ArrowLeft size={17} /></button>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 11, color: "var(--iz-dim)", fontFamily: "var(--iz-mono)", letterSpacing: ".08em", textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mangaTitle || "Manga"}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {chapter ? `Capítulo ${chapter.chapterNumber}${chapter.title && !/^cap/i.test(chapter.title) ? ` · ${chapter.title}` : ""}` : "Cargando…"}
           </div>
         </div>
+        <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm iz-hide-m" onClick={toggleFs} aria-label="Pantalla completa">{isFs ? <Minimize size={16} /> : <Maximize size={16} />}</button>
+        <button type="button" className={`iz-btn iz-btn--icon iz-btn--sm ${showSettings ? "iz-btn--accent" : "iz-btn--ghost"}`} onClick={(e) => { e.stopPropagation(); setShowSettings((v) => !v); }} aria-label="Ajustes de lectura"><Settings2 size={16} /></button>
+        <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" onClick={(e) => { e.stopPropagation(); setShowList(true); }}><List size={16} /> <span className="iz-hide-m">Capítulos</span></button>
+        <div className="iz-reader__progress"><i style={{ width: `${pct}%` }} /></div>
+      </header>
 
-        {/* Zoom group */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 3,
-          background: "rgba(8,4,18,0.7)",
-          border: "1px solid rgba(99,102,241,0.3)",
-          padding: "3px 4px",
-          clipPath: CLIP_6,
-        }}>
-          <button onClick={() => setZoom(z => Math.max(50, z - 10))} style={{ ...sysBtn(false), padding: 5, border: "none", background: "transparent" }}>
-            <ZoomOut size={12} />
-          </button>
-          <span style={{ color: "#a5b4fc", fontSize: 10, fontWeight: 900, minWidth: 32, textAlign: "center", letterSpacing: 0.5 }}>{zoom}%</span>
-          <button onClick={() => setZoom(z => Math.min(200, z + 10))} style={{ ...sysBtn(false), padding: 5, border: "none", background: "transparent" }}>
-            <ZoomIn size={12} />
-          </button>
-          {zoom !== 100 && (
-            <button onClick={() => setZoom(100)} style={{ ...sysBtn(false), padding: 5, border: "none", background: "transparent" }} title="Reset">
-              <RotateCcw size={12} />
-            </button>
+      {showSettings && (
+        <div className="iz-menu iz-reader__settings" onClick={(e) => e.stopPropagation()}>
+          <div className="iz-menu__label">Modo de lectura</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "4px 4px 8px" }}>
+            <button type="button" className={`iz-chip ${prefs.mode === "webtoon" ? "is-active" : ""}`} onClick={() => updatePrefs({ mode: "webtoon" })}><Rows3 size={14} /> Webtoon</button>
+            <button type="button" className={`iz-chip ${prefs.mode === "paged" ? "is-active" : ""}`} onClick={() => { updatePrefs({ mode: "paged" }); window.scrollTo(0, 0); }}><BookOpen size={14} /> Páginas</button>
+          </div>
+          <div className="iz-menu__label">Ancho</div>
+          <div style={{ display: "flex", gap: 6, padding: "4px 4px 8px", flexWrap: "wrap" }}>
+            {WIDTHS.map((w) => <button key={w} type="button" className={`iz-chip ${prefs.width === w ? "is-active" : ""}`} style={{ height: 28, fontSize: 12 }} onClick={() => updatePrefs({ width: w })}>{w === 1400 ? "Completo" : `${w}px`}</button>)}
+          </div>
+          {prefs.mode === "webtoon" && (
+            <label className="iz-menu__item" style={{ cursor: "pointer" }}>
+              <input type="checkbox" checked={prefs.gap} onChange={(e) => updatePrefs({ gap: e.target.checked })} /> Separación entre páginas
+            </label>
           )}
-        </div>
-
-        {/* Chapter list */}
-        {sortedChapters.length > 0 && (
-          <button onClick={() => setShowChapterList(v => !v)} style={{ ...sysBtn(showChapterList), padding: "7px 10px", fontSize: 10, gap: 5, flexShrink: 0 }}>
-            <List size={12} /> CAPS
-          </button>
-        )}
-      </div>
-
-      {/* Progress bar (just below top bar) */}
-      <div style={{
-        position: "fixed", top: 60, left: 0, right: 0, zIndex: 99,
-        height: 2, background: "rgba(8,4,18,0.6)",
-        opacity: showControls ? 1 : 0.4,
-        transition: "opacity 0.3s",
-        pointerEvents: "none",
-      }}>
-        <div style={{
-          height: "100%", width: `${scrollPct}%`,
-          background: "linear-gradient(90deg,#3f2eb2,#6366f1,#a5b4fc)",
-          boxShadow: "0 0 10px rgba(99,102,241,0.7)",
-          transition: "width 0.1s linear",
-        }} />
-      </div>
-
-      {/* Chapter list panel */}
-      {showChapterList && (
-        <div style={{
-          position: "fixed", top: 0, right: 0, bottom: 0, width: 320, zIndex: 200,
-          background: "linear-gradient(180deg, rgba(20,6,16,0.98) 0%, rgba(8,4,18,0.99) 100%)",
-          borderLeft: "1px solid rgba(99,102,241,0.5)",
-          boxShadow: "-8px 0 32px rgba(63,46,178,0.3)",
-          display: "flex", flexDirection: "column",
-          fontFamily: MONO,
-        }}>
-          {/* Side panel hex grid bg */}
-          <div style={{
-            position: "absolute", inset: 0,
-            backgroundImage: "linear-gradient(rgba(63,46,178,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.05) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-            maskImage: "radial-gradient(ellipse at top, black 20%, transparent 80%)",
-            WebkitMaskImage: "radial-gradient(ellipse at top, black 20%, transparent 80%)",
-            pointerEvents: "none",
-          }} />
-
-          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px 14px", borderBottom: "1px solid rgba(99,102,241,0.35)" }}>
-            <div>
-              <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 800, letterSpacing: 2 }}>// INDICE</div>
-              <div style={{ color: "#a5b4fc", fontWeight: 900, fontSize: 14, marginTop: 2, letterSpacing: 1 }}>CAPITULOS · {sortedChapters.length}</div>
-            </div>
-            <button onClick={() => setShowChapterList(false)} style={{ ...sysBtn(false), padding: 7 }}>
-              <X size={14} />
-            </button>
-          </div>
-
-          <div style={{ flex: 1, overflowY: "auto", padding: 10, position: "relative" }}>
-            {sortedChapters.slice().reverse().map(ch => {
-              const active = ch.id === chapterId;
-              return (
-                <div
-                  key={ch.id}
-                  onClick={() => { navigate(`/manga/${mangaId}/leer/${ch.id}`); setShowChapterList(false); }}
-                  style={{
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    background: active ? "linear-gradient(135deg, rgba(63,46,178,0.25), rgba(46,33,138,0.1))" : "rgba(8,4,18,0.5)",
-                    border: `1px solid ${active ? "rgba(99,102,241,0.6)" : "rgba(63,46,178,0.15)"}`,
-                    color: active ? "#a5b4fc" : "rgba(255,255,255,0.65)",
-                    fontSize: 12, fontWeight: active ? 900 : 600,
-                    marginBottom: 5,
-                    clipPath: CLIP_6,
-                    transition: "all 0.15s",
-                    display: "flex", alignItems: "center", gap: 10,
-                    boxShadow: active ? "0 0 12px rgba(63,46,178,0.3)" : "none",
-                    fontFamily: "system-ui, sans-serif",
-                  }}
-                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = "rgba(63,46,178,0.1)"; }}
-                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = "rgba(8,4,18,0.5)"; }}
-                >
-                  <span style={{ color: active ? "#6366f1" : "rgba(99,102,241,0.5)", fontFamily: MONO, fontSize: 10, fontWeight: 900, minWidth: 32 }}>
-                    {String(ch.chapterNumber).padStart(3, "0")}
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {ch.title || `Capitulo ${ch.chapterNumber}`}
-                  </span>
-                  {active && <span style={{ color: "#6366f1", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{"[ > ]"}</span>}
-                </div>
-              );
-            })}
-          </div>
+          <div style={{ padding: "6px 10px", color: "var(--iz-dim)", fontSize: 11, lineHeight: 1.5 }}>Atajos: ← → cambiar · F pantalla completa</div>
         </div>
       )}
 
-      {/* Main content */}
-      <div style={{ paddingTop: 70, paddingBottom: 110, position: "relative", zIndex: 1 }}>
-        {isLoading && (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ position: "relative", width: 80, height: 80, margin: "0 auto 16px" }}>
-                {/* Magic circle loader */}
-                <svg width={80} height={80} viewBox="0 0 100 100" style={{ position: "absolute", inset: 0, animation: "spin 8s linear infinite", filter: "drop-shadow(0 0 8px #3f2eb2)" }}>
-                  <circle cx="50" cy="50" r="46" fill="none" stroke="#3f2eb2" strokeWidth="0.6" strokeDasharray="2 4" />
-                  <polygon points="50,12 82,68 18,68" fill="none" stroke="#6366f1" strokeWidth="0.6" />
-                </svg>
-                <Loader2 size={32} color="#a5b4fc" style={{ position: "absolute", top: 24, left: 24, animation: "spin 1s linear infinite" }} />
-              </div>
-              <p style={{ color: "#a5b4fc", fontSize: 11, fontWeight: 800, letterSpacing: 3, fontFamily: MONO }}>
-                {">"} CARGANDO_PAGINAS...
-              </p>
+      {/* Contenido */}
+      <main className="iz-reader__body" style={{ maxWidth: prefs.width >= 1400 ? "100%" : prefs.width }}>
+        {isLoading ? (
+          <div className="iz-reader__ph" style={{ height: "80vh" }}><span className="iz-spin" /> Cargando capítulo…</div>
+        ) : isError || pages.length === 0 ? (
+          <div className="iz-reader__ph" style={{ height: "80vh" }}>
+            <span>{isError ? "No se pudo cargar el capítulo." : "Este capítulo no tiene páginas disponibles."}</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" className="iz-btn iz-btn--primary iz-btn--sm" onClick={() => refetch()}><RefreshCw size={14} /> Reintentar</button>
+              {next && <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" onClick={() => goChapter(next)}>Siguiente capítulo</button>}
             </div>
           </div>
-        )}
-
-        {isError && (
-          <div style={{
-            textAlign: "center", padding: "40px 20px", margin: "20px auto", maxWidth: 380,
-            background: "linear-gradient(160deg, rgba(20,6,16,0.85), rgba(8,4,18,0.95))",
-            border: "1px solid rgba(63,46,178,0.4)",
-            clipPath: CLIP_10,
-            color: "#c7d2fe",
-          }}>
-            <BookOpen size={42} style={{ marginBottom: 14, color: "#6366f1", filter: "drop-shadow(0 0 8px #3f2eb2)" }} />
-            <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 900, letterSpacing: 2, fontFamily: MONO, marginBottom: 4 }}>[ ERROR · 404 ]</div>
-            <p style={{ color: "rgba(255,255,255,0.6)", margin: "0 0 16px", fontSize: 13 }}>No se pudo cargar este capitulo.</p>
-            <button
-              onClick={() => navigate(`/manga/${mangaId}`)}
-              style={{
-                padding: "10px 20px",
-                background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
-                border: "1px solid rgba(99,102,241,0.6)",
-                color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 900,
-                letterSpacing: 2, fontFamily: MONO,
-                clipPath: CLIP_8,
-                boxShadow: "0 0 16px rgba(63,46,178,0.5)",
-              }}
-            >
-              {">>"} VOLVER AL MANGA
-            </button>
+        ) : prefs.mode === "paged" ? (
+          <div className="iz-reader__paged" onClick={onPagedTap}>
+            <ReaderPage key={`${chapterId}-${current}`} page={pages[Math.min(current, pages.length - 1)]} index={Math.min(current, pages.length - 1)} eager onVisible={onVisible} onAspect={onAspect} />
           </div>
-        )}
-
-        {!isLoading && !isError && pages && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "0 16px" }}>
-            {pages.map((page, i) => (
-              <div key={i} style={{
-                maxWidth: `${zoom}%`, width: "100%",
-                position: "relative",
-              }}>
-                {/* Page number marker */}
-                <div style={{
-                  position: "absolute", top: 8, left: 8, zIndex: 2,
-                  background: "rgba(8,4,18,0.85)",
-                  border: "1px solid rgba(99,102,241,0.5)",
-                  padding: "3px 8px",
-                  color: "#a5b4fc", fontSize: 9, fontWeight: 900, letterSpacing: 1, fontFamily: MONO,
-                  pointerEvents: "none",
-                  opacity: showControls ? 0.85 : 0,
-                  transition: "opacity 0.3s",
-                }}>
-                  {String(page.page).padStart(3, "0")} / {String(pages.length).padStart(3, "0")}
-                </div>
-                <img
-                  src={page.img}
-                  alt={`Pagina ${page.page}`}
-                  loading="lazy"
-                  style={{ width: "100%", display: "block" }}
-                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
-              </div>
+        ) : (
+          <div style={{ display: "grid", gap: prefs.gap ? 12 : 0 }}>
+            {pages.map((p, i) => (
+              <ReaderPage key={`${chapterId}-${i}`} page={p} index={i} eager={i < 3} onVisible={onVisible} onAspect={onAspect} aspect={aspects[i]} />
             ))}
-
-            {/* End of chapter */}
-            <div style={{
-              marginTop: 36, padding: 28,
-              background: "linear-gradient(160deg, rgba(20,6,16,0.92), rgba(8,4,18,0.98))",
-              border: "1px solid rgba(99,102,241,0.5)",
-              clipPath: CLIP_10,
-              textAlign: "center",
-              maxWidth: 440, width: "100%",
-              boxShadow: "0 0 32px rgba(63,46,178,0.25)",
-              position: "relative",
-            }}>
-              <div style={{ position: "absolute", top: 0, left: 14, right: 14, height: 1, background: "linear-gradient(90deg,transparent,#6366f1,transparent)", boxShadow: "0 0 8px #6366f1" }} />
-              <div style={{ position: "absolute", bottom: 0, left: 14, right: 14, height: 1, background: "linear-gradient(90deg,transparent,#3f2eb2,transparent)" }} />
-
-              {/* Mini magic circle */}
-              <svg width={56} height={56} viewBox="0 0 100 100" style={{ margin: "0 auto 8px", display: "block", filter: "drop-shadow(0 0 8px #6366f1)", animation: "spin 12s linear infinite" }}>
-                <circle cx="50" cy="50" r="46" fill="none" stroke="#3f2eb2" strokeWidth="1" strokeDasharray="2 4" />
-                <circle cx="50" cy="50" r="34" fill="none" stroke="#6366f1" strokeWidth="0.8" />
-                <polygon points="50,18 76,62 24,62" fill="none" stroke="#a5b4fc" strokeWidth="0.8" />
-                <text x="50" y="56" textAnchor="middle" fontSize="22" fill="#a5b4fc" fontFamily="JetBrains Mono">✓</text>
-              </svg>
-
-              <div style={{ color: "#6366f1", fontSize: 10, fontWeight: 900, letterSpacing: 3, fontFamily: MONO, marginBottom: 4 }}>
-                [ MISION · COMPLETADA ]
-              </div>
-              <div style={{ color: "#a5b4fc", fontWeight: 900, fontSize: 18, marginBottom: 4, fontFamily: MONO, letterSpacing: 1 }}>
-                FIN DEL CAPITULO
-              </div>
-              <div style={{ color: "rgba(165,180,252,0.6)", fontSize: 11, marginBottom: 22, letterSpacing: 1, fontFamily: MONO }}>
-                {currentChapter ? `> CAP_${String(currentChapter.chapterNumber).padStart(3, "0")} · LEIDO` : ""}
-              </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                {prevChapter && (
-                  <button
-                    onClick={() => navigate(`/manga/${mangaId}/leer/${prevChapter.id}`)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6, padding: "10px 16px",
-                      background: "rgba(63,46,178,0.08)",
-                      border: "1px solid rgba(99,102,241,0.4)",
-                      clipPath: CLIP_8,
-                      color: "#a5b4fc", cursor: "pointer", fontSize: 10, fontWeight: 900,
-                      letterSpacing: 1.5, fontFamily: MONO,
-                    }}
-                  >
-                    <ChevronLeft size={13} /> CAP {prevChapter.chapterNumber}
-                  </button>
-                )}
-                <button
-                  onClick={() => navigate(`/manga/${mangaId}`)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 6, padding: "10px 16px",
-                    background: "rgba(63,46,178,0.08)",
-                    border: "1px solid rgba(99,102,241,0.4)",
-                    clipPath: CLIP_8,
-                    color: "#a5b4fc", cursor: "pointer", fontSize: 10, fontWeight: 900,
-                    letterSpacing: 1.5, fontFamily: MONO,
-                  }}
-                >
-                  <List size={13} /> INDICE
-                </button>
-                {nextChapter && (
-                  <button
-                    onClick={() => navigate(`/manga/${mangaId}/leer/${nextChapter.id}`)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6, padding: "10px 18px",
-                      background: "linear-gradient(135deg,#3f2eb2,#6366f1)",
-                      border: "1px solid rgba(165,180,252,0.6)",
-                      clipPath: CLIP_8,
-                      color: "#fff", cursor: "pointer", fontSize: 10, fontWeight: 900,
-                      letterSpacing: 1.5, fontFamily: MONO,
-                      boxShadow: "0 0 16px rgba(63,46,178,0.6)",
-                    }}
-                  >
-                    CAP {nextChapter.chapterNumber} {">>"} <ChevronRight size={13} />
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         )}
-      </div>
 
-      {/* Bottom navigation bar */}
-      <div style={{
-        ...barStyle, bottom: 0, top: "auto",
-        borderTop: "1px solid rgba(99,102,241,0.35)",
-        padding: "10px 14px 12px",
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-        boxShadow: "0 0 18px rgba(63,46,178,0.2)",
-      }}>
-        <div style={{ position: "absolute", bottom: 0, left: 16, right: 16, height: 1, background: "linear-gradient(90deg,transparent,#3f2eb2,#6366f1,#3f2eb2,transparent)", boxShadow: "0 0 8px #3f2eb2" }} />
+        {/* Fin de capítulo */}
+        {!isLoading && pages.length > 0 && (prefs.mode === "webtoon" || current === pages.length - 1) && (
+          <div className="iz-reader__end">
+            <div className="iz-head__eyebrow" style={{ justifyContent: "center" }}><span className="iz-dot" /> Fin del capítulo {chapter?.chapterNumber}</div>
+            {next ? (
+              <button type="button" className="iz-btn iz-btn--primary iz-btn--lg" onClick={() => goChapter(next)}>Capítulo {next.chapterNumber} <ChevronRight size={18} /></button>
+            ) : (
+              <p style={{ color: "var(--iz-muted)", margin: 0 }}>Estás al día. ¡No hay más capítulos por ahora!</p>
+            )}
+            <button type="button" className="iz-btn iz-btn--ghost" onClick={() => navigate(`/manga/${mangaId}`)}>Volver al manga</button>
+          </div>
+        )}
+      </main>
 
-        <button
-          disabled={!prevChapter}
-          onClick={() => prevChapter && navigate(`/manga/${mangaId}/leer/${prevChapter.id}`)}
-          style={{
-            display: "flex", alignItems: "center", gap: 5, padding: "9px 14px",
-            background: prevChapter ? "rgba(63,46,178,0.08)" : "rgba(255,255,255,0.02)",
-            border: `1px solid ${prevChapter ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.06)"}`,
-            color: prevChapter ? "#a5b4fc" : "rgba(255,255,255,0.2)",
-            cursor: prevChapter ? "pointer" : "default",
-            fontSize: 10, fontWeight: 900, letterSpacing: 1.5,
-            fontFamily: MONO,
-            clipPath: CLIP_8,
-          }}
-        >
-          <ChevronLeft size={13} /> ANTERIOR
-        </button>
-
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-          color: "#a5b4fc", fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textAlign: "center",
-        }}>
-          <span style={{ color: "#6366f1" }}>
-            {isLoading ? "// CARGANDO..." : isError ? "// ERROR" : `${pages?.length ?? 0} PAGINAS`}
-          </span>
-          <span style={{ color: "rgba(165,180,252,0.5)", fontSize: 8 }}>
-            {Math.round(scrollPct)}% LEIDO
-          </span>
+      {/* Barra inferior */}
+      <footer className={`iz-reader__bar iz-reader__bar--bottom ${showUI ? "" : "is-hidden"}`}>
+        <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" disabled={!prev} onClick={() => goChapter(prev)}><ChevronLeft size={16} /> <span className="iz-hide-m">Anterior</span></button>
+        <div style={{ flex: 1, textAlign: "center", fontFamily: "var(--iz-mono)", fontSize: 13, color: "var(--iz-text-2)" }}>
+          {pages.length ? <>{prefs.mode === "paged" ? "Página" : "Pág."} {current + 1} / {pages.length}</> : "—"}
         </div>
+        <button type="button" className="iz-btn iz-btn--primary iz-btn--sm" disabled={!next} onClick={() => goChapter(next)}><span className="iz-hide-m">Siguiente</span> <ChevronRight size={16} /></button>
+      </footer>
 
-        <button
-          disabled={!nextChapter}
-          onClick={() => nextChapter && navigate(`/manga/${mangaId}/leer/${nextChapter.id}`)}
-          style={{
-            display: "flex", alignItems: "center", gap: 5, padding: "9px 14px",
-            background: nextChapter ? "linear-gradient(135deg,#3f2eb2,#6366f1)" : "rgba(255,255,255,0.02)",
-            border: `1px solid ${nextChapter ? "rgba(165,180,252,0.6)" : "rgba(255,255,255,0.06)"}`,
-            color: nextChapter ? "#fff" : "rgba(255,255,255,0.2)",
-            cursor: nextChapter ? "pointer" : "default",
-            fontSize: 10, fontWeight: 900, letterSpacing: 1.5,
-            fontFamily: MONO,
-            clipPath: CLIP_8,
-            boxShadow: nextChapter ? "0 0 12px rgba(63,46,178,0.4)" : "none",
-          }}
-        >
-          SIGUIENTE <ChevronRight size={13} />
+      {/* Lista de capítulos */}
+      {showList && (
+        <div className="iz-drawer" onClick={() => setShowList(false)}>
+          <div className="iz-drawer__panel" onClick={(e) => e.stopPropagation()} style={{ padding: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottom: "1px solid var(--iz-line)" }}>
+              <b>{chapters.length} capítulos</b>
+              <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm" onClick={() => setShowList(false)} aria-label="Cerrar"><X size={16} /></button>
+            </div>
+            <ChapterList chapters={chapters} currentId={chapterId} onPick={goChapter} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChapterList({ chapters, currentId, onPick }: { chapters: ChapterRef[]; currentId: string; onPick: (c: ChapterRef) => void }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const reversed = useMemo(() => [...chapters].reverse(), [chapters]);
+  useEffect(() => { listRef.current?.querySelector(".is-active")?.scrollIntoView({ block: "center" }); }, []);
+  return (
+    <div ref={listRef} style={{ overflowY: "auto", padding: 8, flex: 1 }}>
+      {reversed.map((c) => (
+        <button key={c.id} type="button" className={`iz-menu__item ${c.id === currentId ? "is-active" : ""}`} onClick={() => onPick(c)}>
+          <span style={{ fontFamily: "var(--iz-mono)", minWidth: 44, color: "var(--iz-muted)" }}>{c.chapterNumber}</span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title || `Capítulo ${c.chapterNumber}`}</span>
         </button>
-      </div>
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes syspulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
-      `}</style>
+      ))}
     </div>
   );
 }

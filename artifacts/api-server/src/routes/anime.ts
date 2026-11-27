@@ -1,7 +1,7 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
-import { getAnimeflexStream } from "../lib/spanishStreamEngine.js";
+import { getAnimeflexStream, ENGINE_HOP_HEADER } from "../lib/spanishStreamEngine.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -1491,8 +1491,11 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
   const attempts: Promise<any>[] = [];
 
   // ── Branch 0: Unified Spanish Streaming Engine (TioAnime, JKAnime, AnimeFLV, AnimeAV1) ──
-  // Shared directly with Mobile and PC Desktop architectures for Sub Español HD
-  if (animeTitle && episodeNum) {
+  // Shared directly with Mobile and PC Desktop architectures for Sub Español HD.
+  // Se omite si la petición viene del propio motor (evita recursión) o si el
+  // cliente ya consulta /anime/sources (skipEngine=1) para no ejecutarlo dos veces.
+  const skipEngine = !!req.headers[ENGINE_HOP_HEADER] || req.query.skipEngine === "1";
+  if (animeTitle && episodeNum && !skipEngine) {
     attempts.push(
       (async () => {
         let extraTitles: string[] = [];
@@ -1990,7 +1993,7 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
       } catch {}
     }
 
-    try {
+    if (!req.headers[ENGINE_HOP_HEADER]) try {
       const streamData = await getAnimeflexStream({
         anilistId: animeId || "0",
         episodeNumber: episode,
@@ -2029,6 +2032,98 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
   } catch (err) {
     req.log.warn({ err, title, episode, animeId }, "JKAnime (LAT/español) watch failed");
     res.status(404).json({ error: "No se encontró el episodio subtitulado en español" });
+  }
+});
+
+/**
+ * Fuentes unificadas — MISMO motor que usa la app móvil/PC (spanishStreamEngine):
+ * AnimeFLV, JKAnime, AnimeAV1, Anipub, TioAnime, AnimeFenix y LatAnime, con
+ * extractores directos (ok.ru, mp4upload, luluvid) y ranking de calidad.
+ *
+ * GET /api/anime/sources?animeId=ANILIST_ID&episode=N&title=...&dub=1
+ *   dub=1 → español latino (doblaje). Sin dub → subtitulado en español.
+ * Respuesta: { sources: [{ url, quality, isM3U8, server, referer }], subtitles, dub }
+ */
+type EngineCacheEntry = { at: number; data: unknown };
+const engineCache = new Map<string, EngineCacheEntry>();
+const engineInflight = new Map<string, Promise<unknown>>();
+const ENGINE_CACHE_MS = 4 * 60 * 1000;
+const ENGINE_CACHE_MAX = 300;
+
+router.get("/anime/sources", async (req, res) => {
+  if (req.headers[ENGINE_HOP_HEADER]) {
+    res.status(508).json({ error: "Loop detected" });
+    return;
+  }
+  const animeId = String(req.query.animeId ?? req.query.id ?? "").trim();
+  const title = String(req.query.title ?? req.query.animeTitle ?? "").trim();
+  const episode = parseInt(String(req.query.episode ?? req.query.episodeNum ?? ""), 10);
+  const dub = req.query.dub === "1" || req.query.dub === "true";
+  if (!title || !Number.isFinite(episode) || episode < 0) {
+    res.status(400).json({ error: "Query params 'title' and 'episode' are required" });
+    return;
+  }
+
+  const key = `${animeId || title.toLowerCase()}:${episode}:${dub ? "lat" : "sub"}`;
+  const hit = engineCache.get(key);
+  if (hit && Date.now() - hit.at < ENGINE_CACHE_MS) {
+    res.setHeader("X-Cache", "HIT");
+    res.json(hit.data);
+    return;
+  }
+
+  try {
+    let job = engineInflight.get(key);
+    if (!job) {
+      job = (async () => {
+        let extraTitles: string[] = [];
+        if (/^\d+$/.test(animeId)) {
+          try { extraTitles = await fetchAnilistTitles(animeId); } catch { /* opcional */ }
+        }
+        const stream = await getAnimeflexStream({
+          anilistId: animeId || "0",
+          episodeNumber: episode,
+          animeTitle: title,
+          animeTitles: [title, ...extraTitles],
+          dubbed: dub,
+        });
+        const seen = new Set<string>();
+        const sources = (stream.videoSources ?? [])
+          .filter((s) => { if (!s?.url || seen.has(s.url)) return false; seen.add(s.url); return true; })
+          .map((s) => {
+            const isM3U8 = s.type === "m3u8" || s.url.includes(".m3u8");
+            const referer = s.headers?.Referer || s.headers?.referer || "";
+            const isEmbed = s.type === "embed" || s.type === "iframe";
+            return {
+              url: isEmbed
+                ? s.url
+                : isM3U8 || referer
+                  ? `/api/anime/hls-proxy?url=${encodeURIComponent(s.url)}${referer ? `&referer=${encodeURIComponent(referer)}` : ""}`
+                  : s.url,
+              quality: s.quality || "auto",
+              isM3U8,
+              isEmbed,
+              server: s.server || s.label || "Servidor",
+              referer: referer || undefined,
+            };
+          });
+        if (sources.length === 0) throw new Error("no sources");
+        const data = { sources, subtitles: (stream.videoSources ?? []).flatMap((s) => s.subtitles ?? []), dub, provider: "engine" };
+        engineCache.set(key, { at: Date.now(), data });
+        if (engineCache.size > ENGINE_CACHE_MAX) {
+          const oldest = engineCache.keys().next().value;
+          if (oldest) engineCache.delete(oldest);
+        }
+        return data;
+      })().finally(() => engineInflight.delete(key));
+      engineInflight.set(key, job);
+    }
+    const data = await job;
+    res.setHeader("X-Cache", "MISS");
+    res.json(data);
+  } catch (err) {
+    req.log.warn({ err, title, episode, animeId, dub }, "Unified engine (/anime/sources) failed");
+    res.status(404).json({ error: dub ? "No hay episodios en español latino para este anime" : "No se encontraron fuentes para este episodio" });
   }
 });
 

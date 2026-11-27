@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, Shield, Mail, AlertTriangle, FileWarning, ExternalLink, Scale, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const MONO = "inherit";
 const CLIP_8  = "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)";
 const CLIP_14 = "polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px)";
 const CLIP_6  = "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)";
@@ -16,9 +16,8 @@ const cardStyle = (variant: "carmesi" | "ambar" | "alerta" = "carmesi"): React.C
     alerta:  { border: "rgba(165,180,252,0.5)", glow: "rgba(63,46,178,0.3)" },
   }[variant];
   return {
-    background: "linear-gradient(160deg, rgba(20,6,16,0.92), rgba(8,4,18,0.96))",
+    background: "linear-gradient(160deg, rgba(10,10,10,0.92), rgba(10,10,10,0.96))",
     border: `1px solid ${colors.border}`,
-    clipPath: CLIP_14,
     padding: 24,
     marginBottom: 16,
     position: "relative",
@@ -26,22 +25,10 @@ const cardStyle = (variant: "carmesi" | "ambar" | "alerta" = "carmesi"): React.C
   };
 };
 
-const sectionHeader = (icon: React.ReactNode, tag: string, title: string) => (
-  <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
-    <div style={{
-      width: 36, height: 36,
-      background: "linear-gradient(135deg, rgba(63,46,178,0.2), rgba(99,102,241,0.15))",
-      border: "1px solid rgba(99,102,241,0.4)",
-      clipPath: CLIP_6,
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}>{icon}</div>
-    <div>
-      <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, display: "flex", alignItems: "center", gap: 5 }}>
-        <span style={{ width: 4, height: 4, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 6px #6366f1" }} />
-        {tag}
-      </div>
-      <div style={{ color: "#c7d2fe", fontSize: 16, fontWeight: 900, letterSpacing: 0.3, marginTop: 2 }}>{title}</div>
-    </div>
+const sectionHeader = (icon: React.ReactNode, _tag: string, title: string) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+    <span className="iz-avatar" style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(255,255,255,.05)" }}>{icon}</span>
+    <div style={{ color: "#fff", fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em" }}>{title}</div>
   </div>
 );
 
@@ -67,23 +54,10 @@ export default function Dmca() {
   const [, navigate] = useLocation();
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at top, #14060c 0%, #07060b 60%)", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at top, #0a0a0a 0%, #000000 60%)", position: "relative" }}>
       <Navbar />
 
-      {/* Background */}
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg, rgba(99,102,241,0.025) 0px, rgba(99,102,241,0.025) 1px, transparent 1px, transparent 4px)",
-      }} />
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        backgroundImage: "linear-gradient(rgba(63,46,178,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.04) 1px, transparent 1px)",
-        backgroundSize: "32px 32px",
-        maskImage: "radial-gradient(ellipse at top, black 10%, transparent 70%)",
-        WebkitMaskImage: "radial-gradient(ellipse at top, black 10%, transparent 70%)",
-      }} />
-
-      <div style={{ maxWidth: 820, margin: "0 auto", padding: "80px 16px 48px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "calc(var(--iz-nav-h) + 28px) 16px 48px", position: "relative", zIndex: 1 }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 26 }}>
           <button
@@ -91,7 +65,6 @@ export default function Dmca() {
             style={{
               background: "rgba(63,46,178,0.1)",
               border: "1px solid rgba(99,102,241,0.4)",
-              clipPath: CLIP_6,
               padding: "9px 12px", cursor: "pointer", display: "flex", alignItems: "center",
               color: "#a5b4fc",
             }}
@@ -101,13 +74,12 @@ export default function Dmca() {
           <div style={{ flex: 1 }}>
             <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 3, fontFamily: MONO, display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ width: 5, height: 5, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 6px #6366f1", animation: "syspulse 1.6s ease-in-out infinite" }} />
-              [ SISTEMA · AVISO_LEGAL ]
+              Aviso legal
             </div>
             <h1 style={{
               color: "#c7d2fe", fontSize: 26, fontWeight: 900, margin: "4px 0 0", letterSpacing: 0.5,
               fontFamily: MONO,
-              textShadow: "0 0 16px rgba(63,46,178,0.4)",
-            }}>
+              }}>
               DMCA &middot; CONTACTO
             </h1>
             <p style={{ color: "rgba(165,180,252,0.6)", fontSize: 11, margin: "2px 0 0", letterSpacing: 1, fontFamily: MONO }}>
@@ -118,14 +90,14 @@ export default function Dmca() {
 
         {/* ALERTA principal — no almacenamos contenido */}
         <div style={cardStyle("alerta")}>
-          {sectionHeader(<AlertTriangle size={16} color="#a5b4fc" />, "// AVISO_PRINCIPAL", "AnimeFlex NO aloja contenido")}
+          {sectionHeader(<AlertTriangle size={16} color="#a5b4fc" />, "Aviso principal", "IZIFF ANIME NO aloja contenido")}
           <p style={para}>
-            <strong style={{ color: "#c7d2fe" }}>AnimeFlex es un agregador / buscador.</strong> No almacenamos, alojamos, transmitimos
+            <strong style={{ color: "#c7d2fe" }}>IZIFF ANIME es un agregador / buscador.</strong> No almacenamos, alojamos, transmitimos
             ni subímos ningún archivo de vídeo, audio o imágenes de mangas en nuestros servidores.
           </p>
           <p style={para}>
             Todo el contenido visible en esta plataforma es <strong style={{ color: "#a5b4fc" }}>indexado automáticamente</strong> desde
-            servicios de terceros públicamente accesibles en internet. AnimeFlex actúa únicamente como una capa de
+            servicios de terceros públicamente accesibles en internet. IZIFF ANIME actúa únicamente como una capa de
             organización e interfaz que facilita la búsqueda; los archivos multimedia se sirven directamente desde los
             servidores de origen, fuera de nuestro control.
           </p>
@@ -133,10 +105,9 @@ export default function Dmca() {
             marginTop: 14, padding: "12px 14px",
             background: "rgba(63,46,178,0.1)",
             border: "1px solid rgba(165,180,252,0.4)",
-            clipPath: CLIP_8,
             color: "#c7d2fe", fontSize: 12, fontFamily: MONO, letterSpacing: 0.5, lineHeight: 1.6,
           }}>
-            {">"} <strong>RESUMEN_TECNICO:</strong> AnimeFlex no posee, no controla y no se beneficia
+            {">"} <strong>RESUMEN_TECNICO:</strong> IZIFF ANIME no posee, no controla y no se beneficia
             comercialmente de los archivos multimedia indexados. Todos los derechos pertenecen a sus respectivos
             titulares (estudios, distribuidores y editoriales).
           </div>
@@ -144,21 +115,21 @@ export default function Dmca() {
 
         {/* Cómo funciona */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<ExternalLink size={16} color="#a5b4fc" />, "// MODULO_01", "Cómo funciona el indexado")}
+          {sectionHeader(<ExternalLink size={16} color="#a5b4fc" />, "Sección", "Cómo funciona el indexado")}
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             <li style={li}>{liBullet} Nuestros sistemas <strong style={{ color: "#a5b4fc" }}>recolectan enlaces públicos</strong> que ya están disponibles en internet.</li>
             <li style={li}>{liBullet} Los enlaces apuntan a recursos alojados por <strong style={{ color: "#a5b4fc" }}>terceros independientes</strong> (servicios de vídeo, scanlators, agregadores).</li>
             <li style={li}>{liBullet} Cuando un usuario hace clic en &laquo;reproducir&raquo; o &laquo;leer&raquo;, el contenido se carga <strong style={{ color: "#a5b4fc" }}>directamente desde el origen externo</strong> a su navegador.</li>
-            <li style={li}>{liBullet} En ningún momento ese contenido pasa por, ni se cachea en, los servidores de AnimeFlex.</li>
+            <li style={li}>{liBullet} En ningún momento ese contenido pasa por, ni se cachea en, los servidores de IZIFF ANIME.</li>
             <li style={li}>{liBullet} Los metadatos (títulos, sinopsis, imágenes de portada) provienen de APIs públicas como AniList, MAL y similares, bajo sus respectivas licencias de uso.</li>
           </ul>
         </div>
 
         {/* DMCA / Notificación */}
         <div style={cardStyle("ambar")}>
-          {sectionHeader(<Scale size={16} color="#6366f1" />, "// MODULO_02", "Notificación DMCA")}
+          {sectionHeader(<Scale size={16} color="#6366f1" />, "Sección", "Notificación DMCA")}
           <p style={para}>
-            Si usted es titular de derechos de autor y considera que un enlace indexado en AnimeFlex apunta a
+            Si usted es titular de derechos de autor y considera que un enlace indexado en IZIFF ANIME apunta a
             contenido que infringe sus derechos, puede solicitar su eliminación del índice mediante una
             notificación DMCA al correo indicado abajo.
           </p>
@@ -167,7 +138,7 @@ export default function Dmca() {
           </p>
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             <li style={li}>{liBullet} Identificación de la obra protegida (título, episodio, capítulo).</li>
-            <li style={li}>{liBullet} URL exacta dentro de AnimeFlex donde aparece el enlace al material reclamado.</li>
+            <li style={li}>{liBullet} URL exacta dentro de IZIFF ANIME donde aparece el enlace al material reclamado.</li>
             <li style={li}>{liBullet} Sus datos de contacto: nombre legal completo, correo, teléfono y dirección postal.</li>
             <li style={li}>{liBullet} Declaración jurada de buena fe afirmando que el uso del material no está autorizado.</li>
             <li style={li}>{liBullet} Declaración bajo pena de perjurio de que la información es exacta y de que usted está autorizado a actuar en nombre del titular.</li>
@@ -181,9 +152,9 @@ export default function Dmca() {
 
         {/* Acciones que tomamos */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<Trash2 size={16} color="#a5b4fc" />, "// MODULO_03", "Acciones que tomamos")}
+          {sectionHeader(<Trash2 size={16} color="#a5b4fc" />, "Sección", "Acciones que tomamos")}
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            <li style={li}>{liBullet} Eliminamos el enlace o entrada del índice de AnimeFlex.</li>
+            <li style={li}>{liBullet} Eliminamos el enlace o entrada del índice de IZIFF ANIME.</li>
             <li style={li}>{liBullet} Notificamos al titular del derecho una vez completada la retirada.</li>
             <li style={li}>{liBullet} Llevamos un registro interno de las solicitudes para evitar reindexado automático.</li>
             <li style={li}>{liBullet} En caso de notificaciones reiteradas y válidas, podemos bloquear de forma permanente la fuente externa correspondiente.</li>
@@ -192,9 +163,9 @@ export default function Dmca() {
 
         {/* Limitación de responsabilidad */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<Shield size={16} color="#a5b4fc" />, "// MODULO_04", "Limitación de responsabilidad")}
+          {sectionHeader(<Shield size={16} color="#a5b4fc" />, "Sección", "Limitación de responsabilidad")}
           <p style={para}>
-            AnimeFlex se acoge a las protecciones para proveedores de servicios de la sociedad de la información
+            IZIFF ANIME se acoge a las protecciones para proveedores de servicios de la sociedad de la información
             (&laquo;safe harbor&raquo;) previstas en la <strong style={{ color: "#a5b4fc" }}>DMCA (17 U.S.C. &sect; 512)</strong> y en la
             <strong style={{ color: "#a5b4fc" }}> Directiva 2000/31/CE</strong> de comercio electrónico de la Unión Europea, así como
             normativas equivalentes en otros países.
@@ -213,7 +184,7 @@ export default function Dmca() {
 
         {/* Contraaviso */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<FileWarning size={16} color="#a5b4fc" />, "// MODULO_05", "Contraaviso (counter-notice)")}
+          {sectionHeader(<FileWarning size={16} color="#a5b4fc" />, "Sección", "Contraaviso (counter-notice)")}
           <p style={para}>
             Si considera que un enlace fue retirado por error o identificación incorrecta, puede enviar un
             contraaviso al mismo correo, incluyendo:
@@ -228,18 +199,17 @@ export default function Dmca() {
 
         {/* Contacto */}
         <div style={cardStyle("ambar")}>
-          {sectionHeader(<Mail size={16} color="#6366f1" />, "// CANAL_DIRECTO", "Contacto DMCA")}
+          {sectionHeader(<Mail size={16} color="#6366f1" />, "Contacto", "Contacto DMCA")}
           <p style={para}>
             Envíe su notificación, contraaviso o cualquier consulta legal al correo:
           </p>
           <a
-            href={`mailto:${CONTACT_EMAIL}?subject=Notificacion%20DMCA%20-%20AnimeFlex`}
+            href={`mailto:${CONTACT_EMAIL}?subject=Notificacion%20DMCA%20-%20IZIFF ANIME`}
             style={{
               display: "inline-flex", alignItems: "center", gap: 10,
               padding: "12px 18px",
               background: "linear-gradient(135deg, rgba(99,102,241,0.25), rgba(63,46,178,0.15))",
               border: "1px solid rgba(165,180,252,0.6)",
-              clipPath: CLIP_8,
               color: "#a5b4fc", fontSize: 13, fontWeight: 900, letterSpacing: 1.5,
               fontFamily: MONO,
               textDecoration: "none",
@@ -258,9 +228,8 @@ export default function Dmca() {
         {/* Footer note */}
         <div style={{
           marginTop: 24, padding: "16px 18px",
-          background: "rgba(8,4,18,0.5)",
+          background: "rgba(10,10,10,0.5)",
           border: "1px solid rgba(99,102,241,0.2)",
-          clipPath: CLIP_8,
           textAlign: "center",
           fontFamily: MONO, letterSpacing: 1, fontSize: 10, color: "rgba(165,180,252,0.5)",
         }}>

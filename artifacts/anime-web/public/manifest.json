@@ -1,61 +1,32 @@
 {
   "id": "/",
-  "name": "AnimeFlex",
-  "short_name": "AnimeFlex",
-  "description": "Mira anime en español — streaming gratis",
-  "start_url": "/",
+  "name": "IZIFF ANIME — Anime y manga en HD",
+  "short_name": "IZIFF ANIME",
+  "description": "Mira anime y lee manga en 1080p con subtítulos en español. Calendario de emisión, tu lista y progreso sincronizado.",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#090A12",
-  "theme_color": "#6C63FF",
-  "orientation": "portrait-primary",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
   "lang": "es",
-  "categories": ["entertainment", "video"],
+  "dir": "ltr",
+  "categories": ["entertainment", "video", "books"],
+  "prefer_related_applications": false,
+  "launch_handler": { "client_mode": ["navigate-existing", "auto"] },
+  "edge_side_panel": { "preferred_width": 480 },
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-192-maskable.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon-512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    {
-      "name": "Tendencias",
-      "short_name": "Tendencias",
-      "url": "/",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Buscar",
-      "short_name": "Buscar",
-      "url": "/search",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Mi lista",
-      "short_name": "Lista",
-      "url": "/watchlist",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
-    }
+    { "name": "Explorar anime", "short_name": "Explorar", "url": "/search?source=pwa", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Continuar viendo", "short_name": "Historial", "url": "/history?source=pwa", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Leer manga", "short_name": "Manga", "url": "/manga?source=pwa", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mi lista", "short_name": "Mi lista", "url": "/watchlist?source=pwa", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }

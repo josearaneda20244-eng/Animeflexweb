@@ -17,7 +17,7 @@ export default function ScrollToTop() {
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       title="Volver arriba"
       style={{
-        position: "fixed", bottom: 24, right: 20, zIndex: 999,
+        position: "fixed", bottom: "calc(24px + var(--iz-tabbar-h, 0px))", right: 20, zIndex: 999,
         width: 44, height: 44, borderRadius: "50%",
         background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
         border: "none", cursor: "pointer",

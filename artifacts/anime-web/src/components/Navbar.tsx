@@ -1,5 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, Bell, ChevronDown, X, Star, ListVideo, Menu, LogIn, LogOut, User, Crown, Shield, ChevronRight, Zap, Settings, Camera, Rss, LayoutDashboard, BookOpen, Newspaper } from "lucide-react";
+import {
+  Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, ChevronDown, X, Star, ListVideo, Menu,
+  LogIn, LogOut, User, Crown, Shield, Settings, Rss, LayoutDashboard, BookOpen, Newspaper, Compass, Download, CornerDownLeft,
+} from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
 import { useAuth } from "@/context/AuthContext";
@@ -9,849 +12,352 @@ import { useHistory } from "@/context/HistoryContext";
 import { NotificationManager } from "@/components/NotificationManager";
 import AuthModal from "@/components/AuthModal";
 import { resolveAvatarUrl } from "@/lib/utils";
-import { CornerBrackets, SystemTag } from "@/components/SystemUI";
 
-const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const LANDING_URL = "https://anime-app-landing.vercel.app";
 
-export default function Navbar() {
+const MAIN_LINKS = [
+  { label: "Inicio", href: "/", icon: Home },
+  { label: "Explorar", href: "/search", icon: Compass },
+  { label: "Manga", href: "/manga", icon: BookOpen },
+  { label: "Películas", href: "/movies", icon: Film },
+  { label: "Horario", href: "/schedule", icon: Calendar },
+];
+
+const MORE_LINKS = [
+  { label: "OVAs y especiales", href: "/ovas", icon: Tv2 },
+  { label: "Noticias", href: "/noticias", icon: Newspaper },
+  { label: "Comunidad", href: "/feed", icon: Rss },
+];
+
+const LIBRARY_LINKS = [
+  { label: "Mi lista", href: "/watchlist", icon: ListVideo },
+  { label: "Favoritos", href: "/favorites", icon: Bookmark },
+  { label: "Historial", href: "/history", icon: Clock },
+];
+
+/**
+ * Barra de navegación global de IZIFF ANIME.
+ * @param transparent — empieza transparente sobre un hero y se vuelve sólida al hacer scroll.
+ */
+export default function Navbar({ transparent = false }: { transparent?: boolean }) {
   const [location, navigate] = useLocation();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<AnimeResult[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const moreRef = useRef<HTMLDivElement>(null);
-  const searchBoxRef = useRef<HTMLDivElement>(null);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, logout, isMegaFan, isOwner } = useAuth();
   const { favorites } = useFavorites();
   const { watchList } = useWatchList();
   const { history } = useHistory();
 
-  const fetchSuggestions = useCallback(async (q: string) => {
-    if (q.trim().length < 2) { setSuggestions([]); setShowSuggestions(false); return; }
-    setSearchLoading(true);
-    try {
-      const res = await consumet.search(q.trim(), 1);
-      setSuggestions(res.results?.slice(0, 6) ?? []);
-      setShowSuggestions(true);
-    } catch {
-      setSuggestions([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  }, []);
+  const [solid, setSolid] = useState(!transparent);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
 
-  const handleQueryChange = (val: string) => {
-    setQuery(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchSuggestions(val), 380);
-  };
+  const isActive = (path: string) => (path === "/" ? location === "/" : location === path || location.startsWith(path + "/"));
 
-  const isActive = (path: string) =>
-    path === "/" ? location === "/" : location.startsWith(path);
+  // Transparente → sólida al hacer scroll
+  useEffect(() => {
+    if (!transparent) { setSolid(true); return; }
+    const onScroll = () => setSolid(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [transparent]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-      setSearchOpen(false);
-      setQuery("");
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  };
-
-  const handleSuggestionClick = (anime: AnimeResult) => {
-    navigate(`/anime/${anime.id}`);
-    setSearchOpen(false);
-    setQuery("");
-    setSuggestions([]);
-    setShowSuggestions(false);
-  };
-
-  const handleRandom = async () => {
-    try {
-      const trending = await consumet.trending();
-      const list = trending.results ?? [];
-      if (list.length > 0) {
-        const r = list[Math.floor(Math.random() * list.length)];
-        navigate(`/anime/${r.id}`);
-      }
-    } catch {}
-  };
-
-  const closeSearch = () => {
-    setSearchOpen(false);
-    setQuery("");
-    setSuggestions([]);
-    setShowSuggestions(false);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-  };
-
-  useEffect(() => { if (searchOpen) inputRef.current?.focus(); }, [searchOpen]);
-
+  // Cerrar menús al hacer click fuera
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
-      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowSuggestions(false);
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false);
+      if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileMenuOpen]);
+  // Cerrar todo al cambiar de ruta
+  useEffect(() => { setMoreOpen(false); setUserOpen(false); setDrawerOpen(false); setCmdOpen(false); }, [location]);
 
+  // Atajo Ctrl/Cmd+K y "/" para buscar
   useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
-    const mq = window.matchMedia("(max-width: 640px)");
-    const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
-    handler(mq);
-    mq.addEventListener("change", handler as (e: MediaQueryListEvent) => void);
-    return () => mq.removeEventListener("change", handler as (e: MediaQueryListEvent) => void);
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing = !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if ((e.key === "k" || e.key === "K") && (e.ctrlKey || e.metaKey)) { e.preventDefault(); setCmdOpen(true); }
+      else if (e.key === "/" && !typing) { e.preventDefault(); setCmdOpen(true); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const mobileNavItems = [
-    { label: "Inicio", icon: <Home size={18} />, href: "/" },
-    { label: "Manga", icon: <BookOpen size={18} />, href: "/manga" },
-    { label: "Noticias", icon: <Newspaper size={18} />, href: "/noticias" },
-    { label: "Películas", icon: <Film size={18} />, href: "/movies" },
-    { label: "OVAs", icon: <Tv2 size={18} />, href: "/ovas" },
-    { label: "Horario", icon: <Calendar size={18} />, href: "/schedule" },
-    { label: "Mi Lista", icon: <ListVideo size={18} />, href: "/watchlist" },
-    { label: "Favoritos", icon: <Bookmark size={18} />, href: "/favorites" },
-    { label: "Historial", icon: <Clock size={18} />, href: "/history" },
-    { label: "Feed", icon: <Rss size={18} />, href: "/feed" },
-    ...(isOwner ? [{ label: "Panel Admin", icon: <LayoutDashboard size={18} />, href: "/admin" }] : []),
-  ];
+  // Padding inferior para la barra de pestañas móvil
+  useEffect(() => {
+    document.body.classList.add("iz-has-tabbar");
+    return () => document.body.classList.remove("iz-has-tabbar");
+  }, []);
+
+  // Bloquear scroll con drawer abierto
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [drawerOpen]);
+
+  const handleRandom = useCallback(async () => {
+    try {
+      const res = await consumet.trending();
+      const list = res.results ?? [];
+      if (list.length > 0) navigate(`/anime/${list[Math.floor(Math.random() * list.length)].id}`);
+    } catch { /* sin conexión: ignorar */ }
+  }, [navigate]);
+
+  const avatar = user ? resolveAvatarUrl(user.avatar_url) : null;
+  const moreActive = MORE_LINKS.some((l) => isActive(l.href));
 
   return (
     <>
-      <nav
-        className="site-navbar fixed top-0 left-0 right-0 z-50"
-        style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderBottom: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 6px 28px rgba(0,0,0,0.6)" }}
-      >
-        <div className="site-navbar__inner" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 58 }}>
-          {/* Logo */}
-          <Link className="site-navbar__brand" href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
-            <img
-              src="/icon.svg"
-              alt="IZIFF ANIME"
-              style={{ width: 30, height: 30, objectFit: "contain", borderRadius: 8 }}
-            />
-            <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.3, lineHeight: 1, color: "#ffffff" }}>
-              IZIFF ANIME
-            </span>
+      <nav className={`iz-nav ${transparent ? (solid ? "is-solid" : "") : "is-static"}`} aria-label="Principal">
+        <div className="iz-nav__inner">
+          <Link href="/" className="iz-brand" aria-label="IZIFF ANIME — inicio">
+            <img src="/icon.svg" alt="" width={34} height={34} />
+            <b>IZIFF ANIME</b>
+            <small className="iz-hide-m">WEB</small>
           </Link>
 
-          {searchOpen ? (
-            <form onSubmit={handleSearch} style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-              <div ref={searchBoxRef} style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
-                <Search size={15} color="rgba(255,255,255,0.35)" style={{ position: "absolute", left: 12, zIndex: 1 }} />
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={query}
-                  onChange={(e) => handleQueryChange(e.target.value)}
-                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                  placeholder="Buscar anime..."
-                  style={{
-                    width: "100%", paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
-                    borderRadius: showSuggestions && suggestions.length > 0 ? "12px 12px 0 0" : 12,
-                    background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
-                    color: "#F1F1F5", fontSize: 14, outline: "none", fontFamily: "inherit",
-                  }}
-                />
-                {showSuggestions && suggestions.length > 0 && (
-                  <div style={{
-                    position: "absolute", top: "100%", left: 0, right: 0, zIndex: 300,
-                    background: "#0a0a0a", border: "1px solid #222", borderTop: "none",
-                    borderRadius: "0 0 14px 14px", overflow: "hidden",
-                    boxShadow: "0 16px 40px rgba(0,0,0,0.7)",
-                  }}>
-                    {searchLoading && (
-                      <div style={{ padding: "10px 14px", color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Buscando...</div>
-                    )}
-                    {!searchLoading && suggestions.map((anime) => {
-                      const title = resolveTitle(anime.title);
-                      return (
-                        <div key={anime.id} onClick={() => handleSuggestionClick(anime)}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 10, padding: "9px 14px",
-                            cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.04)",
-                            transition: "background 0.12s",
-                          }}
-                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
-                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                          <img src={anime.image} alt={title} style={{ width: 36, height: 50, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }} className="line-clamp-1">{title}</div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                              {anime.type && <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>{anime.type}</span>}
-                              {anime.releaseDate && <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>{anime.releaseDate}</span>}
-                              {anime.rating != null && anime.rating > 0 && (
-                                <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                                  <Star size={9} color="#F59E0B" fill="#F59E0B" />
-                                  <span style={{ color: "#F59E0B", fontSize: 10, fontWeight: 700 }}>{(anime.rating / 10).toFixed(1)}</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div onClick={() => { if (query.trim()) { navigate(`/search?q=${encodeURIComponent(query.trim())}`); setSearchOpen(false); setQuery(""); setSuggestions([]); setShowSuggestions(false); } }}
-                      style={{
-                        padding: "9px 14px", color: "#fff", fontSize: 12, fontWeight: 700,
-                        cursor: "pointer", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.06)",
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                      Ver todos los resultados para "{query}" →
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button type="button" onClick={closeSearch}
-                style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", display: "flex" }}>
-                <X size={16} color="rgba(255,255,255,0.65)" />
+          <div className="iz-nav__links">
+            {MAIN_LINKS.map(({ label, href }) => (
+              <Link key={href} href={href} className={`iz-nav__link ${isActive(href) ? "is-active" : ""}`}>{label}</Link>
+            ))}
+            <div ref={moreRef} style={{ position: "relative" }}>
+              <button type="button" className={`iz-nav__link ${moreActive ? "is-active" : ""}`} onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen}>
+                Más <ChevronDown size={14} style={{ transform: moreOpen ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
               </button>
-            </form>
-          ) : (
-            <>
-              {/* Desktop nav links */}
-              <div style={{ alignItems: "center", gap: 2, flex: 1 }} className="site-navbar__links hidden md:flex">
-                <NavBtn href="/" icon={<Home size={15} />} label="Inicio" active={isActive("/")} />
-                <NavBtn href="/manga" icon={<BookOpen size={15} />} label="Manga" active={isActive("/manga")} />
-                <NavBtn href="/noticias" icon={<Newspaper size={15} />} label="Noticias" active={isActive("/noticias")} />
-                <NavBtn href="/movies" icon={<Film size={15} />} label="Películas" active={isActive("/movies")} />
+              {moreOpen && (
+                <div className="iz-menu" style={{ left: 0, right: "auto" }}>
+                  {MORE_LINKS.map(({ label, href, icon: Icon }) => (
+                    <button key={href} type="button" className={`iz-menu__item ${isActive(href) ? "is-active" : ""}`} onClick={() => navigate(href)}>
+                      <Icon size={16} /> {label}
+                    </button>
+                  ))}
+                  <div className="iz-menu__sep" />
+                  <div className="iz-menu__label">Tu biblioteca</div>
+                  {LIBRARY_LINKS.map(({ label, href, icon: Icon }) => (
+                    <button key={href} type="button" className={`iz-menu__item ${isActive(href) ? "is-active" : ""}`} onClick={() => navigate(href)}>
+                      <Icon size={16} /> {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
-                <div ref={moreRef} style={{ position: "relative" }}>
-                  <button
-                    onClick={() => setMoreOpen((v) => !v)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 10,
-                      background: "none", border: "none", cursor: "pointer",
-                      color: moreOpen ? "#F1F1F5" : "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600,
-                    }}
-                  >
-                    Más <ChevronDown size={13} style={{ transform: moreOpen ? "rotate(180deg)" : "", transition: "transform 0.2s" }} />
-                  </button>
-                  {moreOpen && (
-                    <div style={{
-                      position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 200,
-                      background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
-                      padding: 8, minWidth: 160, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
-                    }}>
-                      {[
-                        { label: "OVAs", icon: <Tv2 size={14} />, href: "/ovas" },
-                        { label: "Horario", icon: <Calendar size={14} />, href: "/schedule" },
-                        { label: "Mi Lista", icon: <ListVideo size={14} />, href: "/watchlist" },
-                        { label: "Favoritos", icon: <Bookmark size={14} />, href: "/favorites" },
-                        { label: "Historial", icon: <Clock size={14} />, href: "/history" },
-                        { label: "Feed", icon: <Rss size={14} />, href: "/feed" },
-                      ].map(({ label, icon, href }) => (
-                        <button key={href} onClick={() => { navigate(href); setMoreOpen(false); }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 12px",
-                            background: isActive(href) ? "rgba(255,255,255,0.1)" : "none", border: "none",
-                            borderRadius: 10, cursor: "pointer",
-                            color: isActive(href) ? "#fff" : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: 600,
-                          }}
-                          onMouseEnter={(e) => { if (!isActive(href)) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
-                          onMouseLeave={(e) => { if (!isActive(href)) (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
-                        >
-                          {icon}{label}
+          <div className="iz-nav__spacer" />
+
+          <div className="iz-nav__actions">
+            <button type="button" className="iz-nav__search" onClick={() => setCmdOpen(true)} aria-label="Buscar anime">
+              <Search size={16} /> <span>Buscar anime…</span> <kbd>Ctrl K</kbd>
+            </button>
+            <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm iz-show-m" onClick={() => setCmdOpen(true)} aria-label="Buscar">
+              <Search size={17} />
+            </button>
+            <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm iz-hide-m" onClick={handleRandom} title="Anime aleatorio" aria-label="Anime aleatorio">
+              <Shuffle size={16} />
+            </button>
+            <a href={`${LANDING_URL}/#descargas`} target="_blank" rel="noopener noreferrer" className="iz-btn iz-btn--ghost iz-btn--sm iz-hide-m">
+              <Download size={15} /> App
+            </a>
+            <NotificationManager />
+
+            {user ? (
+              <div ref={userRef} style={{ position: "relative" }}>
+                <button type="button" onClick={() => setUserOpen((v) => !v)} aria-label="Menú de usuario" aria-expanded={userOpen}
+                  style={{ background: "none", border: 0, padding: 0, cursor: "pointer", display: "flex", position: "relative" }}>
+                  <span className="iz-avatar">{avatar ? <img src={avatar} alt="" /> : user.username.charAt(0).toUpperCase()}</span>
+                  {isMegaFan && <Crown size={12} color="#fbbf24" fill="#fbbf24" style={{ position: "absolute", top: -5, right: -5 }} />}
+                </button>
+                {userOpen && (
+                  <div className="iz-menu" style={{ width: 280 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 8px 12px" }}>
+                      <span className="iz-avatar" style={{ width: 44, height: 44, borderRadius: 12, fontSize: 17 }}>{avatar ? <img src={avatar} alt="" /> : user.username.charAt(0).toUpperCase()}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 14 }}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.username}</span>
+                          {isOwner && <span className="iz-tag" style={{ padding: "1px 5px", fontSize: 9 }}><Shield size={9} />ADMIN</span>}
+                        </div>
+                        <div style={{ color: "var(--iz-dim)", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 4, padding: "0 4px 8px" }}>
+                      {[{ n: favorites.length, l: "Favoritos", h: "/favorites" }, { n: watchList.length, l: "En lista", h: "/watchlist" }, { n: history.length, l: "Vistos", h: "/history" }].map((s) => (
+                        <button key={s.h} type="button" onClick={() => navigate(s.h)} className="iz-menu__item" style={{ flexDirection: "column", gap: 2, padding: "8px 4px", background: "rgba(255,255,255,.03)" }}>
+                          <b style={{ fontSize: 16, color: "#fff", fontFamily: "var(--iz-mono)" }}>{s.n}</b>
+                          <small style={{ fontSize: 11, color: "var(--iz-dim)" }}>{s.l}</small>
                         </button>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Mobile: spacer */}
-              <div className="flex md:hidden" style={{ flex: 1 }} />
-
-              {/* Right actions */}
-              <div className="site-navbar__actions" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {/* Descargar App button */}
-                <a
-                  href="https://anime-app-landing.vercel.app/#descargas"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
-                    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-                    color: "#ffffff", fontSize: 12, fontWeight: 600, textDecoration: "none",
-                  }}
-                  className="hidden lg:inline-flex hover:bg-white/10 transition-colors"
-                >
-                  Descargar App
-                </a>
-
-                {/* Aleatorio - desktop only */}
-                <button
-                  onClick={handleRandom}
-                  title="Anime aleatorio"
-                  style={{
-                    alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10,
-                    background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-                    color: "#fff", fontSize: 12, fontWeight: 500, cursor: "pointer",
-                  }}
-                  className="site-navbar__random hidden md:flex"
-                >
-                  <Shuffle size={14} /> Aleatorio
-                </button>
-
-                {/* Search */}
-                <button onClick={() => setSearchOpen(true)}
-                  style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", display: "flex" }}>
-                  <Search size={17} color="rgba(255,255,255,0.65)" />
-                </button>
-
-                {/* Notifications */}
-                <NotificationManager />
-
-                {/* Auth button / user avatar */}
-                {user ? (
-                  <div ref={userMenuRef} style={{ position: "relative" }}>
-                    <button
-                      onClick={() => setShowUserMenu((v) => !v)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 7, padding: "5px 10px 5px 5px",
-                        borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div style={{
-                        width: 28, height: 28, borderRadius: 8,
-                        background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
-                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
-                      }}>
-                        {resolveAvatarUrl(user.avatar_url)
-                          ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "cover" }} />
-                          : <User size={14} color="#fff" />
-                        }
-                      </div>
-                      <span className="hidden md:flex" style={{ color: "#fff", fontSize: 12, fontWeight: 500, maxWidth: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", alignItems: "center", gap: 4 }}>
-                        {user.username}
-                        {isOwner && <span title="Dueño" style={{ fontSize: 11 }}>🔧</span>}
-                        {isMegaFan && <Crown size={11} color="#F59E0B" />}
-                      </span>
+                    <button type="button" className="iz-menu__item" onClick={() => navigate("/membership")}
+                      style={{ background: isMegaFan ? "rgba(251,191,36,.08)" : "rgba(63,46,178,.18)", border: `1px solid ${isMegaFan ? "rgba(251,191,36,.25)" : "rgba(99,102,241,.35)"}`, marginBottom: 6 }}>
+                      <Crown size={16} color={isMegaFan ? "#fbbf24" : "#c7d2fe"} />
+                      <span style={{ flex: 1 }}>{isMegaFan ? "MegaFan activo" : "Hazte MegaFan"}</span>
                     </button>
-
-                    {showUserMenu && (
-                      <div style={isMobile ? {
-                        position: "fixed", top: 66, left: 8, right: 8, zIndex: 200,
-                        maxHeight: "calc(100vh - 78px)", overflowY: "auto",
-                        background: "linear-gradient(180deg, rgba(17,8,35,0.97), rgba(8,4,18,0.99))",
-                        border: "1px solid rgba(63,46,178,0.45)",
-                        boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.85), 0 0 28px rgba(63,46,178,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
-                        } : {
-                        position: "absolute", top: "calc(100% + 12px)", right: 0, zIndex: 200,
-                        minWidth: 300, width: 300,
-                        background: "linear-gradient(180deg, rgba(17,8,35,0.97), rgba(8,4,18,0.99))",
-                        border: "1px solid rgba(63,46,178,0.45)",
-                        boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.85), 0 0 28px rgba(63,46,178,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
-                        }}>
-                        {/* Hex grid background */}
-                        <div style={{
-                          position: "absolute", inset: 0,
-                          backgroundImage: "linear-gradient(rgba(63,46,178,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.06) 1px, transparent 1px)",
-                          backgroundSize: "22px 22px",
-                          maskImage: "linear-gradient(180deg, black 0%, transparent 80%)",
-                          WebkitMaskImage: "linear-gradient(180deg, black 0%, transparent 80%)",
-                          pointerEvents: "none",
-                        }} />
-                        {/* Aurora glow top */}
-                        <div style={{
-                          position: "absolute", top: 0, left: 0, right: 0, height: 140,
-                          background: "radial-gradient(ellipse at 50% 0%, rgba(63,46,178,0.32) 0%, transparent 70%)",
-                          pointerEvents: "none",
-                        }} />
-                        {/* Corner brackets */}
-                        <CornerBrackets color="#3f2eb2" size={14} thickness={2} inset={4} />
-
-                        {/* SYSTEM tag header */}
-                        <div style={{ padding: "14px 16px 10px", position: "relative", zIndex: 2 }}>
-                          <SystemTag color="#3f2eb2">[ SYSTEM ] PERFIL</SystemTag>
-                        </div>
-
-                        {/* Avatar + Badges */}
-                        <div style={{ padding: "0 16px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
-                          <button onClick={() => { navigate("/settings"); setShowUserMenu(false); }}
-                            title="Cambiar foto de perfil"
-                            style={{
-                              position: "relative", width: 60, height: 60, padding: 0, border: "none",
-                              background: "linear-gradient(135deg,#3f2eb2,#7F1D1D)",
-                              boxShadow: "0 4px 18px rgba(63,46,178,0.45), 0 0 0 1px rgba(63,46,178,0.6)",
-                              overflow: "hidden", flexShrink: 0, cursor: "pointer",
-                              }}
-                          >
-                            {resolveAvatarUrl(user.avatar_url)
-                              ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                              : <span style={{ color: "#fff", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
-                                  {user.username.charAt(0).toUpperCase()}
-                                </span>
-                            }
-                            <div style={{
-                              position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                              background: "rgba(0,0,0,0.55)", opacity: 0, transition: "opacity 0.2s",
-                            }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "1"; }}
-                              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.opacity = "0"; }}
-                            >
-                              <Camera size={16} color="#fff" />
-                            </div>
-                          </button>
-                          {/* Badges */}
-                          <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-end" }}>
-                            {isOwner && (
-                              <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                                background: "rgba(63,46,178,0.18)",
-                                border: "1px solid rgba(63,46,178,0.55)",
-                                color: "#a5b4fc", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
-                                padding: "3px 8px",
-                                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                                }}>
-                                <Shield size={9} /> DUEÑO
-                              </span>
-                            )}
-                            {isMegaFan && (
-                              <span style={{
-                                display: "inline-flex", alignItems: "center", gap: 4,
-                                background: "rgba(99,102,241,0.15)",
-                                border: "1px solid rgba(99,102,241,0.55)",
-                                color: "#FCD34D", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
-                                padding: "3px 8px",
-                                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                                }}>
-                                <Crown size={9} /> MEGAFAN
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* User info */}
-                        <div style={{ padding: "0 16px 14px", position: "relative", zIndex: 2 }}>
-                          <div style={{ color: "#c7d2fe", fontSize: 18, fontWeight: 900, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textShadow: "0 0 12px rgba(63,46,178,0.35)" }}>
-                            {user.username}
-                          </div>
-                          <div style={{ color: "rgba(165,180,252,0.55)", fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-all", fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
-                            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 6px #22C55E", display: "inline-block", flexShrink: 0 }} />
-                            {user.email}
-                          </div>
-                          {user.created_at && (
-                            <div style={{ color: "rgba(165,180,252,0.35)", fontSize: 9.5, marginTop: 6, letterSpacing: 1.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textTransform: "uppercase" }}>
-                              ▸ MIEMBRO DESDE {new Date(user.created_at).toLocaleDateString("es", { month: "short", year: "numeric" }).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Stats */}
-                        <div style={{
-                          display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
-                          margin: "0 12px 12px",
-                          background: "rgba(63,46,178,0.06)",
-                          border: "1px solid rgba(63,46,178,0.25)",
-                          position: "relative", zIndex: 2,
-                          }}>
-                          {[
-                            { label: "FAVS", value: favorites.length, icon: <Bookmark size={13} color="#a5b4fc" />, href: "/favorites" },
-                            { label: "LISTA", value: watchList.length, icon: <ListVideo size={13} color="#a5b4fc" />, href: "/watchlist" },
-                            { label: "HIST", value: history.length, icon: <Clock size={13} color="#34D399" />, href: "/history" },
-                          ].map(({ label, value, icon, href }, i) => (
-                            <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
-                              style={{
-                                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                                padding: "10px 4px", gap: 3, background: "none", border: "none",
-                                borderRight: i < 2 ? "1px solid rgba(63,46,178,0.18)" : "none",
-                                cursor: "pointer", transition: "background 0.15s",
-                              }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(63,46,178,0.12)"; }}
-                              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
-                            >
-                              {icon}
-                              <span style={{ color: "#c7d2fe", fontSize: 16, fontWeight: 900, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{value}</span>
-                              <span style={{ color: "rgba(165,180,252,0.6)", fontSize: 8.5, fontWeight: 800, letterSpacing: 1.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{label}</span>
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Membership banner */}
-                        <div style={{ margin: "0 12px 10px", position: "relative", zIndex: 2 }}>
-                          <button
-                            onClick={() => { navigate("/membership"); setShowUserMenu(false); }}
-                            style={{
-                              width: "100%", display: "flex", alignItems: "center", gap: 10,
-                              padding: "11px 12px",
-                              background: isMegaFan
-                                ? "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(99,102,241,0.06))"
-                                : "linear-gradient(135deg, rgba(63,46,178,0.18), rgba(63,46,178,0.06))",
-                              border: isMegaFan ? "1px solid rgba(99,102,241,0.55)" : "1px solid rgba(63,46,178,0.45)",
-                              cursor: "pointer", transition: "all 0.2s",
-                              }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.85"; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
-                          >
-                            <div style={{
-                              width: 32, height: 32, flexShrink: 0,
-                              background: isMegaFan ? "linear-gradient(135deg,#6366f1,#B45309)" : "linear-gradient(135deg,#3f2eb2,#7F1D1D)",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              boxShadow: isMegaFan ? "0 4px 12px rgba(99,102,241,0.45)" : "0 4px 12px rgba(63,46,178,0.45)",
-                              }}>
-                              {isMegaFan ? <Crown size={16} color="#fff" /> : <Zap size={16} color="#fff" />}
-                            </div>
-                            <div style={{ flex: 1, textAlign: "left" }}>
-                              <div style={{ color: isMegaFan ? "#FCD34D" : "#c7d2fe", fontSize: 12, fontWeight: 800, letterSpacing: 0.4, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
-                                {isMegaFan ? "MEMBRESÍA ACTIVA" : "HAZTE MEGAFAN"}
-                              </div>
-                              <div style={{ color: "rgba(165,180,252,0.55)", fontSize: 9.5, marginTop: 2, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
-                                {isMegaFan ? "▸ ACCESO PREMIUM ACTIVO" : "▸ DESBLOQUEAR CONTENIDO"}
-                              </div>
-                            </div>
-                            <ChevronRight size={14} color={isMegaFan ? "#FCD34D" : "#a5b4fc"} />
-                          </button>
-                        </div>
-
-                        {/* Quick links */}
-                        <div style={{ margin: "0 12px", borderTop: "1px solid rgba(63,46,178,0.18)", paddingTop: 6, position: "relative", zIndex: 2 }}>
-                          {[
-                            ...(isOwner ? [{ icon: <LayoutDashboard size={13} />, label: "PANEL DE ADMIN", href: "/admin", color: "#a5b4fc" }] : []),
-                            { icon: <User size={13} />, label: "MI PERFIL", href: "/perfil", color: "rgba(165,180,252,0.7)" },
-                            { icon: <Settings size={13} />, label: "CONFIGURACIÓN", href: "/settings", color: "rgba(165,180,252,0.7)" },
-                          ].map(({ icon, label, href, color }) => (
-                            <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
-                              style={{
-                                display: "flex", alignItems: "center", gap: 10, width: "100%",
-                                padding: "10px 10px", background: "none", border: "none",
-                                cursor: "pointer", color,
-                                fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
-                                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                                transition: "all 0.15s",
-                              }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(63,46,178,0.1)"; (e.currentTarget as HTMLButtonElement).style.color = "#c7d2fe"; }}
-                              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = color; }}
-                            >
-                              <span style={{ color: "#3f2eb2" }}>▸</span>{icon} {label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Logout */}
-                        <div style={{ margin: "6px 12px 14px", borderTop: "1px solid rgba(63,46,178,0.18)", paddingTop: 6, position: "relative", zIndex: 2 }}>
-                          <button
-                            onClick={() => { logout(); setShowUserMenu(false); }}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 10, width: "100%",
-                              padding: "10px 10px", background: "none", border: "1px solid rgba(63,46,178,0.35)",
-                              cursor: "pointer",
-                              color: "#a5b4fc", fontSize: 11, fontWeight: 900, letterSpacing: 1.5,
-                              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                              transition: "all 0.15s",
-                              }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(63,46,178,0.18)"; (e.currentTarget as HTMLButtonElement).style.color = "#c7d2fe"; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = "#a5b4fc"; }}
-                          >
-                            <LogOut size={13} /> CERRAR SESIÓN
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    <div className="iz-menu__sep" />
+                    {isOwner && <button type="button" className="iz-menu__item" onClick={() => navigate("/admin")}><LayoutDashboard size={16} /> Panel de admin</button>}
+                    <button type="button" className="iz-menu__item" onClick={() => navigate("/perfil")}><User size={16} /> Mi perfil</button>
+                    <button type="button" className="iz-menu__item" onClick={() => navigate("/settings")}><Settings size={16} /> Ajustes</button>
+                    <div className="iz-menu__sep" />
+                    <button type="button" className="iz-menu__item iz-menu__item--danger" onClick={() => { logout(); setUserOpen(false); }}><LogOut size={16} /> Cerrar sesión</button>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setShowAuthModal(true)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
-                      borderRadius: 10, background: "#1a365d",
-                      border: "none", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700,
-                    }}
-                  >
-                    <LogIn size={14} />
-                    <span className="hidden md:inline">Entrar</span>
-                  </button>
                 )}
-
-                {/* Hamburger - mobile only */}
-                <button
-                  onClick={() => setMobileMenuOpen(true)}
-                  className="flex md:hidden"
-                  style={{ padding: 8, borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "none", cursor: "pointer", alignItems: "center", justifyContent: "center" }}
-                >
-                  <Menu size={18} color="rgba(255,255,255,0.8)" />
-                </button>
               </div>
-            </>
-          )}
+            ) : (
+              <button type="button" className="iz-btn iz-btn--primary iz-btn--sm" onClick={() => setShowAuth(true)}>
+                <LogIn size={15} /> <span className="iz-hide-m">Entrar</span>
+              </button>
+            )}
+
+            <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm iz-show-m" onClick={() => setDrawerOpen(true)} aria-label="Abrir menú">
+              <Menu size={18} />
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay — SOLO LEVELING SYSTEM HUD */}
-      {mobileMenuOpen && (
-        <div
-          className="md:hidden"
-          style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex" }}
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          {/* Backdrop with cyan tint */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse at left, rgba(0,40,80,0.7), rgba(0,0,0,0.85))",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-          }} />
+      {/* Barra de pestañas móvil */}
+      <div className="iz-tabbar" role="navigation" aria-label="Navegación móvil">
+        <Link href="/" className={isActive("/") ? "is-active" : ""}><Home size={20} />Inicio</Link>
+        <Link href="/search" className={isActive("/search") ? "is-active" : ""}><Compass size={20} />Explorar</Link>
+        <Link href="/manga" className={isActive("/manga") ? "is-active" : ""}><BookOpen size={20} />Manga</Link>
+        <Link href="/watchlist" className={isActive("/watchlist") ? "is-active" : ""}><ListVideo size={20} />Mi lista</Link>
+        {user
+          ? <Link href="/perfil" className={isActive("/perfil") ? "is-active" : ""}><User size={20} />Perfil</Link>
+          : <button type="button" onClick={() => setShowAuth(true)}><LogIn size={20} />Entrar</button>}
+      </div>
 
-          {/* Drawer */}
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: "relative", width: 296, height: "100%",
-              background: "#0a0a0a",
-              borderRight: "1px solid rgba(255,255,255,0.08)",
-              boxShadow: "10px 0 40px rgba(0,0,0,0.8)",
-              display: "flex", flexDirection: "column", overflowY: "auto",
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            {/* Drawer header */}
-            <div style={{ position: "relative", padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", minWidth: 0, flex: 1 }}>
-                  <img src="/icon.svg" alt="IZIFF ANIME" style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 8 }} />
-                  <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: -0.3, color: "#ffffff" }}>
-                    IZIFF ANIME
-                  </span>
-                </Link>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{
-                    padding: 6, cursor: "pointer", display: "flex",
-                    borderRadius: 8,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    color: "#ffffff",
-                    flexShrink: 0,
-                  }}
-                >
-                  <X size={16} />
-                </button>
-              </div>
+      {/* Drawer móvil */}
+      {drawerOpen && (
+        <div className="iz-drawer" onClick={() => setDrawerOpen(false)}>
+          <div className="iz-drawer__panel" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <Link href="/" className="iz-brand"><img src="/icon.svg" alt="" /><b>IZIFF ANIME</b></Link>
+              <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm" onClick={() => setDrawerOpen(false)} aria-label="Cerrar"><X size={17} /></button>
             </div>
-
-            {/* Nav items */}
-            <div style={{ position: "relative", padding: "12px", display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{
-                fontSize: 10, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)",
-                fontWeight: 600, padding: "4px 8px 8px", textTransform: "uppercase",
-                fontFamily: "'Space Grotesk', monospace",
-              }}>
-                Navegación
-              </div>
-              {mobileNavItems.map(({ label, icon, href }) => {
-                const active = isActive(href);
-                return (
-                  <button
-                    key={href}
-                    onClick={() => { navigate(href); setMobileMenuOpen(false); }}
-                    style={{
-                      position: "relative",
-                      display: "flex", alignItems: "center", gap: 12, padding: "10px 12px",
-                      borderRadius: 10,
-                      border: active ? "1px solid rgba(255,255,255,0.18)" : "1px solid transparent",
-                      background: active ? "rgba(255,255,255,0.08)" : "transparent",
-                      color: active ? "#ffffff" : "rgba(255,255,255,0.65)",
-                      cursor: "pointer", textAlign: "left",
-                      fontSize: 13.5, fontWeight: 500,
-                      transition: "all 0.18s ease",
-                    }}
-                  >
-                    <span style={{ color: active ? "#ffffff" : "rgba(255,255,255,0.5)", display: "flex" }}>
-                      {icon}
-                    </span>
-                    <span style={{ flex: 1 }}>{label}</span>
-                    {active && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#ffffff" }} />}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Divider */}
-            <div style={{ height: 1, margin: "6px 14px", background: "rgba(255,255,255,0.08)" }} />
-
-            {/* Actions: Aleatorio + Descargar App */}
-            <div style={{ position: "relative", padding: "8px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-              <button
-                onClick={() => { handleRandom(); setMobileMenuOpen(false); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", width: "100%",
-                  borderRadius: 10,
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  cursor: "pointer",
-                  background: "rgba(255,255,255,0.04)",
-                  color: "#ffffff",
-                  fontSize: 13, fontWeight: 500,
-                }}
-              >
-                <Shuffle size={15} />
-                <span>Anime aleatorio</span>
-              </button>
-
-              <a
-                href="https://anime-app-landing.vercel.app/#descargas"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 12px", width: "100%",
-                  borderRadius: 10,
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  background: "rgba(255,255,255,0.08)",
-                  color: "#ffffff",
-                  fontSize: 13, fontWeight: 600,
-                  textDecoration: "none",
-                }}
-              >
-                Descargar App Móvil / PC
-              </a>
-            </div>
-
-            {/* Auth section */}
-            <div style={{ position: "relative", padding: "12px", marginTop: "auto" }}>
+            <div className="iz-menu__label">Navegar</div>
+            {[...MAIN_LINKS, ...MORE_LINKS].map(({ label, href, icon: Icon }) => (
+              <button key={href} type="button" className={`iz-menu__item ${isActive(href) ? "is-active" : ""}`} onClick={() => navigate(href)}><Icon size={17} /> {label}</button>
+            ))}
+            <div className="iz-menu__sep" />
+            <div className="iz-menu__label">Tu biblioteca</div>
+            {LIBRARY_LINKS.map(({ label, href, icon: Icon }) => (
+              <button key={href} type="button" className={`iz-menu__item ${isActive(href) ? "is-active" : ""}`} onClick={() => navigate(href)}><Icon size={17} /> {label}</button>
+            ))}
+            {isOwner && <button type="button" className="iz-menu__item" onClick={() => navigate("/admin")}><LayoutDashboard size={17} /> Panel de admin</button>}
+            <div className="iz-menu__sep" />
+            <button type="button" className="iz-menu__item" onClick={() => { setDrawerOpen(false); handleRandom(); }}><Shuffle size={17} /> Anime aleatorio</button>
+            <a className="iz-menu__item" href={`${LANDING_URL}/#descargas`} target="_blank" rel="noopener noreferrer"><Download size={17} /> Descargar la app</a>
+            <div style={{ marginTop: "auto", paddingTop: 16, display: "grid", gap: 8 }}>
               {user ? (
                 <>
-                  <div style={{
-                    background: "#121212",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: 12,
-                    marginBottom: 8, overflow: "hidden",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px" }}>
-                      <div style={{
-                        width: 40, height: 40,
-                        borderRadius: 10,
-                        background: "#1e1e1e",
-                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        overflow: "hidden",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                      }}>
-                        {resolveAvatarUrl(user.avatar_url)
-                          ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                          : <User size={18} color="#fff" />
-                        }
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
-                          <span style={{ color: "#ffffff", fontSize: 13.5, fontWeight: 600 }}>{user.username}</span>
-                          {isOwner && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", padding: "1px 5px", fontSize: 9, fontWeight: 700, color: "#ffffff", borderRadius: 4 }}>
-                              <Shield size={8} /> ADMIN
-                            </span>
-                          )}
-                          {isMegaFan && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)", padding: "1px 5px", fontSize: 9, fontWeight: 700, color: "#FCD34D", borderRadius: 4 }}>
-                              <Crown size={8} /> PRO
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => { navigate("/membership"); setMobileMenuOpen(false); }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px",
-                        border: "none", borderTop: "1px solid rgba(255,255,255,0.08)",
-                        cursor: "pointer",
-                        background: "rgba(255,255,255,0.02)",
-                        color: isMegaFan ? "#FCD34D" : "rgba(255,255,255,0.7)",
-                        fontSize: 12, fontWeight: 600,
-                      }}
-                    >
-                      <Crown size={14} color={isMegaFan ? "#FCD34D" : "#ffffff"} />
-                      {isMegaFan ? "Membresía activa" : "Obtener membresía"}
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => { logout(); setMobileMenuOpen(false); }}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "10px 12px",
-                      borderRadius: 10,
-                      border: "1px solid rgba(239,68,68,0.25)",
-                      cursor: "pointer",
-                      background: "rgba(239,68,68,0.06)",
-                      color: "#f87171", fontSize: 13, fontWeight: 600,
-                    }}
-                  >
-                    <LogOut size={15} /> Cerrar sesión
-                  </button>
+                  <button type="button" className="iz-btn iz-btn--accent" onClick={() => navigate("/membership")}><Crown size={16} /> {isMegaFan ? "MegaFan activo" : "Hazte MegaFan"}</button>
+                  <button type="button" className="iz-btn iz-btn--ghost" onClick={() => { logout(); setDrawerOpen(false); }}><LogOut size={16} /> Cerrar sesión</button>
                 </>
               ) : (
-                <button
-                  onClick={() => { setMobileMenuOpen(false); setShowAuthModal(true); }}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 14px",
-                    borderRadius: 10,
-                    border: "1px solid #ffffff",
-                    cursor: "pointer",
-                    background: "#ffffff",
-                    color: "#000000", fontSize: 13.5, fontWeight: 600,
-                  }}
-                >
-                  <LogIn size={16} /> Iniciar sesión
-                </button>
+                <button type="button" className="iz-btn iz-btn--primary" onClick={() => { setDrawerOpen(false); setShowAuth(true); }}><LogIn size={16} /> Iniciar sesión</button>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      {cmdOpen && <CommandSearch onClose={() => setCmdOpen(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </>
   );
 }
 
-function NavBtn({
-  href, icon, label, active,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-}) {
+/* ── Buscador tipo paleta de comandos (Ctrl+K) ── */
+function CommandSearch({ onClose }: { onClose: () => void }) {
+  const [, navigate] = useLocation();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<AnimeResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [sel, setSel] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const reqId = useRef(0);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) { reqId.current++; setResults([]); setLoading(false); return; }
+    const id = ++reqId.current;
+    setLoading(true);
+    const t = window.setTimeout(async () => {
+      try {
+        const res = await consumet.search(q, 1);
+        if (id === reqId.current) { setResults((res.results ?? []).slice(0, 8)); setSel(0); }
+      } catch {
+        if (id === reqId.current) setResults([]);
+      } finally {
+        if (id === reqId.current) setLoading(false);
+      }
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [query]);
+
+  const goAll = () => { const q = query.trim(); if (q) { navigate(`/search?q=${encodeURIComponent(q)}`); onClose(); } };
+  const goItem = (a: AnimeResult) => { navigate(`/anime/${a.id}`); onClose(); };
+
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") { onClose(); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(s + 1, results.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
+    else if (e.key === "Enter") { e.preventDefault(); if (results[sel]) goItem(results[sel]); else goAll(); }
+  };
+
   return (
-    <Link className="site-navbar__link" href={href} style={{ textDecoration: "none" }}>
-      <div
-        className={`site-navbar__link-inner ${active ? "is-active" : ""}`}
-        style={{
-          display: "flex", alignItems: "center", gap: 5, padding: "6px 10px",
-          borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
-          color: active ? "#fff" : "rgba(255,255,255,0.55)",
-          background: active ? "rgba(255,255,255,0.08)" : "none",
-          transition: "color 0.15s, background 0.15s",
-        }}
-        onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLDivElement).style.color = "#F1F1F5"; (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.05)"; } }}
-        onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLDivElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLDivElement).style.background = "none"; } }}
-      >
-        {icon}
-        <span>{label}</span>
+    <div className="iz-cmd" onMouseDown={onClose}>
+      <div className="iz-cmd__box" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-label="Buscar anime">
+        <div className="iz-cmd__field">
+          <Search size={18} color="#a1a1aa" />
+          <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey} placeholder="Busca un anime por nombre…" aria-label="Buscar" />
+          <button type="button" className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm" onClick={onClose} aria-label="Cerrar"><X size={16} /></button>
+        </div>
+        <div className="iz-cmd__list">
+          {query.trim().length < 2 && <div className="iz-cmd__empty">Escribe al menos 2 letras. Tip: pulsa <b>/</b> o <b>Ctrl K</b> desde cualquier página.</div>}
+          {loading && results.length === 0 && query.trim().length >= 2 && <div className="iz-cmd__empty">Buscando…</div>}
+          {!loading && query.trim().length >= 2 && results.length === 0 && <div className="iz-cmd__empty">Sin resultados para “{query}”.</div>}
+          {results.map((a, i) => {
+            const title = resolveTitle(a.title);
+            const score = a.rating && a.rating > 0 ? (a.rating > 10 ? a.rating / 10 : a.rating) : null;
+            return (
+              <button key={a.id} type="button" className={`iz-cmd__row ${i === sel ? "is-sel" : ""}`} onMouseEnter={() => setSel(i)} onClick={() => goItem(a)}>
+                <img src={a.image} alt="" loading="lazy" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
+                  <div style={{ display: "flex", gap: 10, marginTop: 4, color: "var(--iz-dim)", fontSize: 12 }}>
+                    {a.type && <span>{a.type}</span>}
+                    {a.releaseDate && <span>{a.releaseDate}</span>}
+                    {score && <span className="iz-score"><Star size={10} fill="currentColor" />{score.toFixed(1)}</span>}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+          {results.length > 0 && (
+            <button type="button" className="iz-cmd__row" onClick={goAll} style={{ justifyContent: "center", color: "var(--iz-muted)", fontSize: 13 }}>
+              Ver todos los resultados <CornerDownLeft size={13} />
+            </button>
+          )}
+        </div>
+        <div className="iz-cmd__foot"><span>↑↓ navegar</span><span>↵ abrir</span><span>esc cerrar</span></div>
       </div>
-    </Link>
+    </div>
   );
 }

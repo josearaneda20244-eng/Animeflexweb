@@ -64,378 +64,70 @@ const PARTNERS = [
   { label: "Kitsu", href: "https://kitsu.io" },
 ];
 
-function ColumnTitle({ children }: { children: React.ReactNode }) {
+export default function Footer() {
+  const [, navigate] = useLocation();
+  const go = (to: string, external?: boolean) => {
+    if (external) window.open(to, "_blank", "noopener,noreferrer");
+    else { navigate(to); window.scrollTo({ top: 0 }); }
+  };
   return (
-    <div className="af-col-title">
-      <span className="af-col-title__bar" />
-      {children}
+    <footer className="iz-footer">
+      <div className="iz-container" style={{ padding: "56px var(--iz-pad) 28px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 40 }}>
+          <div style={{ maxWidth: 340 }}>
+            <a href="/" onClick={(e) => { e.preventDefault(); go("/"); }} className="iz-brand">
+              <img src="/icon.svg" alt="" />
+              <b>IZIFF ANIME</b>
+            </a>
+            <p style={{ margin: "16px 0 0", color: "var(--iz-muted)", fontSize: 14, lineHeight: 1.6 }}>
+              Anime y manga en <span className="iz-serif" style={{ color: "#fff", fontSize: 16 }}>1080p</span> con subtítulos en español latino y castellano. Web, Android y Windows.
+            </p>
+            <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+              {SOCIAL_LINKS.map((s) => (
+                <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" aria-label={s.name} className="iz-btn iz-btn--ghost iz-btn--icon iz-btn--sm">{s.icon}</a>
+              ))}
+            </div>
+          </div>
+          <FooterCol title="Navegar">
+            {NAV_LINKS.map((l) => <FooterLink key={l.label} onClick={() => go(l.to, l.external)}>{l.label}</FooterLink>)}
+          </FooterCol>
+          <FooterCol title="Géneros">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {GENRES.map((g) => (
+                <button key={g.q} type="button" className="iz-chip" style={{ height: 28, padding: "0 11px", fontSize: 12 }} onClick={() => go(`/search?genre=${encodeURIComponent(g.q)}`)}>{g.label}</button>
+              ))}
+            </div>
+          </FooterCol>
+          <FooterCol title="Legal">
+            {LEGAL_LINKS.map((l) => <FooterLink key={l.label} onClick={() => go(l.href)}>{l.label}</FooterLink>)}
+            <div style={{ marginTop: 14, color: "var(--iz-dim)", fontSize: 12 }}>
+              Datos de {PARTNERS.map((p, i) => <span key={p.label}>{i > 0 && " · "}<a href={p.href} target="_blank" rel="noopener noreferrer" style={{ color: "var(--iz-muted)" }}>{p.label}</a></span>)}
+            </div>
+          </FooterCol>
+        </div>
+        <div style={{ marginTop: 44, paddingTop: 22, borderTop: "1px solid var(--iz-line)", display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "space-between", color: "var(--iz-dim)", fontSize: 12, lineHeight: 1.6 }}>
+          <span>© {new Date().getFullYear()} IZIFF ANIME · Hecho para la comunidad de anime y manga.</span>
+          <span style={{ maxWidth: 620 }}>IZIFF ANIME no aloja contenido propio: los videos provienen de fuentes externas de terceros.</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="iz-head__eyebrow" style={{ marginBottom: 16 }}><span className="iz-dot" />{title}</div>
+      <div style={{ display: "grid", gap: 10, justifyItems: "start" }}>{children}</div>
     </div>
   );
 }
 
-export default function Footer() {
-  const [, navigate] = useLocation();
-
+function FooterLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <footer className="af-footer">
-      {/* Top accent line */}
-      <div className="af-footer__accent" />
-      {/* Subtle grid pattern */}
-      <div className="af-footer__grid" />
-
-      <div className="af-footer__inner">
-        {/* Main columns */}
-        <div className="af-footer__cols">
-          {/* Brand */}
-          <div className="af-footer__brand">
-            <div className="af-brand">
-              <img src="/icon.svg" alt="IZIFF ANIME" style={{ width: 36, height: 36, borderRadius: 10, objectFit: "contain" }} />
-              <span className="af-brand__name">
-                IZIFF ANIME
-              </span>
-            </div>
-
-            <p className="af-brand__tagline">
-              Tu plataforma definitiva para ver anime y leer manga en 1080p con subtítulos en español latino y castellano.
-            </p>
-
-            {/* Social */}
-            <div className="af-social">
-              {SOCIAL_LINKS.map(({ name, url, icon }) => (
-                <a
-                  key={name}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={name}
-                  aria-label={name}
-                  className="af-social__btn"
-                >
-                  {icon}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Navegar */}
-          <div>
-            <ColumnTitle>Navegar</ColumnTitle>
-            <ul className="af-list">
-              {NAV_LINKS.map((link) => (
-                <li key={link.to}>
-                  {"external" in link && link.external ? (
-                    <a href={link.to} target="_blank" rel="noopener noreferrer" className="af-link">
-                      <span className="af-link__dot" />
-                      {link.label}
-                    </a>
-                  ) : (
-                    <button onClick={() => navigate(link.to)} className="af-link">
-                      <span className="af-link__dot" />
-                      {link.label}
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Géneros */}
-          <div>
-            <ColumnTitle>Géneros</ColumnTitle>
-            <div className="af-genres">
-              {GENRES.map(({ label, q }) => (
-                <button
-                  key={q}
-                  onClick={() => navigate(`/search?q=${q}`)}
-                  className="af-chip"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <ColumnTitle>Legal</ColumnTitle>
-            <ul className="af-list">
-              {LEGAL_LINKS.map(({ label, href }) => (
-                <li key={label}>
-                  <a
-                    href={href}
-                    onClick={(e) => { e.preventDefault(); navigate(href); }}
-                    className="af-link"
-                  >
-                    <span className="af-link__dot" />
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Disclaimer banner */}
-        <div className="af-disclaimer">
-          <div className="af-disclaimer__icon" aria-hidden>ⓘ</div>
-          <p className="af-disclaimer__text">
-            <strong>IZIFF ANIME no aloja contenido propio.</strong> Todos los videos provienen de fuentes externas de terceros. Esta plataforma se ofrece exclusivamente con fines educativos y de entretenimiento.
-          </p>
-        </div>
-
-        {/* Bottom bar */}
-        <div className="af-bottom">
-          <div className="af-bottom__left">
-            <span className="af-copy">
-              © {new Date().getFullYear()} <strong>IZIFF ANIME</strong> — Hecho para la comunidad de anime & manga
-            </span>
-          </div>
-          <div className="af-bottom__right">
-            <span className="af-partners-label">Datos de</span>
-            {PARTNERS.map(({ label, href }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="af-partner"
-              >
-                {label}
-              </a>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <style>{`
-        .af-footer {
-          position: relative;
-          margin-top: 64px;
-          background: #000000;
-          border-top: 1px solid rgba(255,255,255,0.08);
-          overflow: hidden;
-          color: #fff;
-        }
-        .af-footer__accent {
-          position: absolute; top: 0; left: 8%; right: 8%; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), rgba(63,46,178,0.5), rgba(255,255,255,0.2), transparent);
-          pointer-events: none;
-        }
-        .af-footer__grid {
-          position: absolute; inset: 0;
-          background-image:
-            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-          background-size: 36px 36px;
-          mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
-          -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
-          pointer-events: none;
-          opacity: 0.55;
-        }
-        .af-footer__inner {
-          position: relative;
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 56px 24px 24px;
-        }
-
-        /* Columns */
-        .af-footer__cols {
-          display: grid;
-          grid-template-columns: 1.5fr 0.9fr 1.4fr 1fr;
-          gap: 44px;
-          margin-bottom: 40px;
-        }
-        @media (max-width: 960px) {
-          .af-footer__cols { grid-template-columns: 1fr 1fr; gap: 36px; }
-          .af-footer__brand { grid-column: 1 / -1; }
-        }
-        @media (max-width: 540px) {
-          .af-footer__cols { grid-template-columns: 1fr; gap: 32px; }
-          .af-footer__inner { padding: 44px 20px 20px; }
-        }
-
-        /* Brand */
-        .af-brand {
-          display: flex; align-items: center; gap: 12px;
-          margin-bottom: 18px;
-        }
-        .af-brand__name {
-          font-size: 20px; font-weight: 700; letter-spacing: -0.3px;
-          line-height: 1; color: #ffffff;
-        }
-        .af-brand__tagline {
-          color: rgba(255,255,255,0.5);
-          font-size: 13.5px; line-height: 1.7;
-          margin: 0 0 22px;
-          max-width: 320px;
-        }
-
-        /* Social */
-        .af-social { display: flex; gap: 10px; }
-        .af-social__btn {
-          width: 40px; height: 40px;
-          border-radius: 10px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          display: inline-flex; align-items: center; justify-content: center;
-          color: rgba(255,255,255,0.55);
-          text-decoration: none;
-          transition: all 0.22s ease;
-        }
-        .af-social__btn:hover {
-          background: rgba(255,255,255,0.1);
-          border-color: rgba(255,255,255,0.25);
-          color: #fff;
-          transform: translateY(-2px);
-          box-shadow: 0 8px 18px rgba(0,0,0,0.5);
-        }
-
-        /* Column title */
-        .af-col-title {
-          display: flex; align-items: center; gap: 8px;
-          color: #fff;
-          font-weight: 700; font-size: 11.5px;
-          letter-spacing: 1.4px; text-transform: uppercase;
-          margin-bottom: 18px;
-        }
-        .af-col-title__bar {
-          width: 14px; height: 2px;
-          background: #ffffff;
-          border-radius: 2px;
-          box-shadow: 0 0 8px rgba(255,255,255,0.4);
-        }
-
-        /* Lists */
-        .af-list {
-          list-style: none;
-          margin: 0; padding: 0;
-          display: flex; flex-direction: column;
-          gap: 11px;
-        }
-        .af-link {
-          background: none; border: none; padding: 0;
-          color: rgba(255,255,255,0.5);
-          font-size: 13.5px;
-          font-family: inherit;
-          cursor: pointer;
-          text-align: left; text-decoration: none;
-          display: inline-flex; align-items: center; gap: 8px;
-          transition: color 0.18s ease, transform 0.18s ease;
-        }
-        .af-link__dot {
-          width: 4px; height: 4px; border-radius: 50%;
-          background: rgba(255,255,255,0.25);
-          flex-shrink: 0;
-          transition: all 0.22s ease;
-        }
-        .af-link:hover {
-          color: #fff;
-          transform: translateX(3px);
-        }
-        .af-link:hover .af-link__dot {
-          background: #ffffff;
-          box-shadow: 0 0 8px rgba(255,255,255,0.8);
-        }
-
-        /* Géneros chips */
-        .af-genres {
-          display: flex; flex-wrap: wrap; gap: 7px;
-        }
-        .af-chip {
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.09);
-          border-radius: 999px;
-          padding: 6px 13px;
-          color: rgba(255,255,255,0.6);
-          font-size: 12px; font-weight: 500;
-          font-family: inherit;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        .af-chip:hover {
-          background: rgba(255,255,255,0.12);
-          border-color: rgba(255,255,255,0.3);
-          color: #fff;
-          transform: translateY(-1px);
-        }
-
-        /* Disclaimer */
-        .af-disclaimer {
-          display: flex; align-items: flex-start; gap: 12px;
-          padding: 14px 16px;
-          border-radius: 12px;
-          background: #0a0a0a;
-          border: 1px solid rgba(255,255,255,0.08);
-          margin-bottom: 24px;
-        }
-        .af-disclaimer__icon {
-          width: 22px; height: 22px; border-radius: 50%;
-          background: rgba(255,255,255,0.08);
-          color: #ffffff;
-          font-size: 12px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .af-disclaimer__text {
-          color: rgba(255,255,255,0.55);
-          font-size: 12.5px; line-height: 1.65;
-          margin: 0;
-        }
-        .af-disclaimer__text strong {
-          color: rgba(255,255,255,0.85);
-          font-weight: 600;
-        }
-
-        /* Bottom bar */
-        .af-bottom {
-          padding-top: 22px;
-          border-top: 1px solid rgba(255,255,255,0.06);
-          display: flex; align-items: center; justify-content: space-between;
-          flex-wrap: wrap; gap: 14px;
-        }
-        .af-copy {
-          color: rgba(255,255,255,0.32);
-          font-size: 12.5px;
-        }
-        .af-copy strong {
-          color: rgba(255,255,255,0.55);
-          font-weight: 600;
-        }
-        .af-heart {
-          color: #818cf8;
-        }
-        .af-bottom__right {
-          display: flex; align-items: center; gap: 14px;
-          flex-wrap: wrap;
-        }
-        .af-partners-label {
-          color: rgba(255,255,255,0.28);
-          font-size: 11px;
-          letter-spacing: 1px; text-transform: uppercase;
-        }
-        .af-partner {
-          color: rgba(255,255,255,0.42);
-          font-size: 12.5px;
-          font-weight: 500;
-          text-decoration: none;
-          padding: 4px 10px;
-          border-radius: 6px;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.06);
-          transition: all 0.2s ease;
-        }
-        .af-partner:hover {
-          color: #fff;
-          background: rgba(255,255,255,0.07);
-          border-color: rgba(255,255,255,0.14);
-        }
-
-        @media (max-width: 540px) {
-          .af-bottom { justify-content: center; text-align: center; }
-          .af-bottom__left, .af-bottom__right { justify-content: center; width: 100%; }
-        }
-      `}</style>
-    </footer>
+    <button type="button" onClick={onClick} style={{ background: "none", border: 0, padding: 0, color: "var(--iz-text-2)", fontSize: 14, cursor: "pointer", textAlign: "left" }}
+      onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")} onMouseLeave={(e) => (e.currentTarget.style.color = "var(--iz-text-2)")}>
+      {children}
+    </button>
   );
 }

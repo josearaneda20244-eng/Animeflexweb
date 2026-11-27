@@ -1,23 +1,15 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft, BookOpen, Star, List, Calendar, Loader2,
-  SortAsc, SortDesc, Search, X, ChevronRight,
-} from "lucide-react";
+import { BookOpen, Star, SortAsc, SortDesc, Search, X, CheckCircle2, RefreshCw, Share2 } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { usePageMeta, SITE_URL } from "@/lib/usePageMeta";
+import { EmptyState, toScore10 } from "@/components/iz/ui";
+import { getMangaProgress, getReadChapters } from "@/lib/mangaProgress";
 
-interface ChapterInfo {
-  id: string;
-  title?: string;
-  chapterNumber?: string | number;
-  volumeNumber?: string | number;
-  pages?: number;
-  releaseDate?: string;
-}
-
+interface ChapterInfo { id: string; title?: string; chapterNumber?: string | number; volumeNumber?: string | number; pages?: number; releaseDate?: string }
 interface MangaDetailInfo {
   id: string;
   title: string | { english?: string; romaji?: string; native?: string };
@@ -37,366 +29,183 @@ function resolveTitle(t: MangaDetailInfo["title"]): string {
   if (typeof t === "string") return t;
   return t.english || t.romaji || t.native || "Sin título";
 }
-
-function stripHtml(html?: string): string {
-  if (!html) return "";
-  return html.replace(/<[^>]+>/g, "").trim();
+const stripHtml = (html?: string) => (html ? html.replace(/<[^>]+>/g, "").trim() : "");
+function formatDate(d?: string | null): string {
+  if (!d) return "";
+  const t = new Date(d);
+  return Number.isNaN(t.getTime()) ? d : t.toLocaleDateString("es", { year: "numeric", month: "short", day: "numeric" });
 }
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return "";
-  try {
-    return new Date(dateStr).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" });
-  } catch {
-    return dateStr;
-  }
-}
+const num = (c: ChapterInfo) => parseFloat(String(c.chapterNumber ?? 0)) || 0;
+const STATUS_ES: Record<string, string> = { Ongoing: "En publicación", Completed: "Completo", Hiatus: "En pausa", Cancelled: "Cancelado" };
 
 export default function MangaDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const [imgError, setImgError] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
-  const [chapterSearch, setChapterSearch] = useState("");
-  const [sortAsc, setSortAsc] = useState(true);
-  const [showCount, setShowCount] = useState(50);
+  const [search, setSearch] = useState("");
+  const [asc, setAsc] = useState(false);
+  const [showCount, setShowCount] = useState(80);
+  const [copied, setCopied] = useState(false);
 
-  const { data: manga, isLoading, isError } = useQuery<MangaDetailInfo>({
+  const { data: manga, isLoading, isError, refetch } = useQuery<MangaDetailInfo>({
     queryKey: ["manga", "info", id],
     queryFn: () => apiClient.get<MangaDetailInfo>(`/manga/info/${id}`),
     staleTime: 1000 * 60 * 10,
+    retry: 1,
   });
 
   const title = manga ? resolveTitle(manga.title) : "";
+  const desc = stripHtml(manga?.description);
   const chapters = manga?.chapters ?? [];
+  const progress = useMemo(() => getMangaProgress(id), [id]);
+  const read = useMemo(() => getReadChapters(id), [id]);
 
-  const sortedChapters = [...chapters].sort((a, b) => {
-    const n = (x: ChapterInfo) => parseFloat(String(x.chapterNumber ?? 0));
-    return sortAsc ? n(a) - n(b) : n(b) - n(a);
+  const sorted = useMemo(() => [...chapters].sort((a, b) => (asc ? num(a) - num(b) : num(b) - num(a))), [chapters, asc]);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? sorted.filter((c) => String(c.chapterNumber ?? "").startsWith(q) || (c.title ?? "").toLowerCase().includes(q)) : sorted;
+  }, [sorted, search]);
+  const ascList = useMemo(() => [...chapters].sort((a, b) => num(a) - num(b)), [chapters]);
+  const first = ascList[0];
+  const latest = ascList[ascList.length - 1];
+  const resumeChapter = progress ? chapters.find((c) => c.id === progress.chapterId) : undefined;
+
+  usePageMeta({
+    title: manga ? `Leer ${title} en español` : "Manga",
+    description: desc ? desc.slice(0, 190) : `Lee ${title} online en HD y en español.`,
+    image: manga?.cover || manga?.image,
+    imageAlt: title,
+    url: `${SITE_URL}/manga/${id}`,
+    type: "book",
   });
 
-  const filteredChapters = chapterSearch.trim()
-    ? sortedChapters.filter(ch => {
-        const q = chapterSearch.toLowerCase();
-        return String(ch.chapterNumber ?? "").includes(q) || (ch.title ?? "").toLowerCase().includes(q);
-      })
-    : sortedChapters;
-
-  const visibleChapters = filteredChapters.slice(0, showCount);
-  const hasMore = filteredChapters.length > showCount;
+  const read_ = (c?: ChapterInfo) => { if (c) navigate(`/manga/${id}/leer/${c.id}`); };
+  const share = async () => {
+    const url = `${SITE_URL}/manga/${id}`;
+    try {
+      if (navigator.share) { await navigator.share({ title, url }); return; }
+      await navigator.clipboard.writeText(url); setCopied(true); window.setTimeout(() => setCopied(false), 2000);
+    } catch { /* cancelado */ }
+  };
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#09090F", display: "flex", flexDirection: "column" }}>
-        <Navbar />
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-          <Loader2 size={40} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} />
-          <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>Cargando manga...</p>
+      <div className="iz-page"><Navbar />
+        <div className="iz-container" style={{ paddingTop: 40, display: "flex", gap: 24 }}>
+          <div className="iz-skel" style={{ width: 200, aspectRatio: "2/3" }} />
+          <div style={{ flex: 1, display: "grid", gap: 12, alignContent: "start" }}><div className="iz-skel" style={{ height: 40, width: "60%" }} /><div className="iz-skel" style={{ height: 16, width: "80%" }} /></div>
         </div>
       </div>
     );
   }
-
   if (isError || !manga) {
     return (
-      <div style={{ minHeight: "100vh", background: "#09090F", display: "flex", flexDirection: "column" }}>
-        <Navbar />
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 24 }}>
-          <BookOpen size={56} color="rgba(255,255,255,0.1)" />
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 16 }}>No se pudo cargar este manga</p>
-          <button
-            onClick={() => navigate("/manga")}
-            style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "10px 24px", background: "linear-gradient(135deg,#3f2eb2,#6366f1)",
-              border: "none", borderRadius: 12, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
-            }}
-          >
-            <ArrowLeft size={15} /> Volver al catálogo
-          </button>
+      <div className="iz-page"><Navbar />
+        <div className="iz-container" style={{ paddingTop: 60 }}>
+          <EmptyState title="No se pudo cargar este manga" action={<div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            <button type="button" className="iz-btn iz-btn--primary" onClick={() => refetch()}><RefreshCw size={16} /> Reintentar</button>
+            <button type="button" className="iz-btn iz-btn--ghost" onClick={() => navigate("/manga")}>Volver al catálogo</button>
+          </div>} />
         </div>
       </div>
     );
   }
 
-  const desc = stripHtml(manga.description ?? "");
-  const descShort = desc.slice(0, 300);
-  const needsExpand = desc.length > 300;
+  const score = toScore10(manga.rating);
+  const bg = manga.cover || manga.image;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090F", display: "flex", flexDirection: "column" }}>
-      <Navbar />
+    <div className="iz-page iz-page--flush">
+      <Navbar transparent />
+      <section className="iz-hero" style={{ height: "clamp(340px, 50svh, 480px)" }}>
+        {bg && <div className="iz-hero__bg"><img src={bg} alt="" style={{ filter: manga.cover ? undefined : "blur(24px) saturate(1.3)", transform: manga.cover ? undefined : "scale(1.2)" }} /></div>}
+        <div className="iz-hero__grid" />
+      </section>
 
-      {/* Fixed blurred back bar */}
-      <div style={{
-        position: "fixed", top: 56, left: 0, right: 0, zIndex: 40,
-        background: "rgba(9,9,15,0.92)", backdropFilter: "blur(16px)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        display: "flex", alignItems: "center", gap: 12, padding: "10px 20px",
-      }}>
-        <button
-          onClick={() => navigate("/manga")}
-          style={{
-            display: "flex", alignItems: "center", gap: 7,
-            background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: 10, padding: "7px 16px", color: "#F1F1F5", cursor: "pointer", fontSize: 13, fontWeight: 600,
-            transition: "background 0.2s",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(63,46,178,0.15)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
-        >
-          <ArrowLeft size={14} /> Volver al catálogo
-        </button>
-        <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-          {title}
-        </span>
-      </div>
-
-      {/* Cover blur background */}
-      {(manga.cover || manga.image) && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, height: 420, zIndex: 0,
-          backgroundImage: `url(${manga.cover ?? manga.image})`,
-          backgroundSize: "cover", backgroundPosition: "center top",
-          filter: "blur(24px) brightness(0.18) saturate(0.7)",
-          transform: "scale(1.08)",
-        }} />
-      )}
-
-      {/* Main content — offset for navbar (56px) + back bar (~44px) = 100px */}
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 1100, margin: "0 auto", width: "100%", padding: "calc(56px + 44px + 24px) 16px 60px" }}>
-
-        {/* Hero section */}
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 36, alignItems: "flex-start" }}>
-
-          {/* Cover image */}
-          <div style={{
-            width: 160, flexShrink: 0, borderRadius: 14, overflow: "hidden",
-            boxShadow: "0 24px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1)",
-          }}>
-            {!imgError && manga.image ? (
-              <img
-                src={manga.image}
-                alt={title}
-                onError={() => setImgError(true)}
-                style={{ width: "100%", display: "block" }}
-              />
-            ) : (
-              <div style={{ aspectRatio: "2/3", background: "linear-gradient(135deg,#1a0533,#0d1a33)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <BookOpen size={40} color="rgba(255,255,255,0.15)" />
-              </div>
-            )}
-          </div>
-
-          {/* Info panel */}
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <h1 style={{ color: "#F1F1F5", fontSize: "clamp(18px, 4vw, 26px)", fontWeight: 900, margin: "0 0 6px", lineHeight: 1.2 }}>
-              {title}
-            </h1>
-
-            {manga.authors && manga.authors.length > 0 && (
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, margin: "0 0 14px" }}>
-                por {manga.authors.map(a => a.name).join(", ")}
-              </p>
-            )}
-
-            {/* Badges */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 14 }}>
-              {manga.status && (
-                <span style={{
-                  background: manga.status === "Completed" ? "rgba(34,197,94,0.15)" : "rgba(63,46,178,0.15)",
-                  color: manga.status === "Completed" ? "#4ADE80" : "#c7d2fe",
-                  border: `1px solid ${manga.status === "Completed" ? "rgba(34,197,94,0.3)" : "rgba(63,46,178,0.3)"}`,
-                  fontSize: 11, fontWeight: 700, padding: "3px 11px", borderRadius: 20,
-                }}>
-                  {manga.status === "Completed" ? "Completo" : manga.status === "Ongoing" ? "En curso" : manga.status}
-                </span>
-              )}
-              {manga.rating != null && manga.rating > 0 && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.12)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.25)", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>
-                  <Star size={10} fill="#F59E0B" /> {(manga.rating / 10).toFixed(1)}
-                </span>
-              )}
-              {chapters.length > 0 && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.45)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20 }}>
-                  <List size={10} /> {chapters.length} cap.
-                </span>
-              )}
+      <main className="iz-container" style={{ position: "relative", zIndex: 2, marginTop: "clamp(-240px, -20svh, -140px)" }}>
+        <div className="iz-detail">
+          <div className="iz-detail__poster"><div className="iz-poster__frame" style={{ borderRadius: 16 }}>{manga.image && <img src={manga.image} alt={title} />}</div></div>
+          <div className="iz-detail__info">
+            <div className="iz-hero__eyebrow" style={{ marginBottom: 12 }}>
+              <span className="iz-tag"><BookOpen size={11} /> Manga</span>
+              {manga.status && <span className={`iz-tag ${manga.status === "Ongoing" ? "iz-tag--accent" : ""}`}>{STATUS_ES[manga.status] ?? manga.status}</span>}
             </div>
-
-            {/* Genres */}
+            <h1 className="iz-detail__title">{title}</h1>
+            <div className="iz-hero__meta" style={{ marginTop: 14 }}>
+              {score && <span className="iz-score" style={{ fontSize: 15 }}><Star size={14} fill="currentColor" /> {score.toFixed(1)}</span>}
+              <span>{chapters.length} capítulos</span>
+              {manga.volumes ? <span>{manga.volumes} tomos</span> : null}
+              {manga.authors?.length ? <span>{manga.authors.map((a) => a.name).join(", ")}</span> : null}
+            </div>
+            <div className="iz-hero__cta" style={{ marginTop: 22 }}>
+              {resumeChapter ? (
+                <button type="button" className="iz-btn iz-btn--primary iz-btn--lg" onClick={() => read_(resumeChapter)}><BookOpen size={18} /> Continuar · Cap. {resumeChapter.chapterNumber}</button>
+              ) : first ? (
+                <button type="button" className="iz-btn iz-btn--primary iz-btn--lg" onClick={() => read_(first)}><BookOpen size={18} /> Empezar a leer</button>
+              ) : null}
+              {latest && latest !== first && <button type="button" className="iz-btn iz-btn--ghost iz-btn--lg" onClick={() => read_(latest)}>Último · Cap. {latest.chapterNumber}</button>}
+              <button type="button" className="iz-btn iz-btn--ghost iz-btn--lg iz-btn--icon" style={{ width: 50 }} onClick={share} aria-label="Compartir" title="Compartir"><Share2 size={17} /></button>
+            </div>
+            {copied && <div className="iz-tag iz-tag--accent" style={{ marginTop: 12 }}>✓ Enlace copiado</div>}
             {manga.genres && manga.genres.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 16 }}>
-                {manga.genres.slice(0, 8).map(g => (
-                  <span key={g} style={{ background: "rgba(99,102,241,0.1)", color: "#c7d2fe", border: "1px solid rgba(99,102,241,0.18)", fontSize: 10, fontWeight: 600, padding: "2px 9px", borderRadius: 20 }}>{g}</span>
-                ))}
-              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 22 }}>{manga.genres.map((g) => <span key={g} className="iz-chip" style={{ height: 30, fontSize: 12, cursor: "default" }}>{g}</span>)}</div>
             )}
-
-            {/* Description */}
             {desc && (
-              <div style={{ marginBottom: 18 }}>
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, lineHeight: 1.7, margin: 0 }}>
-                  {descExpanded || !needsExpand ? desc : `${descShort}...`}
-                </p>
-                {needsExpand && (
-                  <button
-                    onClick={() => setDescExpanded(v => !v)}
-                    style={{ background: "none", border: "none", color: "#3f2eb2", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "4px 0", marginTop: 4 }}
-                  >
-                    {descExpanded ? "Ver menos" : "Leer más"}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Action buttons */}
-            {sortedChapters.length > 0 && (
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  onClick={() => navigate(`/manga/${id}/leer/${[...chapters].sort((a, b) => parseFloat(String(a.chapterNumber ?? 0)) - parseFloat(String(b.chapterNumber ?? 0)))[0]?.id}`)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    padding: "10px 20px", borderRadius: 12,
-                    background: "linear-gradient(135deg,#3f2eb2,#6366f1)",
-                    border: "none", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  }}
-                >
-                  <BookOpen size={14} /> Leer desde el cap. 1
-                </button>
-                <button
-                  onClick={() => navigate(`/manga/${id}/leer/${[...chapters].sort((a, b) => parseFloat(String(b.chapterNumber ?? 0)) - parseFloat(String(a.chapterNumber ?? 0)))[0]?.id}`)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 7,
-                    padding: "10px 20px", borderRadius: 12,
-                    background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
-                    color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  }}
-                >
-                  <ChevronRight size={14} /> Último capítulo
-                </button>
+              <div style={{ marginTop: 22, maxWidth: 820 }}>
+                <p style={{ margin: 0, color: "var(--iz-text-2)", fontSize: 15, lineHeight: 1.7 }} className={descExpanded ? "" : "line-clamp-4"}>{desc}</p>
+                {desc.length > 280 && <button type="button" className="iz-head__link" style={{ paddingLeft: 0, marginTop: 6 }} onClick={() => setDescExpanded((v) => !v)}>{descExpanded ? "Mostrar menos" : "Leer más"}</button>}
               </div>
             )}
           </div>
         </div>
 
-        {/* Chapter list */}
-        {sortedChapters.length > 0 && (
-          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
-
-            {/* Chapter header */}
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10,
-              padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)",
-              background: "rgba(255,255,255,0.02)",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <List size={16} color="#3f2eb2" />
-                <span style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>Capítulos</span>
-                <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>({chapters.length})</span>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {/* Chapter search */}
-                <div style={{ position: "relative" }}>
-                  <Search size={12} color="rgba(255,255,255,0.35)" style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }} />
-                  <input
-                    value={chapterSearch}
-                    onChange={e => { setChapterSearch(e.target.value); setShowCount(50); }}
-                    placeholder="Buscar..."
-                    style={{
-                      background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 8, color: "#F1F1F5", fontSize: 12, padding: "5px 28px 5px 26px",
-                      outline: "none", fontFamily: "inherit", width: 120,
-                    }}
-                  />
-                  {chapterSearch && (
-                    <button onClick={() => setChapterSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.4)", display: "flex", padding: 0 }}>
-                      <X size={11} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Sort toggle */}
-                <button
-                  onClick={() => setSortAsc(v => !v)}
-                  title={sortAsc ? "Del más antiguo al más nuevo" : "Del más nuevo al más antiguo"}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: 8, padding: "5px 10px", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 11, fontWeight: 600,
-                  }}
-                >
-                  {sortAsc ? <SortAsc size={13} /> : <SortDesc size={13} />}
-                  {sortAsc ? "Asc" : "Desc"}
-                </button>
-              </div>
-            </div>
-
-            {/* Chapter rows */}
+        <section className="iz-section">
+          <div className="iz-head">
             <div>
-              {visibleChapters.length === 0 && (
-                <div style={{ padding: "32px 18px", textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: 14 }}>
-                  No se encontraron capítulos
+              <div className="iz-head__eyebrow"><span className="iz-dot" />{read.size > 0 ? `${read.size} leídos de ${chapters.length}` : `${chapters.length} disponibles`}</div>
+              <h2 className="iz-head__title">Capítulos</h2>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ position: "relative" }}>
+                <Search size={15} color="#71717a" style={{ position: "absolute", left: 11, top: 11 }} />
+                <input className="iz-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nº de capítulo" style={{ width: 170, height: 38, paddingLeft: 34 }} aria-label="Buscar capítulo" />
+                {search && <button type="button" aria-label="Limpiar" onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: 9, background: "none", border: 0, color: "#a1a1aa", cursor: "pointer" }}><X size={16} /></button>}
+              </div>
+              <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm iz-btn--icon" style={{ height: 38, width: 38 }} onClick={() => setAsc((v) => !v)} title={asc ? "Más antiguos primero" : "Más recientes primero"} aria-label="Cambiar orden">
+                {asc ? <SortAsc size={16} /> : <SortDesc size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {chapters.length === 0 ? <EmptyState title="Aún no hay capítulos disponibles" /> : (
+            <>
+              <div className="iz-eps">
+                {filtered.slice(0, showCount).map((c) => {
+                  const isRead = read.has(c.id);
+                  const isCurrent = progress?.chapterId === c.id;
+                  return (
+                    <button key={c.id} type="button" className={`iz-ep ${isCurrent ? "is-current" : ""} ${isRead && !isCurrent ? "is-watched" : ""}`} onClick={() => read_(c)}>
+                      <span className="iz-ep__num" style={{ fontSize: String(c.chapterNumber ?? "").length > 4 ? 12 : 15 }}>{c.chapterNumber ?? "–"}</span>
+                      <span className="iz-ep__body">
+                        <span className="iz-ep__title">{c.title && !/^cap[ií]tulo\s*[\d.]+$/i.test(c.title.trim()) ? c.title : `Capítulo ${c.chapterNumber}`}</span>
+                        <span className="iz-ep__meta">
+                          {isCurrent ? <><span className="iz-dot" /> Pág. {(progress?.page ?? 0) + 1} de {progress?.totalPages}</> : isRead ? <><CheckCircle2 size={12} /> Leído</> : formatDate(c.releaseDate) || (c.pages ? `${c.pages} páginas` : "Español")}
+                        </span>
+                      </span>
+                      <span className="iz-ep__play"><BookOpen size={13} /></span>
+                    </button>
+                  );
+                })}
+              </div>
+              {filtered.length > showCount && (
+                <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+                  <button type="button" className="iz-btn iz-btn--ghost" onClick={() => setShowCount((n) => n + 120)}>Mostrar más ({filtered.length - showCount} restantes)</button>
                 </div>
               )}
-              {visibleChapters.map((ch) => (
-                <div
-                  key={ch.id}
-                  onClick={() => navigate(`/manga/${id}/leer/${ch.id}`)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "11px 18px",
-                    borderBottom: "1px solid rgba(255,255,255,0.04)",
-                    cursor: "pointer", transition: "background 0.12s",
-                    gap: 12,
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(63,46,178,0.07)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, overflow: "hidden" }}>
-                    <span style={{
-                      color: "#3f2eb2", fontSize: 11, fontWeight: 800,
-                      minWidth: 44, fontFamily: "monospace", flexShrink: 0,
-                    }}>
-                      #{ch.chapterNumber}
-                    </span>
-                    <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {ch.title ? ch.title : `Capítulo ${ch.chapterNumber}`}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    {ch.releaseDate && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
-                        <Calendar size={10} />
-                        {formatDate(ch.releaseDate)}
-                      </span>
-                    )}
-                    <ChevronRight size={13} color="rgba(255,255,255,0.2)" />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Load more */}
-            {hasMore && (
-              <div style={{ padding: "14px 18px", borderTop: "1px solid rgba(255,255,255,0.05)", textAlign: "center" }}>
-                <button
-                  onClick={() => setShowCount(c => c + 100)}
-                  style={{
-                    padding: "9px 24px", borderRadius: 10,
-                    background: "rgba(63,46,178,0.1)", border: "1px solid rgba(63,46,178,0.25)",
-                    color: "#c7d2fe", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                  }}
-                >
-                  Ver {Math.min(100, filteredChapters.length - showCount)} capítulos más
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
+            </>
+          )}
+        </section>
+      </main>
       <Footer />
     </div>
   );

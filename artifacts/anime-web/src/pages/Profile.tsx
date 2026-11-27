@@ -20,7 +20,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const MONO = "'Space Grotesk', ui-monospace, monospace";
 
 function getAccess() {
   const STORAGE_KEY = "af_daily_access";
@@ -110,7 +110,7 @@ function getAchievements(stats: UserStats | null, isMegaFan: boolean): Achieveme
   const completed = stats?.completed ?? 0;
   const dates = stats?.achievementDates ?? {};
   return [
-    { id: "inicio",   icon: "🎌", label: "Primer episodio", desc: "Ver tu primer episodio en AnimeFlex.", color: "#3f2eb2", current: Math.min(eps,1), target: 1,   unlocked: eps >= 1,   unlockedAt: dates.inicio },
+    { id: "inicio",   icon: "🎌", label: "Primer episodio", desc: "Ver tu primer episodio en IZIFF ANIME.", color: "#3f2eb2", current: Math.min(eps,1), target: 1,   unlocked: eps >= 1,   unlockedAt: dates.inicio },
     { id: "dedicado", icon: "📺", label: "Dedicado",        desc: "Acumular 50 episodios vistos.",        color: "#22C55E", current: Math.min(eps,50), target: 50,  unlocked: eps >= 50,  unlockedAt: dates.dedicado },
     { id: "maraton",  icon: "🏃", label: "Maratonista",     desc: "Acumular 200 episodios vistos.",       color: "#F59E0B", current: Math.min(eps,200), target: 200, unlocked: eps >= 200, unlockedAt: dates.maraton },
     { id: "legend",   icon: "⚡", label: "Leyenda",         desc: "Acumular 500 episodios vistos.",       color: "#3f2eb2", current: Math.min(eps,500), target: 500, unlocked: eps >= 500, unlockedAt: dates.legend },
@@ -177,7 +177,7 @@ function formatDate(iso?: string | null): string {
 /* Card style helpers */
 const cardStyle: React.CSSProperties = {
   position: "relative",
-  background: "linear-gradient(180deg, rgba(20,8,18,0.92), rgba(8,3,12,0.96))",
+  background: "linear-gradient(180deg, rgba(15,15,15,0.92), rgba(8,8,8,0.96))",
   border: "1px solid rgba(63,46,178,0.32)",
   padding: "20px",
   boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 0 20px rgba(63,46,178,0.15), inset 0 1px 0 rgba(255,255,255,0.04)",
@@ -362,7 +362,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
 
       /* background */
       const bg = ctx.createLinearGradient(0, 0, W, H);
-      bg.addColorStop(0, "#0a0410"); bg.addColorStop(0.5, "#1a0410"); bg.addColorStop(1, "#040208");
+      bg.addColorStop(0, "#0a0a0a"); bg.addColorStop(0.5, "#111111"); bg.addColorStop(1, "#050505");
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
       /* radial accent */
@@ -389,7 +389,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
       /* sys label */
       ctx.font = "bold 18px ui-monospace, monospace";
       ctx.fillStyle = "#6366f1"; ctx.textAlign = "center";
-      ctx.fillText("[ SISTEMA · LOGRO_DESBLOQUEADO ]", W/2, 90);
+      ctx.fillText("LOGRO DESBLOQUEADO", W/2, 90);
 
       /* icon background circle */
       ctx.beginPath();
@@ -407,7 +407,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
 
       /* title */
       ctx.font = "bold 44px ui-monospace, monospace";
-      ctx.fillStyle = "#F1F1F5";
+      ctx.fillStyle = "#f4f4f5";
       ctx.fillText(ach.label.toUpperCase(), W/2, 480);
 
       /* desc */
@@ -427,7 +427,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
       ctx.fillText(username.toUpperCase(), W/2, 630);
       ctx.font = "14px ui-monospace, monospace";
       ctx.fillStyle = "rgba(165,180,252,0.75)";
-      ctx.fillText(`NV.${level} · CAZADOR · ANIMEFLEX`, W/2, 660);
+      ctx.fillText(`NV.${level} · CAZADOR · IZIFF ANIME`, W/2, 660);
 
       /* footer */
       ctx.font = "bold 12px ui-monospace, monospace";
@@ -441,7 +441,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], `logro-${ach.id}.png`, { type: "image/png" });
         if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: `Logro ${ach.label}`, text: `${username} desbloqueó el logro "${ach.label}" en AnimeFlex!` });
+          await navigator.share({ files: [file], title: `Logro ${ach.label}`, text: `${username} desbloqueó el logro "${ach.label}" en IZIFF ANIME!` });
           return;
         }
       } catch { /* fall back to download */ }
@@ -475,7 +475,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
         style={{
           width: "100%", maxWidth: 380,
           position: "relative",
-          background: "linear-gradient(180deg, rgba(28,8,18,0.98), rgba(10,4,14,0.99))",
+          background: "linear-gradient(180deg, rgba(18,18,18,0.98), rgba(9,9,9,0.99))",
           border: `1px solid ${ach.color}AA`,
           padding: "26px 24px 20px",
           boxShadow: `0 0 0 1px rgba(0,0,0,0.5), 0 0 60px ${ach.color}66`,
@@ -487,7 +487,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
           aria-label="Cerrar"
           style={{
             position: "absolute", top: 10, right: 10,
-            background: "rgba(8,4,18,0.85)", border: `1px solid ${ach.color}66`,
+            background: "rgba(10,10,10,0.85)", border: `1px solid ${ach.color}66`,
             color: "#c7d2fe", padding: 6, cursor: "pointer", }}
         >
           <X size={14} />
@@ -495,7 +495,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
 
         <div style={{ textAlign: "center", marginBottom: 10 }}>
           <span className="sys-label" style={{ fontSize: 9.5, color: ach.color, letterSpacing: 2 }}>
-            {ach.unlocked ? "[ DESBLOQUEADO ]" : "[ EN PROGRESO ]"}
+            {ach.unlocked ? "Desbloqueado" : "En progreso"}
           </span>
         </div>
 
@@ -511,7 +511,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
         </div>
 
         <h2 id="ach-title" style={{
-          color: "#F1F1F5", fontSize: 22, fontWeight: 900, textAlign: "center",
+          color: "#f4f4f5", fontSize: 22, fontWeight: 900, textAlign: "center",
           margin: "0 0 6px", letterSpacing: 0.5, fontFamily: MONO,
           textShadow: ach.unlocked ? `0 0 12px ${ach.color}88` : "none",
         }}>
@@ -532,7 +532,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
             </span>
           </div>
           <div style={{
-            height: 8, background: "rgba(4,3,10,0.85)",
+            height: 8, background: "rgba(6,6,6,0.85)",
             border: `1px solid ${ach.color}44`,
             overflow: "hidden",
           }}>
@@ -551,7 +551,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
         {/* Date or hint */}
         {ach.unlocked && ach.unlockedAt && (
           <div style={{
-            background: "rgba(8,4,18,0.7)", border: `1px solid ${ach.color}55`,
+            background: "rgba(10,10,10,0.7)", border: `1px solid ${ach.color}55`,
             padding: "9px 12px", marginBottom: 14,
             color: "#c7d2fe", fontSize: 11, fontFamily: MONO, letterSpacing: 0.5,
             textAlign: "center",
@@ -579,7 +579,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
           </button>
         ) : (
           <div style={{
-            background: "rgba(8,4,18,0.6)", border: "1px dashed rgba(165,180,252,0.3)",
+            background: "rgba(10,10,10,0.6)", border: "1px dashed rgba(165,180,252,0.3)",
             padding: "10px 12px",
             color: "rgba(165,180,252,0.7)", fontSize: 11, fontFamily: MONO, letterSpacing: 0.5,
             textAlign: "center",
@@ -695,9 +695,9 @@ export default function Profile() {
   const bannerMeta = getBannerMeta(user?.banner_preset);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#060611" }}>
+    <div className="iz-page" style={{ paddingTop: 0 }}>
       <Navbar />
-      <div style={{ maxWidth: 740, margin: "0 auto", padding: "68px 14px 56px" }}>
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "calc(var(--iz-nav-h) + 24px) 16px 56px" }}>
 
         {/* ── Email verification banner ── */}
         {user && !user.email_verified && (
@@ -728,7 +728,7 @@ export default function Profile() {
         <div style={{
           marginBottom: 14,
           border: `1px solid ${bannerMeta.accent}80`,
-          background: "linear-gradient(180deg, rgba(28,8,18,0.95), rgba(10,4,14,0.98))",
+          background: "linear-gradient(180deg, rgba(18,18,18,0.95), rgba(9,9,9,0.98))",
           position: "relative",
           boxShadow: `0 0 0 1px rgba(0,0,0,0.4), 0 0 32px ${bannerMeta.glow}, inset 0 1px 0 rgba(255,255,255,0.05)`,
           overflow: "hidden",
@@ -752,7 +752,7 @@ export default function Profile() {
             background: `linear-gradient(135deg, #a5b4fc, ${bannerMeta.accent} 50%, ${bannerMeta.accent}AA)`,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 30, fontWeight: 900, color: "#fff", overflow: "hidden",
-            boxShadow: `0 0 0 3px #0a040e, 0 0 0 4px ${bannerMeta.accent}, 0 0 28px ${bannerMeta.glow}`,
+            boxShadow: `0 0 0 3px #090909, 0 0 0 4px ${bannerMeta.accent}, 0 0 28px ${bannerMeta.glow}`,
             zIndex: 4,
             fontFamily: MONO,
           }}>
@@ -766,7 +766,7 @@ export default function Profile() {
             {/* Name + badges + action buttons */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900, letterSpacing: -0.3, lineHeight: 1.2, marginBottom: 7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ color: "#f4f4f5", fontSize: 20, fontWeight: 900, letterSpacing: -0.3, lineHeight: 1.2, marginBottom: 7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {user?.username ?? "Invitado"}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
@@ -801,7 +801,7 @@ export default function Profile() {
                   {followerCount > 0 && (
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 4,
-                      background: "rgba(124,115,255,0.12)", border: "1px solid rgba(124,115,255,0.4)",
+                      background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.4)",
                       borderRadius: 20, padding: "3px 8px",
                       color: "#A8A0FF", fontSize: 10, fontWeight: 800,
                     }}>
@@ -839,14 +839,14 @@ export default function Profile() {
             {/* Bio */}
             {user?.bio && (
               <div style={{
-                background: "rgba(8,4,18,0.55)",
+                background: "rgba(10,10,10,0.55)",
                 border: `1px solid ${bannerMeta.accent}33`,
                 padding: "10px 12px", marginBottom: 14,
                 color: "#c7d2fe", fontSize: 12.5, lineHeight: 1.55,
                 fontFamily: MONO, letterSpacing: 0.2,
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
               }}>
-                <span style={{ color: bannerMeta.accent, fontWeight: 800, marginRight: 6 }}>// BIO</span>
+                <span style={{ color: bannerMeta.accent, fontWeight: 800, marginRight: 6 }}>Bio</span>
                 {user.bio}
               </div>
             )}
@@ -857,12 +857,12 @@ export default function Profile() {
                 <span style={{ color: "#a5b4fc", fontSize: 10, fontWeight: 800, fontFamily: MONO, letterSpacing: 1.5 }}>
                   EXP · NV.{levelInfo.level} · {levelInfo.currentXp}/{levelInfo.neededXp}
                 </span>
-                <span style={{ color: "#c7d2fe", fontSize: 10, fontWeight: 900, fontFamily: MONO, textShadow: "0 0 8px rgba(63,46,178,0.6)" }}>
+                <span style={{ color: "#c7d2fe", fontSize: 10, fontWeight: 900, fontFamily: MONO, }}>
                   [ {levelInfo.progress}% ]
                 </span>
               </div>
               <div style={{
-                height: 8, background: "rgba(4,3,10,0.85)", overflow: "hidden",
+                height: 8, background: "rgba(6,6,6,0.85)", overflow: "hidden",
                 border: "1px solid rgba(99,102,241,0.3)",
                 }}>
                 <div style={{
@@ -929,7 +929,7 @@ export default function Profile() {
         {/* ── Tabs (a11y: tablist) ── */}
         <div role="tablist" aria-label="Secciones del perfil" style={{
           display: "flex", gap: 4, marginBottom: 14,
-          background: "rgba(4,3,10,0.85)",
+          background: "rgba(6,6,6,0.85)",
           padding: 4,
           border: "1px solid rgba(99,102,241,0.3)",
           overflowX: "auto",
@@ -990,7 +990,7 @@ export default function Profile() {
                       onClick={() => navigate(`/watch?ep=${encodeURIComponent(c.episode_id)}&anime=${encodeURIComponent(c.anime_id)}`)}
                       style={{
                         position: "relative", padding: 0, border: "1px solid rgba(63,46,178,0.3)",
-                        background: "rgba(8,4,18,0.6)", cursor: "pointer", overflow: "hidden",
+                        background: "rgba(10,10,10,0.6)", cursor: "pointer", overflow: "hidden",
                         textAlign: "left",
                       }}
                     >
@@ -1012,7 +1012,7 @@ export default function Profile() {
                         </div>
                       </div>
                       <div style={{ padding: "8px 10px" }}>
-                        <div style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ color: "#f4f4f5", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {c.anime_title}
                         </div>
                         <div style={{ color: "rgba(165,180,252,0.7)", fontSize: 10, marginTop: 2, fontFamily: MONO, letterSpacing: 0.5 }}>
@@ -1029,7 +1029,7 @@ export default function Profile() {
             {nextMilestone && (
               <div style={{
                 position: "relative",
-                background: `linear-gradient(135deg, ${nextMilestone.color}1A, rgba(8,4,18,0.95))`,
+                background: `linear-gradient(135deg, ${nextMilestone.color}1A, rgba(10,10,10,0.95))`,
                 border: `1px solid ${nextMilestone.color}66`,
                 padding: "14px 16px", marginBottom: 14,
                 boxShadow: `0 0 18px ${nextMilestone.color}33`,
@@ -1044,13 +1044,13 @@ export default function Profile() {
                   <div style={{ fontSize: 30, filter: `drop-shadow(0 0 8px ${nextMilestone.color})` }}>{nextMilestone.icon}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: nextMilestone.color, fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, marginBottom: 2 }}>
-                      [ PROXIMO RANGO ]
+                      Próximo rango
                     </div>
                     <div style={{ color: "#c7d2fe", fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
                       {nextMilestone.label} <span style={{ color: "rgba(165,180,252,0.7)", fontWeight: 600 }}>— faltan {nextMilestone.target - nextMilestone.current}</span>
                     </div>
                     <div style={{
-                      height: 5, background: "rgba(4,3,10,0.85)",
+                      height: 5, background: "rgba(6,6,6,0.85)",
                       border: `1px solid ${nextMilestone.color}33`,
                       }}>
                       <div style={{
@@ -1085,7 +1085,7 @@ export default function Profile() {
                     aria-label={`Logro ${a.label}, ${a.unlocked ? "desbloqueado" : "bloqueado"}`}
                     style={{
                       position: "relative", textAlign: "center",
-                      background: a.unlocked ? `rgba(${hexToRgb(a.color)},0.12)` : "rgba(8,3,12,0.6)",
+                      background: a.unlocked ? `rgba(${hexToRgb(a.color)},0.12)` : "rgba(8,8,8,0.6)",
                       border: `1px solid ${a.unlocked ? `rgba(${hexToRgb(a.color)},0.5)` : "rgba(255,255,255,0.07)"}`,
                       padding: "12px 6px", cursor: "pointer",
                       opacity: a.unlocked ? 1 : 0.55,
@@ -1097,7 +1097,7 @@ export default function Profile() {
                   >
                     <div style={{ fontSize: 22, marginBottom: 4, filter: a.unlocked ? `drop-shadow(0 0 6px ${a.color})` : "grayscale(1)" }}>{a.icon}</div>
                     <div style={{
-                      color: a.unlocked ? "#F1F1F5" : "rgba(255,255,255,0.35)",
+                      color: a.unlocked ? "#f4f4f5" : "rgba(255,255,255,0.35)",
                       fontSize: 9.5, fontWeight: 800, lineHeight: 1.3,
                       fontFamily: MONO,
                       letterSpacing: 0.3,
@@ -1119,19 +1119,19 @@ export default function Profile() {
             {stats && stats.percentile != null && stats.totalEpisodes > 0 && (
               <div style={{
                 position: "relative",
-                background: "linear-gradient(135deg, rgba(124,115,255,0.12), rgba(8,4,18,0.95))",
-                border: "1px solid rgba(124,115,255,0.45)",
+                background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(10,10,10,0.95))",
+                border: "1px solid rgba(99,102,241,0.45)",
                 padding: "14px 16px", marginBottom: 14,
-                boxShadow: "0 0 16px rgba(124,115,255,0.2)",
+                boxShadow: "0 0 16px rgba(99,102,241,0.2)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Users size={22} color="#A8A0FF" style={{ filter: "drop-shadow(0 0 6px #7C73FF)" }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: "#A8A0FF", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, marginBottom: 2 }}>
-                      [ COMPARATIVA · CAZADORES ]
+                      Comparativa
                     </div>
-                    <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700 }}>
-                      Has visto más que el <span style={{ color: "#A8A0FF", fontWeight: 900, fontFamily: MONO, textShadow: "0 0 8px rgba(124,115,255,0.6)" }}>{stats.percentile}%</span> de los cazadores activos.
+                    <div style={{ color: "#f4f4f5", fontSize: 13, fontWeight: 700 }}>
+                      Has visto más que el <span style={{ color: "#A8A0FF", fontWeight: 900, fontFamily: MONO, textShadow: "0 0 8px rgba(99,102,241,0.6)" }}>{stats.percentile}%</span> de los cazadores activos.
                     </div>
                   </div>
                 </div>
@@ -1145,7 +1145,7 @@ export default function Profile() {
                   <span className="sys-label" style={{ fontSize: 11 }}>
                     <BarChart2 size={12} style={{ marginRight: 2 }} /> ACTIVIDAD · 7D
                   </span>
-                  <span style={{ marginLeft: "auto", color: "rgba(165,180,252,0.55)", fontSize: 10, fontFamily: MONO, letterSpacing: 1 }}>// LOG</span>
+                  <span style={{ marginLeft: "auto", color: "rgba(165,180,252,0.55)", fontSize: 10, fontFamily: MONO, letterSpacing: 1 }}>Actividad</span>
                 </div>
                 <ResponsiveContainer width="100%" height={110}>
                   <BarChart data={stats.weeklyActivity} margin={{ top: 0, right: 0, left: -32, bottom: 0 }} barCategoryGap="30%">
@@ -1159,7 +1159,7 @@ export default function Profile() {
                     <Tooltip
                       contentStyle={{ background: "#0f0f0f", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 10, fontSize: 12 }}
                       labelStyle={{ color: "#c7d2fe", fontWeight: 700 }}
-                      itemStyle={{ color: "#F1F1F5" }}
+                      itemStyle={{ color: "#f4f4f5" }}
                       formatter={(v: number) => [`${v} ep.`, "Episodios"]}
                       labelFormatter={(label: string) => DAY_ES[label] ?? label}
                     />
@@ -1187,7 +1187,7 @@ export default function Profile() {
                     return (
                       <div key={genre}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <span style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700 }}>{genre}</span>
+                          <span style={{ color: "#f4f4f5", fontSize: 12, fontWeight: 700 }}>{genre}</span>
                           <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>{count} interacciones</span>
                         </div>
                         <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 99, overflow: "hidden" }}>
@@ -1225,7 +1225,7 @@ export default function Profile() {
                     </span>
                     {a.anime_image && <img src={a.anime_image} alt={a.anime_title} style={{ width: 34, height: 48, borderRadius: 7, objectFit: "cover", flexShrink: 0 }} />}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.anime_title}</div>
+                      <div style={{ color: "#f4f4f5", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.anime_title}</div>
                       <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{a.ep_count} {Number(a.ep_count) !== 1 ? "episodios" : "episodio"}</div>
                     </div>
                     <ChevronRight size={13} color="rgba(255,255,255,0.2)" />
@@ -1238,7 +1238,7 @@ export default function Profile() {
             {!isMegaFan && user && (
               <div style={{
                 position: "relative",
-                background: "linear-gradient(180deg, rgba(28,8,18,0.92), rgba(8,3,12,0.96))",
+                background: "linear-gradient(180deg, rgba(18,18,18,0.92), rgba(8,8,8,0.96))",
                 border: "1px solid rgba(63,46,178,0.45)",
                 padding: "16px 18px", marginBottom: 14,
                 boxShadow: "0 0 16px rgba(63,46,178,0.18), inset 0 1px 0 rgba(255,255,255,0.04)",
@@ -1252,7 +1252,7 @@ export default function Profile() {
                   }}>[ {watchedToday}/{limitsConfig.dailyLimit} ]</div>
                 </div>
                 <div style={{
-                  height: 8, background: "rgba(4,3,10,0.85)", overflow: "hidden",
+                  height: 8, background: "rgba(6,6,6,0.85)", overflow: "hidden",
                   border: "1px solid rgba(99,102,241,0.3)",
                   }}>
                   <div style={{
@@ -1336,7 +1336,7 @@ export default function Profile() {
                     return (
                       <div key={genre}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                          <span style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700 }}>
+                          <span style={{ color: "#f4f4f5", fontSize: 12, fontWeight: 700 }}>
                             <span style={{ color: GENRE_COLORS[i % GENRE_COLORS.length], marginRight: 6, fontFamily: MONO }}>#{String(i+1).padStart(2,"0")}</span>
                             {genre}
                           </span>
@@ -1375,7 +1375,7 @@ export default function Profile() {
                     </span>
                     {a.anime_image && <img src={a.anime_image} alt={a.anime_title} style={{ width: 34, height: 48, borderRadius: 7, objectFit: "cover", flexShrink: 0 }} />}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.anime_title}</div>
+                      <div style={{ color: "#f4f4f5", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.anime_title}</div>
                       <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{a.ep_count} {Number(a.ep_count) !== 1 ? "episodios" : "episodio"}</div>
                     </div>
                     <ChevronRight size={13} color="rgba(255,255,255,0.2)" />
@@ -1386,26 +1386,26 @@ export default function Profile() {
 
             {/* Sistema social — link a Feed */}
             <div style={{
-              background: "linear-gradient(135deg, rgba(124,115,255,0.10), rgba(8,4,18,0.95))",
-              border: "1px solid rgba(124,115,255,0.4)",
+              background: "linear-gradient(135deg, rgba(99,102,241,0.10), rgba(10,10,10,0.95))",
+              border: "1px solid rgba(99,102,241,0.4)",
               padding: "14px 16px", marginBottom: 14,
-              boxShadow: "0 0 16px rgba(124,115,255,0.18)",
+              boxShadow: "0 0 16px rgba(99,102,241,0.18)",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <Users size={20} color="#A8A0FF" style={{ filter: "drop-shadow(0 0 6px #7C73FF)" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: "#A8A0FF", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, marginBottom: 3 }}>
-                    [ RED · CAZADORES ]
+                    Siguiendo
                   </div>
-                  <div style={{ color: "#F1F1F5", fontSize: 12.5, fontWeight: 700 }}>
+                  <div style={{ color: "#f4f4f5", fontSize: 12.5, fontWeight: 700 }}>
                     {followerCount} {followerCount === 1 ? "seguidor" : "seguidores"} · sigue a otros para ver su actividad
                   </div>
                 </div>
                 <button onClick={() => navigate("/feed")} style={{
-                  background: "rgba(124,115,255,0.18)", border: "1px solid rgba(124,115,255,0.5)",
+                  background: "rgba(99,102,241,0.18)", border: "1px solid rgba(99,102,241,0.5)",
                   color: "#A8A0FF", fontSize: 10.5, fontWeight: 900, fontFamily: MONO, letterSpacing: 1,
                   padding: "7px 12px", cursor: "pointer", whiteSpace: "nowrap",
-                  boxShadow: "0 0 10px rgba(124,115,255,0.4)",
+                  boxShadow: "0 0 10px rgba(99,102,241,0.4)",
                 }}>
                   FEED →
                 </button>

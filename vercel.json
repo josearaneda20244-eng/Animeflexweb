@@ -3,7 +3,50 @@
   "outputDirectory": "artifacts/anime-web/dist/public",
   "installCommand": "npm install -g pnpm && pnpm install",
   "framework": null,
+  "functions": {
+    "api/og.js": { "maxDuration": 10, "memory": 256 }
+  },
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/afsw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    }
+  ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/anime/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|facebot|meta-externalagent|twitterbot|whatsapp|telegrambot|discordbot|slackbot|linkedinbot|pinterest|redditbot|skypeuripreview|vkshare|embedly|iframely|mastodon|bluesky|snapchat|line-poker|kakaotalk).*" }],
+      "destination": "/api/og?kind=anime&id=:id"
+    },
+    {
+      "source": "/watch",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|facebot|meta-externalagent|twitterbot|whatsapp|telegrambot|discordbot|slackbot|linkedinbot|pinterest|redditbot|skypeuripreview|vkshare|embedly|iframely|mastodon|bluesky|snapchat|line-poker|kakaotalk).*" }],
+      "destination": "/api/og?kind=watch"
+    },
+    {
+      "source": "/manga/:id/leer/:chapter",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|facebot|meta-externalagent|twitterbot|whatsapp|telegrambot|discordbot|slackbot|linkedinbot|pinterest|redditbot|skypeuripreview|vkshare|embedly|iframely|mastodon|bluesky|snapchat|line-poker|kakaotalk).*" }],
+      "destination": "/api/og?kind=manga&id=:id&chapter=:chapter"
+    },
+    {
+      "source": "/manga/:id",
+      "has": [{ "type": "header", "key": "user-agent", "value": "(?i).*(facebookexternalhit|facebot|meta-externalagent|twitterbot|whatsapp|telegrambot|discordbot|slackbot|linkedinbot|pinterest|redditbot|skypeuripreview|vkshare|embedly|iframely|mastodon|bluesky|snapchat|line-poker|kakaotalk).*" }],
+      "destination": "/api/og?kind=manga&id=:id"
+    },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

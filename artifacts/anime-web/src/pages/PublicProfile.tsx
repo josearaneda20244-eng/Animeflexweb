@@ -107,9 +107,9 @@ export default function PublicProfile() {
   const maxEpisodes = data ? Math.max(...(data.stats.weeklyActivity?.map((d) => d.episodes) ?? [1]), 1) : 1;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000" }}>
+    <div className="iz-page" style={{ paddingTop: 0 }}>
       <Navbar />
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "72px 16px 48px" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "calc(var(--iz-nav-h) + 28px) 16px 48px" }}>
 
         <button
           onClick={() => navigate("/")}
@@ -127,7 +127,7 @@ export default function PublicProfile() {
         {error && (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🎌</div>
-            <div style={{ color: "#F1F1F5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Perfil no encontrado</div>
+            <div style={{ color: "#f4f4f5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Perfil no encontrado</div>
             <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13 }}>{error}</div>
           </div>
         )}
@@ -153,7 +153,7 @@ export default function PublicProfile() {
                   : data.user.username.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: "#F1F1F5", fontSize: 20, fontWeight: 900 }}>{data.user.username}</div>
+                <div style={{ color: "#f4f4f5", fontSize: 20, fontWeight: 900 }}>{data.user.username}</div>
                 <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 3 }}>
                   Miembro desde {new Date(data.user.created_at).toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
                 </div>
@@ -207,7 +207,7 @@ export default function PublicProfile() {
               ].map(({ icon, label, value, small }) => (
                 <div key={label} style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 12px", textAlign: "center" }}>
                   <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>{icon}</div>
-                  <div style={{ color: "#F1F1F5", fontSize: small ? 13 : 22, fontWeight: 900, wordBreak: "break-word" }}>{value}</div>
+                  <div style={{ color: "#f4f4f5", fontSize: small ? 13 : 22, fontWeight: 900, wordBreak: "break-word" }}>{value}</div>
                   <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>{label}</div>
                 </div>
               ))}
@@ -218,14 +218,14 @@ export default function PublicProfile() {
               <div style={{ ...cardStyle, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <div style={{ width: 3, height: 16, borderRadius: 2, background: "#3f2eb2" }} />
-                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Actividad semanal</span>
+                  <span style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 800 }}>Actividad semanal</span>
                 </div>
                 <ResponsiveContainer width="100%" height={100}>
                   <BarChart data={data.stats.weeklyActivity} barSize={24}>
                     <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 11 }} axisLine={false} tickLine={false} />
                     <YAxis hide allowDecimals={false} />
                     <Tooltip
-                      contentStyle={{ background: "#0f0f0f", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 8, color: "#F1F1F5", fontSize: 12 }}
+                      contentStyle={{ background: "#0f0f0f", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 8, color: "#f4f4f5", fontSize: 12 }}
                       formatter={(v: number) => [`${v} ep`, "Episodios"]}
                       labelStyle={{ color: "rgba(255,255,255,0.5)" }}
                     />
@@ -247,7 +247,7 @@ export default function PublicProfile() {
               <div style={cardStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <BookOpen size={14} color="#3f2eb2" />
-                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Viendo / Completados</span>
+                  <span style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 800 }}>Viendo / Completados</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(58px, 1fr))", gap: 8 }}>
                   {data.watchlist.map((a) => (
@@ -269,7 +269,7 @@ export default function PublicProfile() {
               <div style={cardStyle}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <Heart size={14} color="#3f2eb2" />
-                  <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Favoritos</span>
+                  <span style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 800 }}>Favoritos</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(58px, 1fr))", gap: 8 }}>
                   {data.favorites.map((a) => (

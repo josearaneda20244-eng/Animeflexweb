@@ -13,18 +13,18 @@ export interface BannerPresetMeta {
 }
 
 export const BANNER_PRESETS: BannerPresetMeta[] = [
-  { key: "default",  label: "DEFECTO",  accent: "#6366f1", glow: "rgba(63,46,178,0.6)", bg: "linear-gradient(135deg,#200810,#350a18 50%,#15040c)" },
-  { key: "monarca",  label: "MONARCA",  accent: "#A855F7", glow: "rgba(168,85,247,0.55)", bg: "linear-gradient(135deg,#0b0418,#1a0a2a 50%,#040108)" },
-  { key: "cazador",  label: "CAZADOR",  accent: "#6366f1", glow: "rgba(99,102,241,0.55)", bg: "linear-gradient(135deg,#200810,#3b0c12 55%,#150410)" },
-  { key: "akatsuki", label: "AKATSUKI", accent: "#3f2eb2", glow: "rgba(63,46,178,0.6)", bg: "linear-gradient(135deg,#0a0204,#1a0204 50%,#000)" },
-  { key: "hokage",   label: "HOKAGE",   accent: "#F59E0B", glow: "rgba(245,158,11,0.55)", bg: "linear-gradient(135deg,#3b0a04,#1c0700 60%,#0a0300)" },
-  { key: "espiral",  label: "ESPIRAL",  accent: "#FB923C", glow: "rgba(251,146,60,0.55)", bg: "linear-gradient(135deg,#1c0a02,#3b1a04 55%,#0a0300)" },
-  { key: "rasengan", label: "RASENGAN", accent: "#38BDF8", glow: "rgba(56,189,248,0.6)", bg: "linear-gradient(135deg,#021a2c,#012845 55%,#000812)" },
-  { key: "sukuna",   label: "SUKUNA",   accent: "#EF4444", glow: "rgba(239,68,68,0.6)", bg: "linear-gradient(135deg,#0a0204,#220406 50%,#040000)" },
-  { key: "frieren",  label: "FRIEREN",  accent: "#86EFAC", glow: "rgba(134,239,172,0.45)", bg: "linear-gradient(135deg,#04140a,#0a2418 55%,#020c08)" },
-  { key: "sello",    label: "SELLO",    accent: "#FBBF24", glow: "rgba(251,191,36,0.55)", bg: "linear-gradient(135deg,#180a02,#2c1408 55%,#0a0500)" },
-  { key: "dragon",   label: "DRAGON",   accent: "#6366f1", glow: "rgba(99,102,241,0.6)", bg: "linear-gradient(135deg,#1a0a02,#3b1a02 60%,#0a0500)" },
-  { key: "void",     label: "VOID",     accent: "#7C73FF", glow: "rgba(124,115,255,0.55)", bg: "linear-gradient(135deg,#04041a,#0a0428 55%,#000010)" },
+  { key: "default",  label: "DEFECTO",  accent: "#6366f1", glow: "rgba(63,46,178,0.6)", bg: "linear-gradient(135deg,#131313,#350a18 50%,#0c0c0c)" },
+  { key: "monarca",  label: "MONARCA",  accent: "#A855F7", glow: "rgba(168,85,247,0.55)", bg: "linear-gradient(135deg,#0d0d0d,#1a1a1a 50%,#040404)" },
+  { key: "cazador",  label: "CAZADOR",  accent: "#6366f1", glow: "rgba(99,102,241,0.55)", bg: "linear-gradient(135deg,#131313,#3b0c12 55%,#0e0e0e)" },
+  { key: "akatsuki", label: "AKATSUKI", accent: "#3f2eb2", glow: "rgba(63,46,178,0.6)", bg: "linear-gradient(135deg,#050505,#0b0b0b 50%,#000)" },
+  { key: "hokage",   label: "HOKAGE",   accent: "#F59E0B", glow: "rgba(245,158,11,0.55)", bg: "linear-gradient(135deg,#3b0a04,#0c0c0c 60%,#040404)" },
+  { key: "espiral",  label: "ESPIRAL",  accent: "#FB923C", glow: "rgba(251,146,60,0.55)", bg: "linear-gradient(135deg,#0d0d0d,#3b1a04 55%,#040404)" },
+  { key: "rasengan", label: "RASENGAN", accent: "#38BDF8", glow: "rgba(56,189,248,0.6)", bg: "linear-gradient(135deg,#181818,#012845 55%,#090909)" },
+  { key: "sukuna",   label: "SUKUNA",   accent: "#EF4444", glow: "rgba(239,68,68,0.6)", bg: "linear-gradient(135deg,#050505,#0f0f0f 50%,#040000)" },
+  { key: "frieren",  label: "FRIEREN",  accent: "#86EFAC", glow: "rgba(134,239,172,0.45)", bg: "linear-gradient(135deg,#0b0b0b,#171717 55%,#070707)" },
+  { key: "sello",    label: "SELLO",    accent: "#FBBF24", glow: "rgba(251,191,36,0.55)", bg: "linear-gradient(135deg,#0c0c0c,#181818 55%,#0a0500)" },
+  { key: "dragon",   label: "DRAGON",   accent: "#6366f1", glow: "rgba(99,102,241,0.6)", bg: "linear-gradient(135deg,#0d0d0d,#3b1a02 60%,#0a0500)" },
+  { key: "void",     label: "VOID",     accent: "#7C73FF", glow: "rgba(99,102,241,0.55)", bg: "linear-gradient(135deg,#0b0b0b,#121212 55%,#050505)" },
 ];
 
 export function getBannerMeta(key: string | null | undefined): BannerPresetMeta {

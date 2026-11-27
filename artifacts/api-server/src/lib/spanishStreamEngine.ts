@@ -30,9 +30,19 @@ export type Manga_PageContainer = any
 export type Onlinestream_EpisodeListResponse = any
 
 export const ANIMEFLEX_API_BASE_URL = (
-    process.env.EXPO_PUBLIC_ANIMEFLEX_API_URL
+    process.env.ANIMEFLEX_UPSTREAM_URL
+    ?? process.env.EXPO_PUBLIC_ANIMEFLEX_API_URL
     ?? "https://animeflexweb-production.up.railway.app/api"
 ).replace(/\/$/, "")
+
+/**
+ * Cabecera que marca las peticiones hechas por el propio motor. Las rutas que
+ * ejecutan el motor la detectan y NO lo vuelven a lanzar: así se evita una
+ * cascada recursiva si ANIMEFLEX_UPSTREAM_URL apunta a este mismo servidor.
+ */
+export const ENGINE_HOP_HEADER = "x-iz-engine-hop"
+/** Pon ANIMEFLEX_DISABLE_UPSTREAM=1 para que el motor no consulte el backend legado. */
+const UPSTREAM_DISABLED = process.env.ANIMEFLEX_DISABLE_UPSTREAM === "1"
 
 const REQUEST_TIMEOUT_MS = 60_000
 const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co"
@@ -760,7 +770,7 @@ async function getJson<T>(path: string, signal?: AbortSignal, timeoutMs = REQUES
         let response: Response | undefined
         for (let attempt = 0; attempt < 2; attempt += 1) {
             response = await fetch(`${ANIMEFLEX_API_BASE_URL}${path}`, {
-                headers: { Accept: "application/json" },
+                headers: { Accept: "application/json", [ENGINE_HOP_HEADER]: "1" },
                 signal: controller.signal,
             })
             if (![502, 503, 504].includes(response.status) || attempt === 1) break
@@ -2789,7 +2799,7 @@ export async function getAnimeflexStream({
 
     const legacyAttempts: Array<Promise<Onlinestream_EpisodeSource>> = []
 
-    if (animeTitle?.trim()) {
+    if (!UPSTREAM_DISABLED && animeTitle?.trim()) {
         const fallbackParams = new URLSearchParams({
             title: animeTitle.trim(),
             episode: String(episodeNumber),
@@ -2810,7 +2820,7 @@ export async function getAnimeflexStream({
         })())
     }
 
-    legacyAttempts.push((async () => {
+    if (!UPSTREAM_DISABLED) legacyAttempts.push((async () => {
         const data = await getJson<AnimeflexStreamingData>(`/anime/watch?${params.toString()}`, raceSignal, 10_000)
         if (!isAnimeflexStreamIdentityMatch(data, expectedTitles)) {
             throw new AnimeflexApiError("The provider matched a different anime")

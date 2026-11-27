@@ -58,7 +58,7 @@ export default function AnnouncementBanner() {
       padding: "10px 16px",
     }}>
       <span style={{ color: style.color, flexShrink: 0 }}>{style.icon}</span>
-      <span style={{ color: "#F1F1F5", fontSize: 13, fontWeight: 600, flex: 1 }}>{ann.message}</span>
+      <span style={{ color: "#f4f4f5", fontSize: 13, fontWeight: 600, flex: 1 }}>{ann.message}</span>
       <button
         onClick={() => handleDismiss(ann.id)}
         style={{

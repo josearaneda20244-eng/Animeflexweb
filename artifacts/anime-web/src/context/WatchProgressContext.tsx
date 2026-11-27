@@ -38,31 +38,63 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
   });
   const { user } = useAuth();
   const prevUserIdRef = useRef<number | null>(null);
-  // Debounce backend PUTs per episode so timeupdate (~4 fires/s) doesn't hammer the API.
+  // Sincronización con backend: un envío por episodio cada 5 s (máx. 15 s) y flush real al salir.
   const pendingTimers = useRef<Map<string, number>>(new Map());
+  const pendingBodies = useRef<Map<string, Record<string, unknown>>>(new Map());
   const lastSentAt = useRef<Map<string, number>>(new Map());
-  const PROGRESS_DEBOUNCE_MS = 5000; // batch: only push every 5s per episode
-  const PROGRESS_FLUSH_MAX_MS = 15000; // hard flush: push at least every 15s
+  const lastLocalSave = useRef<{ epId: string; at: number; time: number }>({ epId: "", at: 0, time: 0 });
+  const progressRef = useRef(progress);
+  useEffect(() => { progressRef.current = progress; }, [progress]);
+  const PROGRESS_DEBOUNCE_MS = 5000;
+  const PROGRESS_FLUSH_MAX_MS = 15000;
+  const LOCAL_THROTTLE_MS = 2500;
 
   const save = useCallback((list: WatchProgressEntry[]) => {
+    progressRef.current = list;
     setProgress(list);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
   }, []);
 
-  // Flush all pending progress on unload so we don't lose the very last seek.
-  useEffect(() => {
-    const flush = () => {
-      pendingTimers.current.forEach((id) => window.clearTimeout(id));
-      pendingTimers.current.clear();
-    };
-    window.addEventListener("pagehide", flush);
-    window.addEventListener("beforeunload", flush);
-    return () => {
-      window.removeEventListener("pagehide", flush);
-      window.removeEventListener("beforeunload", flush);
-      flush();
-    };
+  const sendNow = useCallback((epId: string, keepalive = false) => {
+    const body = pendingBodies.current.get(epId);
+    const timer = pendingTimers.current.get(epId);
+    if (timer) window.clearTimeout(timer);
+    pendingTimers.current.delete(epId);
+    if (!body) return;
+    pendingBodies.current.delete(epId);
+    lastSentAt.current.set(epId, Date.now());
+    if (keepalive) {
+      // fetch keepalive sobrevive al cierre de la pestaña (apiClient no lo soporta)
+      try {
+        const base = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "/api";
+        const token = localStorage.getItem("af_token");
+        fetch(`${base}/user/progress/${encodeURIComponent(epId)}`, {
+          method: "PUT",
+          keepalive: true,
+          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify(body),
+        }).catch(() => {});
+      } catch {}
+      return;
+    }
+    apiClient.put(`/user/progress/${encodeURIComponent(epId)}`, body).catch(() => {});
   }, []);
+
+  // Al cerrar/ocultar la pestaña se ENVÍA el progreso pendiente (antes se descartaba).
+  useEffect(() => {
+    const flushAll = () => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progressRef.current)); } catch {}
+      Array.from(pendingBodies.current.keys()).forEach((id) => sendNow(id, true));
+    };
+    const onVis = () => { if (document.visibilityState === "hidden") flushAll(); };
+    window.addEventListener("pagehide", flushAll);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("pagehide", flushAll);
+      document.removeEventListener("visibilitychange", onVis);
+      flushAll();
+    };
+  }, [sendNow]);
 
   useEffect(() => {
     if (!user) { prevUserIdRef.current = null; return; }
@@ -100,41 +132,40 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
     (entry: Omit<WatchProgressEntry, "updatedAt">) => {
       if (!entry.duration || entry.duration < 30) return;
       const percent = entry.currentTime / entry.duration;
-      if (percent < 0.02 || percent > 0.97) return;
-      const updated: WatchProgressEntry = { ...entry, updatedAt: Date.now() };
-      const filtered = progress.filter((p) => p.episodeId !== entry.episodeId);
-      save([updated, ...filtered].slice(0, MAX_ENTRIES));
+      // < 2 %: aún no empezó. Al final (>97 %) guardamos el 97 % para marcarlo como visto.
+      if (percent < 0.02) return;
+      const currentTime = percent > 0.97 ? entry.duration * 0.97 : entry.currentTime;
+
+      // Guardado local con throttle: timeupdate dispara ~4 veces/s
+      const now = Date.now();
+      const last = lastLocalSave.current;
+      const jumped = Math.abs(currentTime - last.time) > 10;
+      if (last.epId === entry.episodeId && now - last.at < LOCAL_THROTTLE_MS && !jumped) {
+        // aun así dejamos listo el cuerpo para el backend
+      } else {
+        lastLocalSave.current = { epId: entry.episodeId, at: now, time: currentTime };
+        const updated: WatchProgressEntry = { ...entry, currentTime, updatedAt: now };
+        const filtered = progressRef.current.filter((p) => p.episodeId !== entry.episodeId);
+        save([updated, ...filtered].slice(0, MAX_ENTRIES));
+      }
       if (!user) return;
 
-      // Backend sync: debounced per-episode to avoid spamming the API on every timeupdate.
       const epId = entry.episodeId;
-      const now = Date.now();
-      const last = lastSentAt.current.get(epId) ?? 0;
-      const existingTimer = pendingTimers.current.get(epId);
-      if (existingTimer) window.clearTimeout(existingTimer);
-
-      const flushNow = () => {
-        pendingTimers.current.delete(epId);
-        lastSentAt.current.set(epId, Date.now());
-        apiClient.put(`/user/progress/${encodeURIComponent(epId)}`, {
-          animeId: entry.animeId,
-          animeTitle: entry.animeTitle,
-          animeImage: entry.animeImage,
-          episodeNum: entry.episodeNum,
-          watchTime: entry.currentTime,
-          duration: entry.duration,
-        }).catch(() => {});
-      };
-
-      // If it's been long enough since the last send, force an immediate flush.
-      if (now - last >= PROGRESS_FLUSH_MAX_MS) {
-        flushNow();
-        return;
+      pendingBodies.current.set(epId, {
+        animeId: entry.animeId,
+        animeTitle: entry.animeTitle,
+        animeImage: entry.animeImage,
+        episodeNum: entry.episodeNum,
+        watchTime: currentTime,
+        duration: entry.duration,
+      });
+      const lastSent = lastSentAt.current.get(epId) ?? 0;
+      if (now - lastSent >= PROGRESS_FLUSH_MAX_MS) { sendNow(epId); return; }
+      if (!pendingTimers.current.has(epId)) {
+        pendingTimers.current.set(epId, window.setTimeout(() => sendNow(epId), PROGRESS_DEBOUNCE_MS));
       }
-      const timer = window.setTimeout(flushNow, PROGRESS_DEBOUNCE_MS);
-      pendingTimers.current.set(epId, timer);
     },
-    [progress, save, user]
+    [save, user, sendNow]
   );
 
   const getProgress = useCallback(
@@ -149,8 +180,8 @@ export function WatchProgressProvider({ children }: { children: React.ReactNode 
   );
 
   const removeProgress = useCallback(
-    (episodeId: string) => save(progress.filter((p) => p.episodeId !== episodeId)),
-    [progress, save]
+    (episodeId: string) => save(progressRef.current.filter((p) => p.episodeId !== episodeId)),
+    [save]
   );
 
   const clearAllProgress = useCallback(() => save([]), [save]);

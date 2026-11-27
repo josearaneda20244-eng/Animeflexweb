@@ -55,13 +55,13 @@ export default function InstallPrompt() {
     <div
       style={{
         position: "fixed",
-        bottom: 20,
+        bottom: "calc(20px + var(--iz-tabbar-h, 0px))",
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 9999,
         maxWidth: 380,
         width: "calc(100vw - 32px)",
-        background: "linear-gradient(135deg, #1a1b2e 0%, #12131f 100%)",
+        background: "linear-gradient(135deg, #141414 0%, #0a0a0a 100%)",
         border: "1px solid rgba(63,46,178,0.3)",
         borderRadius: 16,
         padding: "16px 18px",
@@ -87,8 +87,8 @@ export default function InstallPrompt() {
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: "#F0F0FF", fontWeight: 700, fontSize: 14, marginBottom: 2 }}>
-          Instalar AnimeFlex
+        <div style={{ color: "#ffffff", fontWeight: 700, fontSize: 14, marginBottom: 2 }}>
+          Instalar IZIFF ANIME
         </div>
         {showIOSGuide ? (
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, lineHeight: 1.4 }}>

@@ -61,20 +61,20 @@ export default function Feed() {
   }, [token]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000" }}>
+    <div className="iz-page" style={{ paddingTop: 0 }}>
       <Navbar />
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "72px 16px 48px" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto", padding: "calc(var(--iz-nav-h) + 28px) 16px 48px" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
           <div style={{ width: 4, height: 24, borderRadius: 2, background: "linear-gradient(180deg,#3f2eb2,#3f2eb2)" }} />
           <Rss size={20} color="#3f2eb2" />
-          <h1 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, margin: 0 }}>Feed de actividad</h1>
+          <h1 style={{ color: "#f4f4f5", fontSize: 22, fontWeight: 900, margin: 0 }}>Feed de actividad</h1>
         </div>
 
         {!token ? (
           <div style={{ background: "#0a0a0a", borderRadius: 20, padding: "48px 24px", textAlign: "center", border: "1px solid rgba(255,255,255,0.07)" }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🔐</div>
-            <div style={{ color: "#F1F1F5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Inicia sesión para ver el feed</div>
+            <div style={{ color: "#f4f4f5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Inicia sesión para ver el feed</div>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, marginBottom: 24 }}>
               Sigue a otros usuarios para ver su actividad aquí
             </div>
@@ -91,7 +91,7 @@ export default function Feed() {
         ) : activities.length === 0 ? (
           <div style={{ background: "#0a0a0a", borderRadius: 20, padding: "48px 24px", textAlign: "center", border: "1px solid rgba(255,255,255,0.07)" }}>
             <UserPlus size={48} color="rgba(63,46,178,0.3)" style={{ margin: "0 auto 16px", display: "block" }} />
-            <div style={{ color: "#F1F1F5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Sin actividad reciente</div>
+            <div style={{ color: "#f4f4f5", fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Sin actividad reciente</div>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 14, lineHeight: 1.7 }}>
               Sigue a otros usuarios desde sus perfiles<br />para ver su actividad aquí
             </div>
@@ -142,7 +142,7 @@ export default function Feed() {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ color, display: "flex", alignItems: "center" }}>{icon}</div>
-                      <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {a.anime_title}
                       </span>
                     </div>

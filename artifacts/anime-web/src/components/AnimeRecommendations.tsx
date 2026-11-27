@@ -1,11 +1,11 @@
 // components/AnimeRecommendations.tsx
-  import { useState, useRef } from 'react';
+  import { useMemo, useState } from 'react';
   import { useQuery } from '@tanstack/react-query';
-  import { RefreshCw, Sparkles, Star } from 'lucide-react';
+  import { RefreshCw, Sparkles } from 'lucide-react';
+  import { Rail, PosterCard, PosterSkeletons, toScore10 } from '@/components/iz/ui';
   import { apiClient } from '@/lib/apiClient';
   import { consumet } from '@/lib/consumet';
   import { fetchSeasonalAnime, type SeasonAnime } from '@/lib/anilist';
-  import { Link } from 'wouter';
 
   interface Recommendation {
     anime_id: string | number;
@@ -60,104 +60,6 @@
     }));
   }
 
-  function RecCard({ rec }: { rec: Recommendation }) {
-    return (
-      <Link href={`/anime/${rec.anime_id}`} style={{ textDecoration: 'none', display: 'block', flexShrink: 0 }}>
-        <div className="rec-card">
-          <img
-            src={rec.image}
-            alt={rec.title}
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                `https://placehold.co/130x197/1a0a2e/a855f7?text=${encodeURIComponent(rec.title.slice(0, 8))}`;
-            }}
-          />
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(to bottom, rgba(9,10,18,0) 30%, rgba(9,10,18,0.97) 100%)',
-          }} />
-          <div style={{
-            position: 'absolute', top: 7, left: 7,
-            background: 'linear-gradient(135deg, #3f2eb2, #2e218a)',
-            borderRadius: 4, padding: '2px 6px',
-            color: '#fff', fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
-          }}>SUB ESP</div>
-          {rec.score > 0 && (
-            <div style={{
-              position: 'absolute', top: 7, right: 7,
-              background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
-              borderRadius: 5, padding: '2px 5px',
-              display: 'flex', alignItems: 'center', gap: 2,
-              border: '1px solid rgba(99,102,241,0.4)',
-            }}>
-              <Star size={7} color="#a855f7" fill="#a855f7" />
-              <span style={{ color: '#c084fc', fontSize: 8, fontWeight: 800 }}>
-                {(rec.score / 10).toFixed(1)}
-              </span>
-            </div>
-          )}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 8px' }}>
-            <div style={{
-              color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1.3,
-              overflow: 'hidden', display: '-webkit-box',
-              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: 2,
-            }}>{rec.title}</div>
-            <div style={{ color: 'rgba(192,132,252,0.8)', fontSize: 8, fontWeight: 600 }}>
-              {rec.status || 'Anime'}
-            </div>
-          </div>
-        </div>
-      </Link>
-    );
-  }
-
-
-    /* ── SCROLLABLE CAROUSEL WITH ARROWS ── */
-    function RecCarousel({ children }: { children: React.ReactNode }) {
-      const ref = useRef<HTMLDivElement>(null);
-      const [canLeft, setCanLeft] = useState(false);
-      const [canRight, setCanRight] = useState(true);
-      const update = () => {
-        const el = ref.current;
-        if (!el) return;
-        setCanLeft(el.scrollLeft > 4);
-        setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-      };
-      const scroll = (dir: number) => {
-        ref.current?.scrollBy({ left: dir * 420, behavior: 'smooth' });
-        setTimeout(update, 350);
-      };
-      const arrowStyle = (active: boolean, side: string): React.CSSProperties => ({
-        position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-        [side]: 6, zIndex: 10,
-        background: 'rgba(7,7,20,0.82)', backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.12)', borderRadius: 22,
-        width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: active ? 'pointer' : 'default',
-        opacity: active ? 1 : 0, pointerEvents: active ? 'auto' : 'none',
-        transition: 'opacity 0.22s, background 0.18s, transform 0.18s',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-      });
-      return (
-        <div style={{ position: 'relative' }} onMouseEnter={update}>
-          <button onClick={() => scroll(-1)} style={arrowStyle(canLeft, 'left')}
-            onMouseEnter={e => { if (canLeft) { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(7,7,20,0.82)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
-          <button onClick={() => scroll(1)} style={arrowStyle(canRight, 'right')}
-            onMouseEnter={e => { if (canRight) { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(7,7,20,0.82)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
-          <div ref={ref} className="carousel-scroll" onScroll={update}>{children}</div>
-          {canLeft && <div style={{ position: 'absolute', top: 0, left: 0, width: 60, height: '100%', pointerEvents: 'none', background: 'linear-gradient(to right, rgba(7,7,20,0.85), transparent)' }} />}
-          {canRight && <div style={{ position: 'absolute', top: 0, right: 0, width: 60, height: '100%', pointerEvents: 'none', background: 'linear-gradient(to left, rgba(7,7,20,0.85), transparent)' }} />}
-        </div>
-      );
-    }
-
       export default function AnimeRecommendations({
     userId,
     animeId,
@@ -197,8 +99,8 @@
       return normalizeRecs(r, 'Reciente');
     };
 
-    const { data: recommendations, isLoading, refetch } = useQuery<Recommendation[]>({
-      queryKey: ['recommendations', type, userId, animeId, refreshKey],
+    const { data: recommendations, isLoading } = useQuery<Recommendation[]>({
+      queryKey: ['recommendations', type, userId, animeId],
       queryFn: getRecommendations,
       enabled: !!(userId || animeId || type === 'trending' || type === 'personal'),
       staleTime: 5 * 60 * 1000,
@@ -211,43 +113,37 @@
       : type === 'similar'   ? 'Animes similares'
       : 'Populares para ti');
 
-    const displayList = Array.isArray(recommendations) ? recommendations.slice(0, limit) : [];
+    // Al pulsar "actualizar" se baraja la lista para mostrar otros títulos
+    const displayList = useMemo(() => {
+      const list = Array.isArray(recommendations) ? [...recommendations] : [];
+      if (refreshKey > 0) {
+        for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+      }
+      return list.slice(0, limit);
+    }, [recommendations, refreshKey, limit]);
 
     return (
-      <section className="rec-section">
-        <div className="rec-bg" />
-        <div className="rec-orb-1" />
-        <div className="rec-orb-2" />
-        <div className="rec-orb-3" />
-
-        <div className="rec-header">
-          <div className="rec-header-left">
-            <div className="rec-accent-bar" />
-            <Sparkles size={15} color="#a855f7" />
-            <h2 className="rec-title-text">{sectionTitle}</h2>
+      <div>
+        <div className="iz-head">
+          <div>
+            <div className="iz-head__eyebrow"><Sparkles size={12} /> {type === 'personal' && userId ? 'Según lo que ves' : 'Selección'}</div>
+            <h2 className="iz-head__title">{sectionTitle}</h2>
           </div>
-          <button
-            className="rec-refresh-btn"
-            onClick={() => { setRefreshKey(k => k + 1); refetch(); }}
-            disabled={isLoading}
-            title="Actualizar"
-          >
-            <RefreshCw size={14} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
+          <button type="button" className="iz-head__link" onClick={() => setRefreshKey((k) => k + 1)} disabled={isLoading} title="Mostrar otras">
+            <RefreshCw size={14} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} /> Otras
           </button>
         </div>
-
-        <div className="carousel-scroll">
-          {isLoading
-            ? Array.from({ length: 10 }, (_, i) => <div key={i} className="rec-skel" />)
-            : displayList.length > 0
-            ? displayList.map((rec) => <RecCard key={String(rec.anime_id)} rec={rec} />)
-            : (
-              <div style={{ padding: '32px 16px', color: 'rgba(255,255,255,0.3)', fontSize: 13, width: '100%', textAlign: 'center' }}>
-                No hay recomendaciones disponibles.
-              </div>
-            )}
-        </div>
-      </section>
+        <Rail label={sectionTitle}>
+          {isLoading ? <PosterSkeletons /> : displayList.length > 0 ? displayList.map((rec) => (
+            <PosterCard key={String(rec.anime_id)} data={{
+              id: rec.anime_id, title: rec.title, image: rec.image, score: toScore10(rec.score),
+              badge: rec.status === 'RELEASING' || rec.status === 'Ongoing' ? 'EN EMISIÓN' : undefined, accentBadge: true,
+              meta: rec.genres.slice(0, 2).join(' · ') || rec.reason,
+            }} />
+          )) : (
+            <div style={{ padding: '32px 16px', color: 'var(--iz-dim)', fontSize: 13, width: '100%', textAlign: 'center' }}>No hay recomendaciones disponibles.</div>
+          )}
+        </Rail>
+      </div>
     );
   }
-  

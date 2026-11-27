@@ -66,7 +66,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
       transition={{ duration: 0.22 }}
       style={{
         position: "fixed", inset: 0, zIndex: 9999,
-        background: "radial-gradient(ellipse at center, rgba(40,8,8,0.6), rgba(0,0,0,0.92))",
+        background: "radial-gradient(ellipse at center, rgba(20,20,20,0.6), rgba(0,0,0,0.92))",
         backdropFilter: "blur(14px) saturate(140%)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: 16, overflowY: "auto",
@@ -195,7 +195,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                     <CheckCircle2 size={26} color="#22C55E" />
                   </div>
                   <div>
-                    <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 900, marginBottom: 6, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, textTransform: "uppercase" }}>
+                    <div style={{ color: "#f4f4f5", fontSize: 14, fontWeight: 900, marginBottom: 6, fontFamily: "'Space Grotesk', ui-monospace, monospace", letterSpacing: 1, textTransform: "uppercase" }}>
                       {">"} Mensaje enviado
                     </div>
                     <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 12, lineHeight: 1.6 }}>

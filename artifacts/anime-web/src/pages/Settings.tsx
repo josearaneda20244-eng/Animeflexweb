@@ -8,7 +8,7 @@ import { apiClient } from "@/lib/apiClient";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const MONO = "inherit";
 const CLIP_8 = "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)";
 const CLIP_10 = "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)";
 const CLIP_14 = "polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px)";
@@ -21,9 +21,8 @@ const cardStyle = (accent: "carmesi" | "ambar" | "neutro" = "carmesi"): React.CS
     neutro:  { border: "rgba(99,102,241,0.18)", glow: "rgba(0,0,0,0)" },
   }[accent];
   return {
-    background: "linear-gradient(160deg, rgba(20,6,16,0.92), rgba(8,4,18,0.96))",
+    background: "linear-gradient(160deg, rgba(10,10,10,0.92), rgba(10,10,10,0.96))",
     border: `1px solid ${colors.border}`,
-    clipPath: CLIP_14,
     padding: 22,
     marginBottom: 14,
     position: "relative",
@@ -31,32 +30,17 @@ const cardStyle = (accent: "carmesi" | "ambar" | "neutro" = "carmesi"): React.CS
   };
 };
 
-const sectionHeader = (icon: React.ReactNode, tag: string, title: string) => (
-  <div style={{ marginBottom: 16 }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{
-        width: 34, height: 34,
-        background: "linear-gradient(135deg, rgba(63,46,178,0.2), rgba(99,102,241,0.15))",
-        border: "1px solid rgba(99,102,241,0.4)",
-        clipPath: CLIP_6,
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}>{icon}</div>
-      <div>
-        <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 4, height: 4, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 6px #6366f1" }} />
-          {tag}
-        </div>
-        <div style={{ color: "#c7d2fe", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>{title}</div>
-      </div>
-    </div>
+const sectionHeader = (icon: React.ReactNode, _tag: string, title: string) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+    <span className="iz-avatar" style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(255,255,255,.05)" }}>{icon}</span>
+    <div style={{ color: "#fff", fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em" }}>{title}</div>
   </div>
 );
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px", boxSizing: "border-box",
-  background: "rgba(8,4,18,0.7)",
+  background: "rgba(10,10,10,0.7)",
   border: "1px solid rgba(99,102,241,0.35)",
-  clipPath: CLIP_8,
   color: "#c7d2fe", fontSize: 13, outline: "none",
   fontFamily: "inherit",
 };
@@ -68,7 +52,6 @@ const primaryBtn = (success = false): React.CSSProperties => ({
     : "linear-gradient(135deg,#3f2eb2,#2e218a)",
   color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: 2,
   fontFamily: MONO,
-  clipPath: CLIP_8,
   cursor: "pointer",
   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
   boxShadow: success ? "0 0 16px rgba(34,197,94,0.4)" : "0 0 16px rgba(63,46,178,0.4)",
@@ -126,8 +109,8 @@ export default function Settings() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", background: "#07060b", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO }}>
-        <div style={{ color: "#a5b4fc", fontSize: 13, letterSpacing: 2, fontWeight: 800 }}>// SISTEMA: SESION_REQUERIDA</div>
+      <div style={{ minHeight: "100vh", background: "#000000", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO }}>
+        <div style={{ color: "#a5b4fc", fontSize: 13, letterSpacing: 2, fontWeight: 800 }}>Inicia sesión para ver tus ajustes</div>
       </div>
     );
   }
@@ -305,25 +288,10 @@ export default function Settings() {
     : null;
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at top, #14060c 0%, #07060b 60%)", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at top, #0a0a0a 0%, #000000 60%)", position: "relative" }}>
       <Navbar />
 
-      {/* Background scan lines */}
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg, rgba(99,102,241,0.025) 0px, rgba(99,102,241,0.025) 1px, transparent 1px, transparent 4px)",
-      }} />
-
-      {/* Hex grid bg */}
-      <div style={{
-        position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        backgroundImage: "linear-gradient(rgba(63,46,178,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.04) 1px, transparent 1px)",
-        backgroundSize: "32px 32px",
-        maskImage: "radial-gradient(ellipse at top, black 10%, transparent 70%)",
-        WebkitMaskImage: "radial-gradient(ellipse at top, black 10%, transparent 70%)",
-      }} />
-
-      <div style={{ maxWidth: 600, margin: "0 auto", padding: "80px 16px 48px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "calc(var(--iz-nav-h) + 28px) 16px 48px", position: "relative", zIndex: 1 }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
           <button
@@ -331,7 +299,6 @@ export default function Settings() {
             style={{
               background: "rgba(63,46,178,0.1)",
               border: "1px solid rgba(99,102,241,0.4)",
-              clipPath: CLIP_6,
               padding: "9px 12px", cursor: "pointer", display: "flex", alignItems: "center",
               color: "#a5b4fc",
             }}
@@ -341,13 +308,12 @@ export default function Settings() {
           <div>
             <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 3, fontFamily: MONO, display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ width: 5, height: 5, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 6px #6366f1", animation: "syspulse 1.6s ease-in-out infinite" }} />
-              [ SISTEMA · PANEL_DE_CONTROL ]
+              Ajustes de la cuenta
             </div>
             <h1 style={{
               color: "#c7d2fe", fontSize: 24, fontWeight: 900, margin: "4px 0 0", letterSpacing: 0.5,
               fontFamily: MONO,
-              textShadow: "0 0 16px rgba(63,46,178,0.4)",
-            }}>
+              }}>
               CONFIGURACION
             </h1>
             <p style={{ color: "rgba(165,180,252,0.6)", fontSize: 11, margin: "2px 0 0", letterSpacing: 1, fontFamily: MONO }}>
@@ -361,7 +327,7 @@ export default function Settings() {
           {/* Banner */}
           <div style={{
             height: 90,
-            background: "linear-gradient(135deg, #2D0A14 0%, #14060c 50%, #1A0E1F 100%)",
+            background: "linear-gradient(135deg, #191919 0%, #0a0a0a 50%, #181818 100%)",
             position: "relative",
             overflow: "hidden",
           }}>
@@ -382,8 +348,7 @@ export default function Settings() {
             position: "absolute", top: 50, left: 22, zIndex: 2,
             width: 78, height: 78,
             background: "linear-gradient(135deg,#3f2eb2,#6366f1)",
-            border: "3px solid #07060b",
-            clipPath: CLIP_8,
+            border: "3px solid #000000",
             display: "flex", alignItems: "center", justifyContent: "center",
             overflow: "hidden",
             boxShadow: "0 4px 24px rgba(63,46,178,0.6), 0 0 0 1px rgba(165,180,252,0.5)",
@@ -396,7 +361,7 @@ export default function Settings() {
 
           {/* Content */}
           <div style={{ padding: "44px 22px 22px" }}>
-            <div style={{ color: "#c7d2fe", fontSize: 18, fontWeight: 900, marginBottom: 8, letterSpacing: 0.3, textShadow: "0 0 12px rgba(63,46,178,0.4)" }}>
+            <div style={{ color: "#c7d2fe", fontSize: 18, fontWeight: 900, marginBottom: 8, letterSpacing: 0.3, }}>
               {user.username}
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
@@ -405,7 +370,6 @@ export default function Settings() {
                   display: "inline-flex", alignItems: "center", gap: 4,
                   background: "linear-gradient(135deg, rgba(239,68,68,0.3), rgba(46,33,138,0.2))",
                   border: "1px solid rgba(165,180,252,0.5)",
-                  clipPath: CLIP_6,
                   padding: "3px 10px", fontSize: 9, fontWeight: 900, color: "#a5b4fc",
                   letterSpacing: 1.5, fontFamily: MONO,
                 }}>
@@ -417,7 +381,6 @@ export default function Settings() {
                   display: "inline-flex", alignItems: "center", gap: 4,
                   background: "linear-gradient(135deg, rgba(99,102,241,0.3), rgba(180,83,9,0.2))",
                   border: "1px solid rgba(165,180,252,0.6)",
-                  clipPath: CLIP_6,
                   padding: "3px 10px", fontSize: 9, fontWeight: 900, color: "#a5b4fc",
                   letterSpacing: 1.5, fontFamily: MONO,
                   boxShadow: "0 0 10px rgba(99,102,241,0.3)",
@@ -429,9 +392,8 @@ export default function Settings() {
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
-                background: "rgba(8,4,18,0.5)",
+                background: "rgba(10,10,10,0.5)",
                 border: "1px solid rgba(99,102,241,0.25)",
-                clipPath: CLIP_6,
                 padding: "5px 10px", fontSize: 10, color: "rgba(165,180,252,0.7)",
                 fontFamily: MONO, letterSpacing: 0.5,
               }}>
@@ -440,9 +402,8 @@ export default function Settings() {
               {memberSince && (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
-                  background: "rgba(8,4,18,0.5)",
+                  background: "rgba(10,10,10,0.5)",
                   border: "1px solid rgba(99,102,241,0.25)",
-                  clipPath: CLIP_6,
                   padding: "5px 10px", fontSize: 10, color: "rgba(165,180,252,0.7)",
                   fontFamily: MONO, letterSpacing: 0.5,
                 }}>
@@ -455,14 +416,14 @@ export default function Settings() {
 
         {/* Avatar section */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<Camera size={14} color="#a5b4fc" />, "// MODULO_01", "Foto de perfil")}
+          {sectionHeader(<Camera size={14} color="#a5b4fc" />, "Sección", "Foto de perfil")}
 
           {/* Tab selector */}
           <div style={{
             display: "flex", gap: 4, marginBottom: 14,
-            background: "rgba(8,4,18,0.7)",
+            background: "rgba(10,10,10,0.7)",
             border: "1px solid rgba(99,102,241,0.25)",
-            padding: 4, clipPath: CLIP_6,
+            padding: 4,
           }}>
             {([["url", "URL_REMOTA", <LinkIcon size={11} key="l" />], ["upload", "SUBIR_LOCAL", <Upload size={11} key="u" />]] as const).map(([mode, label, icon]) => (
               <button key={mode} onClick={() => { setAvatarMode(mode as "url" | "upload"); setAvatarError(""); }}
@@ -472,7 +433,6 @@ export default function Settings() {
                   letterSpacing: 1.5, fontFamily: MONO,
                   background: avatarMode === mode ? "linear-gradient(135deg,#3f2eb2,#2e218a)" : "transparent",
                   color: avatarMode === mode ? "#fff" : "rgba(165,180,252,0.5)",
-                  clipPath: CLIP_6,
                   transition: "all 0.15s",
                   boxShadow: avatarMode === mode ? "0 0 10px rgba(63,46,178,0.4)" : "none",
                 }}
@@ -496,9 +456,8 @@ export default function Settings() {
               <button onClick={() => fileRef.current?.click()}
                 style={{
                   width: "100%", padding: "26px 14px",
-                  background: "rgba(8,4,18,0.5)",
+                  background: "rgba(10,10,10,0.5)",
                   border: "2px dashed rgba(99,102,241,0.4)",
-                  clipPath: CLIP_8,
                   color: "#a5b4fc", fontSize: 11, cursor: "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                   fontFamily: MONO, letterSpacing: 1, fontWeight: 700,
@@ -514,20 +473,20 @@ export default function Settings() {
 
           {avatarError && (
             <div style={{ color: "#a5b4fc", fontSize: 11, marginTop: 8, display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, letterSpacing: 1 }}>
-              <X size={12} /> [ERR] {avatarError}
+              <X size={12} /> {avatarError}
             </div>
           )}
 
           <button onClick={handleSaveAvatar} disabled={savingAvatar} style={{ ...primaryBtn(avatarSuccess), marginTop: 12, opacity: savingAvatar ? 0.7 : 1 }}>
             {savingAvatar ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
               : avatarSuccess ? <><Check size={13} /> AVATAR_ACTUALIZADO</>
-              : <><Camera size={13} /> {">>>"} GUARDAR AVATAR</>}
+              : <><Camera size={13} /> Guardar avatar</>}
           </button>
         </div>
 
         {/* Username section */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<User size={14} color="#a5b4fc" />, "// MODULO_02", "Nombre de cazador")}
+          {sectionHeader(<User size={14} color="#a5b4fc" />, "Sección", "Nombre de usuario")}
 
           <input
             type="text"
@@ -539,7 +498,7 @@ export default function Settings() {
           />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 10, letterSpacing: 0.5 }}>
             {usernameError
-              ? <span style={{ color: "#a5b4fc", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {usernameError}</span>
+              ? <span style={{ color: "#a5b4fc", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />{usernameError}</span>
               : <span style={{ color: "rgba(165,180,252,0.4)" }}>{">"} ENTRE 2 Y 30 CARACTERES</span>
             }
             <span style={{ color: "rgba(165,180,252,0.5)" }}>{username.length}/30</span>
@@ -557,18 +516,17 @@ export default function Settings() {
           >
             {savingUsername ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
               : usernameSuccess ? <><Check size={13} /> NOMBRE_ACTUALIZADO</>
-              : <><User size={13} /> {">>>"} GUARDAR NOMBRE</>}
+              : <><User size={13} /> Guardar nombre</>}
           </button>
         </div>
 
         {/* Email (read-only) */}
         <div style={cardStyle("neutro")}>
-          {sectionHeader(<Mail size={14} color="rgba(165,180,252,0.6)" />, "// CANAL_RAIZ", "Correo electronico")}
+          {sectionHeader(<Mail size={14} color="rgba(165,180,252,0.6)" />, "Cuenta", "Correo electronico")}
           <div style={{
             padding: "11px 14px",
-            background: "rgba(8,4,18,0.5)",
+            background: "rgba(10,10,10,0.5)",
             border: "1px solid rgba(99,102,241,0.15)",
-            clipPath: CLIP_6,
             color: "rgba(165,180,252,0.6)", fontSize: 13, fontFamily: MONO,
             letterSpacing: 0.5,
           }}>
@@ -581,18 +539,18 @@ export default function Settings() {
 
         {/* Bio section */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<FileText size={14} color="#a5b4fc" />, "// MODULO_03", "Bio del cazador")}
+          {sectionHeader(<FileText size={14} color="#a5b4fc" />, "Sección", "Biografía")}
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value.slice(0, 280))}
             maxLength={280}
             rows={3}
-            placeholder="// Describe tu rango, tu sello o tu objetivo..."
+            placeholder="Cuéntale a la comunidad sobre ti…"
             style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5, fontFamily: MONO } as React.CSSProperties}
           />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 10, letterSpacing: 0.5 }}>
             {bioError
-              ? <span style={{ color: "#a5b4fc", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {bioError}</span>
+              ? <span style={{ color: "#a5b4fc", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />{bioError}</span>
               : <span style={{ color: "rgba(165,180,252,0.4)" }}>{">"} MAX. 280 CARACTERES · VISIBLE EN TU PERFIL</span>
             }
             <span style={{ color: bio.length >= 270 ? "#a5b4fc" : "rgba(165,180,252,0.5)" }}>{bio.length}/280</span>
@@ -609,13 +567,13 @@ export default function Settings() {
           >
             {savingBio ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
               : bioSuccess ? <><Check size={13} /> BIO_ACTUALIZADA</>
-              : <><FileText size={13} /> {">>>"} GUARDAR BIO</>}
+              : <><FileText size={13} /> Guardar bio</>}
           </button>
         </div>
 
         {/* Banner preset section */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<ImageIcon size={14} color="#a5b4fc" />, "// MODULO_04", "Banner del perfil")}
+          {sectionHeader(<ImageIcon size={14} color="#a5b4fc" />, "Sección", "Banner del perfil")}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
             {BANNER_PRESETS.map((p) => {
               const active = bannerPreset === p.key;
@@ -630,8 +588,7 @@ export default function Settings() {
                   style={{
                     position: "relative", padding: 0, cursor: savingBanner !== null ? "wait" : "pointer",
                     background: "transparent",
-                    border: `1px solid ${active ? p.accent : "rgba(99,102,241,0.25)"}`,
-                    clipPath: CLIP_6, overflow: "hidden",
+                    border: `1px solid ${active ? p.accent : "rgba(99,102,241,0.25)"}`, overflow: "hidden",
                     boxShadow: active ? `0 0 14px ${p.glow}` : "none",
                     transition: "all 0.18s",
                   }}
@@ -651,7 +608,7 @@ export default function Settings() {
                     )}
                   </div>
                   <div style={{
-                    background: "rgba(8,4,18,0.9)", padding: "5px 6px",
+                    background: "rgba(10,10,10,0.9)", padding: "5px 6px",
                     color: active ? p.accent : "rgba(165,180,252,0.55)",
                     fontSize: 9, fontFamily: MONO, fontWeight: 900, letterSpacing: 1, textAlign: "center",
                     textShadow: active ? `0 0 8px ${p.glow}` : "none",
@@ -671,14 +628,13 @@ export default function Settings() {
         <div style={cardStyle("carmesi")}>
           {sectionHeader(
             isProfilePublic ? <Eye size={14} color="#a5b4fc" /> : <EyeOff size={14} color="#a5b4fc" />,
-            "// MODULO_05", "Privacidad del perfil"
+            "Sección", "Privacidad del perfil"
           )}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "12px 14px",
-            background: "rgba(8,4,18,0.5)",
+            background: "rgba(10,10,10,0.5)",
             border: "1px solid rgba(99,102,241,0.25)",
-            clipPath: CLIP_8,
           }}>
             <div>
               <div style={{ color: "#c7d2fe", fontSize: 12, fontWeight: 900, fontFamily: MONO, letterSpacing: 1 }}>
@@ -694,7 +650,7 @@ export default function Settings() {
                 width: 50, height: 26,
                 border: `1px solid ${isProfilePublic ? "rgba(165,180,252,0.6)" : "rgba(255,255,255,0.15)"}`,
                 cursor: savingPrivacy ? "not-allowed" : "pointer",
-                background: isProfilePublic ? "linear-gradient(135deg,#3f2eb2,#6366f1)" : "rgba(8,4,18,0.7)",
+                background: isProfilePublic ? "linear-gradient(135deg,#3f2eb2,#6366f1)" : "rgba(10,10,10,0.7)",
                 position: "relative", transition: "all 0.2s", flexShrink: 0,
                 boxShadow: isProfilePublic ? "0 0 10px rgba(63,46,178,0.5)" : "none",
               }}
@@ -708,7 +664,7 @@ export default function Settings() {
           </div>
           {privacySuccess && (
             <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#22C55E", fontSize: 11, marginTop: 8, fontFamily: MONO, letterSpacing: 1 }}>
-              <Check size={12} /> [ OK ] PRIVACIDAD_ACTUALIZADA
+              <Check size={12} /> Privacidad actualizada
             </div>
           )}
         </div>
@@ -716,13 +672,13 @@ export default function Settings() {
         {/* Email verification */}
         {!user.email_verified && (
           <div style={cardStyle("ambar")}>
-            {sectionHeader(<Mail size={14} color="#6366f1" />, "// ALERTA_PENDIENTE", "Verificar correo")}
+            {sectionHeader(<Mail size={14} color="#6366f1" />, "Pendiente", "Verificar correo")}
             <p style={{ color: "rgba(165,180,252,0.7)", fontSize: 12, margin: "0 0 14px", lineHeight: 1.6, fontFamily: MONO, letterSpacing: 0.3 }}>
               {">"} Tu correo aun no esta verificado. Confirma tu cuenta para desbloquear todas las funciones del sistema.
             </p>
             {verifSent ? (
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#22C55E", fontSize: 12, fontWeight: 800, fontFamily: MONO, letterSpacing: 1 }}>
-                <CheckCircle2 size={14} /> [ OK ] EMAIL_ENVIADO · revisa tu bandeja
+                <CheckCircle2 size={14} /> Correo enviado · revisa tu bandeja
               </div>
             ) : (
               <>
@@ -733,16 +689,15 @@ export default function Settings() {
                     display: "flex", alignItems: "center", gap: 7, padding: "10px 18px",
                     background: "linear-gradient(135deg, rgba(99,102,241,0.25), rgba(63,46,178,0.15))",
                     border: "1px solid rgba(99,102,241,0.6)",
-                    clipPath: CLIP_8,
                     color: "#a5b4fc", fontSize: 10, fontWeight: 900, letterSpacing: 1.5,
                     fontFamily: MONO,
                     cursor: sendingVerif ? "not-allowed" : "pointer",
                   }}
                 >
                   {sendingVerif ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <SendHorizonal size={13} />}
-                  {sendingVerif ? "ENVIANDO..." : ">{">>>"} ENVIAR VERIFICACION"}
+                  {sendingVerif ? "Enviando…" : "Enviar verificación"}
                 </button>
-                {verifError && <div style={{ color: "#a5b4fc", fontSize: 11, marginTop: 8, fontFamily: MONO, letterSpacing: 0.5 }}>[ERR] {verifError}</div>}
+                {verifError && <div style={{ color: "#a5b4fc", fontSize: 11, marginTop: 8, fontFamily: MONO, letterSpacing: 0.5 }}>{verifError}</div>}
               </>
             )}
           </div>
@@ -753,12 +708,11 @@ export default function Settings() {
             display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
             background: "linear-gradient(135deg, rgba(34,197,94,0.1), rgba(22,163,74,0.05))",
             border: "1px solid rgba(34,197,94,0.4)",
-            clipPath: CLIP_8,
             marginBottom: 14,
             fontFamily: MONO, letterSpacing: 1,
           }}>
             <CheckCircle2 size={15} color="#22C55E" />
-            <span style={{ color: "#22C55E", fontSize: 11, fontWeight: 900 }}>[ OK ] CORREO_VERIFICADO</span>
+            <span style={{ color: "#22C55E", fontSize: 11, fontWeight: 900 }}>Correo verificado</span>
           </div>
         )}
 
@@ -773,13 +727,12 @@ export default function Settings() {
                 width: 34, height: 34,
                 background: "linear-gradient(135deg, rgba(63,46,178,0.2), rgba(99,102,241,0.15))",
                 border: "1px solid rgba(99,102,241,0.4)",
-                clipPath: CLIP_6,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
                 <KeyRound size={14} color="#a5b4fc" />
               </div>
               <div style={{ textAlign: "left" }}>
-                <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO }}>// MODULO_04</div>
+                <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO }}></div>
                 <div style={{ color: "#c7d2fe", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>Cambiar contraseña</div>
               </div>
             </div>
@@ -788,7 +741,6 @@ export default function Settings() {
               width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
               background: "rgba(99,102,241,0.1)",
               border: "1px solid rgba(99,102,241,0.35)",
-              clipPath: CLIP_6,
             }}>{showPassFields ? "−" : "+"}</span>
           </button>
 
@@ -815,13 +767,13 @@ export default function Settings() {
               })}
               {passError && (
                 <div style={{ color: "#a5b4fc", fontSize: 11, display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, letterSpacing: 0.5 }}>
-                  <X size={11} /> [ERR] {passError}
+                  <X size={11} /> {passError}
                 </div>
               )}
               <button type="submit" disabled={savingPass} style={{ ...primaryBtn(passSuccess), opacity: savingPass ? 0.7 : 1 }}>
                 {savingPass ? <><Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> GUARDANDO...</>
                   : passSuccess ? <><Check size={13} /> CONTRASEÑA_ACTUALIZADA</>
-                  : <><KeyRound size={13} /> {">>>"} ACTUALIZAR CONTRASEÑA</>}
+                  : <><KeyRound size={13} /> Actualizar contraseña</>}
               </button>
             </form>
           )}
