@@ -120,6 +120,7 @@ const jsonAuth = express.json({ limit: "16kb" });
 const jsonGeneral = express.json({ limit: "2mb" });
 
 app.use("/api/auth/login", jsonAuth, authLimit);
+app.use("/api/auth/iziff", jsonAuth, authLimit);
 app.use("/api/auth/register", jsonAuth, authLimit);
 app.use("/api/auth/forgot-password", jsonAuth, strictLimit);
 app.use("/api/auth/reset-password", jsonAuth, strictLimit);

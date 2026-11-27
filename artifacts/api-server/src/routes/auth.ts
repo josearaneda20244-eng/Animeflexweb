@@ -9,6 +9,11 @@ import { checkLockout, registerFailure, clearAttempts } from "../lib/loginAttemp
 
 const router = Router();
 
+function jsonBodyGuard(req: { body?: unknown }, res: { status: (n: number) => { json: (b: unknown) => void } }, next: () => void) {
+  if (!req.body || typeof req.body !== "object") { res.status(400).json({ error: "Solicitud inválida" }); return; }
+  next();
+}
+
 // Asegura que la tabla users tenga todas las columnas antes de atender auth
 router.use("/auth", async (_req, _res, next) => {
   await userSchemaReady;
@@ -42,6 +47,119 @@ function safeUser(row: Record<string, unknown>) {
 function getClientIp(req: { ip?: string; headers: Record<string, unknown> }): string {
   return req.ip || (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || "unknown";
 }
+
+/* ── Cuentas IZIFF (las mismas de la app) ─────────────────────────────────
+ * La app guarda las cuentas en el servicio IZIFF Auth (Cloudflare Worker).
+ * La web inicia sesión ahí (desde el navegador) y luego cambia ese token por
+ * la sesión de la web: aquí se verifica el token contra /v1/auth/me y se
+ * vincula (o crea) el usuario local por email. Nunca se guarda la contraseña.
+ */
+const IZIFF_AUTH_URL = (process.env.IZIFF_AUTH_URL || "https://iziff-auth.josearaneda2025.workers.dev").replace(/\/+$/, "");
+
+type IziffUser = { id: string; username: string; email: string; plan?: string; role?: string; premiumUntil?: string };
+
+async function fetchIziffUser(accessToken: string): Promise<IziffUser | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8_000);
+  try {
+    const r = await fetch(`${IZIFF_AUTH_URL}/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
+      signal: ctrl.signal,
+    });
+    if (!r.ok) return null;
+    const data = (await r.json()) as { user?: IziffUser };
+    return data.user?.email ? data.user : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function localUsernameFrom(name: string): string {
+  let base = name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 20);
+  if (base.length < 3) base = `${base}user`.slice(0, 20);
+  return base;
+}
+
+async function linkLocalUser(app: IziffUser): Promise<Record<string, unknown>> {
+  const email = app.email.trim().toLowerCase();
+  const premium = app.plan === "premium";
+  const creator = app.role === "creator";
+  const existing = await pool.query(`SELECT ${FULL_USER_COLS} FROM users WHERE lower(email) = $1 LIMIT 1`, [email]);
+  if (existing.rows[0]) {
+    const row = existing.rows[0];
+    const updates: string[] = [];
+    const vals: unknown[] = [];
+    if (premium && row.membership_tier !== "megafan") {
+      vals.push("megafan"); updates.push(`membership_tier = $${vals.length}`);
+      vals.push(app.premiumUntil ?? null); updates.push(`subscription_expires_at = $${vals.length}`);
+    }
+    if (creator && row.role !== "owner") { vals.push("owner"); updates.push(`role = $${vals.length}`); }
+    if (!row.email_verified) updates.push("email_verified = TRUE");
+    if (updates.length) {
+      vals.push(row.id);
+      const upd = await pool.query(`UPDATE users SET ${updates.join(", ")} WHERE id = $${vals.length} RETURNING ${FULL_USER_COLS}`, vals);
+      return upd.rows[0] ?? row;
+    }
+    return row;
+  }
+  // Usuario nuevo en la web: contraseña aleatoria (no se usa, el acceso es por IZIFF)
+  const unusable = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+  const base = localUsernameFrom(app.username || email.split("@")[0]);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const username = attempt === 0 ? base : `${base.slice(0, 15)}_${crypto.randomInt(1000, 9999)}`;
+    try {
+      const ins = await pool.query(
+        `INSERT INTO users (username, email, password_hash, membership_tier, subscription_expires_at, role, email_verified)
+         VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+         RETURNING ${FULL_USER_COLS}`,
+        [username, email, unusable, premium ? "megafan" : "free", premium ? app.premiumUntil ?? null : null, creator ? "owner" : "user"],
+      );
+      return ins.rows[0];
+    } catch (err: any) {
+      if (err?.code !== "23505") throw err;
+    }
+  }
+  throw new Error("No se pudo crear el usuario local");
+}
+
+// Diagnóstico sin datos personales: ¿la tabla users tiene lo que la web necesita?
+router.get("/auth/status", async (_req, res) => {
+  try {
+    const cols = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'users' ORDER BY column_name`,
+    );
+    res.json({ db: "ok", usersColumns: cols.rows.map((r) => r.column_name), iziffAuth: IZIFF_AUTH_URL });
+  } catch (err: any) {
+    res.status(500).json({ db: "error", code: err?.code ?? null, message: String(err?.message ?? "").slice(0, 200) });
+  }
+});
+
+router.post("/auth/iziff", jsonBodyGuard, async (req, res) => {
+  const accessToken = typeof req.body?.accessToken === "string" ? req.body.accessToken : "";
+  if (accessToken.length < 20 || accessToken.length > 512) {
+    res.status(400).json({ error: "Sesión inválida" });
+    return;
+  }
+  const app = await fetchIziffUser(accessToken);
+  if (!app) {
+    res.status(401).json({ error: "La sesión de IZIFF no es válida. Vuelve a iniciar sesión." });
+    return;
+  }
+  try {
+    const row = await linkLocalUser(app);
+    if (row.is_active === false) {
+      res.status(403).json({ error: "Tu cuenta ha sido desactivada" });
+      return;
+    }
+    const token = signToken(row.id as number, row.email as string);
+    res.json({ token, user: safeUser(row) });
+  } catch (err: any) {
+    console.error("[auth/iziff]", err?.code, err?.message);
+    res.status(500).json({ error: "No se pudo enlazar tu cuenta. Intenta de nuevo en un momento." });
+  }
+});
 
 router.post("/auth/register", async (req, res) => {
   const body = req.body as Record<string, unknown>;

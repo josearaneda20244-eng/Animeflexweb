@@ -13,7 +13,10 @@ interface AuthModalProps {
 type TabMode = "login" | "register" | "forgot";
 
 export default function AuthModal({ onClose }: AuthModalProps) {
-  const { login, register } = useAuth();
+  const { login, registerStart, register, forgotPassword, resetPassword } = useAuth();
+  const [step, setStep] = useState<"form" | "code">("form");
+  const [code, setCode] = useState("");
+  const [info, setInfo] = useState<string | null>(null);
   const [tab, setTab] = useState<TabMode>("login");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -26,6 +29,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const reset = () => {
     setUsername(""); setEmail(""); setPassword("");
     setError(null); setForgotSent(false);
+    setStep("form"); setCode(""); setInfo(null);
   };
 
   const switchTab = (t: TabMode) => { setTab(t); reset(); };
@@ -39,11 +43,21 @@ export default function AuthModal({ onClose }: AuthModalProps) {
         await login(email, password);
         onClose();
       } else if (tab === "register") {
-        await register(username, email, password);
-        onClose();
+        if (step === "form") {
+          setInfo(await registerStart(username, email));
+          setStep("code");
+        } else {
+          await register(username, email, password, code);
+          onClose();
+        }
       } else {
-        await apiClient.post("/auth/forgot-password", { email });
-        setForgotSent(true);
+        if (step === "form") {
+          setInfo(await forgotPassword(email));
+          setStep("code");
+        } else {
+          await resetPassword(email, code, password);
+          onClose();
+        }
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Ocurrió un error");
@@ -143,7 +157,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>
                   <KeyRound size={12} color="#a1a1aa" />
                   <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
-                    Te enviaremos un enlace al correo
+                    Te enviaremos un código al correo
                   </span>
                 </div>
               )}
@@ -223,13 +237,32 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                     <SysField icon={<User size={14} />} label="Usuario" placeholder="Nombre de usuario" value={username}
                       onChange={setUsername} type="text" required />
                   )}
-                  <SysField icon={<Mail size={14} />} label="Correo electrónico" placeholder="correo@dominio.com" value={email}
-                    onChange={setEmail} type="email" required />
-                  {tab !== "forgot" && (
+                  {tab !== "forgot" && step === "form" && (
+                    <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, textAlign: "center" }}>
+                      Es la misma cuenta de la app IZIFF ANIME.
+                    </div>
+                  )}
+                  {info && (
+                    <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "10px 14px", color: "#bbf7d0", fontSize: 12, display: "flex", gap: 8, alignItems: "center" }}>
+                      <CheckCircle2 size={14} color="#22C55E" /> {info}
+                    </div>
+                  )}
+                  {tab === "login" ? (
+                    <SysField icon={<Mail size={14} />} label="Correo o usuario" placeholder="correo@dominio.com o usuario" value={email}
+                      onChange={setEmail} type="text" required />
+                  ) : (
+                    <SysField icon={<Mail size={14} />} label="Correo electrónico" placeholder="correo@dominio.com" value={email}
+                      onChange={(v) => { setEmail(v); if (step === "code") { setStep("form"); setInfo(null); } }} type="email" required />
+                  )}
+                  {step === "code" && (
+                    <SysField icon={<KeyRound size={14} />} label="Código del correo" placeholder="Código de 6 dígitos" value={code}
+                      onChange={setCode} type="text" required />
+                  )}
+                  {(tab !== "forgot" || step === "code") && (
                     <SysField
                       icon={<Lock size={14} />}
-                      label="Contraseña"
-                      placeholder="••••••••"
+                      label={tab === "forgot" ? "Nueva contraseña" : "Contraseña"}
+                      placeholder="Mínimo 8 caracteres"
                       value={password}
                       onChange={setPassword}
                       type={showPass ? "text" : "password"}
@@ -278,8 +311,8 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   >
                     {loading ? "Procesando..." :
                      tab === "login" ? "Iniciar sesión" :
-                     tab === "register" ? "Crear cuenta" :
-                     "Enviar enlace"}
+                     tab === "register" ? (step === "form" ? "Enviar código" : "Crear cuenta") :
+                     (step === "form" ? "Enviar código" : "Cambiar contraseña")}
                   </button>
 
                   {tab === "login" && (

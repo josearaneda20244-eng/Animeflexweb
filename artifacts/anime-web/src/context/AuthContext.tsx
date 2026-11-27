@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { apiClient } from "@/lib/apiClient";
+import { iziffAuth } from "@/lib/iziffAuth";
 
 export interface AuthUser {
   id: number;
@@ -22,8 +23,14 @@ interface AuthContextValue {
   loading: boolean;
   isMegaFan: boolean;
   isOwner: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  /** Correo o usuario + contraseña de la cuenta IZIFF (la misma de la app) */
+  login: (identifier: string, password: string) => Promise<void>;
+  /** Paso 1 del registro: envía el código al correo */
+  registerStart: (username: string, email: string) => Promise<string>;
+  /** Paso 2 del registro: crea la cuenta con el código */
+  register: (username: string, email: string, password: string, code: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<string>;
+  resetPassword: (email: string, code: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   updateProfile: (data: { username?: string; avatar_url?: string; is_profile_public?: boolean; bio?: string | null; banner_preset?: string | null }) => Promise<void>;
@@ -49,22 +56,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const login = async (email: string, password: string) => {
+  // Cambia la sesión IZIFF (app) por la sesión de la web
+  const exchange = async (accessToken: string) => {
     const { token: t, user: u } = await apiClient.post<{ token: string; user: AuthUser }>(
-      "/auth/login", { email, password }
+      "/auth/iziff", { accessToken }
     );
     localStorage.setItem("af_token", t);
     setToken(t);
     setUser(u);
   };
 
-  const register = async (username: string, email: string, password: string) => {
-    const { token: t, user: u } = await apiClient.post<{ token: string; user: AuthUser }>(
-      "/auth/register", { username, email, password }
-    );
-    localStorage.setItem("af_token", t);
-    setToken(t);
-    setUser(u);
+  const login = async (identifier: string, password: string) => {
+    const s = await iziffAuth.login(identifier.trim(), password);
+    await exchange(s.accessToken);
+  };
+
+  const registerStart = async (username: string, email: string) => {
+    const r = await iziffAuth.registerStart(username.trim(), email.trim());
+    return r.message ?? "Te enviamos un código a tu correo.";
+  };
+
+  const register = async (username: string, email: string, password: string, code: string) => {
+    const s = await iziffAuth.register(username.trim(), email.trim(), password, code.trim());
+    await exchange(s.accessToken);
+  };
+
+  const forgotPassword = async (email: string) => {
+    const r = await iziffAuth.forgot(email.trim());
+    return r.message ?? "Si el correo está registrado, recibirás un código.";
+  };
+
+  const resetPassword = async (email: string, code: string, password: string) => {
+    const s = await iziffAuth.reset(email.trim(), code.trim(), password);
+    await exchange(s.accessToken);
   };
 
   const logout = () => {
@@ -87,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isOwner = user?.role === "owner" || user?.role === "admin";
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isMegaFan, isOwner, login, register, logout, refreshUser, updateProfile }}>
+    <AuthContext.Provider value={{ user, token, loading, isMegaFan, isOwner, login, registerStart, register, forgotPassword, resetPassword, logout, refreshUser, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
