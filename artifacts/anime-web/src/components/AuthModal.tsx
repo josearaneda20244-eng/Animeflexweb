@@ -83,49 +83,23 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           position: "relative", margin: "auto",
         }}
       >
-        {/* Floating magic circles in background */}
-        <div style={{ position: "absolute", top: -80, left: "50%", transform: "translateX(-50%)", pointerEvents: "none", zIndex: 0 }}>
-          <MagicCircle size={300} color="#DC2626" opacity={0.35} />
-        </div>
-
-        {/* Main system panel */}
+        {/* Main panel */}
         <div style={{
           position: "relative",
-          background: "linear-gradient(180deg, rgba(20,8,18,0.96) 0%, rgba(8,3,12,0.98) 100%)",
-          border: "1px solid rgba(220,38,38,0.55)",
-          clipPath: "polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px)",
-          boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 80px rgba(0,0,0,0.85), 0 0 60px rgba(220,38,38,0.35), 0 0 120px rgba(249,115,22,0.18)",
+          background: "#0a0a0a",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 16,
+          boxShadow: "0 24px 80px rgba(0,0,0,0.9)",
           overflow: "hidden",
         }}>
-          {/* Hex grid background */}
-          <HexGrid color="rgba(220,38,38,0.06)" size={26} fade />
-
-          {/* Scan lines */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "repeating-linear-gradient(0deg, rgba(249,115,22,0.025) 0px, rgba(249,115,22,0.025) 1px, transparent 1px, transparent 4px)",
-            pointerEvents: "none", zIndex: 1,
-          }} />
-
-          {/* Top accent line */}
-          <div style={{
-            position: "absolute", top: 0, left: 18, right: 18, height: 1,
-            background: "linear-gradient(90deg, transparent, #F97316 30%, #DC2626 50%, #F97316 70%, transparent)",
-            boxShadow: "0 0 12px #F97316",
-          }} />
-
-          {/* Corner brackets */}
-          <CornerBrackets color="#F97316" size={18} thickness={2} inset={6} />
-
           {/* Close btn */}
           <button onClick={onClose} style={{
             position: "absolute", top: 16, right: 16, zIndex: 5,
-            width: 28, height: 28,
-            background: "rgba(220,38,38,0.15)",
-            border: "1px solid rgba(220,38,38,0.5)",
-            color: "#FECACA",
+            width: 30, height: 30, borderRadius: 8,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "#ffffff",
             cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
           }}>
             <X size={14} />
           </button>
@@ -133,20 +107,15 @@ export default function AuthModal({ onClose }: AuthModalProps) {
           <div style={{ position: "relative", zIndex: 2, padding: "30px 26px 26px" }}>
             {/* Header */}
             <div style={{ textAlign: "center", marginBottom: 22 }}>
-              {/* Sys label */}
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
-                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                fontSize: 9.5, fontWeight: 800, letterSpacing: 3,
-                color: "#FDBA74", textShadow: "0 0 10px rgba(249,115,22,0.7)",
+                fontSize: 10, fontWeight: 700, letterSpacing: 2,
+                color: "#a1a1aa",
                 marginBottom: 14,
+                textTransform: "uppercase",
               }}>
-                <motion.span
-                  animate={{ opacity: [1, 0.2, 1] }}
-                  transition={{ duration: 1.4, repeat: Infinity }}
-                  style={{ width: 7, height: 7, background: "#F97316", boxShadow: "0 0 10px #F97316" }}
-                />
-                {`[ ${tabLabel} ]`}
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3f2eb2" }} />
+                {tabLabel}
               </div>
 
               {/* Brand */}
@@ -155,44 +124,25 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   <button
                     onClick={() => switchTab("login")}
                     style={{
-                      background: "rgba(249,115,22,0.12)",
-                      border: "1px solid rgba(249,115,22,0.4)",
-                      width: 26, height: 26, color: "#FDBA74",
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      width: 26, height: 26, borderRadius: 8, color: "#ffffff",
                       cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                      clipPath: "polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px)",
                     }}
                   >
                     <ArrowLeft size={13} />
                   </button>
                 )}
-                <motion.div
-                  animate={{
-                    boxShadow: [
-                      "0 0 18px rgba(220,38,38,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
-                      "0 0 36px rgba(220,38,38,0.85), inset 0 1px 0 rgba(255,255,255,0.22)",
-                      "0 0 18px rgba(220,38,38,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
-                    ],
-                  }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                  style={{
-                    width: 38, height: 38,
-                    background: "linear-gradient(135deg, #FCA5A5 0%, #DC2626 50%, #991B1B 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    clipPath: "polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px)",
-                  }}
-                >
-                  <span style={{ color: "#fff", fontSize: 17, fontWeight: 900, marginLeft: 2, lineHeight: 1 }}>▶</span>
-                </motion.div>
-                <span style={{ fontSize: 24, fontWeight: 900, letterSpacing: -0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
-                  <span style={{ color: "#F1F1F5" }}>Anime</span>
-                  <span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
+                <img src="/icon.svg" alt="IZIFF ANIME" style={{ width: 32, height: 32, borderRadius: 8 }} />
+                <span style={{ fontSize: 22, fontWeight: 900, letterSpacing: -0.5 }}>
+                  <span style={{ color: "#ffffff" }}>IZIFF ANIME</span>
                 </span>
               </div>
 
               {tab === "forgot" && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 10 }}>
-                  <KeyRound size={12} color="#FDBA74" />
-                  <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11.5, letterSpacing: 0.4 }}>
+                  <KeyRound size={12} color="#a1a1aa" />
+                  <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
                     Te enviaremos un enlace al correo
                   </span>
                 </div>
@@ -203,9 +153,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             {tab !== "forgot" && (
               <div style={{
                 display: "flex", marginBottom: 22,
-                background: "rgba(4,3,10,0.75)",
-                border: "1px solid rgba(249,115,22,0.25)",
-                clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 12,
                 padding: 4,
               }}>
                 {(["login", "register"] as const).map((t) => {
@@ -214,18 +164,13 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                     <button key={t} onClick={() => switchTab(t)} style={{
                       flex: 1, padding: "9px 6px",
                       border: "none", cursor: "pointer",
-                      background: active
-                        ? "linear-gradient(135deg, rgba(220,38,38,0.85), rgba(153,27,27,0.85))"
-                        : "transparent",
-                      color: active ? "#fff" : "rgba(255,255,255,0.45)",
-                      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                      fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase",
+                      borderRadius: 8,
+                      background: active ? "#ffffff" : "transparent",
+                      color: active ? "#000000" : "rgba(255,255,255,0.55)",
+                      fontSize: 12, fontWeight: 700,
                       transition: "all 0.2s",
-                      clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
-                      textShadow: active ? "0 0 8px rgba(255,255,255,0.4)" : "none",
-                      boxShadow: active ? "0 0 16px rgba(220,38,38,0.5)" : "none",
                     }}>
-                      {t === "login" ? "// ACCESO" : "// REGISTRO"}
+                      {t === "login" ? "Iniciar sesión" : "Registrarse"}
                     </button>
                   );
                 })}
@@ -245,7 +190,6 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                     background: "rgba(34,197,94,0.12)",
                     border: "1px solid rgba(34,197,94,0.4)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
                     boxShadow: "0 0 24px rgba(34,197,94,0.35)",
                   }}>
                     <CheckCircle2 size={26} color="#22C55E" />
@@ -276,15 +220,15 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                   style={{ display: "flex", flexDirection: "column", gap: 12 }}
                 >
                   {tab === "register" && (
-                    <SysField icon={<User size={14} />} label="// USUARIO" placeholder="Nombre de cazador" value={username}
+                    <SysField icon={<User size={14} />} label="Usuario" placeholder="Nombre de usuario" value={username}
                       onChange={setUsername} type="text" required />
                   )}
-                  <SysField icon={<Mail size={14} />} label="// IDENT_EMAIL" placeholder="correo@dominio.com" value={email}
+                  <SysField icon={<Mail size={14} />} label="Correo electrónico" placeholder="correo@dominio.com" value={email}
                     onChange={setEmail} type="email" required />
                   {tab !== "forgot" && (
                     <SysField
                       icon={<Lock size={14} />}
-                      label="// CLAVE_ACCESO"
+                      label="Contraseña"
                       placeholder="••••••••"
                       value={password}
                       onChange={setPassword}
@@ -292,7 +236,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                       required
                       adornment={
                         <button type="button" onClick={() => setShowPass(v => !v)}
-                          style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 4, color: "#FDBA74" }}>
+                          style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 4, color: "#a1a1aa" }}>
                           {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
                       }
@@ -305,36 +249,37 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                       animate={{ opacity: 1, x: 0 }}
                       style={{
                         background: "rgba(239,68,68,0.12)",
-                        border: "1px solid rgba(239,68,68,0.5)",
+                        border: "1px solid rgba(239,68,68,0.4)",
+                        borderRadius: 10,
                         padding: "10px 14px",
-                        color: "#FCA5A5",
+                        color: "#a5b4fc",
                         fontSize: 12,
-                        fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                        clipPath: "polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px)",
-                        boxShadow: "0 0 16px rgba(239,68,68,0.25)",
                       }}
                     >
-                      <span style={{ color: "#F87171", fontWeight: 800 }}>! ERROR {">"} </span>{error}
+                      <span style={{ color: "#F87171", fontWeight: 700 }}>Error: </span>{error}
                     </motion.div>
                   )}
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="sys-btn primary"
                     style={{
                       marginTop: 6,
                       width: "100%", justifyContent: "center",
-                      padding: "13px 0",
-                      fontSize: 13, letterSpacing: 3,
+                      padding: "12px 0",
+                      borderRadius: 10,
+                      border: "none",
+                      background: "#ffffff",
+                      color: "#000000",
+                      fontSize: 13, fontWeight: 700,
                       cursor: loading ? "not-allowed" : "pointer",
                       opacity: loading ? 0.7 : 1,
                     }}
                   >
-                    {loading ? ">{">>>"} PROCESANDO..." :
-                     tab === "login" ? ">{">>>"} ENTRAR AL SISTEMA" :
-                     tab === "register" ? ">{">>>"} CREAR CAZADOR" :
-                     ">{">>>"} ENVIAR ENLACE"}
+                    {loading ? "Procesando..." :
+                     tab === "login" ? "Iniciar sesión" :
+                     tab === "register" ? "Crear cuenta" :
+                     "Enviar enlace"}
                   </button>
 
                   {tab === "login" && (
@@ -343,41 +288,34 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                       onClick={() => switchTab("forgot")}
                       style={{
                         background: "none", border: "none",
-                        color: "#FDBA74",
-                        fontSize: 11.5,
-                        fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                        letterSpacing: 0.5,
+                        color: "#a1a1aa",
+                        fontSize: 12,
                         cursor: "pointer", padding: 0,
                         textAlign: "center",
-                        textShadow: "0 0 8px rgba(249,115,22,0.5)",
                       }}
                     >
-                      ¿Olvidaste tu clave de acceso?
+                      ¿Olvidaste tu contraseña?
                     </button>
                   )}
 
                   {tab !== "forgot" && (
                     <p style={{
                       textAlign: "center",
-                      color: "rgba(255,255,255,0.4)",
-                      fontSize: 11.5,
+                      color: "rgba(255,255,255,0.45)",
+                      fontSize: 12,
                       margin: 0,
-                      fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                      letterSpacing: 0.4,
                     }}>
-                      {tab === "login" ? "¿Sin registro? " : "¿Ya tienes acceso? "}
+                      {tab === "login" ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
                       <button
                         type="button"
                         onClick={() => switchTab(tab === "login" ? "register" : "login")}
                         style={{
                           background: "none", border: "none",
-                          color: "#FECACA", fontSize: 11.5, fontWeight: 800,
+                          color: "#ffffff", fontSize: 12, fontWeight: 700,
                           cursor: "pointer", padding: 0,
-                          fontFamily: "inherit",
-                          textShadow: "0 0 8px rgba(220,38,38,0.6)",
                         }}
                       >
-                        {tab === "login" ? "→ REGISTRARSE" : "→ INICIAR SESIÓN"}
+                        {tab === "login" ? "Regístrate" : "Inicia sesión"}
                       </button>
                     </p>
                   )}
@@ -385,13 +323,6 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               )}
             </AnimatePresence>
           </div>
-
-          {/* Bottom accent line */}
-          <div style={{
-            position: "absolute", bottom: 0, left: 18, right: 18, height: 1,
-            background: "linear-gradient(90deg, transparent, #DC2626 30%, #F97316 50%, #DC2626 70%, transparent)",
-            boxShadow: "0 0 12px #DC2626",
-          }} />
         </div>
       </motion.div>
     </motion.div>,
@@ -415,16 +346,14 @@ function SysField({
     <div>
       <div style={{
         display: "flex", alignItems: "center", gap: 6,
-        fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-        fontSize: 9.5, fontWeight: 800, letterSpacing: 1.5,
-        color: "#FDBA74",
-        marginBottom: 5,
-        opacity: 0.85,
+        fontSize: 11, fontWeight: 600,
+        color: "#a1a1aa",
+        marginBottom: 6,
       }}>
         {label}
       </div>
       <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-        <span style={{ position: "absolute", left: 12, color: "#FDBA74", display: "flex", zIndex: 2, opacity: 0.7 }}>{icon}</span>
+        <span style={{ position: "absolute", left: 12, color: "#a1a1aa", display: "flex", zIndex: 2 }}>{icon}</span>
         <input
           type={type}
           placeholder={placeholder}
@@ -435,10 +364,8 @@ function SysField({
           style={{
             paddingLeft: 36,
             paddingRight: adornment ? 40 : 14,
-            paddingTop: 11, paddingBottom: 11,
+            paddingTop: 10, paddingBottom: 10,
             fontSize: 13.5,
-            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-            letterSpacing: 0.3,
           }}
         />
         {adornment && (

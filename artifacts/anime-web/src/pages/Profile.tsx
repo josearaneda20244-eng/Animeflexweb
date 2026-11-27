@@ -79,8 +79,8 @@ const DAY_ES: Record<string, string> = {
   Dom: "Do", Lun: "Lu", Mar: "Ma", "Mié": "Mi", Jue: "Ju", Vie: "Vi", "Sáb": "Sá",
 };
 
-const COLORS_BAR = ["#DC2626", "#7C73FF", "#8C83FF", "#9C93FF", "#FECACA", "#B7A3FB", "#C7B3FC"];
-const GENRE_COLORS = ["#DC2626", "#F97316", "#22C55E", "#F59E0B", "#A855F7", "#38BDF8", "#FB923C"];
+const COLORS_BAR = ["#3f2eb2", "#7C73FF", "#8C83FF", "#9C93FF", "#c7d2fe", "#B7A3FB", "#C7B3FC"];
+const GENRE_COLORS = ["#3f2eb2", "#6366f1", "#22C55E", "#F59E0B", "#A855F7", "#38BDF8", "#FB923C"];
 
 function getLevelInfo(episodes: number) {
   const level = Math.min(50, Math.floor(Math.sqrt(episodes / 5)) + 1);
@@ -110,10 +110,10 @@ function getAchievements(stats: UserStats | null, isMegaFan: boolean): Achieveme
   const completed = stats?.completed ?? 0;
   const dates = stats?.achievementDates ?? {};
   return [
-    { id: "inicio",   icon: "🎌", label: "Primer episodio", desc: "Ver tu primer episodio en AnimeFlex.", color: "#DC2626", current: Math.min(eps,1), target: 1,   unlocked: eps >= 1,   unlockedAt: dates.inicio },
+    { id: "inicio",   icon: "🎌", label: "Primer episodio", desc: "Ver tu primer episodio en AnimeFlex.", color: "#3f2eb2", current: Math.min(eps,1), target: 1,   unlocked: eps >= 1,   unlockedAt: dates.inicio },
     { id: "dedicado", icon: "📺", label: "Dedicado",        desc: "Acumular 50 episodios vistos.",        color: "#22C55E", current: Math.min(eps,50), target: 50,  unlocked: eps >= 50,  unlockedAt: dates.dedicado },
     { id: "maraton",  icon: "🏃", label: "Maratonista",     desc: "Acumular 200 episodios vistos.",       color: "#F59E0B", current: Math.min(eps,200), target: 200, unlocked: eps >= 200, unlockedAt: dates.maraton },
-    { id: "legend",   icon: "⚡", label: "Leyenda",         desc: "Acumular 500 episodios vistos.",       color: "#DC2626", current: Math.min(eps,500), target: 500, unlocked: eps >= 500, unlockedAt: dates.legend },
+    { id: "legend",   icon: "⚡", label: "Leyenda",         desc: "Acumular 500 episodios vistos.",       color: "#3f2eb2", current: Math.min(eps,500), target: 500, unlocked: eps >= 500, unlockedAt: dates.legend },
     { id: "colec",    icon: "🗂️", label: "Coleccionista",   desc: "Ver 10 animes distintos.",             color: "#A855F7", current: Math.min(animes,10), target: 10,  unlocked: animes >= 10 },
     { id: "racha",    icon: "🔥", label: "Racha semanal",   desc: "Ver anime 7 días consecutivos.",       color: "#EF4444", current: Math.min(streak,7), target: 7,   unlocked: streak >= 7 },
     { id: "finish",   icon: "✅", label: "Completista",     desc: "Marcar 5 animes como completados.",    color: "#10B981", current: Math.min(completed,5), target: 5,   unlocked: completed >= 5 },
@@ -178,14 +178,13 @@ function formatDate(iso?: string | null): string {
 const cardStyle: React.CSSProperties = {
   position: "relative",
   background: "linear-gradient(180deg, rgba(20,8,18,0.92), rgba(8,3,12,0.96))",
-  border: "1px solid rgba(220,38,38,0.32)",
+  border: "1px solid rgba(63,46,178,0.32)",
   padding: "20px",
-  clipPath: "polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px)",
-  boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 0 20px rgba(220,38,38,0.15), inset 0 1px 0 rgba(255,255,255,0.04)",
+  boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 0 20px rgba(63,46,178,0.15), inset 0 1px 0 rgba(255,255,255,0.04)",
 };
 
 /* ── Heatmap component (365-day Solo Leveling style) ── */
-function YearHeatmap({ data, accent = "#DC2626" }: { data: { date: string; episodes: number }[]; accent?: string }) {
+function YearHeatmap({ data, accent = "#3f2eb2" }: { data: { date: string; episodes: number }[]; accent?: string }) {
   if (!data || data.length === 0) return null;
 
   /* Determine first day-of-week alignment (0=Sun..6=Sat). Pad columns so each col is a Sun..Sat strip. */
@@ -232,11 +231,11 @@ function YearHeatmap({ data, accent = "#DC2626" }: { data: { date: string; episo
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 14, color: "rgba(253,186,116,0.75)", fontSize: 10, fontFamily: MONO, letterSpacing: 0.5, marginBottom: 10, flexWrap: "wrap" }}>
-        <span>{">"} <strong style={{ color: "#FECACA" }}>{total}</strong> EP. EN 365 D.</span>
-        <span>{">"} <strong style={{ color: "#FECACA" }}>{activeDays}</strong> DIAS ACTIVOS</span>
+      <div style={{ display: "flex", gap: 14, color: "rgba(165,180,252,0.75)", fontSize: 10, fontFamily: MONO, letterSpacing: 0.5, marginBottom: 10, flexWrap: "wrap" }}>
+        <span>{">"} <strong style={{ color: "#c7d2fe" }}>{total}</strong> EP. EN 365 D.</span>
+        <span>{">"} <strong style={{ color: "#c7d2fe" }}>{activeDays}</strong> DIAS ACTIVOS</span>
         {bestDay && bestDay.episodes > 0 && (
-          <span>{">"} MAX. <strong style={{ color: "#FECACA" }}>{bestDay.episodes}</strong> EP. ({formatDate(bestDay.date)})</span>
+          <span>{">"} MAX. <strong style={{ color: "#c7d2fe" }}>{bestDay.episodes}</strong> EP. ({formatDate(bestDay.date)})</span>
         )}
       </div>
       <div style={{ overflowX: "auto", paddingBottom: 6 }}>
@@ -246,7 +245,7 @@ function YearHeatmap({ data, accent = "#DC2626" }: { data: { date: string; episo
             {weeks.map((_, wi) => {
               const ml = monthLabels.find((l) => l.idx === wi);
               return (
-                <div key={wi} style={{ width: 11, fontSize: 8, color: "rgba(253,186,116,0.55)", fontFamily: MONO, fontWeight: 800, letterSpacing: 0.5, textAlign: "left" }}>
+                <div key={wi} style={{ width: 11, fontSize: 8, color: "rgba(165,180,252,0.55)", fontFamily: MONO, fontWeight: 800, letterSpacing: 0.5, textAlign: "left" }}>
                   {ml ? ml.label : ""}
                 </div>
               );
@@ -254,7 +253,7 @@ function YearHeatmap({ data, accent = "#DC2626" }: { data: { date: string; episo
           </div>
           {/* Grid: rows = days, cols = weeks. */}
           <div style={{ display: "flex" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, marginRight: 6, fontSize: 8, color: "rgba(253,186,116,0.45)", fontFamily: MONO, letterSpacing: 0.5 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, marginRight: 6, fontSize: 8, color: "rgba(165,180,252,0.45)", fontFamily: MONO, letterSpacing: 0.5 }}>
               {["Do","Lu","Ma","Mi","Ju","Vi","Sa"].map((d, i) => (
                 <div key={d} style={{ height: 9, lineHeight: "9px", visibility: i % 2 === 1 ? "visible" : "hidden" }}>{d}</div>
               ))}
@@ -284,7 +283,7 @@ function YearHeatmap({ data, accent = "#DC2626" }: { data: { date: string; episo
         </div>
       </div>
       {/* Legend */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 9, color: "rgba(253,186,116,0.55)", fontFamily: MONO, letterSpacing: 0.5 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 9, color: "rgba(165,180,252,0.55)", fontFamily: MONO, letterSpacing: 0.5 }}>
         <span>MENOS</span>
         {[0,1,2,3,4].map((l) => (
           <div key={l} style={{ width: 9, height: 9, background: color(l), border: `1px solid ${accent}33` }} />
@@ -301,12 +300,12 @@ function HourlyChart({ data }: { data: { hour: number; episodes: number }[] }) {
   const peak = data.reduce((best, d) => (d.episodes > (best?.episodes ?? 0) ? d : best), null as null | { hour: number; episodes: number });
   return (
     <div>
-      <div style={{ color: "rgba(253,186,116,0.75)", fontSize: 10, fontFamily: MONO, letterSpacing: 0.5, marginBottom: 10 }}>
+      <div style={{ color: "rgba(165,180,252,0.75)", fontSize: 10, fontFamily: MONO, letterSpacing: 0.5, marginBottom: 10 }}>
         {peak && peak.episodes > 0
-          ? <>{">"} HORA PICO: <strong style={{ color: "#FECACA" }}>{String(peak.hour).padStart(2,"0")}:00 — {String((peak.hour+1)%24).padStart(2,"0")}:00</strong></>
+          ? <>{">"} HORA PICO: <strong style={{ color: "#c7d2fe" }}>{String(peak.hour).padStart(2,"0")}:00 — {String((peak.hour+1)%24).padStart(2,"0")}:00</strong></>
           : <>{">"} SIN DATOS DE HORARIO TODAVIA</>}
       </div>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 90, padding: "0 2px", borderBottom: "1px solid rgba(249,115,22,0.2)" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 90, padding: "0 2px", borderBottom: "1px solid rgba(99,102,241,0.2)" }}>
         {data.map((d) => {
           const h = max > 0 ? Math.max(d.episodes > 0 ? 4 : 0, Math.round((d.episodes / max) * 84)) : 0;
           const isPeak = peak && d.hour === peak.hour && peak.episodes > 0;
@@ -314,18 +313,18 @@ function HourlyChart({ data }: { data: { hour: number; episodes: number }[] }) {
             <div key={d.hour} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, position: "relative" }}>
               {isPeak && d.episodes > 0 && (
                 <div style={{
-                  position: "absolute", top: -16, fontSize: 8, color: "#FDBA74",
-                  fontFamily: MONO, fontWeight: 800, textShadow: "0 0 6px rgba(249,115,22,0.6)",
+                  position: "absolute", top: -16, fontSize: 8, color: "#a5b4fc",
+                  fontFamily: MONO, fontWeight: 800, textShadow: "0 0 6px rgba(99,102,241,0.6)",
                 }}>{d.episodes}</div>
               )}
               <div title={`${String(d.hour).padStart(2,"0")}:00 — ${d.episodes} ep.`} style={{
                 width: "100%", height: h,
                 background: isPeak
-                  ? "linear-gradient(180deg, #F97316, #DC2626)"
+                  ? "linear-gradient(180deg, #6366f1, #3f2eb2)"
                   : d.episodes > 0
-                    ? "linear-gradient(180deg, #DC2626, #991B1B)"
+                    ? "linear-gradient(180deg, #3f2eb2, #2e218a)"
                     : "rgba(255,255,255,0.05)",
-                boxShadow: isPeak ? "0 0 10px rgba(249,115,22,0.7)" : d.episodes > 0 ? "0 0 6px rgba(220,38,38,0.4)" : "none",
+                boxShadow: isPeak ? "0 0 10px rgba(99,102,241,0.7)" : d.episodes > 0 ? "0 0 6px rgba(63,46,178,0.4)" : "none",
                 transition: "height 0.4s",
               }} />
             </div>
@@ -336,7 +335,7 @@ function HourlyChart({ data }: { data: { hour: number; episodes: number }[] }) {
         {data.map((d) => (
           <div key={d.hour} style={{
             flex: 1, textAlign: "center", fontSize: 7,
-            color: d.hour % 6 === 0 ? "rgba(253,186,116,0.7)" : "rgba(253,186,116,0.25)",
+            color: d.hour % 6 === 0 ? "rgba(165,180,252,0.7)" : "rgba(165,180,252,0.25)",
             fontFamily: MONO, fontWeight: 700,
           }}>
             {d.hour % 6 === 0 ? String(d.hour).padStart(2,"0") : "·"}
@@ -372,12 +371,12 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
       ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
 
       /* scanlines */
-      ctx.fillStyle = "rgba(249,115,22,0.04)";
+      ctx.fillStyle = "rgba(99,102,241,0.04)";
       for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
 
       /* corner brackets */
       const drawBracket = (x: number, y: number, dx: number, dy: number) => {
-        ctx.strokeStyle = "#F97316"; ctx.lineWidth = 3;
+        ctx.strokeStyle = "#6366f1"; ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(x, y + dy * 30); ctx.lineTo(x, y); ctx.lineTo(x + dx * 30, y);
         ctx.stroke();
@@ -389,7 +388,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
 
       /* sys label */
       ctx.font = "bold 18px ui-monospace, monospace";
-      ctx.fillStyle = "#F97316"; ctx.textAlign = "center";
+      ctx.fillStyle = "#6366f1"; ctx.textAlign = "center";
       ctx.fillText("[ SISTEMA · LOGRO_DESBLOQUEADO ]", W/2, 90);
 
       /* icon background circle */
@@ -413,26 +412,26 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
 
       /* desc */
       ctx.font = "16px ui-monospace, monospace";
-      ctx.fillStyle = "rgba(253,186,116,0.85)";
+      ctx.fillStyle = "rgba(165,180,252,0.85)";
       ctx.fillText(ach.desc, W/2, 520);
 
       /* divider */
-      ctx.strokeStyle = "#DC2626"; ctx.lineWidth = 1;
+      ctx.strokeStyle = "#3f2eb2"; ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(W/2 - 120, 580); ctx.lineTo(W/2 + 120, 580);
       ctx.stroke();
 
       /* user info */
       ctx.font = "bold 22px ui-monospace, monospace";
-      ctx.fillStyle = "#FECACA";
+      ctx.fillStyle = "#c7d2fe";
       ctx.fillText(username.toUpperCase(), W/2, 630);
       ctx.font = "14px ui-monospace, monospace";
-      ctx.fillStyle = "rgba(253,186,116,0.75)";
+      ctx.fillStyle = "rgba(165,180,252,0.75)";
       ctx.fillText(`NV.${level} · CAZADOR · ANIMEFLEX`, W/2, 660);
 
       /* footer */
       ctx.font = "bold 12px ui-monospace, monospace";
-      ctx.fillStyle = "#F97316";
+      ctx.fillStyle = "#6366f1";
       ctx.fillText(formatDate(ach.unlockedAt ?? new Date().toISOString()).toUpperCase(), W/2, 730);
 
       const dataUrl = canvas.toDataURL("image/png");
@@ -478,7 +477,6 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
           position: "relative",
           background: "linear-gradient(180deg, rgba(28,8,18,0.98), rgba(10,4,14,0.99))",
           border: `1px solid ${ach.color}AA`,
-          clipPath: "polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px)",
           padding: "26px 24px 20px",
           boxShadow: `0 0 0 1px rgba(0,0,0,0.5), 0 0 60px ${ach.color}66`,
         }}
@@ -490,8 +488,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
           style={{
             position: "absolute", top: 10, right: 10,
             background: "rgba(8,4,18,0.85)", border: `1px solid ${ach.color}66`,
-            color: "#FECACA", padding: 6, cursor: "pointer", clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-          }}
+            color: "#c7d2fe", padding: 6, cursor: "pointer", }}
         >
           <X size={14} />
         </button>
@@ -509,8 +506,7 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 60,
           filter: ach.unlocked ? `drop-shadow(0 0 18px ${ach.color})` : "grayscale(0.6) opacity(0.6)",
-          clipPath: "polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px)",
-        }}>
+          }}>
           {ach.unlocked ? ach.icon : <Lock size={40} color="rgba(255,255,255,0.4)" />}
         </div>
 
@@ -521,24 +517,23 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
         }}>
           {ach.label}
         </h2>
-        <p style={{ color: "rgba(253,186,116,0.8)", fontSize: 12.5, textAlign: "center", margin: "0 0 18px", lineHeight: 1.55, fontFamily: MONO, letterSpacing: 0.3 }}>
+        <p style={{ color: "rgba(165,180,252,0.8)", fontSize: 12.5, textAlign: "center", margin: "0 0 18px", lineHeight: 1.55, fontFamily: MONO, letterSpacing: 0.3 }}>
           {ach.desc}
         </p>
 
         {/* Progress */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ color: "#FDBA74", fontSize: 10, fontWeight: 800, fontFamily: MONO, letterSpacing: 1 }}>
+            <span style={{ color: "#a5b4fc", fontSize: 10, fontWeight: 800, fontFamily: MONO, letterSpacing: 1 }}>
               PROGRESO
             </span>
-            <span style={{ color: "#FECACA", fontSize: 10, fontWeight: 900, fontFamily: MONO, textShadow: `0 0 6px ${ach.color}88` }}>
+            <span style={{ color: "#c7d2fe", fontSize: 10, fontWeight: 900, fontFamily: MONO, textShadow: `0 0 6px ${ach.color}88` }}>
               [ {ach.current}/{ach.target} ]
             </span>
           </div>
           <div style={{
             height: 8, background: "rgba(4,3,10,0.85)",
             border: `1px solid ${ach.color}44`,
-            clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
             overflow: "hidden",
           }}>
             <div style={{
@@ -558,10 +553,9 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
           <div style={{
             background: "rgba(8,4,18,0.7)", border: `1px solid ${ach.color}55`,
             padding: "9px 12px", marginBottom: 14,
-            color: "#FECACA", fontSize: 11, fontFamily: MONO, letterSpacing: 0.5,
+            color: "#c7d2fe", fontSize: 11, fontFamily: MONO, letterSpacing: 0.5,
             textAlign: "center",
-            clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
-          }}>
+            }}>
             {">"} DESBLOQUEADO EL <strong style={{ color: ach.color }}>{formatDate(ach.unlockedAt).toUpperCase()}</strong>
           </div>
         )}
@@ -576,7 +570,6 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
               border: `1px solid ${ach.color}`,
               color: "#fff", fontSize: 12, fontWeight: 900, letterSpacing: 1.5,
               fontFamily: MONO,
-              clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
               cursor: sharing ? "wait" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               boxShadow: `0 0 18px ${ach.color}99`,
@@ -586,13 +579,12 @@ function AchievementModal({ ach, username, level, onClose }: { ach: Achievement;
           </button>
         ) : (
           <div style={{
-            background: "rgba(8,4,18,0.6)", border: "1px dashed rgba(253,186,116,0.3)",
+            background: "rgba(8,4,18,0.6)", border: "1px dashed rgba(165,180,252,0.3)",
             padding: "10px 12px",
-            color: "rgba(253,186,116,0.7)", fontSize: 11, fontFamily: MONO, letterSpacing: 0.5,
+            color: "rgba(165,180,252,0.7)", fontSize: 11, fontFamily: MONO, letterSpacing: 0.5,
             textAlign: "center",
-            clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
-          }}>
-            {">"} TE FALTAN <strong style={{ color: "#FDBA74" }}>{Math.max(0, ach.target - ach.current)}</strong> PARA COMPLETAR
+            }}>
+            {">"} TE FALTAN <strong style={{ color: "#a5b4fc" }}>{Math.max(0, ach.target - ach.current)}</strong> PARA COMPLETAR
           </div>
         )}
       </div>
@@ -738,7 +730,6 @@ export default function Profile() {
           border: `1px solid ${bannerMeta.accent}80`,
           background: "linear-gradient(180deg, rgba(28,8,18,0.95), rgba(10,4,14,0.98))",
           position: "relative",
-          clipPath: "polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px)",
           boxShadow: `0 0 0 1px rgba(0,0,0,0.4), 0 0 32px ${bannerMeta.glow}, inset 0 1px 0 rgba(255,255,255,0.05)`,
           overflow: "hidden",
         }}>
@@ -758,12 +749,11 @@ export default function Profile() {
           <div style={{
             position: "absolute", top: 64, left: 18,
             width: 76, height: 76,
-            background: `linear-gradient(135deg, #FCA5A5, ${bannerMeta.accent} 50%, ${bannerMeta.accent}AA)`,
+            background: `linear-gradient(135deg, #a5b4fc, ${bannerMeta.accent} 50%, ${bannerMeta.accent}AA)`,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 30, fontWeight: 900, color: "#fff", overflow: "hidden",
             boxShadow: `0 0 0 3px #0a040e, 0 0 0 4px ${bannerMeta.accent}, 0 0 28px ${bannerMeta.glow}`,
             zIndex: 4,
-            clipPath: "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
             fontFamily: MONO,
           }}>
             {resolveAvatarUrl(user?.avatar_url)
@@ -784,7 +774,7 @@ export default function Profile() {
                     <button onClick={() => navigate("/admin")} style={{
                       display: "inline-flex", alignItems: "center", gap: 4,
                       background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)",
-                      borderRadius: 20, padding: "3px 8px", color: "#FCA5A5",
+                      borderRadius: 20, padding: "3px 8px", color: "#a5b4fc",
                       fontSize: 10, fontWeight: 900, cursor: "pointer",
                     }}>
                       <Shield size={9} /> DUEÑO
@@ -792,10 +782,10 @@ export default function Profile() {
                   )}
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: 4,
-                    background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(220,38,38,0.1)",
-                    border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.4)" : "rgba(220,38,38,0.3)"}`,
+                    background: isMegaFan ? "rgba(245,158,11,0.15)" : "rgba(63,46,178,0.1)",
+                    border: `1px solid ${isMegaFan ? "rgba(245,158,11,0.4)" : "rgba(63,46,178,0.3)"}`,
                     borderRadius: 20, padding: "3px 8px",
-                    color: isMegaFan ? "#FCD34D" : "#FECACA", fontSize: 10, fontWeight: 800,
+                    color: isMegaFan ? "#FCD34D" : "#c7d2fe", fontSize: 10, fontWeight: 800,
                   }}>
                     {isMegaFan ? <><Crown size={9} /> MegaFan</> : "✦ Gratuito"}
                   </span>
@@ -804,7 +794,6 @@ export default function Profile() {
                     background: `${bannerMeta.accent}1F`, border: `1px solid ${bannerMeta.accent}80`,
                     padding: "3px 8px", color: bannerMeta.accent, fontSize: 10, fontWeight: 800,
                     fontFamily: MONO, letterSpacing: 0.5,
-                    clipPath: "polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px)",
                     textShadow: `0 0 8px ${bannerMeta.glow}`,
                   }}>
                     <Zap size={9} /> NV.{levelInfo.level}
@@ -825,10 +814,10 @@ export default function Profile() {
                 <div style={{ display: "flex", gap: 6, flexShrink: 0, paddingTop: 2 }}>
                   <button onClick={handleCopyLink} aria-label="Copiar enlace al perfil" style={{
                     display: "flex", alignItems: "center", gap: 4,
-                    background: copied ? "rgba(34,197,94,0.15)" : "rgba(220,38,38,0.1)",
-                    border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(220,38,38,0.3)"}`,
+                    background: copied ? "rgba(34,197,94,0.15)" : "rgba(63,46,178,0.1)",
+                    border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(63,46,178,0.3)"}`,
                     borderRadius: 10, padding: "6px 10px",
-                    color: copied ? "#22C55E" : "#FECACA",
+                    color: copied ? "#22C55E" : "#c7d2fe",
                     cursor: "pointer", fontSize: 11, fontWeight: 700,
                   }}>
                     <Share2 size={11} /> {copied ? "✓" : ""}
@@ -853,9 +842,8 @@ export default function Profile() {
                 background: "rgba(8,4,18,0.55)",
                 border: `1px solid ${bannerMeta.accent}33`,
                 padding: "10px 12px", marginBottom: 14,
-                color: "#FECACA", fontSize: 12.5, lineHeight: 1.55,
+                color: "#c7d2fe", fontSize: 12.5, lineHeight: 1.55,
                 fontFamily: MONO, letterSpacing: 0.2,
-                clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
                 whiteSpace: "pre-wrap", wordBreak: "break-word",
               }}>
                 <span style={{ color: bannerMeta.accent, fontWeight: 800, marginRight: 6 }}>// BIO</span>
@@ -866,24 +854,23 @@ export default function Profile() {
             {/* Level progress */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ color: "#FDBA74", fontSize: 10, fontWeight: 800, fontFamily: MONO, letterSpacing: 1.5 }}>
+                <span style={{ color: "#a5b4fc", fontSize: 10, fontWeight: 800, fontFamily: MONO, letterSpacing: 1.5 }}>
                   EXP · NV.{levelInfo.level} · {levelInfo.currentXp}/{levelInfo.neededXp}
                 </span>
-                <span style={{ color: "#FECACA", fontSize: 10, fontWeight: 900, fontFamily: MONO, textShadow: "0 0 8px rgba(220,38,38,0.6)" }}>
+                <span style={{ color: "#c7d2fe", fontSize: 10, fontWeight: 900, fontFamily: MONO, textShadow: "0 0 8px rgba(63,46,178,0.6)" }}>
                   [ {levelInfo.progress}% ]
                 </span>
               </div>
               <div style={{
                 height: 8, background: "rgba(4,3,10,0.85)", overflow: "hidden",
-                border: "1px solid rgba(249,115,22,0.3)",
-                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-              }}>
+                border: "1px solid rgba(99,102,241,0.3)",
+                }}>
                 <div style={{
                   height: "100%",
                   width: `${levelInfo.progress}%`,
-                  background: "linear-gradient(90deg,#991B1B,#DC2626,#F97316,#FDBA74)",
+                  background: "linear-gradient(90deg,#2e218a,#3f2eb2,#6366f1,#a5b4fc)",
                   transition: "width 0.6s ease",
-                  boxShadow: "0 0 14px rgba(249,115,22,0.7), inset 0 0 8px rgba(255,255,255,0.2)",
+                  boxShadow: "0 0 14px rgba(99,102,241,0.7), inset 0 0 8px rgba(255,255,255,0.2)",
                 }} />
               </div>
             </div>
@@ -891,9 +878,9 @@ export default function Profile() {
             {/* Quick stats row — animated */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
               {[
-                { label: "Episodios", value: loadingStats && !stats ? "–" : animatedEpisodes, color: "#DC2626", icon: <Tv2 size={13} />, bg: "rgba(220,38,38,0.1)" },
+                { label: "Episodios", value: loadingStats && !stats ? "–" : animatedEpisodes, color: "#3f2eb2", icon: <Tv2 size={13} />, bg: "rgba(63,46,178,0.1)" },
                 { label: "Horas",     value: loadingStats && !stats ? "–" : `${(animatedHours / 10).toFixed(1)}h`, color: "#22C55E", icon: <Clock size={13} />, bg: "rgba(34,197,94,0.1)" },
-                { label: "Completados", value: loadingStats && !stats ? "–" : animatedCompleted, color: "#DC2626", icon: <CheckCircle2 size={13} />, bg: "rgba(220,38,38,0.1)" },
+                { label: "Completados", value: loadingStats && !stats ? "–" : animatedCompleted, color: "#3f2eb2", icon: <CheckCircle2 size={13} />, bg: "rgba(63,46,178,0.1)" },
                 { label: "Racha",     value: loadingStats && !stats ? "–" : `${animatedStreak}d`, color: "#F59E0B", icon: <Flame size={13} />, bg: "rgba(245,158,11,0.1)" },
               ].map(({ label, value, color, icon, bg }) => (
                 <div key={label} style={{
@@ -901,7 +888,6 @@ export default function Profile() {
                   padding: "12px 6px",
                   border: `1px solid ${color}66`,
                   position: "relative", overflow: "hidden",
-                  clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
                   boxShadow: `0 0 12px ${color}22, inset 0 1px 0 rgba(255,255,255,0.04)`,
                 }}>
                   <div style={{ color, fontSize: 11, marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.85 }}>{icon}</div>
@@ -945,8 +931,7 @@ export default function Profile() {
           display: "flex", gap: 4, marginBottom: 14,
           background: "rgba(4,3,10,0.85)",
           padding: 4,
-          border: "1px solid rgba(249,115,22,0.3)",
-          clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
+          border: "1px solid rgba(99,102,241,0.3)",
           overflowX: "auto",
         }}>
           {TABS.map(({ key, label, icon }, idx) => {
@@ -968,12 +953,11 @@ export default function Profile() {
                   fontSize: 11, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase",
                   transition: "all 0.18s",
                   background: active
-                    ? "linear-gradient(180deg, rgba(220,38,38,0.85), rgba(153,27,27,0.85))"
+                    ? "linear-gradient(180deg, rgba(63,46,178,0.85), rgba(46,33,138,0.85))"
                     : "transparent",
                   color: active ? "#fff" : "rgba(255,255,255,0.4)",
                   textShadow: active ? "0 0 10px rgba(255,255,255,0.5)" : "none",
-                  boxShadow: active ? "0 0 18px rgba(220,38,38,0.55)" : "none",
-                  clipPath: "polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px)",
+                  boxShadow: active ? "0 0 18px rgba(63,46,178,0.55)" : "none",
                   whiteSpace: "nowrap",
                 }}
               >
@@ -995,7 +979,7 @@ export default function Profile() {
                   </span>
                   <button onClick={() => navigate("/history")} style={{
                     marginLeft: "auto", background: "none", border: "none",
-                    color: "#FDBA74", fontSize: 10, fontWeight: 800, cursor: "pointer",
+                    color: "#a5b4fc", fontSize: 10, fontWeight: 800, cursor: "pointer",
                     fontFamily: MONO, letterSpacing: 0.5,
                   }}>HISTORIAL →</button>
                 </div>
@@ -1005,9 +989,8 @@ export default function Profile() {
                       key={c.episode_id}
                       onClick={() => navigate(`/watch?ep=${encodeURIComponent(c.episode_id)}&anime=${encodeURIComponent(c.anime_id)}`)}
                       style={{
-                        position: "relative", padding: 0, border: "1px solid rgba(220,38,38,0.3)",
+                        position: "relative", padding: 0, border: "1px solid rgba(63,46,178,0.3)",
                         background: "rgba(8,4,18,0.6)", cursor: "pointer", overflow: "hidden",
-                        clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
                         textAlign: "left",
                       }}
                     >
@@ -1017,22 +1000,22 @@ export default function Profile() {
                         <div style={{
                           position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
                           width: 36, height: 36, borderRadius: "50%",
-                          background: "rgba(220,38,38,0.85)", border: "1px solid #fff",
+                          background: "rgba(63,46,178,0.85)", border: "1px solid #fff",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          boxShadow: "0 0 16px rgba(220,38,38,0.7)",
+                          boxShadow: "0 0 16px rgba(63,46,178,0.7)",
                         }}>
                           <PlayCircle size={20} color="#fff" />
                         </div>
                         {/* Progress bar */}
                         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(0,0,0,0.6)" }}>
-                          <div style={{ height: "100%", width: `${c.progress_pct}%`, background: "linear-gradient(90deg, #DC2626, #F97316)", boxShadow: "0 0 6px rgba(220,38,38,0.7)" }} />
+                          <div style={{ height: "100%", width: `${c.progress_pct}%`, background: "linear-gradient(90deg, #3f2eb2, #6366f1)", boxShadow: "0 0 6px rgba(63,46,178,0.7)" }} />
                         </div>
                       </div>
                       <div style={{ padding: "8px 10px" }}>
                         <div style={{ color: "#F1F1F5", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {c.anime_title}
                         </div>
-                        <div style={{ color: "rgba(253,186,116,0.7)", fontSize: 10, marginTop: 2, fontFamily: MONO, letterSpacing: 0.5 }}>
+                        <div style={{ color: "rgba(165,180,252,0.7)", fontSize: 10, marginTop: 2, fontFamily: MONO, letterSpacing: 0.5 }}>
                           EP. {c.episode_num || "?"} · {c.progress_pct}%
                         </div>
                       </div>
@@ -1049,7 +1032,6 @@ export default function Profile() {
                 background: `linear-gradient(135deg, ${nextMilestone.color}1A, rgba(8,4,18,0.95))`,
                 border: `1px solid ${nextMilestone.color}66`,
                 padding: "14px 16px", marginBottom: 14,
-                clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
                 boxShadow: `0 0 18px ${nextMilestone.color}33`,
                 cursor: "pointer",
               }}
@@ -1064,14 +1046,13 @@ export default function Profile() {
                     <div style={{ color: nextMilestone.color, fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, marginBottom: 2 }}>
                       [ PROXIMO RANGO ]
                     </div>
-                    <div style={{ color: "#FECACA", fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
-                      {nextMilestone.label} <span style={{ color: "rgba(253,186,116,0.7)", fontWeight: 600 }}>— faltan {nextMilestone.target - nextMilestone.current}</span>
+                    <div style={{ color: "#c7d2fe", fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
+                      {nextMilestone.label} <span style={{ color: "rgba(165,180,252,0.7)", fontWeight: 600 }}>— faltan {nextMilestone.target - nextMilestone.current}</span>
                     </div>
                     <div style={{
                       height: 5, background: "rgba(4,3,10,0.85)",
                       border: `1px solid ${nextMilestone.color}33`,
-                      clipPath: "polygon(2px 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) 100%, 0 100%, 0 2px)",
-                    }}>
+                      }}>
                       <div style={{
                         height: "100%",
                         width: `${Math.round((nextMilestone.current / nextMilestone.target) * 100)}%`,
@@ -1092,9 +1073,9 @@ export default function Profile() {
                   <Trophy size={12} style={{ marginRight: 2 }} /> LOGROS · CAZADOR
                 </span>
                 <span style={{
-                  color: "#FDBA74", fontSize: 11, fontWeight: 900,
+                  color: "#a5b4fc", fontSize: 11, fontWeight: 900,
                   fontFamily: MONO,
-                  textShadow: "0 0 8px rgba(249,115,22,0.6)",
+                  textShadow: "0 0 8px rgba(99,102,241,0.6)",
                 }}>[ {unlockedCount}/{achievements.length} ]</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
@@ -1109,7 +1090,6 @@ export default function Profile() {
                       padding: "12px 6px", cursor: "pointer",
                       opacity: a.unlocked ? 1 : 0.55,
                       transition: "opacity 0.2s, transform 0.2s, box-shadow 0.2s",
-                      clipPath: "polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px)",
                       boxShadow: a.unlocked ? `0 0 12px ${a.color}33` : "none",
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)"; }}
@@ -1130,7 +1110,7 @@ export default function Profile() {
                   </button>
                 ))}
               </div>
-              <div style={{ color: "rgba(253,186,116,0.4)", fontSize: 9.5, marginTop: 10, textAlign: "center", fontFamily: MONO, letterSpacing: 0.5 }}>
+              <div style={{ color: "rgba(165,180,252,0.4)", fontSize: 9.5, marginTop: 10, textAlign: "center", fontFamily: MONO, letterSpacing: 0.5 }}>
                 {">"} TOCA UN LOGRO PARA VER DETALLES Y COMPARTIR
               </div>
             </div>
@@ -1142,7 +1122,6 @@ export default function Profile() {
                 background: "linear-gradient(135deg, rgba(124,115,255,0.12), rgba(8,4,18,0.95))",
                 border: "1px solid rgba(124,115,255,0.45)",
                 padding: "14px 16px", marginBottom: 14,
-                clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
                 boxShadow: "0 0 16px rgba(124,115,255,0.2)",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1166,7 +1145,7 @@ export default function Profile() {
                   <span className="sys-label" style={{ fontSize: 11 }}>
                     <BarChart2 size={12} style={{ marginRight: 2 }} /> ACTIVIDAD · 7D
                   </span>
-                  <span style={{ marginLeft: "auto", color: "rgba(253,186,116,0.55)", fontSize: 10, fontFamily: MONO, letterSpacing: 1 }}>// LOG</span>
+                  <span style={{ marginLeft: "auto", color: "rgba(165,180,252,0.55)", fontSize: 10, fontFamily: MONO, letterSpacing: 1 }}>// LOG</span>
                 </div>
                 <ResponsiveContainer width="100%" height={110}>
                   <BarChart data={stats.weeklyActivity} margin={{ top: 0, right: 0, left: -32, bottom: 0 }} barCategoryGap="30%">
@@ -1178,8 +1157,8 @@ export default function Profile() {
                     />
                     <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
                     <Tooltip
-                      contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 10, fontSize: 12 }}
-                      labelStyle={{ color: "#FECACA", fontWeight: 700 }}
+                      contentStyle={{ background: "#0f0f0f", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 10, fontSize: 12 }}
+                      labelStyle={{ color: "#c7d2fe", fontWeight: 700 }}
                       itemStyle={{ color: "#F1F1F5" }}
                       formatter={(v: number) => [`${v} ep.`, "Episodios"]}
                       labelFormatter={(label: string) => DAY_ES[label] ?? label}
@@ -1260,36 +1239,34 @@ export default function Profile() {
               <div style={{
                 position: "relative",
                 background: "linear-gradient(180deg, rgba(28,8,18,0.92), rgba(8,3,12,0.96))",
-                border: "1px solid rgba(220,38,38,0.45)",
+                border: "1px solid rgba(63,46,178,0.45)",
                 padding: "16px 18px", marginBottom: 14,
-                clipPath: "polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)",
-                boxShadow: "0 0 16px rgba(220,38,38,0.18), inset 0 1px 0 rgba(255,255,255,0.04)",
+                boxShadow: "0 0 16px rgba(63,46,178,0.18), inset 0 1px 0 rgba(255,255,255,0.04)",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                   <span className="sys-label" style={{ fontSize: 10.5 }}>CUOTA · EPISODIOS_HOY</span>
                   <div style={{
-                    color: "#FDBA74", fontSize: 15, fontWeight: 900,
+                    color: "#a5b4fc", fontSize: 15, fontWeight: 900,
                     fontFamily: MONO,
-                    textShadow: "0 0 10px rgba(249,115,22,0.6)",
+                    textShadow: "0 0 10px rgba(99,102,241,0.6)",
                   }}>[ {watchedToday}/{limitsConfig.dailyLimit} ]</div>
                 </div>
                 <div style={{
                   height: 8, background: "rgba(4,3,10,0.85)", overflow: "hidden",
-                  border: "1px solid rgba(249,115,22,0.3)",
-                  clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-                }}>
+                  border: "1px solid rgba(99,102,241,0.3)",
+                  }}>
                   <div style={{
                     height: "100%",
                     width: `${Math.min(100, (watchedToday / limitsConfig.dailyLimit) * 100)}%`,
                     background: watchedToday >= limitsConfig.dailyLimit
-                      ? "linear-gradient(90deg,#EF4444,#F87171,#FECACA)"
-                      : "linear-gradient(90deg,#991B1B,#DC2626,#F97316)",
-                    boxShadow: "0 0 12px rgba(249,115,22,0.6)",
+                      ? "linear-gradient(90deg,#EF4444,#F87171,#c7d2fe)"
+                      : "linear-gradient(90deg,#2e218a,#3f2eb2,#6366f1)",
+                    boxShadow: "0 0 12px rgba(99,102,241,0.6)",
                     transition: "width 0.4s",
                   }} />
                 </div>
                 <div style={{
-                  color: "rgba(253,186,116,0.7)", fontSize: 10.5, marginTop: 8,
+                  color: "rgba(165,180,252,0.7)", fontSize: 10.5, marginTop: 8,
                   fontFamily: MONO, letterSpacing: 0.5,
                 }}>
                   {">"} {remaining > 0 ? `${remaining} episodios restantes hoy` : "LÍMITE ALCANZADO · reinicio en 24h"}
@@ -1315,7 +1292,7 @@ export default function Profile() {
                   <Calendar size={12} style={{ marginRight: 2 }} /> CALENDARIO · 365D
                 </span>
                 {stats?.firstWatched && (
-                  <span style={{ marginLeft: "auto", color: "rgba(253,186,116,0.55)", fontSize: 10, fontFamily: MONO, letterSpacing: 1 }}>
+                  <span style={{ marginLeft: "auto", color: "rgba(165,180,252,0.55)", fontSize: 10, fontFamily: MONO, letterSpacing: 1 }}>
                     DESDE {formatDate(stats.firstWatched).toUpperCase()}
                   </span>
                 )}
@@ -1412,7 +1389,6 @@ export default function Profile() {
               background: "linear-gradient(135deg, rgba(124,115,255,0.10), rgba(8,4,18,0.95))",
               border: "1px solid rgba(124,115,255,0.4)",
               padding: "14px 16px", marginBottom: 14,
-              clipPath: "polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)",
               boxShadow: "0 0 16px rgba(124,115,255,0.18)",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -1429,7 +1405,6 @@ export default function Profile() {
                   background: "rgba(124,115,255,0.18)", border: "1px solid rgba(124,115,255,0.5)",
                   color: "#A8A0FF", fontSize: 10.5, fontWeight: 900, fontFamily: MONO, letterSpacing: 1,
                   padding: "7px 12px", cursor: "pointer", whiteSpace: "nowrap",
-                  clipPath: "polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px)",
                   boxShadow: "0 0 10px rgba(124,115,255,0.4)",
                 }}>
                   FEED →
@@ -1446,7 +1421,7 @@ export default function Profile() {
               <span className="sys-label" style={{ fontSize: 11 }}>
                 <Heart size={12} style={{ marginRight: 2 }} /> FAVORITOS
               </span>
-              <span style={{ marginLeft: "auto", color: "#FDBA74", fontSize: 11, fontFamily: MONO, fontWeight: 800, textShadow: "0 0 8px rgba(249,115,22,0.5)" }}>[ {favorites.length} ]</span>
+              <span style={{ marginLeft: "auto", color: "#a5b4fc", fontSize: 11, fontFamily: MONO, fontWeight: 800, textShadow: "0 0 8px rgba(99,102,241,0.5)" }}>[ {favorites.length} ]</span>
             </div>
             {favorites.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>
@@ -1485,9 +1460,9 @@ export default function Profile() {
               </span>
               <button onClick={() => navigate("/watchlist")} style={{
                 marginLeft: "auto", background: "none", border: "none",
-                color: "#FDBA74", fontSize: 11, fontWeight: 800, cursor: "pointer",
+                color: "#a5b4fc", fontSize: 11, fontWeight: 800, cursor: "pointer",
                 fontFamily: MONO, letterSpacing: 0.5,
-                textShadow: "0 0 8px rgba(249,115,22,0.5)",
+                textShadow: "0 0 8px rgba(99,102,241,0.5)",
               }}>
                 VER COMPLETA →
               </button>
@@ -1507,7 +1482,7 @@ export default function Profile() {
                       </div>
                     )}
                     {a.status === "watching" && (
-                      <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(220,38,38,0.9)", borderRadius: 5, padding: "2px 5px" }}>
+                      <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(63,46,178,0.9)", borderRadius: 5, padding: "2px 5px" }}>
                         <span style={{ color: "#fff", fontSize: 8, fontWeight: 700 }}>▶</span>
                       </div>
                     )}

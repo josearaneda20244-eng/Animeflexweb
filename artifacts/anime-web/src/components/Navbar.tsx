@@ -144,21 +144,18 @@ export default function Navbar() {
     <>
       <nav
         className="site-navbar fixed top-0 left-0 right-0 z-50"
-        style={{ background: "rgba(7,7,11,0.78)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderBottom: "1px solid rgba(220,38,38,0.14)", boxShadow: "0 6px 28px rgba(0,0,0,0.45)" }}
+        style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(28px) saturate(180%)", WebkitBackdropFilter: "blur(28px) saturate(180%)", borderBottom: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 6px 28px rgba(0,0,0,0.6)" }}
       >
         <div className="site-navbar__inner" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", height: 58 }}>
           {/* Logo */}
           <Link className="site-navbar__brand" href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0, marginRight: 8 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 10,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "linear-gradient(135deg,#FCA5A5 0%,#DC2626 50%,#991B1B 100%)",
-              boxShadow: "0 6px 18px rgba(220,38,38,0.45), inset 0 1px 0 rgba(255,255,255,0.22)",
-            }}>
-              <span style={{ color: "#fff", fontSize: 13, fontWeight: 900, lineHeight: 1, marginLeft: 1 }}>▶</span>
-            </div>
-            <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1 }}>
-              <span style={{ color: "#F1F1F5" }}>Anime</span><span style={{ background: "linear-gradient(135deg,#FECACA,#DC2626)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>FLEX</span>
+            <img
+              src="/icon.svg"
+              alt="IZIFF ANIME"
+              style={{ width: 30, height: 30, objectFit: "contain", borderRadius: 8 }}
+            />
+            <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.3, lineHeight: 1, color: "#ffffff" }}>
+              IZIFF ANIME
             </span>
           </Link>
 
@@ -258,7 +255,7 @@ export default function Navbar() {
                   {moreOpen && (
                     <div style={{
                       position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 200,
-                      background: "#100e22", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
+                      background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14,
                       padding: 8, minWidth: 160, boxShadow: "0 12px 32px rgba(0,0,0,0.5)",
                     }}>
                       {[
@@ -292,6 +289,21 @@ export default function Navbar() {
 
               {/* Right actions */}
               <div className="site-navbar__actions" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {/* Descargar App button */}
+                <a
+                  href="https://zerinho23.github.io/anime-app-landing/#descargas"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
+                    color: "#ffffff", fontSize: 12, fontWeight: 600, textDecoration: "none",
+                  }}
+                  className="hidden lg:inline-flex hover:bg-white/10 transition-colors"
+                >
+                  Descargar App
+                </a>
+
                 {/* Aleatorio - desktop only */}
                 <button
                   onClick={handleRandom}
@@ -328,7 +340,7 @@ export default function Navbar() {
                     >
                       <div style={{
                         width: 28, height: 28, borderRadius: 8,
-                        background: "linear-gradient(135deg,#DC2626,#991B1B)",
+                        background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
                         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2)",
                       }}>
@@ -349,21 +361,19 @@ export default function Navbar() {
                         position: "fixed", top: 66, left: 8, right: 8, zIndex: 200,
                         maxHeight: "calc(100vh - 78px)", overflowY: "auto",
                         background: "linear-gradient(180deg, rgba(17,8,35,0.97), rgba(8,4,18,0.99))",
-                        border: "1px solid rgba(220,38,38,0.45)",
-                        boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.85), 0 0 28px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
-                        clipPath: "polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)",
-                      } : {
+                        border: "1px solid rgba(63,46,178,0.45)",
+                        boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.85), 0 0 28px rgba(63,46,178,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
+                        } : {
                         position: "absolute", top: "calc(100% + 12px)", right: 0, zIndex: 200,
                         minWidth: 300, width: 300,
                         background: "linear-gradient(180deg, rgba(17,8,35,0.97), rgba(8,4,18,0.99))",
-                        border: "1px solid rgba(220,38,38,0.45)",
-                        boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.85), 0 0 28px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
-                        clipPath: "polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)",
-                      }}>
+                        border: "1px solid rgba(63,46,178,0.45)",
+                        boxShadow: "0 0 0 1px rgba(0,0,0,0.4), 0 24px 60px rgba(0,0,0,0.85), 0 0 28px rgba(63,46,178,0.25), inset 0 1px 0 rgba(255,255,255,0.04)",
+                        }}>
                         {/* Hex grid background */}
                         <div style={{
                           position: "absolute", inset: 0,
-                          backgroundImage: "linear-gradient(rgba(220,38,38,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.06) 1px, transparent 1px)",
+                          backgroundImage: "linear-gradient(rgba(63,46,178,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.06) 1px, transparent 1px)",
                           backgroundSize: "22px 22px",
                           maskImage: "linear-gradient(180deg, black 0%, transparent 80%)",
                           WebkitMaskImage: "linear-gradient(180deg, black 0%, transparent 80%)",
@@ -372,15 +382,15 @@ export default function Navbar() {
                         {/* Aurora glow top */}
                         <div style={{
                           position: "absolute", top: 0, left: 0, right: 0, height: 140,
-                          background: "radial-gradient(ellipse at 50% 0%, rgba(220,38,38,0.32) 0%, transparent 70%)",
+                          background: "radial-gradient(ellipse at 50% 0%, rgba(63,46,178,0.32) 0%, transparent 70%)",
                           pointerEvents: "none",
                         }} />
                         {/* Corner brackets */}
-                        <CornerBrackets color="#DC2626" size={14} thickness={2} inset={4} />
+                        <CornerBrackets color="#3f2eb2" size={14} thickness={2} inset={4} />
 
                         {/* SYSTEM tag header */}
                         <div style={{ padding: "14px 16px 10px", position: "relative", zIndex: 2 }}>
-                          <SystemTag color="#DC2626">[ SYSTEM ] PERFIL</SystemTag>
+                          <SystemTag color="#3f2eb2">[ SYSTEM ] PERFIL</SystemTag>
                         </div>
 
                         {/* Avatar + Badges */}
@@ -389,11 +399,10 @@ export default function Navbar() {
                             title="Cambiar foto de perfil"
                             style={{
                               position: "relative", width: 60, height: 60, padding: 0, border: "none",
-                              background: "linear-gradient(135deg,#DC2626,#7F1D1D)",
-                              boxShadow: "0 4px 18px rgba(220,38,38,0.45), 0 0 0 1px rgba(220,38,38,0.6)",
+                              background: "linear-gradient(135deg,#3f2eb2,#7F1D1D)",
+                              boxShadow: "0 4px 18px rgba(63,46,178,0.45), 0 0 0 1px rgba(63,46,178,0.6)",
                               overflow: "hidden", flexShrink: 0, cursor: "pointer",
-                              clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
-                            }}
+                              }}
                           >
                             {resolveAvatarUrl(user.avatar_url)
                               ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -416,26 +425,24 @@ export default function Navbar() {
                             {isOwner && (
                               <span style={{
                                 display: "inline-flex", alignItems: "center", gap: 4,
-                                background: "rgba(220,38,38,0.18)",
-                                border: "1px solid rgba(220,38,38,0.55)",
-                                color: "#FCA5A5", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
+                                background: "rgba(63,46,178,0.18)",
+                                border: "1px solid rgba(63,46,178,0.55)",
+                                color: "#a5b4fc", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
                                 padding: "3px 8px",
                                 fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-                              }}>
+                                }}>
                                 <Shield size={9} /> DUEÑO
                               </span>
                             )}
                             {isMegaFan && (
                               <span style={{
                                 display: "inline-flex", alignItems: "center", gap: 4,
-                                background: "rgba(249,115,22,0.15)",
-                                border: "1px solid rgba(249,115,22,0.55)",
+                                background: "rgba(99,102,241,0.15)",
+                                border: "1px solid rgba(99,102,241,0.55)",
                                 color: "#FCD34D", fontSize: 9, fontWeight: 900, letterSpacing: 1.2,
                                 padding: "3px 8px",
                                 fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-                              }}>
+                                }}>
                                 <Crown size={9} /> MEGAFAN
                               </span>
                             )}
@@ -444,15 +451,15 @@ export default function Navbar() {
 
                         {/* User info */}
                         <div style={{ padding: "0 16px 14px", position: "relative", zIndex: 2 }}>
-                          <div style={{ color: "#FECACA", fontSize: 18, fontWeight: 900, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textShadow: "0 0 12px rgba(220,38,38,0.35)" }}>
+                          <div style={{ color: "#c7d2fe", fontSize: 18, fontWeight: 900, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textShadow: "0 0 12px rgba(63,46,178,0.35)" }}>
                             {user.username}
                           </div>
-                          <div style={{ color: "rgba(252,165,165,0.55)", fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-all", fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+                          <div style={{ color: "rgba(165,180,252,0.55)", fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 6, wordBreak: "break-all", fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
                             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E", boxShadow: "0 0 6px #22C55E", display: "inline-block", flexShrink: 0 }} />
                             {user.email}
                           </div>
                           {user.created_at && (
-                            <div style={{ color: "rgba(252,165,165,0.35)", fontSize: 9.5, marginTop: 6, letterSpacing: 1.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textTransform: "uppercase" }}>
+                            <div style={{ color: "rgba(165,180,252,0.35)", fontSize: 9.5, marginTop: 6, letterSpacing: 1.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace", textTransform: "uppercase" }}>
                               ▸ MIEMBRO DESDE {new Date(user.created_at).toLocaleDateString("es", { month: "short", year: "numeric" }).toUpperCase()}
                             </div>
                           )}
@@ -462,29 +469,28 @@ export default function Navbar() {
                         <div style={{
                           display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
                           margin: "0 12px 12px",
-                          background: "rgba(220,38,38,0.06)",
-                          border: "1px solid rgba(220,38,38,0.25)",
+                          background: "rgba(63,46,178,0.06)",
+                          border: "1px solid rgba(63,46,178,0.25)",
                           position: "relative", zIndex: 2,
-                          clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
-                        }}>
+                          }}>
                           {[
-                            { label: "FAVS", value: favorites.length, icon: <Bookmark size={13} color="#FCA5A5" />, href: "/favorites" },
-                            { label: "LISTA", value: watchList.length, icon: <ListVideo size={13} color="#FCA5A5" />, href: "/watchlist" },
+                            { label: "FAVS", value: favorites.length, icon: <Bookmark size={13} color="#a5b4fc" />, href: "/favorites" },
+                            { label: "LISTA", value: watchList.length, icon: <ListVideo size={13} color="#a5b4fc" />, href: "/watchlist" },
                             { label: "HIST", value: history.length, icon: <Clock size={13} color="#34D399" />, href: "/history" },
                           ].map(({ label, value, icon, href }, i) => (
                             <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
                               style={{
                                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                                 padding: "10px 4px", gap: 3, background: "none", border: "none",
-                                borderRight: i < 2 ? "1px solid rgba(220,38,38,0.18)" : "none",
+                                borderRight: i < 2 ? "1px solid rgba(63,46,178,0.18)" : "none",
                                 cursor: "pointer", transition: "background 0.15s",
                               }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.12)"; }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(63,46,178,0.12)"; }}
                               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
                             >
                               {icon}
-                              <span style={{ color: "#FECACA", fontSize: 16, fontWeight: 900, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{value}</span>
-                              <span style={{ color: "rgba(252,165,165,0.6)", fontSize: 8.5, fontWeight: 800, letterSpacing: 1.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{label}</span>
+                              <span style={{ color: "#c7d2fe", fontSize: 16, fontWeight: 900, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{value}</span>
+                              <span style={{ color: "rgba(165,180,252,0.6)", fontSize: 8.5, fontWeight: 800, letterSpacing: 1.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>{label}</span>
                             </button>
                           ))}
                         </div>
@@ -497,42 +503,40 @@ export default function Navbar() {
                               width: "100%", display: "flex", alignItems: "center", gap: 10,
                               padding: "11px 12px",
                               background: isMegaFan
-                                ? "linear-gradient(135deg, rgba(249,115,22,0.18), rgba(249,115,22,0.06))"
-                                : "linear-gradient(135deg, rgba(220,38,38,0.18), rgba(220,38,38,0.06))",
-                              border: isMegaFan ? "1px solid rgba(249,115,22,0.55)" : "1px solid rgba(220,38,38,0.45)",
+                                ? "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(99,102,241,0.06))"
+                                : "linear-gradient(135deg, rgba(63,46,178,0.18), rgba(63,46,178,0.06))",
+                              border: isMegaFan ? "1px solid rgba(99,102,241,0.55)" : "1px solid rgba(63,46,178,0.45)",
                               cursor: "pointer", transition: "all 0.2s",
-                              clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
-                            }}
+                              }}
                             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.85"; }}
                             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
                           >
                             <div style={{
                               width: 32, height: 32, flexShrink: 0,
-                              background: isMegaFan ? "linear-gradient(135deg,#F97316,#B45309)" : "linear-gradient(135deg,#DC2626,#7F1D1D)",
+                              background: isMegaFan ? "linear-gradient(135deg,#6366f1,#B45309)" : "linear-gradient(135deg,#3f2eb2,#7F1D1D)",
                               display: "flex", alignItems: "center", justifyContent: "center",
-                              boxShadow: isMegaFan ? "0 4px 12px rgba(249,115,22,0.45)" : "0 4px 12px rgba(220,38,38,0.45)",
-                              clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
-                            }}>
+                              boxShadow: isMegaFan ? "0 4px 12px rgba(99,102,241,0.45)" : "0 4px 12px rgba(63,46,178,0.45)",
+                              }}>
                               {isMegaFan ? <Crown size={16} color="#fff" /> : <Zap size={16} color="#fff" />}
                             </div>
                             <div style={{ flex: 1, textAlign: "left" }}>
-                              <div style={{ color: isMegaFan ? "#FCD34D" : "#FECACA", fontSize: 12, fontWeight: 800, letterSpacing: 0.4, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+                              <div style={{ color: isMegaFan ? "#FCD34D" : "#c7d2fe", fontSize: 12, fontWeight: 800, letterSpacing: 0.4, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
                                 {isMegaFan ? "MEMBRESÍA ACTIVA" : "HAZTE MEGAFAN"}
                               </div>
-                              <div style={{ color: "rgba(252,165,165,0.55)", fontSize: 9.5, marginTop: 2, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
+                              <div style={{ color: "rgba(165,180,252,0.55)", fontSize: 9.5, marginTop: 2, letterSpacing: 0.5, fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}>
                                 {isMegaFan ? "▸ ACCESO PREMIUM ACTIVO" : "▸ DESBLOQUEAR CONTENIDO"}
                               </div>
                             </div>
-                            <ChevronRight size={14} color={isMegaFan ? "#FCD34D" : "#FCA5A5"} />
+                            <ChevronRight size={14} color={isMegaFan ? "#FCD34D" : "#a5b4fc"} />
                           </button>
                         </div>
 
                         {/* Quick links */}
-                        <div style={{ margin: "0 12px", borderTop: "1px solid rgba(220,38,38,0.18)", paddingTop: 6, position: "relative", zIndex: 2 }}>
+                        <div style={{ margin: "0 12px", borderTop: "1px solid rgba(63,46,178,0.18)", paddingTop: 6, position: "relative", zIndex: 2 }}>
                           {[
-                            ...(isOwner ? [{ icon: <LayoutDashboard size={13} />, label: "PANEL DE ADMIN", href: "/admin", color: "#FCA5A5" }] : []),
-                            { icon: <User size={13} />, label: "MI PERFIL", href: "/perfil", color: "rgba(252,165,165,0.7)" },
-                            { icon: <Settings size={13} />, label: "CONFIGURACIÓN", href: "/settings", color: "rgba(252,165,165,0.7)" },
+                            ...(isOwner ? [{ icon: <LayoutDashboard size={13} />, label: "PANEL DE ADMIN", href: "/admin", color: "#a5b4fc" }] : []),
+                            { icon: <User size={13} />, label: "MI PERFIL", href: "/perfil", color: "rgba(165,180,252,0.7)" },
+                            { icon: <Settings size={13} />, label: "CONFIGURACIÓN", href: "/settings", color: "rgba(165,180,252,0.7)" },
                           ].map(({ icon, label, href, color }) => (
                             <button key={href} onClick={() => { navigate(href); setShowUserMenu(false); }}
                               style={{
@@ -543,29 +547,28 @@ export default function Navbar() {
                                 fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                                 transition: "all 0.15s",
                               }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.1)"; (e.currentTarget as HTMLButtonElement).style.color = "#FECACA"; }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(63,46,178,0.1)"; (e.currentTarget as HTMLButtonElement).style.color = "#c7d2fe"; }}
                               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = color; }}
                             >
-                              <span style={{ color: "#DC2626" }}>▸</span>{icon} {label}
+                              <span style={{ color: "#3f2eb2" }}>▸</span>{icon} {label}
                             </button>
                           ))}
                         </div>
 
                         {/* Logout */}
-                        <div style={{ margin: "6px 12px 14px", borderTop: "1px solid rgba(220,38,38,0.18)", paddingTop: 6, position: "relative", zIndex: 2 }}>
+                        <div style={{ margin: "6px 12px 14px", borderTop: "1px solid rgba(63,46,178,0.18)", paddingTop: 6, position: "relative", zIndex: 2 }}>
                           <button
                             onClick={() => { logout(); setShowUserMenu(false); }}
                             style={{
                               display: "flex", alignItems: "center", gap: 10, width: "100%",
-                              padding: "10px 10px", background: "none", border: "1px solid rgba(220,38,38,0.35)",
+                              padding: "10px 10px", background: "none", border: "1px solid rgba(63,46,178,0.35)",
                               cursor: "pointer",
-                              color: "#FCA5A5", fontSize: 11, fontWeight: 900, letterSpacing: 1.5,
+                              color: "#a5b4fc", fontSize: 11, fontWeight: 900, letterSpacing: 1.5,
                               fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                               transition: "all 0.15s",
-                              clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
-                            }}
-                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(220,38,38,0.18)"; (e.currentTarget as HTMLButtonElement).style.color = "#FECACA"; }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = "#FCA5A5"; }}
+                              }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(63,46,178,0.18)"; (e.currentTarget as HTMLButtonElement).style.color = "#c7d2fe"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = "#a5b4fc"; }}
                           >
                             <LogOut size={13} /> CERRAR SESIÓN
                           </button>
@@ -621,94 +624,48 @@ export default function Navbar() {
             onClick={(e) => e.stopPropagation()}
             style={{
               position: "relative", width: 296, height: "100%",
-              background: "linear-gradient(180deg, #050714 0%, #07091F 50%, #04060F 100%)",
-              borderRight: "1px solid rgba(56,189,248,0.35)",
-              boxShadow: "inset -1px 0 0 rgba(125,211,252,0.12), 8px 0 40px rgba(56,189,248,0.18), 0 0 60px rgba(56,189,248,0.08)",
+              background: "#0a0a0a",
+              borderRight: "1px solid rgba(255,255,255,0.08)",
+              boxShadow: "10px 0 40px rgba(0,0,0,0.8)",
               display: "flex", flexDirection: "column", overflowY: "auto",
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
+              fontFamily: "'Inter', sans-serif",
             }}
           >
-            {/* Background — animated grid + scanlines */}
-            <div style={{
-              position: "absolute", inset: 0, pointerEvents: "none",
-              backgroundImage: "linear-gradient(rgba(56,189,248,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.05) 1px, transparent 1px)",
-              backgroundSize: "28px 28px",
-              maskImage: "radial-gradient(ellipse at 30% 0%, black 0%, transparent 70%)",
-              WebkitMaskImage: "radial-gradient(ellipse at 30% 0%, black 0%, transparent 70%)",
-            }} />
-            <div style={{
-              position: "absolute", inset: 0, pointerEvents: "none",
-              backgroundImage: "repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(125,211,252,0.025) 3px, rgba(125,211,252,0.025) 4px)",
-              opacity: 0.7,
-            }} />
-            {/* Top accent bar (system stripe) */}
-            <div style={{
-              position: "absolute", top: 0, left: 0, right: 0, height: 2,
-              background: "linear-gradient(90deg, transparent, #38BDF8, #6366F1, #38BDF8, transparent)",
-              boxShadow: "0 0 12px rgba(56,189,248,0.6)",
-            }} />
-            {/* Bottom accent */}
-            <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0, height: 1,
-              background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent)",
-            }} />
-
             {/* Drawer header */}
-            <div style={{ position: "relative", padding: "16px 18px 14px", borderBottom: "1px solid rgba(56,189,248,0.18)" }}>
-              <div style={{
-                fontSize: 9, letterSpacing: 2.5, color: "#38BDF8", fontWeight: 800,
-                marginBottom: 10, textTransform: "uppercase",
-                textShadow: "0 0 10px rgba(56,189,248,0.6)",
-              }}>
-                <span style={{ color: "#7DD3FC" }}>{"["}</span> Sistema · Menú_Activo <span style={{ color: "#7DD3FC" }}>{"]"}</span>
-              </div>
+            <div style={{ position: "relative", padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 11, textDecoration: "none", minWidth: 0, flex: 1 }}>
-                  <div style={{
-                    position: "relative",
-                    width: 36, height: 36,
-                    clipPath: "polygon(22% 0, 100% 0, 100% 78%, 78% 100%, 0 100%, 0 22%)",
-                    background: "linear-gradient(135deg, #1E40AF 0%, #4F46E5 50%, #38BDF8 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: "0 0 18px rgba(56,189,248,0.55), inset 0 0 0 1px rgba(255,255,255,0.18)",
-                    flexShrink: 0,
-                  }}>
-                    <span style={{ color: "#fff", fontSize: 14, fontWeight: 900, marginLeft: 1 }}>▶</span>
-                  </div>
-                  <span style={{ fontSize: 17, fontWeight: 900, letterSpacing: 0.5, lineHeight: 1, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
-                    <span style={{ color: "#F1F1F5" }}>Anime</span>
-                    <span style={{
-                      background: "linear-gradient(135deg,#7DD3FC,#38BDF8,#6366F1)",
-                      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                      filter: "drop-shadow(0 0 8px rgba(56,189,248,0.5))",
-                    }}>FLEX</span>
+                <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", minWidth: 0, flex: 1 }}>
+                  <img src="/icon.svg" alt="IZIFF ANIME" style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 8 }} />
+                  <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: -0.3, color: "#ffffff" }}>
+                    IZIFF ANIME
                   </span>
                 </Link>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
                   style={{
-                    padding: 7, cursor: "pointer", display: "flex",
-                    clipPath: "polygon(20% 0, 100% 0, 100% 80%, 80% 100%, 0 100%, 0 20%)",
-                    background: "rgba(56,189,248,0.1)",
-                    border: "1px solid rgba(56,189,248,0.4)",
-                    boxShadow: "0 0 8px rgba(56,189,248,0.25), inset 0 0 0 1px rgba(56,189,248,0.1)",
+                    padding: 6, cursor: "pointer", display: "flex",
+                    borderRadius: 8,
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "#ffffff",
                     flexShrink: 0,
                   }}
                 >
-                  <X size={15} color="#7DD3FC" />
+                  <X size={16} />
                 </button>
               </div>
             </div>
 
             {/* Nav items */}
-            <div style={{ position: "relative", padding: "12px 12px 8px", display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ position: "relative", padding: "12px", display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{
-                fontSize: 9, letterSpacing: 2, color: "rgba(125,211,252,0.55)",
-                fontWeight: 700, padding: "4px 8px 8px", textTransform: "uppercase",
+                fontSize: 10, letterSpacing: 1.5, color: "rgba(255,255,255,0.4)",
+                fontWeight: 600, padding: "4px 8px 8px", textTransform: "uppercase",
+                fontFamily: "'Space Grotesk', monospace",
               }}>
-                ▸ Categorías_disponibles
+                Navegación
               </div>
-              {mobileNavItems.map(({ label, icon, href }, i) => {
+              {mobileNavItems.map(({ label, icon, href }) => {
                 const active = isActive(href);
                 return (
                   <button
@@ -716,189 +673,148 @@ export default function Navbar() {
                     onClick={() => { navigate(href); setMobileMenuOpen(false); }}
                     style={{
                       position: "relative",
-                      display: "flex", alignItems: "center", gap: 11, padding: "11px 14px 11px 12px",
-                      border: active ? "1px solid rgba(56,189,248,0.55)" : "1px solid rgba(125,211,252,0.08)",
-                      borderLeft: active ? "3px solid #38BDF8" : "3px solid transparent",
-                      background: active
-                        ? "linear-gradient(90deg, rgba(56,189,248,0.22) 0%, rgba(56,189,248,0.06) 50%, rgba(56,189,248,0.02) 100%)"
-                        : "rgba(125,211,252,0.025)",
-                      color: active ? "#F1F1F5" : "rgba(255,255,255,0.7)",
+                      display: "flex", alignItems: "center", gap: 12, padding: "10px 12px",
+                      borderRadius: 10,
+                      border: active ? "1px solid rgba(255,255,255,0.18)" : "1px solid transparent",
+                      background: active ? "rgba(255,255,255,0.08)" : "transparent",
+                      color: active ? "#ffffff" : "rgba(255,255,255,0.65)",
                       cursor: "pointer", textAlign: "left",
-                      clipPath: "polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)",
-                      boxShadow: active
-                        ? "inset 0 0 14px rgba(56,189,248,0.2), 0 0 18px rgba(56,189,248,0.18)"
-                        : "none",
+                      fontSize: 13.5, fontWeight: 500,
                       transition: "all 0.18s ease",
-                      fontSize: 13.5, fontWeight: 600,
-                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                      letterSpacing: 0.3,
                     }}
                   >
-                    <span style={{
-                      color: active ? "#38BDF8" : "rgba(125,211,252,0.4)",
-                      fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
-                      minWidth: 26, textAlign: "right",
-                    }}>
-                      {String(i + 1).padStart(3, "0")}
-                    </span>
-                    <span style={{
-                      color: active ? "#7DD3FC" : "rgba(125,211,252,0.55)",
-                      display: "flex",
-                      filter: active ? "drop-shadow(0 0 6px rgba(56,189,248,0.7))" : "none",
-                    }}>
+                    <span style={{ color: active ? "#ffffff" : "rgba(255,255,255,0.5)", display: "flex" }}>
                       {icon}
                     </span>
                     <span style={{ flex: 1 }}>{label}</span>
-                    {active && (
-                      <span style={{
-                        color: "#38BDF8", fontSize: 11, fontWeight: 800, letterSpacing: 1,
-                        textShadow: "0 0 8px rgba(56,189,248,0.8)",
-                      }}>◢</span>
-                    )}
+                    {active && <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#ffffff" }} />}
                   </button>
                 );
               })}
             </div>
 
-            {/* Divider — system separator */}
-            <div style={{
-              position: "relative", height: 12, margin: "6px 18px",
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent)" }} />
-              <span style={{ color: "rgba(125,211,252,0.45)", fontSize: 8, fontWeight: 700, letterSpacing: 1.5 }}>◇ ◇ ◇</span>
-              <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent)" }} />
-            </div>
+            {/* Divider */}
+            <div style={{ height: 1, margin: "6px 14px", background: "rgba(255,255,255,0.08)" }} />
 
-            {/* Aleatorio */}
-            <div style={{ position: "relative", padding: "8px 12px" }}>
+            {/* Actions: Aleatorio + Descargar App */}
+            <div style={{ position: "relative", padding: "8px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
               <button
                 onClick={() => { handleRandom(); setMobileMenuOpen(false); }}
                 style={{
-                  display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", width: "100%",
-                  border: "1px solid rgba(56,189,248,0.35)",
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", width: "100%",
+                  borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,0.1)",
                   cursor: "pointer",
-                  background: "linear-gradient(135deg, rgba(56,189,248,0.12), rgba(99,102,241,0.06))",
-                  color: "#7DD3FC",
-                  fontSize: 13.5, fontWeight: 700,
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                  letterSpacing: 0.5,
-                  clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)",
-                  boxShadow: "0 0 14px rgba(56,189,248,0.18), inset 0 0 0 1px rgba(125,211,252,0.08)",
+                  background: "rgba(255,255,255,0.04)",
+                  color: "#ffffff",
+                  fontSize: 13, fontWeight: 500,
                 }}
               >
-                <Shuffle size={16} color="#38BDF8" style={{ filter: "drop-shadow(0 0 6px rgba(56,189,248,0.5))" }} />
-                <span>Skill_Aleatorio</span>
+                <Shuffle size={15} />
+                <span>Anime aleatorio</span>
               </button>
-            </div>
 
-            {/* Divider */}
-            <div style={{
-              position: "relative", height: 12, margin: "6px 18px",
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent)" }} />
-              <span style={{ color: "rgba(125,211,252,0.45)", fontSize: 8, fontWeight: 700, letterSpacing: 1.5 }}>◇ ◇ ◇</span>
-              <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent)" }} />
+              <a
+                href="https://zerinho23.github.io/anime-app-landing/#descargas"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 12px", width: "100%",
+                  borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  background: "rgba(255,255,255,0.08)",
+                  color: "#ffffff",
+                  fontSize: 13, fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                Descargar App Móvil / PC
+              </a>
             </div>
 
             {/* Auth section */}
-            <div style={{ position: "relative", padding: "8px 12px 16px", marginTop: "auto" }}>
+            <div style={{ position: "relative", padding: "12px", marginTop: "auto" }}>
               {user ? (
                 <>
                   <div style={{
-                    position: "relative",
-                    background: "linear-gradient(135deg, rgba(56,189,248,0.1) 0%, rgba(99,102,241,0.05) 100%)",
-                    border: "1px solid rgba(56,189,248,0.3)",
-                    boxShadow: "inset 0 0 0 1px rgba(125,211,252,0.06), 0 0 16px rgba(56,189,248,0.12)",
+                    background: "#121212",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 12,
                     marginBottom: 8, overflow: "hidden",
-                    clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))",
                   }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px" }}>
                       <div style={{
-                        width: 44, height: 44,
-                        clipPath: "polygon(22% 0, 100% 0, 100% 78%, 78% 100%, 0 100%, 0 22%)",
-                        background: "linear-gradient(135deg, #1E40AF, #38BDF8)",
+                        width: 40, height: 40,
+                        borderRadius: 10,
+                        background: "#1e1e1e",
                         display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        boxShadow: "0 0 14px rgba(56,189,248,0.4), inset 0 0 0 1px rgba(255,255,255,0.15)",
                         overflow: "hidden",
+                        border: "1px solid rgba(255,255,255,0.1)",
                       }}>
                         {resolveAvatarUrl(user.avatar_url)
                           ? <img src={resolveAvatarUrl(user.avatar_url)!} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                          : <User size={20} color="#fff" />
+                          : <User size={18} color="#fff" />
                         }
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 9, color: "#38BDF8", fontWeight: 700, letterSpacing: 1.5, marginBottom: 2 }}>
-                          [ JUGADOR ]
-                        </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 2 }}>
-                          <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{user.username}</span>
+                          <span style={{ color: "#ffffff", fontSize: 13.5, fontWeight: 600 }}>{user.username}</span>
                           {isOwner && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(56,189,248,0.18)", border: "1px solid rgba(56,189,248,0.5)", padding: "1px 5px", fontSize: 8, fontWeight: 800, color: "#7DD3FC", letterSpacing: 1, fontFamily: "ui-monospace, monospace" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", padding: "1px 5px", fontSize: 9, fontWeight: 700, color: "#ffffff", borderRadius: 4 }}>
                               <Shield size={8} /> ADMIN
                             </span>
                           )}
                           {isMegaFan && (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.4)", padding: "1px 5px", fontSize: 8, fontWeight: 800, color: "#FCD34D", letterSpacing: 1, fontFamily: "ui-monospace, monospace" }}>
-                              <Crown size={8} /> RANK_S
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.3)", padding: "1px 5px", fontSize: 9, fontWeight: 700, color: "#FCD34D", borderRadius: 4 }}>
+                              <Crown size={8} /> PRO
                             </span>
                           )}
                         </div>
-                        <div style={{ color: "rgba(125,211,252,0.5)", fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "ui-monospace, monospace" }}>{user.email}</div>
+                        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
                       </div>
                     </div>
                     <button
                       onClick={() => { navigate("/membership"); setMobileMenuOpen(false); }}
                       style={{
-                        display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px",
-                        border: "none", borderTop: "1px solid rgba(56,189,248,0.2)",
+                        display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "10px 12px",
+                        border: "none", borderTop: "1px solid rgba(255,255,255,0.08)",
                         cursor: "pointer",
-                        background: isMegaFan ? "rgba(252,211,77,0.06)" : "rgba(56,189,248,0.05)",
-                        color: isMegaFan ? "#FCD34D" : "rgba(125,211,252,0.75)",
-                        fontSize: 12, fontWeight: 700,
-                        letterSpacing: 0.8,
-                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        background: "rgba(255,255,255,0.02)",
+                        color: isMegaFan ? "#FCD34D" : "rgba(255,255,255,0.7)",
+                        fontSize: 12, fontWeight: 600,
                       }}
                     >
-                      <Crown size={14} color={isMegaFan ? "#FCD34D" : "#7DD3FC"} />
-                      {isMegaFan ? "Rank_S · Activo" : "Subir_de_Rango"}
+                      <Crown size={14} color={isMegaFan ? "#FCD34D" : "#ffffff"} />
+                      {isMegaFan ? "Membresía activa" : "Obtener membresía"}
                     </button>
                   </div>
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); }}
                     style={{
-                      display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 14px",
-                      border: "1px solid rgba(239,68,68,0.35)",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(239,68,68,0.25)",
                       cursor: "pointer",
-                      background: "linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0.04))",
-                      color: "#FCA5A5", fontSize: 13, fontWeight: 700,
-                      letterSpacing: 0.5,
-                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                      clipPath: "polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)",
-                      boxShadow: "0 0 12px rgba(239,68,68,0.12)",
+                      background: "rgba(239,68,68,0.06)",
+                      color: "#f87171", fontSize: 13, fontWeight: 600,
                     }}
                   >
-                    <LogOut size={15} /> Salir_del_Sistema
+                    <LogOut size={15} /> Cerrar sesión
                   </button>
                 </>
               ) : (
                 <button
                   onClick={() => { setMobileMenuOpen(false); setShowAuthModal(true); }}
                   style={{
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 14px",
-                    border: "1px solid rgba(56,189,248,0.5)",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 14px",
+                    borderRadius: 10,
+                    border: "1px solid #ffffff",
                     cursor: "pointer",
-                    background: "linear-gradient(135deg, rgba(56,189,248,0.25) 0%, rgba(99,102,241,0.18) 100%)",
-                    color: "#fff", fontSize: 13.5, fontWeight: 800,
-                    letterSpacing: 1,
-                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    clipPath: "polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)",
-                    boxShadow: "0 0 18px rgba(56,189,248,0.35), inset 0 0 0 1px rgba(125,211,252,0.15)",
-                    textShadow: "0 0 10px rgba(56,189,248,0.5)",
+                    background: "#ffffff",
+                    color: "#000000", fontSize: 13.5, fontWeight: 600,
                   }}
                 >
-                  <LogIn size={16} /> Iniciar_Sesión
+                  <LogIn size={16} /> Iniciar sesión
                 </button>
               )}
             </div>

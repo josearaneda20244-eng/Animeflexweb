@@ -97,13 +97,13 @@ export default function MangaReader() {
   };
 
   const sysBtn = (active = false): React.CSSProperties => ({
-    background: active ? "linear-gradient(135deg,#DC2626,#991B1B)" : "rgba(220,38,38,0.08)",
-    border: `1px solid ${active ? "rgba(249,115,22,0.6)" : "rgba(249,115,22,0.35)"}`,
-    color: active ? "#fff" : "#FDBA74",
+    background: active ? "linear-gradient(135deg,#3f2eb2,#2e218a)" : "rgba(63,46,178,0.08)",
+    border: `1px solid ${active ? "rgba(99,102,241,0.6)" : "rgba(99,102,241,0.35)"}`,
+    color: active ? "#fff" : "#a5b4fc",
     cursor: "pointer", display: "flex", alignItems: "center",
     fontFamily: MONO, fontWeight: 800, letterSpacing: 1,
     clipPath: CLIP_6,
-    boxShadow: active ? "0 0 12px rgba(220,38,38,0.5)" : "none",
+    boxShadow: active ? "0 0 12px rgba(63,46,178,0.5)" : "none",
     transition: "all 0.15s",
   });
 
@@ -112,13 +112,13 @@ export default function MangaReader() {
       {/* Background scan lines (subtle) */}
       <div style={{
         position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg, rgba(249,115,22,0.025) 0px, rgba(249,115,22,0.025) 1px, transparent 1px, transparent 4px)",
+        background: "repeating-linear-gradient(0deg, rgba(99,102,241,0.025) 0px, rgba(99,102,241,0.025) 1px, transparent 1px, transparent 4px)",
       }} />
 
       {/* Top bar */}
-      <div style={{ ...barStyle, top: 0, padding: "10px 14px 12px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(249,115,22,0.35)", boxShadow: "0 0 18px rgba(220,38,38,0.2)" }}>
+      <div style={{ ...barStyle, top: 0, padding: "10px 14px 12px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid rgba(99,102,241,0.35)", boxShadow: "0 0 18px rgba(63,46,178,0.2)" }}>
         {/* Top accent */}
-        <div style={{ position: "absolute", top: 0, left: 16, right: 16, height: 1, background: "linear-gradient(90deg,transparent,#F97316,#DC2626,#F97316,transparent)", boxShadow: "0 0 8px #F97316" }} />
+        <div style={{ position: "absolute", top: 0, left: 16, right: 16, height: 1, background: "linear-gradient(90deg,transparent,#6366f1,#3f2eb2,#6366f1,transparent)", boxShadow: "0 0 8px #6366f1" }} />
 
         <button
           onClick={() => navigate(`/manga/${mangaId}`)}
@@ -129,11 +129,11 @@ export default function MangaReader() {
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: "#F97316", fontSize: 9, fontWeight: 800, letterSpacing: 2, display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 5, height: 5, background: "#F97316", borderRadius: "50%", boxShadow: "0 0 6px #F97316", animation: "syspulse 1.6s ease-in-out infinite" }} />
+          <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 800, letterSpacing: 2, display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 5, height: 5, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 6px #6366f1", animation: "syspulse 1.6s ease-in-out infinite" }} />
             [ LECTOR · {resolveTitle(mangaInfo?.title)?.toUpperCase().slice(0, 30) || "MANGA"} ]
           </div>
-          <div style={{ color: "#FECACA", fontSize: 13, fontWeight: 800, letterSpacing: 0.5, marginTop: 2, fontFamily: "system-ui, sans-serif", textShadow: "0 0 12px rgba(220,38,38,0.4)" }}>
+          <div style={{ color: "#c7d2fe", fontSize: 13, fontWeight: 800, letterSpacing: 0.5, marginTop: 2, fontFamily: "system-ui, sans-serif", textShadow: "0 0 12px rgba(63,46,178,0.4)" }}>
             {currentChapter ? `Cap. ${currentChapter.chapterNumber}${currentChapter.title ? ` · ${currentChapter.title}` : ""}` : "// CARGANDO..."}
           </div>
         </div>
@@ -142,14 +142,14 @@ export default function MangaReader() {
         <div style={{
           display: "flex", alignItems: "center", gap: 3,
           background: "rgba(8,4,18,0.7)",
-          border: "1px solid rgba(249,115,22,0.3)",
+          border: "1px solid rgba(99,102,241,0.3)",
           padding: "3px 4px",
           clipPath: CLIP_6,
         }}>
           <button onClick={() => setZoom(z => Math.max(50, z - 10))} style={{ ...sysBtn(false), padding: 5, border: "none", background: "transparent" }}>
             <ZoomOut size={12} />
           </button>
-          <span style={{ color: "#FDBA74", fontSize: 10, fontWeight: 900, minWidth: 32, textAlign: "center", letterSpacing: 0.5 }}>{zoom}%</span>
+          <span style={{ color: "#a5b4fc", fontSize: 10, fontWeight: 900, minWidth: 32, textAlign: "center", letterSpacing: 0.5 }}>{zoom}%</span>
           <button onClick={() => setZoom(z => Math.min(200, z + 10))} style={{ ...sysBtn(false), padding: 5, border: "none", background: "transparent" }}>
             <ZoomIn size={12} />
           </button>
@@ -178,8 +178,8 @@ export default function MangaReader() {
       }}>
         <div style={{
           height: "100%", width: `${scrollPct}%`,
-          background: "linear-gradient(90deg,#DC2626,#F97316,#FDBA74)",
-          boxShadow: "0 0 10px rgba(249,115,22,0.7)",
+          background: "linear-gradient(90deg,#3f2eb2,#6366f1,#a5b4fc)",
+          boxShadow: "0 0 10px rgba(99,102,241,0.7)",
           transition: "width 0.1s linear",
         }} />
       </div>
@@ -189,25 +189,25 @@ export default function MangaReader() {
         <div style={{
           position: "fixed", top: 0, right: 0, bottom: 0, width: 320, zIndex: 200,
           background: "linear-gradient(180deg, rgba(20,6,16,0.98) 0%, rgba(8,4,18,0.99) 100%)",
-          borderLeft: "1px solid rgba(249,115,22,0.5)",
-          boxShadow: "-8px 0 32px rgba(220,38,38,0.3)",
+          borderLeft: "1px solid rgba(99,102,241,0.5)",
+          boxShadow: "-8px 0 32px rgba(63,46,178,0.3)",
           display: "flex", flexDirection: "column",
           fontFamily: MONO,
         }}>
           {/* Side panel hex grid bg */}
           <div style={{
             position: "absolute", inset: 0,
-            backgroundImage: "linear-gradient(rgba(220,38,38,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.05) 1px, transparent 1px)",
+            backgroundImage: "linear-gradient(rgba(63,46,178,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.05) 1px, transparent 1px)",
             backgroundSize: "24px 24px",
             maskImage: "radial-gradient(ellipse at top, black 20%, transparent 80%)",
             WebkitMaskImage: "radial-gradient(ellipse at top, black 20%, transparent 80%)",
             pointerEvents: "none",
           }} />
 
-          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px 14px", borderBottom: "1px solid rgba(249,115,22,0.35)" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px 14px", borderBottom: "1px solid rgba(99,102,241,0.35)" }}>
             <div>
-              <div style={{ color: "#F97316", fontSize: 9, fontWeight: 800, letterSpacing: 2 }}>// INDICE</div>
-              <div style={{ color: "#FDBA74", fontWeight: 900, fontSize: 14, marginTop: 2, letterSpacing: 1 }}>CAPITULOS · {sortedChapters.length}</div>
+              <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 800, letterSpacing: 2 }}>// INDICE</div>
+              <div style={{ color: "#a5b4fc", fontWeight: 900, fontSize: 14, marginTop: 2, letterSpacing: 1 }}>CAPITULOS · {sortedChapters.length}</div>
             </div>
             <button onClick={() => setShowChapterList(false)} style={{ ...sysBtn(false), padding: 7 }}>
               <X size={14} />
@@ -224,27 +224,27 @@ export default function MangaReader() {
                   style={{
                     padding: "10px 12px",
                     cursor: "pointer",
-                    background: active ? "linear-gradient(135deg, rgba(220,38,38,0.25), rgba(153,27,27,0.1))" : "rgba(8,4,18,0.5)",
-                    border: `1px solid ${active ? "rgba(249,115,22,0.6)" : "rgba(220,38,38,0.15)"}`,
-                    color: active ? "#FDBA74" : "rgba(255,255,255,0.65)",
+                    background: active ? "linear-gradient(135deg, rgba(63,46,178,0.25), rgba(46,33,138,0.1))" : "rgba(8,4,18,0.5)",
+                    border: `1px solid ${active ? "rgba(99,102,241,0.6)" : "rgba(63,46,178,0.15)"}`,
+                    color: active ? "#a5b4fc" : "rgba(255,255,255,0.65)",
                     fontSize: 12, fontWeight: active ? 900 : 600,
                     marginBottom: 5,
                     clipPath: CLIP_6,
                     transition: "all 0.15s",
                     display: "flex", alignItems: "center", gap: 10,
-                    boxShadow: active ? "0 0 12px rgba(220,38,38,0.3)" : "none",
+                    boxShadow: active ? "0 0 12px rgba(63,46,178,0.3)" : "none",
                     fontFamily: "system-ui, sans-serif",
                   }}
-                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = "rgba(220,38,38,0.1)"; }}
+                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = "rgba(63,46,178,0.1)"; }}
                   onMouseLeave={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = "rgba(8,4,18,0.5)"; }}
                 >
-                  <span style={{ color: active ? "#F97316" : "rgba(249,115,22,0.5)", fontFamily: MONO, fontSize: 10, fontWeight: 900, minWidth: 32 }}>
+                  <span style={{ color: active ? "#6366f1" : "rgba(99,102,241,0.5)", fontFamily: MONO, fontSize: 10, fontWeight: 900, minWidth: 32 }}>
                     {String(ch.chapterNumber).padStart(3, "0")}
                   </span>
                   <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {ch.title || `Capitulo ${ch.chapterNumber}`}
                   </span>
-                  {active && <span style={{ color: "#F97316", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{"[ > ]"}</span>}
+                  {active && <span style={{ color: "#6366f1", fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{"[ > ]"}</span>}
                 </div>
               );
             })}
@@ -259,13 +259,13 @@ export default function MangaReader() {
             <div style={{ textAlign: "center" }}>
               <div style={{ position: "relative", width: 80, height: 80, margin: "0 auto 16px" }}>
                 {/* Magic circle loader */}
-                <svg width={80} height={80} viewBox="0 0 100 100" style={{ position: "absolute", inset: 0, animation: "spin 8s linear infinite", filter: "drop-shadow(0 0 8px #DC2626)" }}>
-                  <circle cx="50" cy="50" r="46" fill="none" stroke="#DC2626" strokeWidth="0.6" strokeDasharray="2 4" />
-                  <polygon points="50,12 82,68 18,68" fill="none" stroke="#F97316" strokeWidth="0.6" />
+                <svg width={80} height={80} viewBox="0 0 100 100" style={{ position: "absolute", inset: 0, animation: "spin 8s linear infinite", filter: "drop-shadow(0 0 8px #3f2eb2)" }}>
+                  <circle cx="50" cy="50" r="46" fill="none" stroke="#3f2eb2" strokeWidth="0.6" strokeDasharray="2 4" />
+                  <polygon points="50,12 82,68 18,68" fill="none" stroke="#6366f1" strokeWidth="0.6" />
                 </svg>
-                <Loader2 size={32} color="#FDBA74" style={{ position: "absolute", top: 24, left: 24, animation: "spin 1s linear infinite" }} />
+                <Loader2 size={32} color="#a5b4fc" style={{ position: "absolute", top: 24, left: 24, animation: "spin 1s linear infinite" }} />
               </div>
-              <p style={{ color: "#FDBA74", fontSize: 11, fontWeight: 800, letterSpacing: 3, fontFamily: MONO }}>
+              <p style={{ color: "#a5b4fc", fontSize: 11, fontWeight: 800, letterSpacing: 3, fontFamily: MONO }}>
                 {">"} CARGANDO_PAGINAS...
               </p>
             </div>
@@ -276,23 +276,23 @@ export default function MangaReader() {
           <div style={{
             textAlign: "center", padding: "40px 20px", margin: "20px auto", maxWidth: 380,
             background: "linear-gradient(160deg, rgba(20,6,16,0.85), rgba(8,4,18,0.95))",
-            border: "1px solid rgba(220,38,38,0.4)",
+            border: "1px solid rgba(63,46,178,0.4)",
             clipPath: CLIP_10,
-            color: "#FECACA",
+            color: "#c7d2fe",
           }}>
-            <BookOpen size={42} style={{ marginBottom: 14, color: "#F97316", filter: "drop-shadow(0 0 8px #DC2626)" }} />
-            <div style={{ fontSize: 11, color: "#F97316", fontWeight: 900, letterSpacing: 2, fontFamily: MONO, marginBottom: 4 }}>[ ERROR · 404 ]</div>
+            <BookOpen size={42} style={{ marginBottom: 14, color: "#6366f1", filter: "drop-shadow(0 0 8px #3f2eb2)" }} />
+            <div style={{ fontSize: 11, color: "#6366f1", fontWeight: 900, letterSpacing: 2, fontFamily: MONO, marginBottom: 4 }}>[ ERROR · 404 ]</div>
             <p style={{ color: "rgba(255,255,255,0.6)", margin: "0 0 16px", fontSize: 13 }}>No se pudo cargar este capitulo.</p>
             <button
               onClick={() => navigate(`/manga/${mangaId}`)}
               style={{
                 padding: "10px 20px",
-                background: "linear-gradient(135deg,#DC2626,#991B1B)",
-                border: "1px solid rgba(249,115,22,0.6)",
+                background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
+                border: "1px solid rgba(99,102,241,0.6)",
                 color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 900,
                 letterSpacing: 2, fontFamily: MONO,
                 clipPath: CLIP_8,
-                boxShadow: "0 0 16px rgba(220,38,38,0.5)",
+                boxShadow: "0 0 16px rgba(63,46,178,0.5)",
               }}
             >
               {">>"} VOLVER AL MANGA
@@ -311,10 +311,9 @@ export default function MangaReader() {
                 <div style={{
                   position: "absolute", top: 8, left: 8, zIndex: 2,
                   background: "rgba(8,4,18,0.85)",
-                  border: "1px solid rgba(249,115,22,0.5)",
+                  border: "1px solid rgba(99,102,241,0.5)",
                   padding: "3px 8px",
-                  clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-                  color: "#FDBA74", fontSize: 9, fontWeight: 900, letterSpacing: 1, fontFamily: MONO,
+                  color: "#a5b4fc", fontSize: 9, fontWeight: 900, letterSpacing: 1, fontFamily: MONO,
                   pointerEvents: "none",
                   opacity: showControls ? 0.85 : 0,
                   transition: "opacity 0.3s",
@@ -335,31 +334,31 @@ export default function MangaReader() {
             <div style={{
               marginTop: 36, padding: 28,
               background: "linear-gradient(160deg, rgba(20,6,16,0.92), rgba(8,4,18,0.98))",
-              border: "1px solid rgba(249,115,22,0.5)",
+              border: "1px solid rgba(99,102,241,0.5)",
               clipPath: CLIP_10,
               textAlign: "center",
               maxWidth: 440, width: "100%",
-              boxShadow: "0 0 32px rgba(220,38,38,0.25)",
+              boxShadow: "0 0 32px rgba(63,46,178,0.25)",
               position: "relative",
             }}>
-              <div style={{ position: "absolute", top: 0, left: 14, right: 14, height: 1, background: "linear-gradient(90deg,transparent,#F97316,transparent)", boxShadow: "0 0 8px #F97316" }} />
-              <div style={{ position: "absolute", bottom: 0, left: 14, right: 14, height: 1, background: "linear-gradient(90deg,transparent,#DC2626,transparent)" }} />
+              <div style={{ position: "absolute", top: 0, left: 14, right: 14, height: 1, background: "linear-gradient(90deg,transparent,#6366f1,transparent)", boxShadow: "0 0 8px #6366f1" }} />
+              <div style={{ position: "absolute", bottom: 0, left: 14, right: 14, height: 1, background: "linear-gradient(90deg,transparent,#3f2eb2,transparent)" }} />
 
               {/* Mini magic circle */}
-              <svg width={56} height={56} viewBox="0 0 100 100" style={{ margin: "0 auto 8px", display: "block", filter: "drop-shadow(0 0 8px #F97316)", animation: "spin 12s linear infinite" }}>
-                <circle cx="50" cy="50" r="46" fill="none" stroke="#DC2626" strokeWidth="1" strokeDasharray="2 4" />
-                <circle cx="50" cy="50" r="34" fill="none" stroke="#F97316" strokeWidth="0.8" />
-                <polygon points="50,18 76,62 24,62" fill="none" stroke="#FDBA74" strokeWidth="0.8" />
-                <text x="50" y="56" textAnchor="middle" fontSize="22" fill="#FDBA74" fontFamily="JetBrains Mono">✓</text>
+              <svg width={56} height={56} viewBox="0 0 100 100" style={{ margin: "0 auto 8px", display: "block", filter: "drop-shadow(0 0 8px #6366f1)", animation: "spin 12s linear infinite" }}>
+                <circle cx="50" cy="50" r="46" fill="none" stroke="#3f2eb2" strokeWidth="1" strokeDasharray="2 4" />
+                <circle cx="50" cy="50" r="34" fill="none" stroke="#6366f1" strokeWidth="0.8" />
+                <polygon points="50,18 76,62 24,62" fill="none" stroke="#a5b4fc" strokeWidth="0.8" />
+                <text x="50" y="56" textAnchor="middle" fontSize="22" fill="#a5b4fc" fontFamily="JetBrains Mono">✓</text>
               </svg>
 
-              <div style={{ color: "#F97316", fontSize: 10, fontWeight: 900, letterSpacing: 3, fontFamily: MONO, marginBottom: 4 }}>
+              <div style={{ color: "#6366f1", fontSize: 10, fontWeight: 900, letterSpacing: 3, fontFamily: MONO, marginBottom: 4 }}>
                 [ MISION · COMPLETADA ]
               </div>
-              <div style={{ color: "#FDBA74", fontWeight: 900, fontSize: 18, marginBottom: 4, fontFamily: MONO, letterSpacing: 1 }}>
+              <div style={{ color: "#a5b4fc", fontWeight: 900, fontSize: 18, marginBottom: 4, fontFamily: MONO, letterSpacing: 1 }}>
                 FIN DEL CAPITULO
               </div>
-              <div style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, marginBottom: 22, letterSpacing: 1, fontFamily: MONO }}>
+              <div style={{ color: "rgba(165,180,252,0.6)", fontSize: 11, marginBottom: 22, letterSpacing: 1, fontFamily: MONO }}>
                 {currentChapter ? `> CAP_${String(currentChapter.chapterNumber).padStart(3, "0")} · LEIDO` : ""}
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
@@ -368,10 +367,10 @@ export default function MangaReader() {
                     onClick={() => navigate(`/manga/${mangaId}/leer/${prevChapter.id}`)}
                     style={{
                       display: "flex", alignItems: "center", gap: 6, padding: "10px 16px",
-                      background: "rgba(220,38,38,0.08)",
-                      border: "1px solid rgba(249,115,22,0.4)",
+                      background: "rgba(63,46,178,0.08)",
+                      border: "1px solid rgba(99,102,241,0.4)",
                       clipPath: CLIP_8,
-                      color: "#FDBA74", cursor: "pointer", fontSize: 10, fontWeight: 900,
+                      color: "#a5b4fc", cursor: "pointer", fontSize: 10, fontWeight: 900,
                       letterSpacing: 1.5, fontFamily: MONO,
                     }}
                   >
@@ -382,10 +381,10 @@ export default function MangaReader() {
                   onClick={() => navigate(`/manga/${mangaId}`)}
                   style={{
                     display: "flex", alignItems: "center", gap: 6, padding: "10px 16px",
-                    background: "rgba(220,38,38,0.08)",
-                    border: "1px solid rgba(249,115,22,0.4)",
+                    background: "rgba(63,46,178,0.08)",
+                    border: "1px solid rgba(99,102,241,0.4)",
                     clipPath: CLIP_8,
-                    color: "#FDBA74", cursor: "pointer", fontSize: 10, fontWeight: 900,
+                    color: "#a5b4fc", cursor: "pointer", fontSize: 10, fontWeight: 900,
                     letterSpacing: 1.5, fontFamily: MONO,
                   }}
                 >
@@ -396,12 +395,12 @@ export default function MangaReader() {
                     onClick={() => navigate(`/manga/${mangaId}/leer/${nextChapter.id}`)}
                     style={{
                       display: "flex", alignItems: "center", gap: 6, padding: "10px 18px",
-                      background: "linear-gradient(135deg,#DC2626,#F97316)",
-                      border: "1px solid rgba(253,186,116,0.6)",
+                      background: "linear-gradient(135deg,#3f2eb2,#6366f1)",
+                      border: "1px solid rgba(165,180,252,0.6)",
                       clipPath: CLIP_8,
                       color: "#fff", cursor: "pointer", fontSize: 10, fontWeight: 900,
                       letterSpacing: 1.5, fontFamily: MONO,
-                      boxShadow: "0 0 16px rgba(220,38,38,0.6)",
+                      boxShadow: "0 0 16px rgba(63,46,178,0.6)",
                     }}
                   >
                     CAP {nextChapter.chapterNumber} {">>"} <ChevronRight size={13} />
@@ -416,21 +415,21 @@ export default function MangaReader() {
       {/* Bottom navigation bar */}
       <div style={{
         ...barStyle, bottom: 0, top: "auto",
-        borderTop: "1px solid rgba(249,115,22,0.35)",
+        borderTop: "1px solid rgba(99,102,241,0.35)",
         padding: "10px 14px 12px",
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-        boxShadow: "0 0 18px rgba(220,38,38,0.2)",
+        boxShadow: "0 0 18px rgba(63,46,178,0.2)",
       }}>
-        <div style={{ position: "absolute", bottom: 0, left: 16, right: 16, height: 1, background: "linear-gradient(90deg,transparent,#DC2626,#F97316,#DC2626,transparent)", boxShadow: "0 0 8px #DC2626" }} />
+        <div style={{ position: "absolute", bottom: 0, left: 16, right: 16, height: 1, background: "linear-gradient(90deg,transparent,#3f2eb2,#6366f1,#3f2eb2,transparent)", boxShadow: "0 0 8px #3f2eb2" }} />
 
         <button
           disabled={!prevChapter}
           onClick={() => prevChapter && navigate(`/manga/${mangaId}/leer/${prevChapter.id}`)}
           style={{
             display: "flex", alignItems: "center", gap: 5, padding: "9px 14px",
-            background: prevChapter ? "rgba(220,38,38,0.08)" : "rgba(255,255,255,0.02)",
-            border: `1px solid ${prevChapter ? "rgba(249,115,22,0.4)" : "rgba(255,255,255,0.06)"}`,
-            color: prevChapter ? "#FDBA74" : "rgba(255,255,255,0.2)",
+            background: prevChapter ? "rgba(63,46,178,0.08)" : "rgba(255,255,255,0.02)",
+            border: `1px solid ${prevChapter ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.06)"}`,
+            color: prevChapter ? "#a5b4fc" : "rgba(255,255,255,0.2)",
             cursor: prevChapter ? "pointer" : "default",
             fontSize: 10, fontWeight: 900, letterSpacing: 1.5,
             fontFamily: MONO,
@@ -442,12 +441,12 @@ export default function MangaReader() {
 
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-          color: "#FDBA74", fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textAlign: "center",
+          color: "#a5b4fc", fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textAlign: "center",
         }}>
-          <span style={{ color: "#F97316" }}>
+          <span style={{ color: "#6366f1" }}>
             {isLoading ? "// CARGANDO..." : isError ? "// ERROR" : `${pages?.length ?? 0} PAGINAS`}
           </span>
-          <span style={{ color: "rgba(253,186,116,0.5)", fontSize: 8 }}>
+          <span style={{ color: "rgba(165,180,252,0.5)", fontSize: 8 }}>
             {Math.round(scrollPct)}% LEIDO
           </span>
         </div>
@@ -457,14 +456,14 @@ export default function MangaReader() {
           onClick={() => nextChapter && navigate(`/manga/${mangaId}/leer/${nextChapter.id}`)}
           style={{
             display: "flex", alignItems: "center", gap: 5, padding: "9px 14px",
-            background: nextChapter ? "linear-gradient(135deg,#DC2626,#F97316)" : "rgba(255,255,255,0.02)",
-            border: `1px solid ${nextChapter ? "rgba(253,186,116,0.6)" : "rgba(255,255,255,0.06)"}`,
+            background: nextChapter ? "linear-gradient(135deg,#3f2eb2,#6366f1)" : "rgba(255,255,255,0.02)",
+            border: `1px solid ${nextChapter ? "rgba(165,180,252,0.6)" : "rgba(255,255,255,0.06)"}`,
             color: nextChapter ? "#fff" : "rgba(255,255,255,0.2)",
             cursor: nextChapter ? "pointer" : "default",
             fontSize: 10, fontWeight: 900, letterSpacing: 1.5,
             fontFamily: MONO,
             clipPath: CLIP_8,
-            boxShadow: nextChapter ? "0 0 12px rgba(220,38,38,0.4)" : "none",
+            boxShadow: nextChapter ? "0 0 12px rgba(63,46,178,0.4)" : "none",
           }}
         >
           SIGUIENTE <ChevronRight size={13} />

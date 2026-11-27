@@ -56,7 +56,7 @@ function Toast({ msg, type, onClose }: { msg: string; type: "ok" | "err"; onClos
   return (
     <div style={{
       position: "fixed", bottom: 24, right: 24, zIndex: 9999,
-      background: type === "ok" ? "#16A34A" : "#DC2626",
+      background: type === "ok" ? "#16A34A" : "#3f2eb2",
       color: "#fff", borderRadius: 12, padding: "12px 20px",
       fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 10,
       boxShadow: "0 8px 32px rgba(0,0,0,0.5)", animation: "slideIn 0.2s ease",
@@ -71,14 +71,14 @@ function Toast({ msg, type, onClose }: { msg: string; type: "ok" | "err"; onClos
 function Confirm({ msg, onOk, onCancel }: { msg: string; onOk: () => void; onCancel: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "#1a1a2e", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 20, padding: 28, maxWidth: 360, width: "90%", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
+      <div style={{ background: "#0f0f0f", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 20, padding: 28, maxWidth: 360, width: "90%", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <AlertTriangle size={20} color="#F59E0B" />
           <span style={{ color: "#F1F1F5", fontWeight: 800, fontSize: 16 }}>Confirmar acción</span>
         </div>
         <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 14, marginBottom: 20, lineHeight: 1.6 }}>{msg}</p>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onOk} style={{ flex: 1, background: "linear-gradient(135deg,#DC2626,#991B1B)", border: "none", borderRadius: 10, padding: "10px 0", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>Confirmar</button>
+          <button onClick={onOk} style={{ flex: 1, background: "linear-gradient(135deg,#3f2eb2,#2e218a)", border: "none", borderRadius: 10, padding: "10px 0", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>Confirmar</button>
           <button onClick={onCancel} style={{ flex: 1, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 0", color: "rgba(255,255,255,0.6)", cursor: "pointer", fontSize: 14 }}>Cancelar</button>
         </div>
       </div>
@@ -111,7 +111,7 @@ function SectionHeader({ icon, title, subtitle, action }: { icon: ReactNode; tit
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", margin: "6px 0 -8px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 11, background: "linear-gradient(135deg,rgba(220,38,38,0.18),rgba(220,38,38,0.04))", border: "1px solid rgba(220,38,38,0.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FECACA" }}>
+        <div style={{ width: 34, height: 34, borderRadius: 11, background: "linear-gradient(135deg,rgba(63,46,178,0.18),rgba(63,46,178,0.04))", border: "1px solid rgba(63,46,178,0.18)", display: "flex", alignItems: "center", justifyContent: "center", color: "#c7d2fe" }}>
           {icon}
         </div>
         <div>
@@ -186,10 +186,10 @@ function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") =
   const TYPE_COLORS: Record<string, string> = { info: "#fff", warning: "#F59E0B", success: "#22C55E" };
 
   return (
-    <div style={{ background: "#0a0a0a", border: "1px solid rgba(220,38,38,0.15)", borderRadius: 18, padding: "20px" }}>
+    <div style={{ background: "#0a0a0a", border: "1px solid rgba(63,46,178,0.15)", borderRadius: 18, padding: "20px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Megaphone size={14} color="#FECACA" />
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(63,46,178,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Megaphone size={14} color="#c7d2fe" />
         </div>
         <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Anuncios a usuarios</span>
       </div>
@@ -214,7 +214,7 @@ function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") =
         </select>
         <button
           onClick={send} disabled={loading || !msg.trim()}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg,#DC2626,#991B1B)", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading || !msg.trim() ? 0.5 : 1 }}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "linear-gradient(135deg,#3f2eb2,#2e218a)", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading || !msg.trim() ? 0.5 : 1 }}
         >
           {loading ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Plus size={14} />}
           Enviar
@@ -227,8 +227,8 @@ function AnnouncementsManager({ toast }: { toast: (m: string, t: "ok" | "err") =
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {announcements.map(a => (
-            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, background: `${TYPE_COLORS[a.type] ?? "#DC2626"}10`, border: `1px solid ${TYPE_COLORS[a.type] ?? "#DC2626"}28`, borderRadius: 10, padding: "10px 14px" }}>
-              <Info size={14} color={TYPE_COLORS[a.type] ?? "#DC2626"} style={{ flexShrink: 0 }} />
+            <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, background: `${TYPE_COLORS[a.type] ?? "#3f2eb2"}10`, border: `1px solid ${TYPE_COLORS[a.type] ?? "#3f2eb2"}28`, borderRadius: 10, padding: "10px 14px" }}>
+              <Info size={14} color={TYPE_COLORS[a.type] ?? "#3f2eb2"} style={{ flexShrink: 0 }} />
               <span style={{ flex: 1, color: "#F1F1F5", fontSize: 13 }}>{a.message}</span>
               <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, flexShrink: 0 }}>
                 {new Date(a.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
@@ -272,33 +272,33 @@ function SystemIntro({ username, onDone }: { username: string; onDone: () => voi
       style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontFamily: "'Courier New', ui-monospace, monospace" }}
     >
       {/* grid bg */}
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(220,38,38,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.08) 1px, transparent 1px)", backgroundSize: "32px 32px", maskImage: "radial-gradient(circle at center, black 30%, transparent 75%)" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(63,46,178,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.08) 1px, transparent 1px)", backgroundSize: "32px 32px", maskImage: "radial-gradient(circle at center, black 30%, transparent 75%)" }} />
       {/* scanlines */}
-      <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, rgba(220,38,38,0.04) 0px, rgba(220,38,38,0.04) 1px, transparent 1px, transparent 4px)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, rgba(63,46,178,0.04) 0px, rgba(63,46,178,0.04) 1px, transparent 1px, transparent 4px)", pointerEvents: "none" }} />
       {/* hex glow */}
       <motion.div
         animate={{ rotate: 360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-        style={{ position: "absolute", width: 460, height: 460, border: "1px solid rgba(220,38,38,0.18)", borderRadius: 12, transform: "rotate(45deg)" }}
+        style={{ position: "absolute", width: 460, height: 460, border: "1px solid rgba(63,46,178,0.18)", borderRadius: 12, transform: "rotate(45deg)" }}
       />
       <motion.div
         animate={{ rotate: -360 }} transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
-        style={{ position: "absolute", width: 320, height: 320, border: "1px solid rgba(220,38,38,0.32)", borderRadius: 12, transform: "rotate(45deg)" }}
+        style={{ position: "absolute", width: 320, height: 320, border: "1px solid rgba(63,46,178,0.32)", borderRadius: 12, transform: "rotate(45deg)" }}
       />
 
-      <div style={{ position: "relative", zIndex: 2, padding: "32px 44px", border: "1px solid rgba(220,38,38,0.5)", background: "rgba(15,4,8,0.7)", boxShadow: "0 0 40px rgba(220,38,38,0.4) inset, 0 0 60px rgba(220,38,38,0.4)", maxWidth: 520, width: "85%", clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%)" }}>
+      <div style={{ position: "relative", zIndex: 2, padding: "32px 44px", border: "1px solid rgba(63,46,178,0.5)", background: "rgba(15,4,8,0.7)", boxShadow: "0 0 40px rgba(63,46,178,0.4) inset, 0 0 60px rgba(63,46,178,0.4)", maxWidth: 520, width: "85%", }}>
         {/* corner brackets */}
-        <CornerBrackets color="#DC2626" />
-        <div style={{ color: "#DC2626", fontSize: 11, letterSpacing: 4, fontWeight: 900, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-          <motion.span animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 0.8, repeat: Infinity }} style={{ width: 8, height: 8, background: "#DC2626", display: "inline-block" }} />
+        <CornerBrackets color="#3f2eb2" />
+        <div style={{ color: "#3f2eb2", fontSize: 11, letterSpacing: 4, fontWeight: 900, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+          <motion.span animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 0.8, repeat: Infinity }} style={{ width: 8, height: 8, background: "#3f2eb2", display: "inline-block" }} />
           [ SISTEMA · ANIMEFLEX OS ]
         </div>
-        <div style={{ color: "#FECACA", fontSize: 14, lineHeight: 2, minHeight: 4 * 28 }}>
+        <div style={{ color: "#c7d2fe", fontSize: 14, lineHeight: 2, minHeight: 4 * 28 }}>
           {lines.slice(0, shown).map((l, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.25 }}
-              style={{ textShadow: "0 0 8px rgba(220,38,38,0.6)" }}
+              style={{ textShadow: "0 0 8px rgba(63,46,178,0.6)" }}
             >
               {l}{i === shown - 1 && <motion.span animate={{ opacity: [1, 0, 1] }} transition={{ duration: 0.6, repeat: Infinity }}>▌</motion.span>}
             </motion.div>
@@ -309,7 +309,7 @@ function SystemIntro({ username, onDone }: { username: string; onDone: () => voi
   );
 }
 
-function CornerBrackets({ color = "#DC2626", size = 14 }: { color?: string; size?: number }) {
+function CornerBrackets({ color = "#3f2eb2", size = 14 }: { color?: string; size?: number }) {
   const s = { position: "absolute" as const, width: size, height: size, borderColor: color, borderStyle: "solid" as const, borderWidth: 0 };
   return (
     <>
@@ -341,7 +341,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 80, gap: 16 }}>
-      <Loader2 size={32} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} />
+      <Loader2 size={32} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} />
       <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>Cargando estadísticas...</span>
     </div>
   );
@@ -375,9 +375,9 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
     {
       label: "Usuarios totales", value: stats?.totalUsers ?? 0,
       sub: `+${stats?.newUsersToday ?? 0} hoy`,
-      icon: <Users size={20} />, color: "#DC2626",
-      gradient: "linear-gradient(135deg,rgba(220,38,38,0.15),rgba(220,38,38,0.04))",
-      border: "rgba(220,38,38,0.25)",
+      icon: <Users size={20} />, color: "#3f2eb2",
+      gradient: "linear-gradient(135deg,rgba(63,46,178,0.15),rgba(63,46,178,0.04))",
+      border: "rgba(63,46,178,0.25)",
     },
     {
       label: "Usuarios MegaFan", value: stats?.megafanUsers ?? 0,
@@ -433,18 +433,18 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg,rgba(220,38,38,0.18),rgba(245,158,11,0.08) 55%,rgba(255,255,255,0.015))", border: "1px solid rgba(220,38,38,0.35)", borderRadius: 4, padding: "22px 26px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 22px 70px rgba(220,38,38,0.18), 0 0 30px rgba(220,38,38,0.18) inset", clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%)" }}
+        style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg,rgba(63,46,178,0.18),rgba(245,158,11,0.08) 55%,rgba(255,255,255,0.015))", border: "1px solid rgba(63,46,178,0.35)", borderRadius: 4, padding: "22px 26px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, boxShadow: "0 22px 70px rgba(63,46,178,0.18), 0 0 30px rgba(63,46,178,0.18) inset", }}
       >
-        <CornerBrackets color="#DC2626" size={16} />
+        <CornerBrackets color="#3f2eb2" size={16} />
         {/* hex grid bg */}
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(220,38,38,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.06) 1px, transparent 1px)", backgroundSize: "28px 28px", maskImage: "linear-gradient(180deg, black, transparent)", pointerEvents: "none", zIndex: 0 }} />
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(63,46,178,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.06) 1px, transparent 1px)", backgroundSize: "28px 28px", maskImage: "linear-gradient(180deg, black, transparent)", pointerEvents: "none", zIndex: 0 }} />
         {/* scanlines */}
-        <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, rgba(220,38,38,0.025) 0px, rgba(220,38,38,0.025) 1px, transparent 1px, transparent 3px)", pointerEvents: "none", zIndex: 0 }} />
+        <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(0deg, rgba(63,46,178,0.025) 0px, rgba(63,46,178,0.025) 1px, transparent 1px, transparent 3px)", pointerEvents: "none", zIndex: 0 }} />
         {/* animated rotating aurora */}
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
-          style={{ position: "absolute", top: "-60%", right: "-20%", width: 420, height: 420, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(220,38,38,0.22), rgba(245,158,11,0.12), rgba(220,38,38,0.04), rgba(220,38,38,0.22))", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }}
+          style={{ position: "absolute", top: "-60%", right: "-20%", width: 420, height: 420, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(63,46,178,0.22), rgba(245,158,11,0.12), rgba(63,46,178,0.04), rgba(63,46,178,0.22))", filter: "blur(60px)", pointerEvents: "none", zIndex: 0 }}
         />
         {/* shimmer sheen */}
         <motion.div
@@ -454,12 +454,12 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         />
         <div style={{ position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontFamily: "'Courier New', ui-monospace, monospace", flexWrap: "wrap" }}>
-            <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ width: 8, height: 8, background: "#DC2626", boxShadow: "0 0 10px #DC2626", flexShrink: 0 }} />
-            <span style={{ color: "#DC2626", fontSize: 10, letterSpacing: 4, fontWeight: 900 }}>[ SISTEMA · ANIMEFLEX OS ]</span>
+            <motion.span animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.4, repeat: Infinity }} style={{ width: 8, height: 8, background: "#3f2eb2", boxShadow: "0 0 10px #3f2eb2", flexShrink: 0 }} />
+            <span style={{ color: "#3f2eb2", fontSize: 10, letterSpacing: 4, fontWeight: 900 }}>[ SISTEMA · ANIMEFLEX OS ]</span>
             <span className="dash-welcome-meta" style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, letterSpacing: 2, textTransform: "uppercase" }}>· {dateStr}</span>
           </div>
-          <h2 className="dash-welcome-title" style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: -0.5, textShadow: "0 0 20px rgba(220,38,38,0.35)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
-            BIENVENIDO, <span style={{ color: "#FECACA", fontFamily: "'Courier New', ui-monospace, monospace", textTransform: "uppercase" }}>{user.username}</span>
+          <h2 className="dash-welcome-title" style={{ color: "#F1F1F5", fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: -0.5, textShadow: "0 0 20px rgba(63,46,178,0.35)", wordBreak: "break-word", overflowWrap: "anywhere" }}>
+            BIENVENIDO, <span style={{ color: "#c7d2fe", fontFamily: "'Courier New', ui-monospace, monospace", textTransform: "uppercase" }}>{user.username}</span>
           </h2>
           <div className="dash-welcome-sub" style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, marginTop: 6, fontFamily: "'Courier New', ui-monospace, monospace", letterSpacing: 1, wordBreak: "break-word", overflowWrap: "anywhere" }}>
             {">"} Estado de la plataforma operativo. Todas las funciones en línea.
@@ -468,10 +468,10 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         <div className="dash-welcome-actions" style={{ position: "relative", zIndex: 1 }}>
           <motion.button
             onClick={load}
-            whileHover={{ y: -2, boxShadow: "0 20px 48px rgba(220,38,38,0.22)" }}
+            whileHover={{ y: -2, boxShadow: "0 20px 48px rgba(63,46,178,0.22)" }}
             whileTap={{ scale: 0.96 }}
             transition={{ type: "spring", stiffness: 320, damping: 22 }}
-            style={{ display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(220,38,38,0.14), rgba(220,38,38,0.04))", border: "1px solid rgba(220,38,38,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(220,38,38,0.12)" }}
+            style={{ display: "flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, rgba(63,46,178,0.14), rgba(63,46,178,0.04))", border: "1px solid rgba(63,46,178,0.25)", borderRadius: 12, padding: "10px 16px", color: "#EFF6FF", cursor: "pointer", fontSize: 13, fontWeight: 700, boxShadow: "0 16px 40px rgba(63,46,178,0.12)" }}
           >
             <Activity size={14} /> Actualizar
           </motion.button>
@@ -480,12 +480,12 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
 
       {/* Alert: inactive users */}
       {(stats?.inactiveUsers ?? 0) > 0 && (
-        <div style={{ background: "rgba(220,38,38,0.07)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-          <UserMinus size={16} color="#DC2626" />
+        <div style={{ background: "rgba(63,46,178,0.07)", border: "1px solid rgba(63,46,178,0.2)", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+          <UserMinus size={16} color="#3f2eb2" />
           <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
             Hay <strong style={{ color: "#F87171" }}>{stats?.inactiveUsers}</strong> cuenta(s) desactivada(s)
           </span>
-          <button onClick={() => onNavigate("users")} style={{ marginLeft: "auto", background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 8, padding: "5px 12px", color: "#F87171", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+          <button onClick={() => onNavigate("users")} style={{ marginLeft: "auto", background: "rgba(63,46,178,0.15)", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 8, padding: "5px 12px", color: "#F87171", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
             Ver usuarios
           </button>
         </div>
@@ -568,7 +568,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
           {[
             { label: "Ratio premium", pct: Math.min(100, parseFloat(conversionRate)), color: "#F59E0B" },
             { label: "Actividad (ep. hoy / 200)", pct: Math.min(100, ((stats?.episodesToday ?? 0) / 200) * 100), color: "#22C55E" },
-            { label: "Cuentas activas", pct: stats?.totalUsers ? Math.max(0, 100 - ((stats.inactiveUsers ?? 0) / stats.totalUsers) * 100) : 100, color: "#DC2626" },
+            { label: "Cuentas activas", pct: stats?.totalUsers ? Math.max(0, 100 - ((stats.inactiveUsers ?? 0) / stats.totalUsers) * 100) : 100, color: "#3f2eb2" },
           ].map(row => (
             <div key={row.label} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
@@ -593,15 +593,15 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "22px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <TrendingUp size={16} color="#DC2626" />
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(63,46,178,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <TrendingUp size={16} color="#3f2eb2" />
               </div>
               <span style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800 }}>Animes más vistos</span>
             </div>
             <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>Top {stats.topAnime.length}</span>
           </div>
           {(() => {
-            const BAR_COLORS = ["#DC2626", "#FECACA", "#22C55E", "#fff", "#F59E0B"];
+            const BAR_COLORS = ["#3f2eb2", "#c7d2fe", "#22C55E", "#fff", "#F59E0B"];
             return stats.topAnime.map((a, i) => {
               const pct = (parseInt(a.views) / maxViews) * 100;
               return (
@@ -645,13 +645,13 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
       )}
 
       <SectionHeader icon={<Zap size={16} />} title="Operación rápida" subtitle="Atajos para gestionar usuarios, contenido y monetización" />
-      <div style={{ background: "linear-gradient(135deg,rgba(220,38,38,0.08),rgba(153,27,27,0.04))", border: "1px solid rgba(220,38,38,0.15)", borderRadius: 18, padding: "20px" }}>
+      <div style={{ background: "linear-gradient(135deg,rgba(63,46,178,0.08),rgba(46,33,138,0.04))", border: "1px solid rgba(63,46,178,0.15)", borderRadius: 18, padding: "20px" }}>
         <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-          <Zap size={15} color="#FECACA" /> Accesos rápidos
+          <Zap size={15} color="#c7d2fe" /> Accesos rápidos
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {[
-            { label: "Ver usuarios", icon: <Users size={14} />, color: "#DC2626", section: "users" as Section },
+            { label: "Ver usuarios", icon: <Users size={14} />, color: "#3f2eb2", section: "users" as Section },
             { label: "Contenido", icon: <Film size={14} />, color: "#22C55E", section: "content" as Section },
             { label: "Comentarios", icon: <MessageSquare size={14} />, color: "#fff", section: "comments" as Section },
             { label: "Monetización", icon: <Crown size={14} />, color: "#F59E0B", section: "monetization" as Section },
@@ -678,12 +678,12 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <UserCheck size={14} color="#DC2626" />
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(63,46,178,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <UserCheck size={14} color="#3f2eb2" />
               </div>
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Últimos registros</span>
             </div>
-            <button onClick={() => onNavigate("users")} style={{ background: "none", border: "none", color: "rgba(220,38,38,0.7)", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>Ver todos →</button>
+            <button onClick={() => onNavigate("users")} style={{ background: "none", border: "none", color: "rgba(63,46,178,0.7)", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>Ver todos →</button>
           </div>
           {(stats?.recentUsers ?? []).length === 0 ? (
             <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 13, textAlign: "center", padding: "16px 0" }}>Sin usuarios aún</div>
@@ -693,9 +693,9 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.35, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-              whileHover={{ backgroundColor: "rgba(220,38,38,0.06)", x: 4 }}
+              whileHover={{ backgroundColor: "rgba(63,46,178,0.06)", x: 4 }}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", marginLeft: -10, marginRight: -10, borderRadius: 10, borderBottom: i < (stats!.recentUsers.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none", cursor: "pointer" }}>
-              <div style={{ width: 32, height: 32, borderRadius: 9, background: u.membership_tier === "megafan" ? "linear-gradient(135deg,#F59E0B,#D97706)" : "linear-gradient(135deg,#DC2626,#991B1B)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: u.membership_tier === "megafan" ? "linear-gradient(135deg,#F59E0B,#D97706)" : "linear-gradient(135deg,#3f2eb2,#2e218a)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 13, flexShrink: 0 }}>
                 {u.username.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -703,7 +703,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                   {u.username}
                   {u.membership_tier === "megafan" && <span style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>👑</span>}
                   {u.role === "owner" && <span style={{ background: "rgba(239,68,68,0.15)", color: "#EF4444", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>OWNER</span>}
-                  {u.role === "admin" && <span style={{ background: "rgba(220,38,38,0.15)", color: "#FECACA", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>ADMIN</span>}
+                  {u.role === "admin" && <span style={{ background: "rgba(63,46,178,0.15)", color: "#c7d2fe", borderRadius: 4, padding: "1px 5px", fontSize: 9, fontWeight: 900 }}>ADMIN</span>}
                 </div>
                 <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{u.email}</div>
               </div>
@@ -759,8 +759,8 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 18, padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <TrendingUp size={14} color="#DC2626" />
+              <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(63,46,178,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <TrendingUp size={14} color="#3f2eb2" />
               </div>
               <span style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 800 }}>Crecimiento de usuarios (30 días)</span>
             </div>
@@ -793,10 +793,10 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
                 <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip
-                  contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 10, color: "#F1F1F5", fontSize: 12 }}
+                  contentStyle={{ background: "#0f0f0f", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 10, color: "#F1F1F5", fontSize: 12 }}
                   labelStyle={{ color: "rgba(255,255,255,0.5)" }}
                 />
-                <Line type="monotone" dataKey="Usuarios" stroke="#DC2626" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: "#DC2626", strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="Usuarios" stroke="#3f2eb2" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: "#3f2eb2", strokeWidth: 0 }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -886,7 +886,7 @@ function DashboardSection({ toast, user, onNavigate }: { toast: (m: string, t: "
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: i < (stats!.recentActivity.length - 1) ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", flexShrink: 0, boxShadow: "0 0 6px #22C55E" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ color: "#FECACA", fontWeight: 700, fontSize: 13 }}>{a.username}</span>
+                  <span style={{ color: "#c7d2fe", fontWeight: 700, fontSize: 13 }}>{a.username}</span>
                   <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}> vio </span>
                   <span style={{ color: "#F1F1F5", fontWeight: 600, fontSize: 13 }}>{a.anime_title || "un anime"}</span>
                   <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 13 }}> ep. {a.episode_num}</span>
@@ -935,7 +935,7 @@ function UsersSection({ toast, confirm, role }: { toast: (m: string, t: "ok" | "
     } catch { toast("Error al actualizar", "err"); }
   };
 
-  const roleColor: Record<string, string> = { owner: "#F59E0B", admin: "#DC2626", user: "rgba(255,255,255,0.4)" };
+  const roleColor: Record<string, string> = { owner: "#F59E0B", admin: "#3f2eb2", user: "rgba(255,255,255,0.4)" };
   const FILTERS: { key: typeof filter; label: string }[] = [
     { key: "all", label: "Todos" },
     { key: "megafan", label: "MegaFan" },
@@ -953,8 +953,8 @@ function UsersSection({ toast, confirm, role }: { toast: (m: string, t: "ok" | "
           <button key={f.key} onClick={() => { setFilter(f.key); setPage(1); load(q, 1, f.key); }}
             style={{
               padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
-              background: filter === f.key ? "rgba(220,38,38,0.2)" : "transparent",
-              color: filter === f.key ? "#FECACA" : "rgba(255,255,255,0.45)",
+              background: filter === f.key ? "rgba(63,46,178,0.2)" : "transparent",
+              color: filter === f.key ? "#c7d2fe" : "rgba(255,255,255,0.45)",
             }}>
             {f.label}
           </button>
@@ -969,11 +969,11 @@ function UsersSection({ toast, confirm, role }: { toast: (m: string, t: "ok" | "
             placeholder="Buscar por nombre o email..."
             style={{ width: "100%", background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 12px 10px 36px", color: "#F1F1F5", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
         </div>
-        <button onClick={() => { setPage(1); load(q, 1, filter); }} style={{ background: "#DC2626", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>Buscar</button>
+        <button onClick={() => { setPage(1); load(q, 1, filter); }} style={{ background: "#3f2eb2", border: "none", borderRadius: 10, padding: "10px 16px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>Buscar</button>
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} /></div>
+        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} /></div>
       ) : (
         <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, overflow: "hidden" }}>
           {users.length === 0
@@ -981,13 +981,13 @@ function UsersSection({ toast, confirm, role }: { toast: (m: string, t: "ok" | "
             : users.map((u, i) => (
               <div key={u.id} style={{ padding: "14px 16px", borderBottom: i < users.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg,#DC2626,#991B1B)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 16, flexShrink: 0, overflow: "hidden" }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg,#3f2eb2,#2e218a)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900, fontSize: 16, flexShrink: 0, overflow: "hidden" }}>
                     {u.avatar_url ? <img src={u.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : u.username.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: "#F1F1F5", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
                       {u.username}
-                      {!u.is_active && <span style={{ background: "#DC262620", color: "#DC2626", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 800 }}>INACTIVO</span>}
+                      {!u.is_active && <span style={{ background: "#3f2eb220", color: "#3f2eb2", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 800 }}>INACTIVO</span>}
                       {u.membership_tier === "megafan" && <span style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 800 }}>MEGAFAN</span>}
                     </div>
                     <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>{u.email}</div>
@@ -1011,7 +1011,7 @@ function UsersSection({ toast, confirm, role }: { toast: (m: string, t: "ok" | "
                         confirm(`¿Cambiar rol de ${u.username} a ${newRole}?`, () => update(u.id, { role: newRole }));
                       }}
                       style={{
-                        background: "#1a1a2e",
+                        background: "#0f0f0f",
                         border: "1px solid rgba(255,255,255,0.1)",
                         borderRadius: 8, padding: "7px 10px",
                         color: canModifyRole ? "#F1F1F5" : "rgba(255,255,255,0.3)",
@@ -1023,12 +1023,12 @@ function UsersSection({ toast, confirm, role }: { toast: (m: string, t: "ok" | "
                       <option value="owner">Rol: Owner</option>
                     </select>
                     <select value={u.membership_tier} onChange={e => update(u.id, { membership_tier: e.target.value as AdminUser["membership_tier"] })}
-                      style={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "7px 10px", color: "#F1F1F5", fontSize: 13, cursor: "pointer" }}>
+                      style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "7px 10px", color: "#F1F1F5", fontSize: 13, cursor: "pointer" }}>
                       <option value="free">Tier: Free</option>
                       <option value="megafan">Tier: MegaFan</option>
                     </select>
                     <button onClick={() => confirm(`¿${u.is_active ? "Desactivar" : "Activar"} la cuenta de ${u.username}?`, () => update(u.id, { is_active: !u.is_active }))}
-                      style={{ display: "flex", alignItems: "center", gap: 6, background: u.is_active ? "rgba(220,38,38,0.12)" : "rgba(34,197,94,0.12)", border: `1px solid ${u.is_active ? "#DC262640" : "#22C55E40"}`, borderRadius: 8, padding: "7px 12px", color: u.is_active ? "#DC2626" : "#22C55E", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+                      style={{ display: "flex", alignItems: "center", gap: 6, background: u.is_active ? "rgba(63,46,178,0.12)" : "rgba(34,197,94,0.12)", border: `1px solid ${u.is_active ? "#3f2eb240" : "#22C55E40"}`, borderRadius: 8, padding: "7px 12px", color: u.is_active ? "#3f2eb2" : "#22C55E", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
                       {u.is_active ? <><UserX size={13} /> Desactivar</> : <><UserCheck size={13} /> Activar</>}
                     </button>
                     <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, display: "flex", alignItems: "center", marginLeft: "auto" }}>
@@ -1094,14 +1094,14 @@ function ContentSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err"
 
   const actionStyles: Record<string, { bg: string; color: string; label: string; icon: ReactNode }> = {
     hidden:   { bg: "rgba(245,158,11,0.12)", color: "#F59E0B",  label: "Oculto",    icon: <EyeOff size={13} /> },
-    featured: { bg: "rgba(220,38,38,0.12)", color: "#DC2626",  label: "Destacado", icon: <Star size={13} /> },
-    blocked:  { bg: "rgba(220,38,38,0.12)", color: "#DC2626",   label: "Bloqueado", icon: <Ban size={13} /> },
+    featured: { bg: "rgba(63,46,178,0.12)", color: "#3f2eb2",  label: "Destacado", icon: <Star size={13} /> },
+    blocked:  { bg: "rgba(63,46,178,0.12)", color: "#3f2eb2",   label: "Bloqueado", icon: <Ban size={13} /> },
   };
 
   return (
     <div>
       <h2 style={{ color: "#F1F1F5", fontSize: 22, fontWeight: 900, marginBottom: 16 }}>Control de Contenido</h2>
-      <div style={{ background: "#0a0a0a", border: "1px solid rgba(220,38,38,0.15)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
+      <div style={{ background: "#0a0a0a", border: "1px solid rgba(63,46,178,0.15)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
         <div style={{ color: "#F1F1F5", fontSize: 15, fontWeight: 800, marginBottom: 14 }}>Añadir anime</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <input value={animeId} onChange={e => setAnimeId(e.target.value)} placeholder="ID del anime (ej: 21)" style={{ flex: 2, minWidth: 140, background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "9px 12px", color: "#F1F1F5", fontSize: 14, outline: "none" }} />
@@ -1111,13 +1111,13 @@ function ContentSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err"
             <option value="featured">Destacar</option>
             <option value="blocked">Bloquear</option>
           </select>
-          <button onClick={add} disabled={adding} style={{ background: "linear-gradient(135deg,#DC2626,#991B1B)", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+          <button onClick={add} disabled={adding} style={{ background: "linear-gradient(135deg,#3f2eb2,#2e218a)", border: "none", borderRadius: 8, padding: "9px 18px", color: "#fff", fontWeight: 800, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
             {adding ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Check size={14} />} Añadir
           </button>
         </div>
       </div>
       {loading
-        ? <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} /></div>
+        ? <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} /></div>
         : items.length === 0
           ? <div style={{ background: "#0a0a0a", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>No hay contenido gestionado aún</div>
           : (
@@ -1132,7 +1132,7 @@ function ContentSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err"
                       <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>ID: {item.anime_id}</div>
                     </div>
                     <span style={{ display: "flex", alignItems: "center", gap: 4, background: s.bg, color: s.color, borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{s.icon} {s.label}</span>
-                    <button onClick={() => remove(item.id, item.anime_title || item.anime_id)} style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: "#DC2626", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    <button onClick={() => remove(item.id, item.anime_title || item.anime_id)} style={{ background: "rgba(63,46,178,0.1)", border: "1px solid rgba(63,46,178,0.2)", borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: "#3f2eb2", display: "flex", alignItems: "center", flexShrink: 0 }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -1181,7 +1181,7 @@ function CommentsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err
       </div>
 
       {loading
-        ? <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} /></div>
+        ? <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} /></div>
         : comments.length === 0
           ? <div style={{ background: "#0a0a0a", borderRadius: 16, padding: 40, textAlign: "center", color: "rgba(255,255,255,0.3)" }}>No hay comentarios aún</div>
           : (
@@ -1191,7 +1191,7 @@ function CommentsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                        <span style={{ color: "#FECACA", fontSize: 13, fontWeight: 700 }}>{c.author}</span>
+                        <span style={{ color: "#c7d2fe", fontSize: 13, fontWeight: 700 }}>{c.author}</span>
                         <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11 }}>·</span>
                         <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>Anime ID: {c.anime_id}</span>
                         {c.spoiler && <span style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 800 }}>SPOILER</span>}
@@ -1202,7 +1202,7 @@ function CommentsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err
                       <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, margin: 0, lineHeight: 1.5, wordBreak: "break-word" }}>{c.text}</p>
                       {c.likes > 0 && <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 4 }}>{c.likes} like(s)</div>}
                     </div>
-                    <button onClick={() => remove(c.id, c.text)} style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 8, padding: "7px 10px", cursor: "pointer", color: "#DC2626", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    <button onClick={() => remove(c.id, c.text)} style={{ background: "rgba(63,46,178,0.1)", border: "1px solid rgba(63,46,178,0.2)", borderRadius: 8, padding: "7px 10px", cursor: "pointer", color: "#3f2eb2", display: "flex", alignItems: "center", flexShrink: 0 }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -1317,7 +1317,7 @@ function MonetizationSection({ toast, refreshConfig, role }: { toast: (m: string
     } catch { toast("Error eliminando cupón", "err"); }
   };
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} /></div>;
+  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} /></div>;
 
   const lockStyle = canEditConfig ? {} : { opacity: 0.55, pointerEvents: "none" as const };
 
@@ -1350,7 +1350,7 @@ function MonetizationSection({ toast, refreshConfig, role }: { toast: (m: string
           <input type="number" min={1} max={100} value={config["daily_limit"] ?? "5"} disabled={!canEditConfig}
             onChange={e => setConfig(prev => ({ ...prev, daily_limit: e.target.value }))}
             onBlur={e => save({ daily_limit: e.target.value })}
-            style={{ width: 70, background: "#0D0D1A", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 15, fontWeight: 800, textAlign: "center", outline: "none" }} />
+            style={{ width: 70, background: "#0D0D1A", border: "1px solid rgba(63,46,178,0.3)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 15, fontWeight: 800, textAlign: "center", outline: "none" }} />
           <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12 }}>episodios/día para usuarios gratuitos</span>
         </div>
       </div>
@@ -1387,7 +1387,7 @@ function MonetizationSection({ toast, refreshConfig, role }: { toast: (m: string
           </div>
           <button
             onClick={() => setShowForm(v => !v)}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "#DC2626", border: "none", borderRadius: 10, padding: "8px 14px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#3f2eb2", border: "none", borderRadius: 10, padding: "8px 14px", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}
           >
             <Plus size={14} /> Nuevo cupón
           </button>
@@ -1395,7 +1395,7 @@ function MonetizationSection({ toast, refreshConfig, role }: { toast: (m: string
 
         {/* Create form */}
         {showForm && (
-          <div style={{ background: "#0D0D1A", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "#0D0D1A", border: "1px solid rgba(63,46,178,0.2)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 10, marginBottom: 10 }}>
               <div>
                 <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, display: "block", marginBottom: 4 }}>Código</label>
@@ -1441,7 +1441,7 @@ function MonetizationSection({ toast, refreshConfig, role }: { toast: (m: string
               <button
                 onClick={createCode}
                 disabled={creating}
-                style={{ flex: 1, background: "#DC2626", border: "none", borderRadius: 9, padding: "9px 0", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}
+                style={{ flex: 1, background: "#3f2eb2", border: "none", borderRadius: 9, padding: "9px 0", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}
               >
                 {creating ? "Creando..." : "Crear cupón"}
               </button>
@@ -1457,7 +1457,7 @@ function MonetizationSection({ toast, refreshConfig, role }: { toast: (m: string
 
         {/* Table */}
         {codesLoading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 24 }}><Loader2 size={22} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} /></div>
+          <div style={{ display: "flex", justifyContent: "center", padding: 24 }}><Loader2 size={22} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} /></div>
         ) : codes.length === 0 ? (
           <div style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", padding: "24px 0", fontSize: 14 }}>
             No hay cupones. Crea el primero.
@@ -1480,7 +1480,7 @@ function MonetizationSection({ toast, refreshConfig, role }: { toast: (m: string
                   const statusColor: Record<string, string> = { activo: "#22C55E", inactivo: "rgba(255,255,255,0.3)", expirado: "#F59E0B", agotado: "#EF4444" };
                   return (
                     <tr key={c.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                      <td style={{ padding: "10px 10px", color: "#FECACA", fontFamily: "monospace", fontWeight: 700 }}>{c.code}</td>
+                      <td style={{ padding: "10px 10px", color: "#c7d2fe", fontFamily: "monospace", fontWeight: 700 }}>{c.code}</td>
                       <td style={{ padding: "10px 10px", color: "#F1F1F5", fontWeight: 700 }}>−{c.discount_percent}%</td>
                       <td style={{ padding: "10px 10px", color: "rgba(255,255,255,0.6)" }}>
                         {c.uses_count}{c.max_uses !== null ? `/${c.max_uses}` : ""}
@@ -1589,7 +1589,7 @@ function ConfigSection({ toast, refreshConfig }: { toast: (m: string, t: "ok" | 
     </div>
   );
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} /></div>;
+  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Loader2 size={28} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} /></div>;
 
   return (
     <div>
@@ -1615,7 +1615,7 @@ function ConfigSection({ toast, refreshConfig }: { toast: (m: string, t: "ok" | 
               placeholder="Minutos"
               style={{ background: "#0D0D1A", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "10px 12px", color: "#F1F1F5", fontSize: 13, outline: "none" }}
             />
-            <button onClick={saveMaintenanceDetails} style={{ background: "rgba(220,38,38,0.14)", border: "1px solid rgba(220,38,38,0.25)", borderRadius: 9, padding: "10px 14px", color: "#FECACA", cursor: "pointer", fontSize: 12, fontWeight: 800 }}>
+            <button onClick={saveMaintenanceDetails} style={{ background: "rgba(63,46,178,0.14)", border: "1px solid rgba(63,46,178,0.25)", borderRadius: 9, padding: "10px 14px", color: "#c7d2fe", cursor: "pointer", fontSize: 12, fontWeight: 800 }}>
               Guardar aviso
             </button>
           </div>
@@ -1682,10 +1682,10 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
 
   useEffect(() => { load(1); }, []);
 
-  const planColor: Record<string, string> = { monthly: "#DC2626", annual: "#F59E0B" };
+  const planColor: Record<string, string> = { monthly: "#3f2eb2", annual: "#F59E0B" };
   const statusColor: Record<string, string> = {
     completed: "#22C55E", ACTIVE: "#22C55E", pending: "#F59E0B", SUSPENDED: "#F59E0B",
-    failed: "#DC2626", CANCELLED: "#DC2626", EXPIRED: "#DC2626",
+    failed: "#3f2eb2", CANCELLED: "#3f2eb2", EXPIRED: "#3f2eb2",
   };
 
   return (
@@ -1700,16 +1700,16 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
         </div>
       )}
       {data?.paypalError && (
-        <div style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.25)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 8, alignItems: "center" }}>
-          <AlertTriangle size={15} color="#DC2626" />
-          <span style={{ color: "#DC2626", fontSize: 13 }}>{data.paypalError}</span>
+        <div style={{ background: "rgba(63,46,178,0.1)", border: "1px solid rgba(63,46,178,0.25)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 8, alignItems: "center" }}>
+          <AlertTriangle size={15} color="#3f2eb2" />
+          <span style={{ color: "#3f2eb2", fontSize: 13 }}>{data.paypalError}</span>
         </div>
       )}
 
       {/* Summary cards */}
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         {[
-          { label: "Pagos únicos", value: data?.total ?? 0, icon: <CreditCard size={18} />, color: "#DC2626" },
+          { label: "Pagos únicos", value: data?.total ?? 0, icon: <CreditCard size={18} />, color: "#3f2eb2" },
           { label: "Ingresos capturados", value: `$${(data?.totalRevenue ?? 0).toFixed(2)}`, icon: <DollarSign size={18} />, color: "#22C55E" },
           { label: "Suscripciones activas", value: data?.subscriptions.filter(s => s.status === "ACTIVE").length ?? 0, icon: <Crown size={18} />, color: "#F59E0B" },
         ].map(c => (
@@ -1732,8 +1732,8 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
       ] as const).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700,
-              background: tab === key ? "rgba(220,38,38,0.2)" : "transparent",
-              color: tab === key ? "#FECACA" : "rgba(255,255,255,0.45)" }}>
+              background: tab === key ? "rgba(63,46,178,0.2)" : "transparent",
+              color: tab === key ? "#c7d2fe" : "rgba(255,255,255,0.45)" }}>
             {label}
           </button>
         ))}
@@ -1749,7 +1749,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
           <input type="date" value={to} onChange={e => setTo(e.target.value)}
             style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "8px 10px", color: "#F1F1F5", fontSize: 13, outline: "none" }} />
           <button onClick={() => { setPage(1); load(1, from, to); }}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "#DC2626", border: "none", borderRadius: 8, padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#3f2eb2", border: "none", borderRadius: 8, padding: "8px 14px", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
             <RefreshCw size={13} /> Filtrar
           </button>
           {(from || to) && (
@@ -1762,7 +1762,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
       )}
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} /></div>
+        <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Loader2 size={28} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} /></div>
       ) : tab === "onetime" ? (
         <>
           {(!data || data.transactions.length === 0) ? (
@@ -1789,10 +1789,10 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
                     {tx.promo_code && <span style={{ marginLeft: 4, background: "rgba(245,158,11,0.15)", color: "#F59E0B", borderRadius: 4, padding: "1px 5px", fontSize: 10 }}>{tx.promo_code}</span>}
                   </div>
                   <div style={{ color: "#22C55E", fontSize: 14, fontWeight: 800 }}>${parseFloat(tx.amount_usd).toFixed(2)}</div>
-                  <div style={{ background: `${planColor[tx.plan] ?? "#DC2626"}18`, color: planColor[tx.plan] ?? "#DC2626", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                  <div style={{ background: `${planColor[tx.plan] ?? "#3f2eb2"}18`, color: planColor[tx.plan] ?? "#3f2eb2", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
                     {tx.plan === "annual" ? "Anual" : "Mensual"}
                   </div>
-                  <div style={{ background: `${statusColor[tx.status] ?? "#DC2626"}18`, color: statusColor[tx.status] ?? "#DC2626", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                  <div style={{ background: `${statusColor[tx.status] ?? "#3f2eb2"}18`, color: statusColor[tx.status] ?? "#3f2eb2", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
                     {tx.status}
                   </div>
                   <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
@@ -1837,7 +1837,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
                   <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{s.email}</div>
                   <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, fontFamily: "monospace", marginTop: 2 }} title={s.subscription_id}>{s.subscription_id.substring(0, 18)}…</div>
                 </div>
-                <div style={{ background: `${statusColor[s.status] ?? "#DC2626"}18`, color: statusColor[s.status] ?? "#DC2626", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
+                <div style={{ background: `${statusColor[s.status] ?? "#3f2eb2"}18`, color: statusColor[s.status] ?? "#3f2eb2", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, width: "fit-content" }}>
                   {s.status}
                 </div>
                 <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
@@ -1872,7 +1872,7 @@ function TransactionsSection({ toast }: { toast: (m: string, t: "ok" | "err") =>
               const ti = r.transaction_info;
               const piName = r.payer_info?.payer_name?.alternate_full_name;
               const piEmail = r.payer_info?.email_address;
-              const sc = statusColor[ti.transaction_status] ?? "#DC2626";
+              const sc = statusColor[ti.transaction_status] ?? "#3f2eb2";
               return (
                 <div key={ti.transaction_id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 90px 120px", padding: "12px 16px", borderBottom: i < data.paypalReporting.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", alignItems: "center" }}>
                   <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontFamily: "monospace" }} title={ti.transaction_id}>
@@ -1912,7 +1912,7 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
   const [lastResult, setLastResult] = useState<{ sent: number; total: number; errors: string[] } | null>(null);
 
   const SEGMENTS = [
-    { key: "all" as const, label: "Todos los usuarios", color: "#DC2626", desc: "Activos en la plataforma" },
+    { key: "all" as const, label: "Todos los usuarios", color: "#3f2eb2", desc: "Activos en la plataforma" },
     { key: "megafan" as const, label: "Solo MegaFan", color: "#F59E0B", desc: "Usuarios de pago" },
     { key: "free" as const, label: "Solo Gratuitos", color: "#22C55E", desc: "Tier free activos" },
   ];
@@ -1985,10 +1985,10 @@ function EmailsSection({ toast, confirm }: { toast: (m: string, t: "ok" | "err")
         onClick={() => confirm(`¿Enviar email a "${SEGMENTS.find(s => s.key === to)?.label}"?\n\nAsunto: "${subject}"`, doSend)}
         style={{
           display: "flex", alignItems: "center", gap: 8,
-          background: sending || !subject.trim() || !body.trim() ? "rgba(220,38,38,0.3)" : "linear-gradient(135deg,#DC2626,#991B1B)",
+          background: sending || !subject.trim() || !body.trim() ? "rgba(63,46,178,0.3)" : "linear-gradient(135deg,#3f2eb2,#2e218a)",
           border: "none", borderRadius: 12, padding: "13px 24px",
           color: "#fff", cursor: sending || !subject.trim() || !body.trim() ? "default" : "pointer",
-          fontSize: 14, fontWeight: 800, boxShadow: "0 4px 16px rgba(220,38,38,0.3)",
+          fontSize: 14, fontWeight: 800, boxShadow: "0 4px 16px rgba(63,46,178,0.3)",
         }}>
         {sending ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> Enviando...</> : <><Send size={15} /> Enviar Email</>}
       </button>
@@ -2069,7 +2069,7 @@ export default function Admin() {
 
   if (loading || !user || !canAccess) return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Loader2 size={32} color="#DC2626" style={{ animation: "spin 1s linear infinite" }} />
+      <Loader2 size={32} color="#3f2eb2" style={{ animation: "spin 1s linear infinite" }} />
     </div>
   );
 
@@ -2080,7 +2080,7 @@ export default function Admin() {
   // Role badge style (gold for owner, red for admin).
   const roleBadge = isOwnerStrict
     ? { label: "OWNER", color: "#F59E0B", bg: "rgba(245,158,11,0.16)", border: "rgba(245,158,11,0.45)" }
-    : { label: "ADMIN", color: "#FCA5A5", bg: "rgba(220,38,38,0.16)", border: "rgba(220,38,38,0.45)" };
+    : { label: "ADMIN", color: "#a5b4fc", bg: "rgba(63,46,178,0.16)", border: "rgba(63,46,178,0.45)" };
 
   return (
     <div style={{ minHeight: "100vh", background: "#000", display: "flex", position: "relative", overflowX: "hidden" }}>
@@ -2117,17 +2117,17 @@ export default function Admin() {
         }
       `}</style>
 
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 20% 12%, rgba(220,38,38,0.18), transparent 18%), radial-gradient(circle at 80% 18%, rgba(255,255,255,0.005), transparent 20%), radial-gradient(circle at 60% 75%, rgba(245,158,11,0.14), transparent 24%)", pointerEvents: "none", zIndex: 0 }} />
-      <div style={{ position: "absolute", top: 80, left: -40, width: 260, height: 260, borderRadius: "50%", background: "rgba(220,38,38,0.1)", filter: "blur(80px)", pointerEvents: "none", animation: "glowPulse 8s ease-in-out infinite" }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 20% 12%, rgba(63,46,178,0.18), transparent 18%), radial-gradient(circle at 80% 18%, rgba(255,255,255,0.005), transparent 20%), radial-gradient(circle at 60% 75%, rgba(245,158,11,0.14), transparent 24%)", pointerEvents: "none", zIndex: 0 }} />
+      <div style={{ position: "absolute", top: 80, left: -40, width: 260, height: 260, borderRadius: "50%", background: "rgba(63,46,178,0.1)", filter: "blur(80px)", pointerEvents: "none", animation: "glowPulse 8s ease-in-out infinite" }} />
       <div style={{ position: "absolute", bottom: 40, right: -50, width: 260, height: 260, borderRadius: "50%", background: "rgba(255,255,255,0.005)", filter: "blur(100px)", pointerEvents: "none", animation: "glowPulse 7s ease-in-out infinite reverse" }} />
 
       {sidebarOpen && <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40 }} />}
 
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`} style={{ width: 230, flexShrink: 0, background: "linear-gradient(180deg, #0D0D1A 0%, #000 100%)", borderRight: "1px solid rgba(220,38,38,0.08)", boxShadow: "0 24px 70px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50, transition: "transform 0.22s ease, box-shadow 0.22s ease" }}>
+      <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`} style={{ width: 230, flexShrink: 0, background: "linear-gradient(180deg, #0D0D1A 0%, #000 100%)", borderRight: "1px solid rgba(63,46,178,0.08)", boxShadow: "0 24px 70px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 50, transition: "transform 0.22s ease, box-shadow 0.22s ease" }}>
         <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#DC2626,#991B1B)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(220,38,38,0.35)" }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg,#3f2eb2,#2e218a)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(63,46,178,0.35)" }}>
               <Shield size={18} color="#fff" />
             </div>
             <div>
@@ -2155,7 +2155,7 @@ export default function Admin() {
                   <motion.div
                     layoutId="admin-nav-pill"
                     transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                    style={{ position: "absolute", inset: 0, borderRadius: 10, background: "linear-gradient(135deg, rgba(220,38,38,0.22), rgba(220,38,38,0.08))", borderLeft: "3px solid #DC2626", boxShadow: "0 8px 24px rgba(220,38,38,0.18) inset", zIndex: 0 }}
+                    style={{ position: "absolute", inset: 0, borderRadius: 10, background: "linear-gradient(135deg, rgba(63,46,178,0.22), rgba(63,46,178,0.08))", borderLeft: "3px solid #3f2eb2", boxShadow: "0 8px 24px rgba(63,46,178,0.18) inset", zIndex: 0 }}
                   />
                 )}
                 <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 10 }}>{n.icon} {n.label}</span>
@@ -2203,7 +2203,7 @@ export default function Admin() {
       {/* Main */}
       <div className="admin-main" style={{ flex: 1, marginLeft: 230, minHeight: "100vh", display: "flex", flexDirection: "column", minWidth: 0, overflowX: "hidden" }}>
         {/* Topbar */}
-        <div className="admin-topbar" style={{ height: 60, background: "rgba(13,13,26,0.96)", borderBottom: "1px solid rgba(220,38,38,0.12)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, boxShadow: "0 18px 40px rgba(0,0,0,0.18)" }}>
+        <div className="admin-topbar" style={{ height: 60, background: "rgba(13,13,26,0.96)", borderBottom: "1px solid rgba(63,46,178,0.12)", display: "flex", alignItems: "center", padding: "0 24px", gap: 12, flexShrink: 0, position: "sticky", top: 0, zIndex: 30, boxShadow: "0 18px 40px rgba(0,0,0,0.18)" }}>
           <button onClick={() => setSidebarOpen(true)} className="sidebar-toggle" style={{ display: "none", background: "none", border: "none", cursor: "pointer", color: "#F1F1F5", padding: 4 }}>
             <Menu size={20} />
           </button>
@@ -2234,7 +2234,7 @@ export default function Admin() {
               {isOwnerStrict ? <Crown size={11} /> : <Shield size={11} />}
               {roleBadge.label}
             </span>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#DC2626,#991B1B)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 900 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#3f2eb2,#2e218a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#fff", fontWeight: 900 }}>
               {user.username.charAt(0).toUpperCase()}
             </div>
             <span className="admin-topbar-username" style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600 }}>{user.username}</span>

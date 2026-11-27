@@ -56,8 +56,8 @@ export default function QuickFilters({ onJump }: QuickFiltersProps) {
               fontFamily: "inherit",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(220,38,38,0.12)";
-              e.currentTarget.style.borderColor = "rgba(220,38,38,0.35)";
+              e.currentTarget.style.background = "rgba(63,46,178,0.12)";
+              e.currentTarget.style.borderColor = "rgba(63,46,178,0.35)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "rgba(255,255,255,0.05)";
@@ -95,9 +95,9 @@ export default function QuickFilters({ onJump }: QuickFiltersProps) {
           onClick={surprise}
           style={{
             ...chipStyle(),
-            background: "linear-gradient(135deg, rgba(220,38,38,0.18), rgba(249,115,22,0.18))",
-            borderColor: "rgba(220,38,38,0.35)",
-            color: "#FCA5A5",
+            background: "linear-gradient(135deg, rgba(63,46,178,0.18), rgba(99,102,241,0.18))",
+            borderColor: "rgba(63,46,178,0.35)",
+            color: "#a5b4fc",
           }}
           title="Sorpréndeme"
         >

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="50%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#2563eb" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+  <!-- Background Rounded Squircle with Electric Blue Glow -->
+  <rect x="10" y="10" width="100" height="100" rx="28" fill="url(#bgGrad)" filter="url(#shadow)" />
+  <rect x="12" y="12" width="96" height="96" rx="26" fill="#080d1a" fill-opacity="0.3" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
+  
+  <!-- Stylized "Z" / Play Bolt symbol representing IZIFF -->
+  <path d="M42 34 L78 34 L48 62 L78 62 L78 86 L42 86 L72 58 L42 58 Z" fill="#ffffff" />
+  <!-- Cyan Accent Play Dot -->
+  <circle cx="82" cy="38" r="6" fill="#38bdf8" />
+  <polygon points="54,46 72,58 54,70" fill="url(#neonGlow)" />
+</svg>

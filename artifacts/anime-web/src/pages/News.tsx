@@ -22,8 +22,8 @@ interface NewsResponse {
 }
 
 const SOURCE_ACCENTS: Record<string, string> = {
-  Kudasai: "#DC2626",
-  ANMTV: "#F97316",
+  Kudasai: "#3f2eb2",
+  ANMTV: "#6366f1",
   "Ramen Para Dos": "#A78BFA",
 };
 
@@ -42,7 +42,7 @@ function timeAgo(iso: string): string {
 }
 
 function NewsCard({ item, featured = false }: { item: NewsItem; featured?: boolean }) {
-  const accent = SOURCE_ACCENTS[item.source] ?? "#DC2626";
+  const accent = SOURCE_ACCENTS[item.source] ?? "#3f2eb2";
   return (
     <motion.a
       href={item.link}
@@ -131,23 +131,23 @@ export default function News() {
       <div
         style={{
           position: "relative",
-          borderBottom: "1px solid rgba(220,38,38,0.25)",
+          borderBottom: "1px solid rgba(63,46,178,0.25)",
           padding: "calc(56px + 48px) 24px 48px",
           textAlign: "center",
           overflow: "hidden",
           background:
-            "radial-gradient(ellipse at center, rgba(220,38,38,0.18), transparent 60%), linear-gradient(180deg, #0a0307, #04030a)",
+            "radial-gradient(ellipse at center, rgba(63,46,178,0.18), transparent 60%), linear-gradient(180deg, #0a0307, #04030a)",
         }}
       >
         <div style={{ position: "absolute", left: "50%", top: 60, transform: "translateX(-50%)", opacity: 0.55 }}>
-          <MagicCircle size={320} color="#DC2626" opacity={0.55} />
+          <MagicCircle size={320} color="#3f2eb2" opacity={0.55} />
         </div>
         <div
           style={{
             position: "absolute",
             inset: 0,
             backgroundImage:
-              "linear-gradient(rgba(220,38,38,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.06) 1px, transparent 1px)",
+              "linear-gradient(rgba(63,46,178,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.06) 1px, transparent 1px)",
             backgroundSize: "44px 44px",
             maskImage: "radial-gradient(ellipse at center, black 30%, transparent 70%)",
             WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 70%)",
@@ -157,14 +157,14 @@ export default function News() {
 
         <div style={{ position: "relative", zIndex: 2, maxWidth: 760, margin: "0 auto" }}>
           <div style={{ marginBottom: 18 }}>
-            <SystemTag color="#F97316">[ SYSTEM ] FEED DE NOTICIAS</SystemTag>
+            <SystemTag color="#6366f1">[ SYSTEM ] FEED DE NOTICIAS</SystemTag>
           </div>
           <h1 className="sys-title" style={{ fontSize: 44, marginBottom: 16 }}>
             NOTICIAS
           </h1>
           <p
             style={{
-              color: "rgba(252,165,165,0.75)",
+              color: "rgba(165,180,252,0.75)",
               fontSize: 14,
               margin: "20px 0 8px",
               fontFamily: "'JetBrains Mono', ui-monospace, monospace",
@@ -200,10 +200,10 @@ export default function News() {
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <Filter size={14} color="#F97316" style={{ filter: "drop-shadow(0 0 4px #F97316)" }} />
+              <Filter size={14} color="#6366f1" style={{ filter: "drop-shadow(0 0 4px #6366f1)" }} />
               <span
                 style={{
-                  color: "#FDBA74",
+                  color: "#a5b4fc",
                   fontSize: 11,
                   fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                   letterSpacing: 2,
@@ -215,23 +215,22 @@ export default function News() {
               </span>
               {sources.map((s) => {
                 const active = sourceFilter === s;
-                const accent = s === "Todas" ? "#DC2626" : SOURCE_ACCENTS[s] ?? "#DC2626";
+                const accent = s === "Todas" ? "#3f2eb2" : SOURCE_ACCENTS[s] ?? "#3f2eb2";
                 return (
                   <button
                     key={s}
                     onClick={() => setSourceFilter(s)}
                     style={{
                       padding: "7px 14px",
-                      background: active ? `linear-gradient(135deg, ${accent}, ${accent}cc)` : "rgba(220,38,38,0.06)",
-                      border: `1px solid ${active ? accent : "rgba(220,38,38,0.3)"}`,
-                      color: active ? "#fff" : "rgba(252,165,165,0.75)",
+                      background: active ? `linear-gradient(135deg, ${accent}, ${accent}cc)` : "rgba(63,46,178,0.06)",
+                      border: `1px solid ${active ? accent : "rgba(63,46,178,0.3)"}`,
+                      color: active ? "#fff" : "rgba(165,180,252,0.75)",
                       fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                       fontSize: 11,
                       fontWeight: 800,
                       letterSpacing: 1.5,
                       cursor: "pointer",
                       textTransform: "uppercase",
-                      clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
                       boxShadow: active ? `0 0 14px ${accent}66` : "none",
                       transition: "all 0.18s ease",
                     }}
@@ -249,15 +248,14 @@ export default function News() {
                 alignItems: "center",
                 gap: 7,
                 padding: "8px 14px",
-                background: "rgba(220,38,38,0.08)",
-                border: "1px solid rgba(220,38,38,0.35)",
-                color: "#FCA5A5",
+                background: "rgba(63,46,178,0.08)",
+                border: "1px solid rgba(63,46,178,0.35)",
+                color: "#a5b4fc",
                 fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                 fontSize: 11,
                 fontWeight: 800,
                 letterSpacing: 1.5,
                 cursor: isFetching ? "wait" : "pointer",
-                clipPath: "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)",
                 opacity: isFetching ? 0.6 : 1,
               }}
             >
@@ -270,8 +268,8 @@ export default function News() {
         {/* LOADING */}
         {isLoading && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "80px 0" }}>
-            <Loader2 size={36} color="#DC2626" style={{ animation: "spin 1s linear infinite", filter: "drop-shadow(0 0 12px #DC2626)" }} />
-            <div style={{ color: "#FCA5A5", fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11, letterSpacing: 2 }}>
+            <Loader2 size={36} color="#3f2eb2" style={{ animation: "spin 1s linear infinite", filter: "drop-shadow(0 0 12px #3f2eb2)" }} />
+            <div style={{ color: "#a5b4fc", fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11, letterSpacing: 2 }}>
               CARGANDO FEED DE NOTICIAS...
             </div>
           </div>
@@ -279,9 +277,9 @@ export default function News() {
 
         {/* ERROR */}
         {isError && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(252,165,165,0.7)" }}>
-            <Newspaper size={48} style={{ marginBottom: 16, opacity: 0.4, color: "#DC2626" }} />
-            <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, color: "#FCA5A5" }}>
+          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(165,180,252,0.7)" }}>
+            <Newspaper size={48} style={{ marginBottom: 16, opacity: 0.4, color: "#3f2eb2" }} />
+            <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, color: "#a5b4fc" }}>
               ⚠ ERROR · NO SE PUDIERON CARGAR LAS NOTICIAS
             </p>
             <button
@@ -289,16 +287,15 @@ export default function News() {
               style={{
                 marginTop: 20,
                 padding: "10px 22px",
-                background: "rgba(220,38,38,0.18)",
-                border: "1px solid rgba(220,38,38,0.5)",
-                color: "#FCA5A5",
+                background: "rgba(63,46,178,0.18)",
+                border: "1px solid rgba(63,46,178,0.5)",
+                color: "#a5b4fc",
                 fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                 fontSize: 12,
                 letterSpacing: 1.5,
                 fontWeight: 800,
                 cursor: "pointer",
-                clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
-              }}
+                }}
             >
               ↻ REINTENTAR
             </button>
@@ -307,8 +304,8 @@ export default function News() {
 
         {/* EMPTY */}
         {!isLoading && !isError && filteredNews.length === 0 && (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "rgba(252,165,165,0.4)" }}>
-            <Newspaper size={56} style={{ marginBottom: 16, opacity: 0.25, color: "#DC2626" }} />
+          <div style={{ textAlign: "center", padding: "80px 0", color: "rgba(165,180,252,0.4)" }}>
+            <Newspaper size={56} style={{ marginBottom: 16, opacity: 0.25, color: "#3f2eb2" }} />
             <p style={{ fontSize: 14, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1.5 }}>
               ◇ SIN NOTICIAS EN ESTA FUENTE
             </p>
@@ -366,7 +363,7 @@ export default function News() {
           display: flex;
           flex-direction: column;
           background: linear-gradient(180deg, rgba(15,8,18,0.95), rgba(8,4,12,0.98));
-          border: 1px solid rgba(220,38,38,0.22);
+          border: 1px solid rgba(63,46,178,0.22);
           border-radius: 4px;
           overflow: hidden;
           cursor: pointer;
@@ -378,7 +375,7 @@ export default function News() {
         }
         .news-card:hover {
           border-color: var(--accent);
-          box-shadow: 0 18px 50px rgba(0,0,0,0.55), 0 0 26px var(--accent), inset 0 0 24px rgba(220,38,38,0.06);
+          box-shadow: 0 18px 50px rgba(0,0,0,0.55), 0 0 26px var(--accent), inset 0 0 24px rgba(63,46,178,0.06);
         }
         .news-card__media {
           position: relative;
@@ -386,16 +383,16 @@ export default function News() {
           height: 180px;
           background: #000;
           overflow: hidden;
-          border-bottom: 1px solid rgba(220,38,38,0.18);
+          border-bottom: 1px solid rgba(63,46,178,0.18);
         }
         .news-card--featured { flex-direction: row; min-height: 320px; }
-        .news-card--featured .news-card__media { width: 56%; height: auto; min-height: 320px; border-bottom: none; border-right: 1px solid rgba(220,38,38,0.18); }
+        .news-card--featured .news-card__media { width: 56%; height: auto; min-height: 320px; border-bottom: none; border-right: 1px solid rgba(63,46,178,0.18); }
         .news-card--featured .news-card__body { width: 44%; padding: 28px 28px 24px; }
         .news-card--featured .news-card__title { font-size: 22px; -webkit-line-clamp: 4; }
         .news-card--featured .news-card__desc { font-size: 13px; -webkit-line-clamp: 5; }
         @media (max-width: 720px) {
           .news-card--featured { flex-direction: column; min-height: 0; }
-          .news-card--featured .news-card__media { width: 100%; min-height: 0; height: 220px; border-right: none; border-bottom: 1px solid rgba(220,38,38,0.18); }
+          .news-card--featured .news-card__media { width: 100%; min-height: 0; height: 220px; border-right: none; border-bottom: 1px solid rgba(63,46,178,0.18); }
           .news-card--featured .news-card__body { width: 100%; padding: 18px; }
           .news-card--featured .news-card__title { font-size: 17px; -webkit-line-clamp: 3; }
         }
@@ -409,7 +406,7 @@ export default function News() {
           position: absolute; inset: 0;
           display: flex; align-items: center; justify-content: center;
           color: var(--accent); opacity: 0.25;
-          background: radial-gradient(circle at 50% 50%, rgba(220,38,38,0.2), transparent 70%);
+          background: radial-gradient(circle at 50% 50%, rgba(63,46,178,0.2), transparent 70%);
         }
         .news-card__overlay {
           position: absolute; inset: 0;
@@ -430,11 +427,11 @@ export default function News() {
           position: absolute; top: 12px; left: 12px;
           display: inline-flex; align-items: center; gap: 6px;
           background: rgba(0,0,0,0.78); backdrop-filter: blur(8px);
-          color: #FECACA;
+          color: #c7d2fe;
           font-family: 'JetBrains Mono', 'Courier New', ui-monospace, monospace;
           font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
           padding: 4px 9px;
-          border: 1px solid rgba(220,38,38,0.4);
+          border: 1px solid rgba(63,46,178,0.4);
           border-radius: 2px;
         }
         .news-card__source-dot {
@@ -456,7 +453,7 @@ export default function News() {
         .news-card__featured-badge {
           position: absolute; top: 12px; right: 12px;
           display: inline-flex; align-items: center; gap: 6px;
-          background: linear-gradient(135deg, var(--accent), #F97316);
+          background: linear-gradient(135deg, var(--accent), #6366f1);
           color: #fff;
           font-family: 'JetBrains Mono', ui-monospace, monospace;
           font-size: 10px; font-weight: 900; letter-spacing: 2px;
@@ -501,7 +498,7 @@ export default function News() {
         }
         .news-card__cta {
           margin-top: auto; padding-top: 12px;
-          border-top: 1px dashed rgba(220,38,38,0.22);
+          border-top: 1px dashed rgba(63,46,178,0.22);
           display: flex; align-items: center; gap: 8px;
           color: var(--accent);
           font-family: 'JetBrains Mono', 'Courier New', ui-monospace, monospace;
@@ -511,7 +508,7 @@ export default function News() {
         .news-card:hover .news-card__cta { gap: 12px; }
         .news-card__scanlines {
           position: absolute; inset: 0;
-          background: repeating-linear-gradient(0deg, rgba(220,38,38,0.025) 0px, rgba(220,38,38,0.025) 1px, transparent 1px, transparent 4px);
+          background: repeating-linear-gradient(0deg, rgba(63,46,178,0.025) 0px, rgba(63,46,178,0.025) 1px, transparent 1px, transparent 4px);
           pointer-events: none; opacity: 0.5;
         }
       `}</style>

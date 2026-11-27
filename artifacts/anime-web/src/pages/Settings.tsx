@@ -16,9 +16,9 @@ const CLIP_6 = "polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 1
 
 const cardStyle = (accent: "carmesi" | "ambar" | "neutro" = "carmesi"): React.CSSProperties => {
   const colors = {
-    carmesi: { border: "rgba(220,38,38,0.4)", glow: "rgba(220,38,38,0.18)" },
-    ambar:   { border: "rgba(249,115,22,0.45)", glow: "rgba(249,115,22,0.18)" },
-    neutro:  { border: "rgba(249,115,22,0.18)", glow: "rgba(0,0,0,0)" },
+    carmesi: { border: "rgba(63,46,178,0.4)", glow: "rgba(63,46,178,0.18)" },
+    ambar:   { border: "rgba(99,102,241,0.45)", glow: "rgba(99,102,241,0.18)" },
+    neutro:  { border: "rgba(99,102,241,0.18)", glow: "rgba(0,0,0,0)" },
   }[accent];
   return {
     background: "linear-gradient(160deg, rgba(20,6,16,0.92), rgba(8,4,18,0.96))",
@@ -36,17 +36,17 @@ const sectionHeader = (icon: React.ReactNode, tag: string, title: string) => (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{
         width: 34, height: 34,
-        background: "linear-gradient(135deg, rgba(220,38,38,0.2), rgba(249,115,22,0.15))",
-        border: "1px solid rgba(249,115,22,0.4)",
+        background: "linear-gradient(135deg, rgba(63,46,178,0.2), rgba(99,102,241,0.15))",
+        border: "1px solid rgba(99,102,241,0.4)",
         clipPath: CLIP_6,
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>{icon}</div>
       <div>
-        <div style={{ color: "#F97316", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 4, height: 4, background: "#F97316", borderRadius: "50%", boxShadow: "0 0 6px #F97316" }} />
+        <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO, display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 4, height: 4, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 6px #6366f1" }} />
           {tag}
         </div>
-        <div style={{ color: "#FECACA", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>{title}</div>
+        <div style={{ color: "#c7d2fe", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>{title}</div>
       </div>
     </div>
   </div>
@@ -55,23 +55,23 @@ const sectionHeader = (icon: React.ReactNode, tag: string, title: string) => (
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px", boxSizing: "border-box",
   background: "rgba(8,4,18,0.7)",
-  border: "1px solid rgba(249,115,22,0.35)",
+  border: "1px solid rgba(99,102,241,0.35)",
   clipPath: CLIP_8,
-  color: "#FECACA", fontSize: 13, outline: "none",
+  color: "#c7d2fe", fontSize: 13, outline: "none",
   fontFamily: "inherit",
 };
 
 const primaryBtn = (success = false): React.CSSProperties => ({
-  width: "100%", padding: "12px", border: "1px solid rgba(253,186,116,0.5)",
+  width: "100%", padding: "12px", border: "1px solid rgba(165,180,252,0.5)",
   background: success
     ? "linear-gradient(135deg,#16A34A,#15803D)"
-    : "linear-gradient(135deg,#DC2626,#991B1B)",
+    : "linear-gradient(135deg,#3f2eb2,#2e218a)",
   color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: 2,
   fontFamily: MONO,
   clipPath: CLIP_8,
   cursor: "pointer",
   display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-  boxShadow: success ? "0 0 16px rgba(34,197,94,0.4)" : "0 0 16px rgba(220,38,38,0.4)",
+  boxShadow: success ? "0 0 16px rgba(34,197,94,0.4)" : "0 0 16px rgba(63,46,178,0.4)",
   transition: "all 0.2s",
 });
 
@@ -127,7 +127,7 @@ export default function Settings() {
   if (!user) {
     return (
       <div style={{ minHeight: "100vh", background: "#07060b", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO }}>
-        <div style={{ color: "#FDBA74", fontSize: 13, letterSpacing: 2, fontWeight: 800 }}>// SISTEMA: SESION_REQUERIDA</div>
+        <div style={{ color: "#a5b4fc", fontSize: 13, letterSpacing: 2, fontWeight: 800 }}>// SISTEMA: SESION_REQUERIDA</div>
       </div>
     );
   }
@@ -311,13 +311,13 @@ export default function Settings() {
       {/* Background scan lines */}
       <div style={{
         position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        background: "repeating-linear-gradient(0deg, rgba(249,115,22,0.025) 0px, rgba(249,115,22,0.025) 1px, transparent 1px, transparent 4px)",
+        background: "repeating-linear-gradient(0deg, rgba(99,102,241,0.025) 0px, rgba(99,102,241,0.025) 1px, transparent 1px, transparent 4px)",
       }} />
 
       {/* Hex grid bg */}
       <div style={{
         position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        backgroundImage: "linear-gradient(rgba(220,38,38,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.04) 1px, transparent 1px)",
+        backgroundImage: "linear-gradient(rgba(63,46,178,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.04) 1px, transparent 1px)",
         backgroundSize: "32px 32px",
         maskImage: "radial-gradient(ellipse at top, black 10%, transparent 70%)",
         WebkitMaskImage: "radial-gradient(ellipse at top, black 10%, transparent 70%)",
@@ -329,28 +329,28 @@ export default function Settings() {
           <button
             onClick={() => navigate("/")}
             style={{
-              background: "rgba(220,38,38,0.1)",
-              border: "1px solid rgba(249,115,22,0.4)",
+              background: "rgba(63,46,178,0.1)",
+              border: "1px solid rgba(99,102,241,0.4)",
               clipPath: CLIP_6,
               padding: "9px 12px", cursor: "pointer", display: "flex", alignItems: "center",
-              color: "#FDBA74",
+              color: "#a5b4fc",
             }}
           >
             <ArrowLeft size={16} />
           </button>
           <div>
-            <div style={{ color: "#F97316", fontSize: 9, fontWeight: 900, letterSpacing: 3, fontFamily: MONO, display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 5, height: 5, background: "#F97316", borderRadius: "50%", boxShadow: "0 0 6px #F97316", animation: "syspulse 1.6s ease-in-out infinite" }} />
+            <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 3, fontFamily: MONO, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 5, height: 5, background: "#6366f1", borderRadius: "50%", boxShadow: "0 0 6px #6366f1", animation: "syspulse 1.6s ease-in-out infinite" }} />
               [ SISTEMA · PANEL_DE_CONTROL ]
             </div>
             <h1 style={{
-              color: "#FECACA", fontSize: 24, fontWeight: 900, margin: "4px 0 0", letterSpacing: 0.5,
+              color: "#c7d2fe", fontSize: 24, fontWeight: 900, margin: "4px 0 0", letterSpacing: 0.5,
               fontFamily: MONO,
-              textShadow: "0 0 16px rgba(220,38,38,0.4)",
+              textShadow: "0 0 16px rgba(63,46,178,0.4)",
             }}>
               CONFIGURACION
             </h1>
-            <p style={{ color: "rgba(253,186,116,0.6)", fontSize: 11, margin: "2px 0 0", letterSpacing: 1, fontFamily: MONO }}>
+            <p style={{ color: "rgba(165,180,252,0.6)", fontSize: 11, margin: "2px 0 0", letterSpacing: 1, fontFamily: MONO }}>
               {">"} Personaliza tu rango y datos de cazador
             </p>
           </div>
@@ -363,31 +363,30 @@ export default function Settings() {
             height: 90,
             background: "linear-gradient(135deg, #2D0A14 0%, #14060c 50%, #1A0E1F 100%)",
             position: "relative",
-            clipPath: "polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px)",
             overflow: "hidden",
           }}>
             {/* Magic circle in banner */}
-            <svg width={90} height={90} viewBox="0 0 100 100" style={{ position: "absolute", right: 12, top: -8, opacity: 0.35, animation: "spin 30s linear infinite", filter: "drop-shadow(0 0 8px #DC2626)" }}>
-              <circle cx="50" cy="50" r="46" fill="none" stroke="#DC2626" strokeWidth="0.6" strokeDasharray="2 4" />
-              <circle cx="50" cy="50" r="34" fill="none" stroke="#F97316" strokeWidth="0.5" />
-              <polygon points="50,12 82,68 18,68" fill="none" stroke="#FDBA74" strokeWidth="0.5" />
+            <svg width={90} height={90} viewBox="0 0 100 100" style={{ position: "absolute", right: 12, top: -8, opacity: 0.35, animation: "spin 30s linear infinite", filter: "drop-shadow(0 0 8px #3f2eb2)" }}>
+              <circle cx="50" cy="50" r="46" fill="none" stroke="#3f2eb2" strokeWidth="0.6" strokeDasharray="2 4" />
+              <circle cx="50" cy="50" r="34" fill="none" stroke="#6366f1" strokeWidth="0.5" />
+              <polygon points="50,12 82,68 18,68" fill="none" stroke="#a5b4fc" strokeWidth="0.5" />
             </svg>
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 60%, rgba(220,38,38,0.4), transparent 65%)" }} />
-            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 40%, rgba(249,115,22,0.25), transparent 65%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 20% 60%, rgba(63,46,178,0.4), transparent 65%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 40%, rgba(99,102,241,0.25), transparent 65%)" }} />
             {/* Top accent line */}
-            <div style={{ position: "absolute", top: 0, left: 14, right: 0, height: 1, background: "linear-gradient(90deg, transparent, #F97316, #DC2626, transparent)", boxShadow: "0 0 8px #F97316" }} />
+            <div style={{ position: "absolute", top: 0, left: 14, right: 0, height: 1, background: "linear-gradient(90deg, transparent, #6366f1, #3f2eb2, transparent)", boxShadow: "0 0 8px #6366f1" }} />
           </div>
 
           {/* Avatar */}
           <div style={{
             position: "absolute", top: 50, left: 22, zIndex: 2,
             width: 78, height: 78,
-            background: "linear-gradient(135deg,#DC2626,#F97316)",
+            background: "linear-gradient(135deg,#3f2eb2,#6366f1)",
             border: "3px solid #07060b",
             clipPath: CLIP_8,
             display: "flex", alignItems: "center", justifyContent: "center",
             overflow: "hidden",
-            boxShadow: "0 4px 24px rgba(220,38,38,0.6), 0 0 0 1px rgba(253,186,116,0.5)",
+            boxShadow: "0 4px 24px rgba(63,46,178,0.6), 0 0 0 1px rgba(165,180,252,0.5)",
           }}>
             {avatarPreview
               ? <img src={avatarPreview} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setAvatarPreview("")} />
@@ -397,17 +396,17 @@ export default function Settings() {
 
           {/* Content */}
           <div style={{ padding: "44px 22px 22px" }}>
-            <div style={{ color: "#FECACA", fontSize: 18, fontWeight: 900, marginBottom: 8, letterSpacing: 0.3, textShadow: "0 0 12px rgba(220,38,38,0.4)" }}>
+            <div style={{ color: "#c7d2fe", fontSize: 18, fontWeight: 900, marginBottom: 8, letterSpacing: 0.3, textShadow: "0 0 12px rgba(63,46,178,0.4)" }}>
               {user.username}
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
               {isOwner && (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
-                  background: "linear-gradient(135deg, rgba(239,68,68,0.3), rgba(153,27,27,0.2))",
-                  border: "1px solid rgba(252,165,165,0.5)",
+                  background: "linear-gradient(135deg, rgba(239,68,68,0.3), rgba(46,33,138,0.2))",
+                  border: "1px solid rgba(165,180,252,0.5)",
                   clipPath: CLIP_6,
-                  padding: "3px 10px", fontSize: 9, fontWeight: 900, color: "#FCA5A5",
+                  padding: "3px 10px", fontSize: 9, fontWeight: 900, color: "#a5b4fc",
                   letterSpacing: 1.5, fontFamily: MONO,
                 }}>
                   <Shield size={9} /> MONARCA
@@ -416,12 +415,12 @@ export default function Settings() {
               {isMegaFan && (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
-                  background: "linear-gradient(135deg, rgba(249,115,22,0.3), rgba(180,83,9,0.2))",
-                  border: "1px solid rgba(253,186,116,0.6)",
+                  background: "linear-gradient(135deg, rgba(99,102,241,0.3), rgba(180,83,9,0.2))",
+                  border: "1px solid rgba(165,180,252,0.6)",
                   clipPath: CLIP_6,
-                  padding: "3px 10px", fontSize: 9, fontWeight: 900, color: "#FDBA74",
+                  padding: "3px 10px", fontSize: 9, fontWeight: 900, color: "#a5b4fc",
                   letterSpacing: 1.5, fontFamily: MONO,
-                  boxShadow: "0 0 10px rgba(249,115,22,0.3)",
+                  boxShadow: "0 0 10px rgba(99,102,241,0.3)",
                 }}>
                   <Crown size={9} /> MEGAFAN
                 </span>
@@ -431,9 +430,9 @@ export default function Settings() {
               <span style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 background: "rgba(8,4,18,0.5)",
-                border: "1px solid rgba(249,115,22,0.25)",
+                border: "1px solid rgba(99,102,241,0.25)",
                 clipPath: CLIP_6,
-                padding: "5px 10px", fontSize: 10, color: "rgba(253,186,116,0.7)",
+                padding: "5px 10px", fontSize: 10, color: "rgba(165,180,252,0.7)",
                 fontFamily: MONO, letterSpacing: 0.5,
               }}>
                 <Mail size={11} /> {user.email}
@@ -442,9 +441,9 @@ export default function Settings() {
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
                   background: "rgba(8,4,18,0.5)",
-                  border: "1px solid rgba(249,115,22,0.25)",
+                  border: "1px solid rgba(99,102,241,0.25)",
                   clipPath: CLIP_6,
-                  padding: "5px 10px", fontSize: 10, color: "rgba(253,186,116,0.7)",
+                  padding: "5px 10px", fontSize: 10, color: "rgba(165,180,252,0.7)",
                   fontFamily: MONO, letterSpacing: 0.5,
                 }}>
                   {">"} DESDE {memberSince.toUpperCase()}
@@ -456,13 +455,13 @@ export default function Settings() {
 
         {/* Avatar section */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<Camera size={14} color="#FDBA74" />, "// MODULO_01", "Foto de perfil")}
+          {sectionHeader(<Camera size={14} color="#a5b4fc" />, "// MODULO_01", "Foto de perfil")}
 
           {/* Tab selector */}
           <div style={{
             display: "flex", gap: 4, marginBottom: 14,
             background: "rgba(8,4,18,0.7)",
-            border: "1px solid rgba(249,115,22,0.25)",
+            border: "1px solid rgba(99,102,241,0.25)",
             padding: 4, clipPath: CLIP_6,
           }}>
             {([["url", "URL_REMOTA", <LinkIcon size={11} key="l" />], ["upload", "SUBIR_LOCAL", <Upload size={11} key="u" />]] as const).map(([mode, label, icon]) => (
@@ -471,11 +470,11 @@ export default function Settings() {
                   flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                   padding: "8px 10px", border: "none", cursor: "pointer", fontSize: 10, fontWeight: 900,
                   letterSpacing: 1.5, fontFamily: MONO,
-                  background: avatarMode === mode ? "linear-gradient(135deg,#DC2626,#991B1B)" : "transparent",
-                  color: avatarMode === mode ? "#fff" : "rgba(253,186,116,0.5)",
+                  background: avatarMode === mode ? "linear-gradient(135deg,#3f2eb2,#2e218a)" : "transparent",
+                  color: avatarMode === mode ? "#fff" : "rgba(165,180,252,0.5)",
                   clipPath: CLIP_6,
                   transition: "all 0.15s",
-                  boxShadow: avatarMode === mode ? "0 0 10px rgba(220,38,38,0.4)" : "none",
+                  boxShadow: avatarMode === mode ? "0 0 10px rgba(63,46,178,0.4)" : "none",
                 }}
               >
                 {icon}{label}
@@ -498,23 +497,23 @@ export default function Settings() {
                 style={{
                   width: "100%", padding: "26px 14px",
                   background: "rgba(8,4,18,0.5)",
-                  border: "2px dashed rgba(249,115,22,0.4)",
+                  border: "2px dashed rgba(99,102,241,0.4)",
                   clipPath: CLIP_8,
-                  color: "#FDBA74", fontSize: 11, cursor: "pointer",
+                  color: "#a5b4fc", fontSize: 11, cursor: "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                   fontFamily: MONO, letterSpacing: 1, fontWeight: 700,
                 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(249,115,22,0.7)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(249,115,22,0.4)"; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(99,102,241,0.7)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(99,102,241,0.4)"; }}
               >
-                <Upload size={22} color="#F97316" />
+                <Upload size={22} color="#6366f1" />
                 <span>{selectedFile ? `> ${selectedFile.name} ✓` : "> CLICK_PARA_SELECCIONAR (max 2MB)"}</span>
               </button>
             </div>
           )}
 
           {avatarError && (
-            <div style={{ color: "#FCA5A5", fontSize: 11, marginTop: 8, display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, letterSpacing: 1 }}>
+            <div style={{ color: "#a5b4fc", fontSize: 11, marginTop: 8, display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, letterSpacing: 1 }}>
               <X size={12} /> [ERR] {avatarError}
             </div>
           )}
@@ -528,7 +527,7 @@ export default function Settings() {
 
         {/* Username section */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<User size={14} color="#FDBA74" />, "// MODULO_02", "Nombre de cazador")}
+          {sectionHeader(<User size={14} color="#a5b4fc" />, "// MODULO_02", "Nombre de cazador")}
 
           <input
             type="text"
@@ -540,10 +539,10 @@ export default function Settings() {
           />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 10, letterSpacing: 0.5 }}>
             {usernameError
-              ? <span style={{ color: "#FCA5A5", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {usernameError}</span>
-              : <span style={{ color: "rgba(253,186,116,0.4)" }}>{">"} ENTRE 2 Y 30 CARACTERES</span>
+              ? <span style={{ color: "#a5b4fc", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {usernameError}</span>
+              : <span style={{ color: "rgba(165,180,252,0.4)" }}>{">"} ENTRE 2 Y 30 CARACTERES</span>
             }
-            <span style={{ color: "rgba(253,186,116,0.5)" }}>{username.length}/30</span>
+            <span style={{ color: "rgba(165,180,252,0.5)" }}>{username.length}/30</span>
           </div>
 
           <button
@@ -564,25 +563,25 @@ export default function Settings() {
 
         {/* Email (read-only) */}
         <div style={cardStyle("neutro")}>
-          {sectionHeader(<Mail size={14} color="rgba(253,186,116,0.6)" />, "// CANAL_RAIZ", "Correo electronico")}
+          {sectionHeader(<Mail size={14} color="rgba(165,180,252,0.6)" />, "// CANAL_RAIZ", "Correo electronico")}
           <div style={{
             padding: "11px 14px",
             background: "rgba(8,4,18,0.5)",
-            border: "1px solid rgba(249,115,22,0.15)",
+            border: "1px solid rgba(99,102,241,0.15)",
             clipPath: CLIP_6,
-            color: "rgba(253,186,116,0.6)", fontSize: 13, fontFamily: MONO,
+            color: "rgba(165,180,252,0.6)", fontSize: 13, fontFamily: MONO,
             letterSpacing: 0.5,
           }}>
             {user.email}
           </div>
-          <div style={{ color: "rgba(253,186,116,0.35)", fontSize: 10, marginTop: 6, fontFamily: MONO, letterSpacing: 1 }}>
+          <div style={{ color: "rgba(165,180,252,0.35)", fontSize: 10, marginTop: 6, fontFamily: MONO, letterSpacing: 1 }}>
             {">"} CAMPO_INMUTABLE · SEGURIDAD_CRITICA
           </div>
         </div>
 
         {/* Bio section */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<FileText size={14} color="#FDBA74" />, "// MODULO_03", "Bio del cazador")}
+          {sectionHeader(<FileText size={14} color="#a5b4fc" />, "// MODULO_03", "Bio del cazador")}
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value.slice(0, 280))}
@@ -593,10 +592,10 @@ export default function Settings() {
           />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: MONO, fontSize: 10, letterSpacing: 0.5 }}>
             {bioError
-              ? <span style={{ color: "#FCA5A5", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {bioError}</span>
-              : <span style={{ color: "rgba(253,186,116,0.4)" }}>{">"} MAX. 280 CARACTERES · VISIBLE EN TU PERFIL</span>
+              ? <span style={{ color: "#a5b4fc", display: "flex", alignItems: "center", gap: 4 }}><X size={11} />[ERR] {bioError}</span>
+              : <span style={{ color: "rgba(165,180,252,0.4)" }}>{">"} MAX. 280 CARACTERES · VISIBLE EN TU PERFIL</span>
             }
-            <span style={{ color: bio.length >= 270 ? "#FCA5A5" : "rgba(253,186,116,0.5)" }}>{bio.length}/280</span>
+            <span style={{ color: bio.length >= 270 ? "#a5b4fc" : "rgba(165,180,252,0.5)" }}>{bio.length}/280</span>
           </div>
           <button
             onClick={handleSaveBio}
@@ -616,7 +615,7 @@ export default function Settings() {
 
         {/* Banner preset section */}
         <div style={cardStyle("carmesi")}>
-          {sectionHeader(<ImageIcon size={14} color="#FDBA74" />, "// MODULO_04", "Banner del perfil")}
+          {sectionHeader(<ImageIcon size={14} color="#a5b4fc" />, "// MODULO_04", "Banner del perfil")}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
             {BANNER_PRESETS.map((p) => {
               const active = bannerPreset === p.key;
@@ -631,7 +630,7 @@ export default function Settings() {
                   style={{
                     position: "relative", padding: 0, cursor: savingBanner !== null ? "wait" : "pointer",
                     background: "transparent",
-                    border: `1px solid ${active ? p.accent : "rgba(249,115,22,0.25)"}`,
+                    border: `1px solid ${active ? p.accent : "rgba(99,102,241,0.25)"}`,
                     clipPath: CLIP_6, overflow: "hidden",
                     boxShadow: active ? `0 0 14px ${p.glow}` : "none",
                     transition: "all 0.18s",
@@ -653,7 +652,7 @@ export default function Settings() {
                   </div>
                   <div style={{
                     background: "rgba(8,4,18,0.9)", padding: "5px 6px",
-                    color: active ? p.accent : "rgba(253,186,116,0.55)",
+                    color: active ? p.accent : "rgba(165,180,252,0.55)",
                     fontSize: 9, fontFamily: MONO, fontWeight: 900, letterSpacing: 1, textAlign: "center",
                     textShadow: active ? `0 0 8px ${p.glow}` : "none",
                   }}>
@@ -663,7 +662,7 @@ export default function Settings() {
               );
             })}
           </div>
-          <div style={{ color: "rgba(253,186,116,0.4)", fontSize: 10, marginTop: 10, fontFamily: MONO, letterSpacing: 0.5, textAlign: "center" }}>
+          <div style={{ color: "rgba(165,180,252,0.4)", fontSize: 10, marginTop: 10, fontFamily: MONO, letterSpacing: 0.5, textAlign: "center" }}>
             {">"} TU BANNER SE GUARDA AUTOMATICAMENTE
           </div>
         </div>
@@ -671,21 +670,21 @@ export default function Settings() {
         {/* Privacy section */}
         <div style={cardStyle("carmesi")}>
           {sectionHeader(
-            isProfilePublic ? <Eye size={14} color="#FDBA74" /> : <EyeOff size={14} color="#FDBA74" />,
+            isProfilePublic ? <Eye size={14} color="#a5b4fc" /> : <EyeOff size={14} color="#a5b4fc" />,
             "// MODULO_05", "Privacidad del perfil"
           )}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "12px 14px",
             background: "rgba(8,4,18,0.5)",
-            border: "1px solid rgba(249,115,22,0.25)",
+            border: "1px solid rgba(99,102,241,0.25)",
             clipPath: CLIP_8,
           }}>
             <div>
-              <div style={{ color: "#FECACA", fontSize: 12, fontWeight: 900, fontFamily: MONO, letterSpacing: 1 }}>
+              <div style={{ color: "#c7d2fe", fontSize: 12, fontWeight: 900, fontFamily: MONO, letterSpacing: 1 }}>
                 PERFIL_PUBLICO
               </div>
-              <div style={{ color: "rgba(253,186,116,0.55)", fontSize: 10, marginTop: 3, fontFamily: MONO, letterSpacing: 0.5 }}>
+              <div style={{ color: "rgba(165,180,252,0.55)", fontSize: 10, marginTop: 3, fontFamily: MONO, letterSpacing: 0.5 }}>
                 {">"} {isProfilePublic ? "VISIBLE: favoritos y watchlist" : "OCULTO: lista privada"}
               </div>
             </div>
@@ -693,18 +692,16 @@ export default function Settings() {
               onClick={() => !savingPrivacy && handleSavePrivacy(!isProfilePublic)}
               style={{
                 width: 50, height: 26,
-                border: `1px solid ${isProfilePublic ? "rgba(253,186,116,0.6)" : "rgba(255,255,255,0.15)"}`,
+                border: `1px solid ${isProfilePublic ? "rgba(165,180,252,0.6)" : "rgba(255,255,255,0.15)"}`,
                 cursor: savingPrivacy ? "not-allowed" : "pointer",
-                background: isProfilePublic ? "linear-gradient(135deg,#DC2626,#F97316)" : "rgba(8,4,18,0.7)",
+                background: isProfilePublic ? "linear-gradient(135deg,#3f2eb2,#6366f1)" : "rgba(8,4,18,0.7)",
                 position: "relative", transition: "all 0.2s", flexShrink: 0,
-                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-                boxShadow: isProfilePublic ? "0 0 10px rgba(220,38,38,0.5)" : "none",
+                boxShadow: isProfilePublic ? "0 0 10px rgba(63,46,178,0.5)" : "none",
               }}
             >
               <div style={{
                 position: "absolute", top: 3, width: 18, height: 18,
                 background: "#fff",
-                clipPath: "polygon(3px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%, 0 3px)",
                 transition: "left 0.2s", left: isProfilePublic ? 27 : 3,
               }} />
             </button>
@@ -719,8 +716,8 @@ export default function Settings() {
         {/* Email verification */}
         {!user.email_verified && (
           <div style={cardStyle("ambar")}>
-            {sectionHeader(<Mail size={14} color="#F97316" />, "// ALERTA_PENDIENTE", "Verificar correo")}
-            <p style={{ color: "rgba(253,186,116,0.7)", fontSize: 12, margin: "0 0 14px", lineHeight: 1.6, fontFamily: MONO, letterSpacing: 0.3 }}>
+            {sectionHeader(<Mail size={14} color="#6366f1" />, "// ALERTA_PENDIENTE", "Verificar correo")}
+            <p style={{ color: "rgba(165,180,252,0.7)", fontSize: 12, margin: "0 0 14px", lineHeight: 1.6, fontFamily: MONO, letterSpacing: 0.3 }}>
               {">"} Tu correo aun no esta verificado. Confirma tu cuenta para desbloquear todas las funciones del sistema.
             </p>
             {verifSent ? (
@@ -734,10 +731,10 @@ export default function Settings() {
                   disabled={sendingVerif}
                   style={{
                     display: "flex", alignItems: "center", gap: 7, padding: "10px 18px",
-                    background: "linear-gradient(135deg, rgba(249,115,22,0.25), rgba(220,38,38,0.15))",
-                    border: "1px solid rgba(249,115,22,0.6)",
+                    background: "linear-gradient(135deg, rgba(99,102,241,0.25), rgba(63,46,178,0.15))",
+                    border: "1px solid rgba(99,102,241,0.6)",
                     clipPath: CLIP_8,
-                    color: "#FDBA74", fontSize: 10, fontWeight: 900, letterSpacing: 1.5,
+                    color: "#a5b4fc", fontSize: 10, fontWeight: 900, letterSpacing: 1.5,
                     fontFamily: MONO,
                     cursor: sendingVerif ? "not-allowed" : "pointer",
                   }}
@@ -745,7 +742,7 @@ export default function Settings() {
                   {sendingVerif ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <SendHorizonal size={13} />}
                   {sendingVerif ? "ENVIANDO..." : ">{">>>"} ENVIAR VERIFICACION"}
                 </button>
-                {verifError && <div style={{ color: "#FCA5A5", fontSize: 11, marginTop: 8, fontFamily: MONO, letterSpacing: 0.5 }}>[ERR] {verifError}</div>}
+                {verifError && <div style={{ color: "#a5b4fc", fontSize: 11, marginTop: 8, fontFamily: MONO, letterSpacing: 0.5 }}>[ERR] {verifError}</div>}
               </>
             )}
           </div>
@@ -774,23 +771,23 @@ export default function Settings() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{
                 width: 34, height: 34,
-                background: "linear-gradient(135deg, rgba(220,38,38,0.2), rgba(249,115,22,0.15))",
-                border: "1px solid rgba(249,115,22,0.4)",
+                background: "linear-gradient(135deg, rgba(63,46,178,0.2), rgba(99,102,241,0.15))",
+                border: "1px solid rgba(99,102,241,0.4)",
                 clipPath: CLIP_6,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <KeyRound size={14} color="#FDBA74" />
+                <KeyRound size={14} color="#a5b4fc" />
               </div>
               <div style={{ textAlign: "left" }}>
-                <div style={{ color: "#F97316", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO }}>// MODULO_04</div>
-                <div style={{ color: "#FECACA", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>Cambiar contraseña</div>
+                <div style={{ color: "#6366f1", fontSize: 9, fontWeight: 900, letterSpacing: 2, fontFamily: MONO }}>// MODULO_04</div>
+                <div style={{ color: "#c7d2fe", fontSize: 14, fontWeight: 900, letterSpacing: 0.3, marginTop: 1 }}>Cambiar contraseña</div>
               </div>
             </div>
             <span style={{
-              color: "#F97316", fontSize: 18, lineHeight: 1, fontWeight: 900, fontFamily: MONO,
+              color: "#6366f1", fontSize: 18, lineHeight: 1, fontWeight: 900, fontFamily: MONO,
               width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
-              background: "rgba(249,115,22,0.1)",
-              border: "1px solid rgba(249,115,22,0.35)",
+              background: "rgba(99,102,241,0.1)",
+              border: "1px solid rgba(99,102,241,0.35)",
               clipPath: CLIP_6,
             }}>{showPassFields ? "−" : "+"}</span>
           </button>
@@ -802,7 +799,7 @@ export default function Settings() {
                 const setter = i === 0 ? setCurrentPass : i === 1 ? setNewPass : setConfirmPass;
                 return (
                   <div key={label} style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                    <KeyRound size={12} style={{ position: "absolute", left: 12, color: "rgba(253,186,116,0.5)", zIndex: 1 }} />
+                    <KeyRound size={12} style={{ position: "absolute", left: 12, color: "rgba(165,180,252,0.5)", zIndex: 1 }} />
                     <input
                       type="password"
                       placeholder={label}
@@ -810,14 +807,14 @@ export default function Settings() {
                       onChange={(e) => setter(e.target.value)}
                       required
                       style={{ ...inputStyle, paddingLeft: 34 }}
-                      onFocus={(e) => (e.target.style.borderColor = "rgba(249,115,22,0.7)")}
-                      onBlur={(e) => (e.target.style.borderColor = "rgba(249,115,22,0.35)")}
+                      onFocus={(e) => (e.target.style.borderColor = "rgba(99,102,241,0.7)")}
+                      onBlur={(e) => (e.target.style.borderColor = "rgba(99,102,241,0.35)")}
                     />
                   </div>
                 );
               })}
               {passError && (
-                <div style={{ color: "#FCA5A5", fontSize: 11, display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, letterSpacing: 0.5 }}>
+                <div style={{ color: "#a5b4fc", fontSize: 11, display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, letterSpacing: 0.5 }}>
                   <X size={11} /> [ERR] {passError}
                 </div>
               )}

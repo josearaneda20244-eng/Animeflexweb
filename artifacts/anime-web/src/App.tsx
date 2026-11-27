@@ -60,37 +60,33 @@ function AnimatedBackground() {
 
 function NotFound() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0, padding: 24, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(220,38,38,0.14) 0%,transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: "10%", right: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle,rgba(244,114,182,0.08) 0%,transparent 70%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", top: 40, left: 24, color: "rgba(220,38,38,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>迷</div>
-      <div style={{ position: "absolute", bottom: 40, right: 24, color: "rgba(220,38,38,0.07)", fontSize: 120, fontWeight: 900, userSelect: "none", lineHeight: 1 }}>子</div>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0, padding: 24, position: "relative", overflow: "hidden", background: "#000000" }}>
+      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle,rgba(63,46,178,0.18) 0%,transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "relative", marginBottom: 20 }}>
         <div style={{
-          width: 110, height: 110, borderRadius: "50%",
-          background: "linear-gradient(135deg, rgba(220,38,38,0.22), rgba(255,255,255,0.08))",
-          border: "2px solid rgba(220,38,38,0.35)",
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52,
-          boxShadow: "0 0 40px rgba(220,38,38,0.3)",
+          width: 90, height: 90, borderRadius: "50%",
+          background: "#0a0a0a",
+          border: "1px solid rgba(255,255,255,0.15)",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 42,
+          boxShadow: "0 0 40px rgba(0,0,0,0.6)",
         }}>🎌</div>
-        <div style={{ position: "absolute", top: -8, right: -8, background: "linear-gradient(135deg,#EF4444,#DC2626)", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, border: "2px solid #000", boxShadow: "0 0 12px rgba(239,68,68,0.4)" }}>！</div>
       </div>
-      <div style={{ color: "transparent", fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: -6, background: "linear-gradient(135deg,#DC2626,#B39DFF,#F472B6)", WebkitBackgroundClip: "text", backgroundClip: "text", marginBottom: 12 } as any}>404</div>
-      <div style={{ color: "#F0F0FA", fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Página no encontrada</div>
-      <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 14, textAlign: "center", maxWidth: 300, lineHeight: 1.7, marginBottom: 24 }}>
-        El capitán no encontró este episodio. Puede que haya sido movido o eliminado del servidor.
+      <div style={{ color: "transparent", fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: -4, background: "linear-gradient(135deg,#ffffff,#818cf8,#3f2eb2)", WebkitBackgroundClip: "text", backgroundClip: "text", marginBottom: 12 } as any}>404</div>
+      <div style={{ color: "#ffffff", fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Página no encontrada</div>
+      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 14, textAlign: "center", maxWidth: 320, lineHeight: 1.6, marginBottom: 24 }}>
+        No pudimos encontrar este contenido. Puede que haya sido movido o actualizado.
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
         <a href="/" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
-          background: "linear-gradient(135deg,#DC2626,#991B1B)", borderRadius: 14,
-          padding: "12px 24px", color: "#fff", fontSize: 14, fontWeight: 800,
-          textDecoration: "none", boxShadow: "0 8px 28px rgba(220,38,38,0.4)",
+          background: "#ffffff", borderRadius: 10,
+          padding: "10px 22px", color: "#000000", fontSize: 13.5, fontWeight: 700,
+          textDecoration: "none", boxShadow: "0 4px 16px rgba(255,255,255,0.15)",
         }}>▶ Volver al inicio</a>
         <a href="/search" style={{
           display: "inline-flex", alignItems: "center", gap: 8,
-          background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14,
-          padding: "12px 24px", color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: 700,
+          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10,
+          padding: "10px 22px", color: "#ffffff", fontSize: 13.5, fontWeight: 600,
           textDecoration: "none",
         }}>🔍 Buscar anime</a>
       </div>
@@ -111,7 +107,7 @@ function SplashLoader() {
   const loadingItems = ["Perfil", "Catálogo", "Recomendaciones"];
 
   return (
-    <div className="af-splash" role="status" aria-live="polite" aria-label="Cargando AnimeFlex">
+    <div className="af-splash" role="status" aria-live="polite" aria-label="Cargando IZIFF ANIME">
       <div className="af-splash__aurora af-splash__aurora--one" />
       <div className="af-splash__aurora af-splash__aurora--two" />
       <div className="af-splash__grain" />
@@ -143,7 +139,7 @@ function SplashLoader() {
         </div>
 
         <div className="af-splash__eyebrow"><span /> Tu espacio para descubrir anime</div>
-        <h1 className="af-splash__title">Anime<span>FLEX</span></h1>
+        <h1 className="af-splash__title">IZIFF <span>ANIME</span></h1>
         <p className="af-splash__copy">Preparando una experiencia hecha a tu medida.</p>
 
         <div className="af-splash__steps" aria-hidden>
@@ -169,7 +165,7 @@ function SplashLoader() {
         <div className="af-splash__status">Sincronizando catálogo <b>•••</b></div>
       </motion.div>
 
-      <div className="af-splash__footer">ANIMEFLEX <span>•</span> MIRA <span>•</span> DESCUBRE <span>•</span> CONTINÚA</div>
+      <div className="af-splash__footer">IZIFF ANIME <span>•</span> MIRA <span>•</span> DESCUBRE <span>•</span> CONTINÚA</div>
     </div>
   );
 }
@@ -196,21 +192,14 @@ function MaintenanceCard({
   const remaining = Number.isFinite(endTime) && endTime > 0 ? endTime - now : 0;
   const countdown = endTime && remaining > 0 ? formatMaintenanceTime(remaining) : "Pronto volveremos";
 
-  const mono = "'JetBrains Mono', 'SF Mono', ui-monospace, monospace";
-  const RED = "#DC2626";
-  const RED_GLOW = "rgba(220,38,38,0.55)";
+  const mono = "'Space Grotesk', 'SF Mono', ui-monospace, monospace";
+  const RED = "#ffffff";
+  const RED_GLOW = "rgba(63,46,178,0.55)";
 
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#04040A",
-      backgroundImage: [
-        "radial-gradient(ellipse at 50% 0%, rgba(220,38,38,0.22), transparent 55%)",
-        "radial-gradient(ellipse at 50% 100%, rgba(220,38,38,0.10), transparent 60%)",
-        "linear-gradient(rgba(220,38,38,0.04) 1px, transparent 1px)",
-        "linear-gradient(90deg, rgba(220,38,38,0.04) 1px, transparent 1px)",
-      ].join(","),
-      backgroundSize: "auto, auto, 32px 32px, 32px 32px",
+      background: "#000000",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: 20, flexDirection: "column", position: "relative", overflow: "hidden",
     }}>
@@ -235,7 +224,7 @@ function MaintenanceCard({
       {isAdminPreview && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-          background: "linear-gradient(90deg, rgba(220,38,38,0.95), rgba(153,27,27,0.95))",
+          background: "linear-gradient(90deg, rgba(63,46,178,0.95), rgba(46,33,138,0.95))",
           borderBottom: `1px solid ${RED}`,
           padding: "10px 20px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -286,8 +275,7 @@ function MaintenanceCard({
         width: "min(94vw, 580px)",
         background: "linear-gradient(180deg, rgba(8,8,16,0.96), rgba(2,2,8,0.98))",
         border: `1px solid ${RED}`,
-        boxShadow: `0 0 0 1px rgba(220,38,38,0.12) inset, 0 0 60px rgba(220,38,38,0.25), 0 40px 120px rgba(0,0,0,0.75)`,
-        clipPath: "polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px))",
+        boxShadow: `0 0 0 1px rgba(63,46,178,0.12) inset, 0 0 60px rgba(63,46,178,0.25), 0 40px 120px rgba(0,0,0,0.75)`,
         padding: "30px 28px 28px",
         textAlign: "left",
         overflow: "hidden",
@@ -315,12 +303,12 @@ function MaintenanceCard({
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           paddingBottom: 12, marginBottom: 22,
-          borderBottom: "1px solid rgba(220,38,38,0.22)",
+          borderBottom: "1px solid rgba(63,46,178,0.22)",
           fontFamily: mono, fontSize: 10, fontWeight: 800,
           color: "rgba(255,255,255,0.45)", letterSpacing: 1.4, textTransform: "uppercase",
         }}>
-          <span>SYS://animeflex.core</span>
-          <span style={{ color: RED }}>● MANTENIMIENTO</span>
+          <span>SYS://iziff.core</span>
+          <span style={{ color: "#ffffff" }}>● MANTENIMIENTO</span>
         </div>
 
         {/* Hex warning icon */}
@@ -336,14 +324,14 @@ function MaintenanceCard({
           }}>
             <polygon
               points="50,4 92,27 92,73 50,96 8,73 8,27"
-              fill="rgba(220,38,38,0.12)"
-              stroke={RED}
+              fill="rgba(63,46,178,0.15)"
+              stroke="#ffffff"
               strokeWidth="2"
             />
             <polygon
               points="50,18 78,34 78,66 50,82 22,66 22,34"
               fill="none"
-              stroke="rgba(220,38,38,0.35)"
+              stroke="rgba(255,255,255,0.35)"
               strokeWidth="1"
             />
           </svg>
@@ -351,7 +339,7 @@ function MaintenanceCard({
             position: "relative", zIndex: 1,
             color: "#fff", fontSize: 38, fontWeight: 950, lineHeight: 1,
             fontFamily: mono,
-            textShadow: `0 0 14px ${RED}, 0 0 28px ${RED_GLOW}`,
+            textShadow: `0 0 14px #ffffff, 0 0 28px ${RED_GLOW}`,
           }}>!</div>
         </div>
 
@@ -366,7 +354,7 @@ function MaintenanceCard({
         </h1>
         <div style={{
           textAlign: "center",
-          color: RED, fontFamily: mono, fontSize: 11, fontWeight: 800,
+          color: "#a1a1aa", fontFamily: mono, fontSize: 11, fontWeight: 800,
           letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 22,
         }}>
           /// acceso temporalmente restringido ///
@@ -378,16 +366,16 @@ function MaintenanceCard({
           margin: "0 auto 22px", maxWidth: 460,
           textAlign: "center", whiteSpace: "pre-wrap",
         }}>
-          {message || "Estamos realizando mantenimiento para mejorar AnimeFlex."}
+          {message || "Estamos realizando mantenimiento para mejorar IZIFF ANIME."}
         </p>
 
         {/* Countdown panel */}
         <div style={{
-          background: "linear-gradient(180deg, rgba(220,38,38,0.06), rgba(0,0,0,0.5))",
-          border: "1px solid rgba(220,38,38,0.32)",
+          background: "#0a0a0a",
+          border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: 14,
           padding: "16px 18px", marginBottom: 18,
           position: "relative",
-          clipPath: "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))",
         }}>
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -400,13 +388,13 @@ function MaintenanceCard({
               [ TIEMPO RESTANTE ]
             </span>
             <span style={{
-              color: RED, fontFamily: mono,
+              color: "#ffffff", fontFamily: mono,
               fontSize: 10, fontWeight: 800, letterSpacing: 1.6, textTransform: "uppercase",
               display: "flex", alignItems: "center", gap: 6,
             }}>
               <span style={{
                 width: 6, height: 6, borderRadius: "50%",
-                background: RED, boxShadow: `0 0 8px ${RED}`,
+                background: "#3f2eb2", boxShadow: "0 0 8px #818cf8",
                 animation: "maint-pulse 1s ease-in-out infinite",
               }} />
               EN VIVO
@@ -428,12 +416,12 @@ function MaintenanceCard({
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           paddingTop: 14,
-          borderTop: "1px solid rgba(220,38,38,0.18)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
           fontFamily: mono, fontSize: 10, fontWeight: 700,
           color: "rgba(255,255,255,0.4)", letterSpacing: 1.2, textTransform: "uppercase",
         }}>
           <span>› El sistema se restablecerá automáticamente</span>
-          <span style={{ color: "rgba(220,38,38,0.7)" }}>v4.0</span>
+          <span style={{ color: "rgba(255,255,255,0.5)" }}>v0.10.45</span>
         </div>
       </div>
 
@@ -444,7 +432,7 @@ function MaintenanceCard({
         color: "rgba(255,255,255,0.3)", fontFamily: mono, fontSize: 10,
         letterSpacing: 2, textTransform: "uppercase",
       }}>
-        ANIMEFLEX · SYSTEM_GUARD
+        IZIFF ANIME · ECOSYSTEM
       </div>
     </div>
   );
@@ -499,10 +487,10 @@ function MaintenanceGate({ children }: { children: ReactNode }) {
       {config.maintenanceMode && isAdminOrOwner && adminBypass && !isAdminRoute && (
         <div style={{
           position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
-          zIndex: 9999, background: "linear-gradient(90deg,#DC2626,#991B1B)",
+          zIndex: 9999, background: "linear-gradient(90deg,#3f2eb2,#6366f1)",
           borderRadius: 999, padding: "10px 20px",
           display: "flex", alignItems: "center", gap: 10,
-          boxShadow: "0 8px 32px rgba(220,38,38,0.5)",
+          boxShadow: "0 8px 32px rgba(63,46,178,0.5)",
           fontSize: 13, color: "#fff", fontWeight: 800,
           whiteSpace: "nowrap",
         }}>

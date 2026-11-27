@@ -79,7 +79,7 @@
           }} />
           <div style={{
             position: 'absolute', top: 7, left: 7,
-            background: 'linear-gradient(135deg, #DC2626, #991B1B)',
+            background: 'linear-gradient(135deg, #3f2eb2, #2e218a)',
             borderRadius: 4, padding: '2px 6px',
             color: '#fff', fontSize: 7, fontWeight: 900, letterSpacing: 0.5,
           }}>SUB ESP</div>
@@ -89,7 +89,7 @@
               background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
               borderRadius: 5, padding: '2px 5px',
               display: 'flex', alignItems: 'center', gap: 2,
-              border: '1px solid rgba(249,115,22,0.4)',
+              border: '1px solid rgba(99,102,241,0.4)',
             }}>
               <Star size={7} color="#a855f7" fill="#a855f7" />
               <span style={{ color: '#c084fc', fontSize: 8, fontWeight: 800 }}>

@@ -13,17 +13,17 @@ export interface BannerPresetMeta {
 }
 
 export const BANNER_PRESETS: BannerPresetMeta[] = [
-  { key: "default",  label: "DEFECTO",  accent: "#F97316", glow: "rgba(220,38,38,0.6)", bg: "linear-gradient(135deg,#200810,#350a18 50%,#15040c)" },
+  { key: "default",  label: "DEFECTO",  accent: "#6366f1", glow: "rgba(63,46,178,0.6)", bg: "linear-gradient(135deg,#200810,#350a18 50%,#15040c)" },
   { key: "monarca",  label: "MONARCA",  accent: "#A855F7", glow: "rgba(168,85,247,0.55)", bg: "linear-gradient(135deg,#0b0418,#1a0a2a 50%,#040108)" },
-  { key: "cazador",  label: "CAZADOR",  accent: "#F97316", glow: "rgba(249,115,22,0.55)", bg: "linear-gradient(135deg,#200810,#3b0c12 55%,#150410)" },
-  { key: "akatsuki", label: "AKATSUKI", accent: "#DC2626", glow: "rgba(220,38,38,0.6)", bg: "linear-gradient(135deg,#0a0204,#1a0204 50%,#000)" },
+  { key: "cazador",  label: "CAZADOR",  accent: "#6366f1", glow: "rgba(99,102,241,0.55)", bg: "linear-gradient(135deg,#200810,#3b0c12 55%,#150410)" },
+  { key: "akatsuki", label: "AKATSUKI", accent: "#3f2eb2", glow: "rgba(63,46,178,0.6)", bg: "linear-gradient(135deg,#0a0204,#1a0204 50%,#000)" },
   { key: "hokage",   label: "HOKAGE",   accent: "#F59E0B", glow: "rgba(245,158,11,0.55)", bg: "linear-gradient(135deg,#3b0a04,#1c0700 60%,#0a0300)" },
   { key: "espiral",  label: "ESPIRAL",  accent: "#FB923C", glow: "rgba(251,146,60,0.55)", bg: "linear-gradient(135deg,#1c0a02,#3b1a04 55%,#0a0300)" },
   { key: "rasengan", label: "RASENGAN", accent: "#38BDF8", glow: "rgba(56,189,248,0.6)", bg: "linear-gradient(135deg,#021a2c,#012845 55%,#000812)" },
   { key: "sukuna",   label: "SUKUNA",   accent: "#EF4444", glow: "rgba(239,68,68,0.6)", bg: "linear-gradient(135deg,#0a0204,#220406 50%,#040000)" },
   { key: "frieren",  label: "FRIEREN",  accent: "#86EFAC", glow: "rgba(134,239,172,0.45)", bg: "linear-gradient(135deg,#04140a,#0a2418 55%,#020c08)" },
   { key: "sello",    label: "SELLO",    accent: "#FBBF24", glow: "rgba(251,191,36,0.55)", bg: "linear-gradient(135deg,#180a02,#2c1408 55%,#0a0500)" },
-  { key: "dragon",   label: "DRAGON",   accent: "#F97316", glow: "rgba(249,115,22,0.6)", bg: "linear-gradient(135deg,#1a0a02,#3b1a02 60%,#0a0500)" },
+  { key: "dragon",   label: "DRAGON",   accent: "#6366f1", glow: "rgba(99,102,241,0.6)", bg: "linear-gradient(135deg,#1a0a02,#3b1a02 60%,#0a0500)" },
   { key: "void",     label: "VOID",     accent: "#7C73FF", glow: "rgba(124,115,255,0.55)", bg: "linear-gradient(135deg,#04041a,#0a0428 55%,#000010)" },
 ];
 
@@ -58,9 +58,9 @@ export function ProfileBanner({ presetKey, height = 110, showLabel }: BannerProp
       {/* Variant flair */}
       {isAkatsuki && (
         <>
-          <div style={{ position: "absolute", left: 60, top: 16, width: 26, height: 26, background: "radial-gradient(circle, #DC2626 0%, #DC2626 38%, transparent 40%), radial-gradient(circle at 50% 50%, transparent 0, transparent 60%, #DC2626 62%, #DC2626 100%)", filter: "drop-shadow(0 0 8px #DC2626)", borderRadius: "50%" }} />
-          <div style={{ position: "absolute", left: 96, top: 50, width: 16, height: 16, background: "#DC2626", filter: "blur(2px) drop-shadow(0 0 6px #DC2626)", borderRadius: "50%" }} />
-          <div style={{ position: "absolute", left: 130, top: 26, width: 10, height: 10, background: "#DC2626", filter: "blur(1px) drop-shadow(0 0 4px #DC2626)", borderRadius: "50%" }} />
+          <div style={{ position: "absolute", left: 60, top: 16, width: 26, height: 26, background: "radial-gradient(circle, #3f2eb2 0%, #3f2eb2 38%, transparent 40%), radial-gradient(circle at 50% 50%, transparent 0, transparent 60%, #3f2eb2 62%, #3f2eb2 100%)", filter: "drop-shadow(0 0 8px #3f2eb2)", borderRadius: "50%" }} />
+          <div style={{ position: "absolute", left: 96, top: 50, width: 16, height: 16, background: "#3f2eb2", filter: "blur(2px) drop-shadow(0 0 6px #3f2eb2)", borderRadius: "50%" }} />
+          <div style={{ position: "absolute", left: 130, top: 26, width: 10, height: 10, background: "#3f2eb2", filter: "blur(1px) drop-shadow(0 0 4px #3f2eb2)", borderRadius: "50%" }} />
         </>
       )}
       {isFrieren && (

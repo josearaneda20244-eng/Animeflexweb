@@ -49,8 +49,8 @@ export default function WatchlistNewEpisodesBanner() {
     <div style={{ padding: "14px 18px 0" }}>
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(220,38,38,0.18) 0%, rgba(99,102,241,0.12) 100%)",
-          border: "1px solid rgba(220,38,38,0.32)",
+          background: "linear-gradient(135deg, rgba(63,46,178,0.18) 0%, rgba(99,102,241,0.12) 100%)",
+          border: "1px solid rgba(63,46,178,0.32)",
           borderRadius: 18,
           padding: "16px 18px",
           display: "flex",
@@ -64,14 +64,14 @@ export default function WatchlistNewEpisodesBanner() {
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: "rgba(220,38,38,0.25)",
+              background: "rgba(63,46,178,0.25)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               flexShrink: 0,
             }}
           >
-            <Bell size={18} color="#FECACA" />
+            <Bell size={18} color="#c7d2fe" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>
@@ -132,7 +132,7 @@ export default function WatchlistNewEpisodesBanner() {
                   transition: "transform 0.18s, border-color 0.18s",
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(220,38,38,0.45)";
+                  (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(63,46,178,0.45)";
                   (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
                 }}
                 onMouseLeave={(e) => {
@@ -166,7 +166,7 @@ export default function WatchlistNewEpisodesBanner() {
                     {it.title}
                   </div>
                   {it.newEpisodes > 0 ? (
-                    <div style={{ color: "#FCA5A5", fontSize: 10, fontWeight: 700, marginTop: 4 }}>
+                    <div style={{ color: "#a5b4fc", fontSize: 10, fontWeight: 700, marginTop: 4 }}>
                       +{it.newEpisodes} ep nuevo{it.newEpisodes > 1 ? "s" : ""} · viste {it.lastSeenEpisode}
                     </div>
                   ) : countdown ? (

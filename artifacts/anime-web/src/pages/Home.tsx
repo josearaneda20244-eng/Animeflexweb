@@ -132,25 +132,15 @@ function HeroSkeleton() {
     }}>
       <div style={{
         position: "absolute", inset: 0,
-        backgroundImage: "linear-gradient(rgba(220,38,38,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.05) 1px, transparent 1px)",
+        backgroundImage: "linear-gradient(rgba(63,46,178,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.05) 1px, transparent 1px)",
         backgroundSize: "32px 32px",
         maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
         WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
       }} />
       <div style={{
         position: "absolute", inset: 0,
-        background: "radial-gradient(ellipse at 85% 0%, rgba(220,38,38,0.18) 0%, transparent 55%), radial-gradient(ellipse at 10% 100%, rgba(249,115,22,0.10) 0%, transparent 55%)",
+        background: "radial-gradient(ellipse at 85% 0%, rgba(63,46,178,0.15) 0%, transparent 55%)",
       }} />
-      <CornerBrackets color="#DC2626" size={22} thickness={2} inset={14} />
-      <motion.div
-        animate={{ x: ["-100%", "200%"] }}
-        transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
-        style={{
-          position: "absolute", top: 0, bottom: 0, width: "40%",
-          background: "linear-gradient(90deg, transparent, rgba(220,38,38,0.08), transparent)",
-          pointerEvents: "none",
-        }}
-      />
       <div style={{
         position: "absolute",
         bottom: "clamp(64px, 6vw, 56px)",
@@ -159,7 +149,7 @@ function HeroSkeleton() {
         maxWidth: 620,
       }}>
         <div style={{ marginBottom: 14 }}>
-          <SystemTag color="#DC2626">[ SISTEMA · CARGANDO ]</SystemTag>
+          <SystemTag>[ CARGANDO ]</SystemTag>
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           {[80, 60, 70].map((w, i) => (
@@ -192,8 +182,8 @@ function HeroSkeleton() {
         <div style={{ display: "flex", gap: 12 }}>
           <div style={{
             height: 44, width: 150, borderRadius: 30,
-            background: "linear-gradient(135deg, rgba(220,38,38,0.4), rgba(153,27,27,0.4))",
-            border: "1px solid rgba(220,38,38,0.3)",
+            background: "linear-gradient(135deg, rgba(63,46,178,0.4), rgba(46,33,138,0.4))",
+            border: "1px solid rgba(63,46,178,0.3)",
           }} />
           <div style={{
             height: 44, width: 120, borderRadius: 30,
@@ -246,31 +236,30 @@ function HeroBanner({ animes, idx, onPrev, onNext, onSetIdx }: { animes: AnimeRe
       />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.7) 65%, #000 100%), linear-gradient(180deg, rgba(0,0,0,0.55), transparent 35%)" }} />
       <div style={{ position: "absolute", inset: 0, width: "60%", background: "linear-gradient(270deg, transparent 40%, rgba(0,0,0,0.54) 80%)" }} />
-      <ScanLines color="rgba(220,38,38,0.05)" />
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 85% 0%, rgba(220,38,38,0.22) 0%, transparent 55%)", pointerEvents: "none", zIndex: 1 }} />
-      <CornerBrackets color="#DC2626" size={22} thickness={2} inset={14} />
+      <ScanLines color="rgba(63,46,178,0.05)" />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 85% 0%, rgba(63,46,178,0.18) 0%, transparent 55%)", pointerEvents: "none", zIndex: 1 }} />
       <div style={{ position: "absolute", bottom: "clamp(64px, 6vw, 56px)", left: "clamp(16px, 4vw, 38px)", right: "clamp(16px, 4vw, 38px)", maxWidth: 620, zIndex: 2 }}>
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ marginBottom: 10 }}>
-          <SystemTag color="#DC2626">[ SISTEMA · DESTACADO ]</SystemTag>
+          <SystemTag>[ DESTACADO ]</SystemTag>
         </motion.div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ background: "linear-gradient(135deg, rgba(255,92,122,0.9), rgba(220,38,38,0.85))", backdropFilter: "blur(6px)", borderRadius: 999, padding: "4px 12px", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: 1, border: "1px solid rgba(252,165,181,0.35)" }}>✦ DESTACADO</span>
+          <span style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(6px)", borderRadius: 999, padding: "4px 12px", color: "#fff", fontSize: 11, fontWeight: 700, letterSpacing: 1, border: "1px solid rgba(255,255,255,0.2)" }}>✦ DESTACADO</span>
           {anime.status === "Ongoing" && (
             <span style={{ background: "rgba(34,197,94,0.18)", borderRadius: 999, padding: "4px 10px", color: "#86EFAC", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ width: 6, height: 6, background: "#22C55E", borderRadius: "50%" }} /> EN EMISIÓN
             </span>
           )}
           {anime.genres?.slice(0, 3).map((g) => (
-            <span key={g} style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 500, border: "1px solid rgba(255,255,255,0.15)" }}>{g}</span>
+            <span key={g} style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 500, border: "1px solid rgba(255,255,255,0.12)" }}>{g}</span>
           ))}
         </div>
         <h1 style={{ color: "#F8FBFF", fontSize: "clamp(24px, 4.2vw, 46px)", fontWeight: 900, lineHeight: 1.1, letterSpacing: -1, margin: 0, textShadow: "0 2px 24px rgba(0,0,0,0.85)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{title}</h1>
         <p style={{ maxWidth: 520, color: "rgba(248,251,255,0.74)", fontSize: "clamp(13px, 1.6vw, 15px)", lineHeight: 1.55, margin: "12px 0 0", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{anime.description ? anime.description.replace(/<[^>]+>/g, '').slice(0, 240) : 'Descubre por qué este anime está arrasando entre la comunidad.'}</p>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-          <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "linear-gradient(135deg, #DC2626, #991B1B)", border: "none", borderRadius: 30, padding: "11px 24px", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(220,38,38,0.45)" }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(220,38,38,0.6)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(220,38,38,0.45)"; }}>
-            <Play size={18} fill="#fff" color="#fff" /> Ver Ahora
+          <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffff", border: "none", borderRadius: 30, padding: "11px 24px", color: "#000000", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "all 0.25s", boxShadow: "0 4px 20px rgba(255,255,255,0.25)" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(255,255,255,0.4)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(255,255,255,0.25)"; }}>
+            <Play size={18} fill="#000" color="#000" /> Ver Ahora
           </button>
           <button onClick={() => nav(navigate, anime.id)} style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.1)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.22)", borderRadius: 30, padding: "10px 22px", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", transition: "all 0.22s" }}>
             <Info size={16} /> Detalles
@@ -406,7 +395,7 @@ function PortraitCard({ anime }: { anime: AnimeResult }) {
       <img src={anime.image} alt={title} loading="lazy" decoding="async" />
       <div className="p-card-grad" />
       <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4 }}>
-        <span style={{ background: "linear-gradient(135deg,#DC2626,#991B1B)", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 900, letterSpacing: 0.5 }}>SUB ESP</span>
+        <span style={{ background: "#3f2eb2", borderRadius: 4, padding: "2px 6px", color: "#fff", fontSize: 7, fontWeight: 800, letterSpacing: 0.5 }}>SUB ESP</span>
         {epCount != null && (
           <span style={{ background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "2px 5px", color: "rgba(255,255,255,0.9)", fontSize: 7, fontWeight: 800 }}>
             {isOngoing ? `EP ${epCount}` : epCount}
@@ -582,7 +571,7 @@ function ScheduleSection() {
       <SectionHeader id="schedule" title="📅 Calendario de Emisión" onSeeAll={() => navigate("/schedule")} />
       {todayInWatchlistCount > 0 && (
         <div style={{ padding: "0 18px", marginBottom: 10 }}>
-          <span style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", borderRadius: 16, padding: "5px 10px", color: "#FCA5A5", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <span style={{ background: "rgba(63,46,178,0.12)", border: "1px solid rgba(63,46,178,0.35)", borderRadius: 16, padding: "5px 10px", color: "#a5b4fc", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 5 }}>
             <BookmarkCheck size={11} /> {todayInWatchlistCount} de tu lista emite hoy
           </span>
         </div>
@@ -617,7 +606,7 @@ function ScheduleSection() {
             const inList = !!getStatus(String(entry.media.id));
             return (
               <div key={`${entry.media.id}-${entry.episode}`} onClick={() => nav(navigate, entry.media.id)}
-                style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#000", border: `1px solid ${inList ? "rgba(220,38,38,0.45)" : "#222"}`, cursor: "pointer", width: 130, height: 197, flexShrink: 0, transition: "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s" }}
+                style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "#000", border: `1px solid ${inList ? "rgba(63,46,178,0.45)" : "#222"}`, cursor: "pointer", width: 130, height: 197, flexShrink: 0, transition: "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-6px) scale(1.02)"; (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 24px rgba(0,0,0,0.4)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; (e.currentTarget as HTMLDivElement).style.boxShadow = ""; }}>
                 <img src={entry.media.coverImage.large} alt={title} loading="lazy" decoding="async" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
@@ -625,7 +614,7 @@ function ScheduleSection() {
                 <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)", borderRadius: 6, padding: "3px 7px", color: "#fff", fontSize: 9, fontWeight: 700 }}>EP {entry.episode}</div>
                 <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.8)", borderRadius: 6, padding: "3px 7px", color: "#F59E0B", fontSize: 9, fontWeight: 800 }}>{time}</div>
                 {inList && (
-                  <div style={{ position: "absolute", top: 32, left: 8, background: "rgba(220,38,38,0.92)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 8, fontWeight: 800, display: "flex", alignItems: "center", gap: 3 }}>
+                  <div style={{ position: "absolute", top: 32, left: 8, background: "rgba(63,46,178,0.92)", borderRadius: 6, padding: "2px 6px", color: "#fff", fontSize: 8, fontWeight: 800, display: "flex", alignItems: "center", gap: 3 }}>
                     <BookmarkCheck size={8} /> EN MI LISTA
                   </div>
                 )}
@@ -645,11 +634,11 @@ function ScheduleSection() {
 /* ── GENRES ── */
 const GENRES = [
   { label: "Acción", query: "Action", icon: "⚔️", accent: "#EF4444", glow: "239,68,68" },
-  { label: "Aventura", query: "Adventure", icon: "🗺️", accent: "#F97316", glow: "249,115,22" },
+  { label: "Aventura", query: "Adventure", icon: "🗺️", accent: "#6366f1", glow: "249,115,22" },
   { label: "Comedia", query: "Comedy", icon: "😂", accent: "#EAB308", glow: "234,179,8" },
   { label: "Drama", query: "Drama", icon: "🎭", accent: "#A855F7", glow: "168,85,247" },
   { label: "Fantasía", query: "Fantasy", icon: "✨", accent: "#8B5CF6", glow: "139,92,246" },
-  { label: "Terror", query: "Horror", icon: "💀", accent: "#DC2626", glow: "220,38,38" },
+  { label: "Terror", query: "Horror", icon: "💀", accent: "#3f2eb2", glow: "220,38,38" },
   { label: "Romance", query: "Romance", icon: "💖", accent: "#EC4899", glow: "236,72,153" },
   { label: "Sci-Fi", query: "Sci-Fi", icon: "🚀", accent: "#06B6D4", glow: "6,182,212" },
   { label: "Shounen", query: "Shounen", icon: "💪", accent: "#F59E0B", glow: "245,158,11" },
@@ -742,12 +731,12 @@ function ContinueWatchingCard({ entry, onRemove }: { entry: WatchEntry; onRemove
         <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 10, display: "flex", justifyContent: "space-between", gap: 8 }}>
           <span>Episodio {entry.episodeNum}</span>
           {entry.duration > 0 && pct > 0 && (
-            <span style={{ color: "#FCA5A5", fontWeight: 700 }}>{Math.round(pct * 100)}%</span>
+            <span style={{ color: "#a5b4fc", fontWeight: 700 }}>{Math.round(pct * 100)}%</span>
           )}
         </div>
         <div className="cw-bar"><div className="cw-fill" style={{ width: `${Math.round(pct * 100)}%` }} /></div>
       </div>
-      <style>{`.cw-card:hover .cw-remove { opacity: 1; } .cw-card .cw-remove:hover { background: rgba(220,38,38,0.85); color: #fff; }`}</style>
+      <style>{`.cw-card:hover .cw-remove { opacity: 1; } .cw-card .cw-remove:hover { background: rgba(63,46,178,0.85); color: #fff; }`}</style>
     </div>
   );
 }

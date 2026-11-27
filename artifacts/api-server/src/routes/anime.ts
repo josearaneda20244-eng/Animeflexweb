@@ -1,6 +1,7 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
+import { getAnimeflexStream } from "../lib/spanishStreamEngine.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -1489,6 +1490,50 @@ router.get("/anime/watch", optAuth, async (req: AuthReq, res) => {
    * AnimeKai retry-storm (~5-15s) blocked the fallbacks entirely. */
   const attempts: Promise<any>[] = [];
 
+  // ── Branch 0: Unified Spanish Streaming Engine (TioAnime, JKAnime, AnimeFLV, AnimeAV1) ──
+  // Shared directly with Mobile and PC Desktop architectures for Sub Español HD
+  if (animeTitle && episodeNum) {
+    attempts.push(
+      (async () => {
+        let extraTitles: string[] = [];
+        if (animeId && /^\d+$/.test(animeId)) {
+          try { extraTitles = await fetchAnilistTitles(animeId); } catch {}
+        }
+        const epNumber = parseInt(episodeNum, 10);
+        const streamData = await getAnimeflexStream({
+          anilistId: animeId || "0",
+          episodeNumber: isNaN(epNumber) ? 1 : epNumber,
+          animeTitle,
+          animeTitles: [animeTitle, ...extraTitles],
+        });
+        const vSources = streamData.videoSources ?? [];
+        if (vSources.length === 0) throw new Error("spanish-engine: no sources found");
+
+        const sources = vSources.map((s: any) => {
+          const isM3U8 = s.type === "m3u8" || (typeof s.url === "string" && s.url.includes(".m3u8"));
+          const referer = s.headers?.Referer || s.headers?.referer || "";
+          const proxiedUrl = referer || isM3U8
+            ? `/api/anime/hls-proxy?url=${encodeURIComponent(s.url)}${referer ? `&referer=${encodeURIComponent(referer)}` : ""}`
+            : s.url;
+          return {
+            url: proxiedUrl,
+            quality: s.quality || "1080p",
+            isM3U8,
+            server: s.server,
+            headers: s.headers,
+          };
+        });
+
+        req.log.info({ provider: "spanish-engine", animeTitle, episodeNum, count: sources.length }, "Spanish Engine race hit");
+        return {
+          sources,
+          subtitles: vSources.flatMap((s: any) => s.subtitles ?? []),
+          headers: { Referer: "https://jkanime.net/" },
+        };
+      })(),
+    );
+  }
+
   // ── Branch 1: AnimeKai with the existing token (fastest path) ──────
   if (hasValidToken) {
     attempts.push(
@@ -1937,13 +1982,48 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
     return;
   }
   try {
-    // Fetch romaji/native titles from AniList to improve JKAnime slug matching
     let extraTitles: string[] = [];
     if (animeId && /^\d+$/.test(animeId)) {
-      const anilistTitles = await fetchAnilistTitles(animeId);
-      // Exclude the already-provided title to avoid duplicates
-      extraTitles = anilistTitles.filter(t => t.toLowerCase().trim() !== title.toLowerCase().trim());
+      try {
+        const anilistTitles = await fetchAnilistTitles(animeId);
+        extraTitles = anilistTitles.filter(t => t.toLowerCase().trim() !== title.toLowerCase().trim());
+      } catch {}
     }
+
+    try {
+      const streamData = await getAnimeflexStream({
+        anilistId: animeId || "0",
+        episodeNumber: episode,
+        animeTitle: title,
+        animeTitles: [title, ...extraTitles],
+      });
+      const vSources = streamData.videoSources ?? [];
+      if (vSources.length > 0) {
+        const sources = vSources.map((s: any) => {
+          const isM3U8 = s.type === "m3u8" || (typeof s.url === "string" && s.url.includes(".m3u8"));
+          const referer = s.headers?.Referer || s.headers?.referer || "";
+          const proxiedUrl = referer || isM3U8
+            ? `/api/anime/hls-proxy?url=${encodeURIComponent(s.url)}${referer ? `&referer=${encodeURIComponent(referer)}` : ""}`
+            : s.url;
+          return {
+            url: proxiedUrl,
+            quality: s.quality || "1080p",
+            isM3U8,
+            server: s.server,
+            headers: s.headers,
+          };
+        });
+        res.json({
+          sources,
+          subtitles: vSources.flatMap((s: any) => s.subtitles ?? []),
+          headers: { Referer: "https://jkanime.net/" },
+        });
+        return;
+      }
+    } catch (engineErr) {
+      req.log.warn({ engineErr, title, episode }, "Unified Spanish stream engine had no hit, trying JKAnime fallback");
+    }
+
     const data = await getJkAnimeWatch(title, episode, extraTitles, animeId);
     res.json(data);
   } catch (err) {

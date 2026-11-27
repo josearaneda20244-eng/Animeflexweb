@@ -20,6 +20,7 @@ const NAV_LINKS = [
   { label: "Películas", to: "/movies" },
   { label: "OVAs & ONAs", to: "/ovas" },
   { label: "Horario", to: "/schedule" },
+  { label: "Descargar Apps", to: "https://zerinho23.github.io/anime-app-landing/#descargas", external: true },
   { label: "Buscar", to: "/search" },
   { label: "Favoritos", to: "/favorites" },
   { label: "Historial", to: "/history" },
@@ -88,18 +89,14 @@ export default function Footer() {
           {/* Brand */}
           <div className="af-footer__brand">
             <div className="af-brand">
-              <div className="af-brand__logo">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                  <polygon points="5,3 19,12 5,21" />
-                </svg>
-              </div>
+              <img src="/icon.svg" alt="IZIFF ANIME" style={{ width: 36, height: 36, borderRadius: 10, objectFit: "contain" }} />
               <span className="af-brand__name">
-                Anime<span className="af-brand__name--accent">FLEX</span>
+                IZIFF ANIME
               </span>
             </div>
 
             <p className="af-brand__tagline">
-              Tu plataforma para mirar anime gratis en HD con subtítulos en español. Temporada actual, clásicos, películas, OVAs y mucho más.
+              Tu plataforma definitiva para ver anime y leer manga en 1080p con subtítulos en español latino y castellano.
             </p>
 
             {/* Social */}
@@ -124,12 +121,19 @@ export default function Footer() {
           <div>
             <ColumnTitle>Navegar</ColumnTitle>
             <ul className="af-list">
-              {NAV_LINKS.map(({ label, to }) => (
-                <li key={to}>
-                  <button onClick={() => navigate(to)} className="af-link">
-                    <span className="af-link__dot" />
-                    {label}
-                  </button>
+              {NAV_LINKS.map((link) => (
+                <li key={link.to}>
+                  {"external" in link && link.external ? (
+                    <a href={link.to} target="_blank" rel="noopener noreferrer" className="af-link">
+                      <span className="af-link__dot" />
+                      {link.label}
+                    </a>
+                  ) : (
+                    <button onClick={() => navigate(link.to)} className="af-link">
+                      <span className="af-link__dot" />
+                      {link.label}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -175,7 +179,7 @@ export default function Footer() {
         <div className="af-disclaimer">
           <div className="af-disclaimer__icon" aria-hidden>ⓘ</div>
           <p className="af-disclaimer__text">
-            <strong>AnimeFLEX no aloja contenido propio.</strong> Todos los videos provienen de fuentes externas de terceros. Esta plataforma se ofrece exclusivamente con fines educativos y de entretenimiento.
+            <strong>IZIFF ANIME no aloja contenido propio.</strong> Todos los videos provienen de fuentes externas de terceros. Esta plataforma se ofrece exclusivamente con fines educativos y de entretenimiento.
           </p>
         </div>
 
@@ -183,7 +187,7 @@ export default function Footer() {
         <div className="af-bottom">
           <div className="af-bottom__left">
             <span className="af-copy">
-              © {new Date().getFullYear()} <strong>AnimeFLEX</strong> — Hecho con <span className="af-heart">♥</span> para los fans del anime
+              © {new Date().getFullYear()} <strong>IZIFF ANIME</strong> — Hecho para la comunidad de anime & manga
             </span>
           </div>
           <div className="af-bottom__right">
@@ -207,23 +211,21 @@ export default function Footer() {
         .af-footer {
           position: relative;
           margin-top: 64px;
-          background:
-            radial-gradient(ellipse at 50% 0%, rgba(220,38,38,0.08), transparent 60%),
-            linear-gradient(180deg, #07080F 0%, #030307 100%);
-          border-top: 1px solid rgba(220,38,38,0.18);
+          background: #000000;
+          border-top: 1px solid rgba(255,255,255,0.08);
           overflow: hidden;
           color: #fff;
         }
         .af-footer__accent {
           position: absolute; top: 0; left: 8%; right: 8%; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(220,38,38,0.65), rgba(255,150,150,0.4), rgba(220,38,38,0.65), transparent);
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), rgba(63,46,178,0.5), rgba(255,255,255,0.2), transparent);
           pointer-events: none;
         }
         .af-footer__grid {
           position: absolute; inset: 0;
           background-image:
-            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
           background-size: 36px 36px;
           mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
           -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
@@ -258,25 +260,9 @@ export default function Footer() {
           display: flex; align-items: center; gap: 12px;
           margin-bottom: 18px;
         }
-        .af-brand__logo {
-          width: 42px; height: 42px; border-radius: 12px;
-          background: linear-gradient(135deg, #FCA5A5, #DC2626 50%, #7F1D1D);
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-          box-shadow:
-            0 10px 30px rgba(220,38,38,0.45),
-            inset 0 1px 0 rgba(255,255,255,0.25),
-            inset 0 -2px 6px rgba(0,0,0,0.3);
-        }
         .af-brand__name {
-          font-size: 22px; font-weight: 900; letter-spacing: -0.4px;
-          line-height: 1;
-        }
-        .af-brand__name--accent {
-          background: linear-gradient(135deg, #FCA5A5, #DC2626);
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-size: 20px; font-weight: 700; letter-spacing: -0.3px;
+          line-height: 1; color: #ffffff;
         }
         .af-brand__tagline {
           color: rgba(255,255,255,0.5);
@@ -298,11 +284,11 @@ export default function Footer() {
           transition: all 0.22s ease;
         }
         .af-social__btn:hover {
-          background: linear-gradient(135deg, rgba(220,38,38,0.18), rgba(220,38,38,0.08));
-          border-color: rgba(220,38,38,0.55);
+          background: rgba(255,255,255,0.1);
+          border-color: rgba(255,255,255,0.25);
           color: #fff;
           transform: translateY(-2px);
-          box-shadow: 0 8px 18px rgba(220,38,38,0.22);
+          box-shadow: 0 8px 18px rgba(0,0,0,0.5);
         }
 
         /* Column title */
@@ -315,9 +301,9 @@ export default function Footer() {
         }
         .af-col-title__bar {
           width: 14px; height: 2px;
-          background: linear-gradient(90deg, #DC2626, #FCA5A5);
+          background: #ffffff;
           border-radius: 2px;
-          box-shadow: 0 0 8px rgba(220,38,38,0.6);
+          box-shadow: 0 0 8px rgba(255,255,255,0.4);
         }
 
         /* Lists */
@@ -339,7 +325,7 @@ export default function Footer() {
         }
         .af-link__dot {
           width: 4px; height: 4px; border-radius: 50%;
-          background: rgba(220,38,38,0.45);
+          background: rgba(255,255,255,0.25);
           flex-shrink: 0;
           transition: all 0.22s ease;
         }
@@ -348,8 +334,8 @@ export default function Footer() {
           transform: translateX(3px);
         }
         .af-link:hover .af-link__dot {
-          background: #DC2626;
-          box-shadow: 0 0 8px rgba(220,38,38,0.8);
+          background: #ffffff;
+          box-shadow: 0 0 8px rgba(255,255,255,0.8);
         }
 
         /* Géneros chips */
@@ -368,26 +354,25 @@ export default function Footer() {
           transition: all 0.2s ease;
         }
         .af-chip:hover {
-          background: rgba(220,38,38,0.14);
-          border-color: rgba(220,38,38,0.5);
+          background: rgba(255,255,255,0.12);
+          border-color: rgba(255,255,255,0.3);
           color: #fff;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(220,38,38,0.18);
         }
 
         /* Disclaimer */
         .af-disclaimer {
           display: flex; align-items: flex-start; gap: 12px;
           padding: 14px 16px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, rgba(220,38,38,0.06), rgba(255,255,255,0.02));
-          border: 1px solid rgba(220,38,38,0.18);
+          border-radius: 12px;
+          background: #0a0a0a;
+          border: 1px solid rgba(255,255,255,0.08);
           margin-bottom: 24px;
         }
         .af-disclaimer__icon {
           width: 22px; height: 22px; border-radius: 50%;
-          background: rgba(220,38,38,0.18);
-          color: #FCA5A5;
+          background: rgba(255,255,255,0.08);
+          color: #ffffff;
           font-size: 12px; font-weight: 700;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
@@ -418,8 +403,7 @@ export default function Footer() {
           font-weight: 600;
         }
         .af-heart {
-          color: #DC2626;
-          text-shadow: 0 0 6px rgba(220,38,38,0.6);
+          color: #818cf8;
         }
         .af-bottom__right {
           display: flex; align-items: center; gap: 14px;

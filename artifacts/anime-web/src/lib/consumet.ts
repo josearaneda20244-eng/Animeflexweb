@@ -2,6 +2,10 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
 const PROXY_ENDPOINT = `${BASE_URL}/anime/hls-proxy`;
 
 export function proxyStreamUrl(directUrl: string, referer?: string): string {
+  if (!directUrl) return "";
+  if (directUrl.startsWith("/api/anime/hls-proxy") || directUrl.includes("/anime/hls-proxy?url=")) {
+    return directUrl;
+  }
   let url =
     `${PROXY_ENDPOINT}` +
     `?url=${encodeURIComponent(directUrl)}` +

@@ -31,9 +31,9 @@ export default function VerifyEmail() {
   // ── Theme tokens (Solo Leveling) ──
   const isError = status === "error";
   const isSuccess = status === "success";
-  const accent  = isSuccess ? "#22C55E" : "#DC2626";       // verde si éxito, rojo en otros estados
-  const accentS = isSuccess ? "rgba(34,197,94,0.55)" : "rgba(220,38,38,0.6)";
-  const accentBg = isSuccess ? "rgba(34,197,94,0.08)" : "rgba(220,38,38,0.06)";
+  const accent  = isSuccess ? "#22C55E" : "#3f2eb2";       // verde si éxito, rojo en otros estados
+  const accentS = isSuccess ? "rgba(34,197,94,0.55)" : "rgba(63,46,178,0.6)";
+  const accentBg = isSuccess ? "rgba(34,197,94,0.08)" : "rgba(63,46,178,0.06)";
   const mono    = "'JetBrains Mono','Courier New',Consolas,monospace";
 
   // Etiquetas dinámicas del HUD
@@ -145,9 +145,9 @@ export default function VerifyEmail() {
               gap: 10, marginBottom: 28,
             }}>
               <div style={{
-                width: 32, height: 32, background: "#DC2626",
+                width: 32, height: 32, background: "#3f2eb2",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 0 12px rgba(220,38,38,0.5)",
+                boxShadow: "0 0 12px rgba(63,46,178,0.5)",
               }}>
                 <span style={{ color: "#fff", fontSize: 14, fontWeight: 900 }}>▶</span>
               </div>
@@ -156,7 +156,7 @@ export default function VerifyEmail() {
                 fontFamily: "system-ui, -apple-system, sans-serif",
               }}>
                 <span style={{ color: "#F1F1F5" }}>ANIME</span>
-                <span style={{ color: "#DC2626" }}>FLEX</span>
+                <span style={{ color: "#3f2eb2" }}>FLEX</span>
               </span>
             </div>
 
@@ -252,10 +252,10 @@ export default function VerifyEmail() {
                   onClick={() => navigate("/")}
                   style={{
                     width: "100%", padding: "14px 0", border: `1px solid #F87171`,
-                    background: "#DC2626", color: "#fff",
+                    background: "#3f2eb2", color: "#fff",
                     fontFamily: mono, fontSize: 13, fontWeight: 900,
                     letterSpacing: 2.2, textTransform: "uppercase", cursor: "pointer",
-                    boxShadow: "0 0 18px rgba(220,38,38,0.45)",
+                    boxShadow: "0 0 18px rgba(63,46,178,0.45)",
                   }}
                   onMouseDown={e => (e.currentTarget.style.transform = "translateY(1px)")}
                   onMouseUp={e => (e.currentTarget.style.transform = "translateY(0)")}
@@ -284,10 +284,10 @@ export default function VerifyEmail() {
                   onClick={() => navigate("/settings")}
                   style={{
                     width: "100%", padding: "14px 0", border: `1px solid #F87171`,
-                    background: "#DC2626", color: "#fff",
+                    background: "#3f2eb2", color: "#fff",
                     fontFamily: mono, fontSize: 13, fontWeight: 900,
                     letterSpacing: 2.2, textTransform: "uppercase", cursor: "pointer",
-                    boxShadow: "0 0 18px rgba(220,38,38,0.45)",
+                    boxShadow: "0 0 18px rgba(63,46,178,0.45)",
                   }}
                 >
                   [ IR A AJUSTES ›› ]

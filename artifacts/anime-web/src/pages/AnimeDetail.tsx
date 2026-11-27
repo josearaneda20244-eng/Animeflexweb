@@ -19,7 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import AdBanner from "@/components/AdBanner";
 
 const STATUS_OPTIONS: { value: WatchStatus; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#DC2626" },
+  { value: "watching", label: "Viendo", icon: <Play size={13} fill="currentColor" />, color: "#3f2eb2" },
   { value: "completed", label: "Completado", icon: <CheckCircle2 size={13} />, color: "#22C55E" },
   { value: "plan_to_watch", label: "Pendiente", icon: <Clock3 size={13} />, color: "#F59E0B" },
   { value: "dropped", label: "Abandonado", icon: <XCircle size={13} />, color: "#EF4444" },
@@ -137,7 +137,7 @@ function UserRatingWidget({ animeId }: { animeId: string }) {
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
         <div className="section-accent" />
-        <Star size={14} className="text-[#DC2626]" />
+        <Star size={14} className="text-[#3f2eb2]" />
         <h2 className="text-sm font-bold text-[#F0F0FF]">Tu valoración</h2>
         {communityTotal > 0 && (
           <span style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.3)", fontSize: 11, marginLeft: "auto" }}>
@@ -239,8 +239,8 @@ function SectionHeader({
           width: 4,
           height: 22,
           borderRadius: 2,
-          background: "linear-gradient(180deg,#FCA5A5,#DC2626 50%,#991B1B)",
-          boxShadow: "0 0 12px rgba(220,38,38,0.5)",
+          background: "linear-gradient(180deg,#a5b4fc,#3f2eb2 50%,#2e218a)",
+          boxShadow: "0 0 12px rgba(63,46,178,0.5)",
           flexShrink: 0,
         }}
       />
@@ -252,9 +252,9 @@ function SectionHeader({
           width: 26,
           height: 26,
           borderRadius: 7,
-          background: "linear-gradient(135deg, rgba(220,38,38,0.18), rgba(220,38,38,0.04))",
-          border: "1px solid rgba(220,38,38,0.3)",
-          color: "#FCA5A5",
+          background: "linear-gradient(135deg, rgba(63,46,178,0.18), rgba(63,46,178,0.04))",
+          border: "1px solid rgba(63,46,178,0.3)",
+          color: "#a5b4fc",
           flexShrink: 0,
         }}
       >
@@ -279,9 +279,9 @@ function SectionHeader({
                 fontSize: 10,
                 fontWeight: 800,
                 letterSpacing: 0.4,
-                color: "#FCA5A5",
-                background: "rgba(220,38,38,0.14)",
-                border: "1px solid rgba(220,38,38,0.3)",
+                color: "#a5b4fc",
+                background: "rgba(63,46,178,0.14)",
+                border: "1px solid rgba(63,46,178,0.3)",
                 padding: "1px 7px",
                 borderRadius: 999,
                 lineHeight: 1.4,
@@ -294,7 +294,7 @@ function SectionHeader({
         {module && (
           <span
             style={{
-              color: "rgba(252,165,165,0.55)",
+              color: "rgba(165,180,252,0.55)",
               fontSize: 9,
               fontWeight: 700,
               letterSpacing: 1.5,
@@ -313,7 +313,7 @@ function SectionHeader({
           flex: 1,
           height: 1,
           background:
-            "linear-gradient(90deg, rgba(220,38,38,0.35) 0%, rgba(220,38,38,0.05) 60%, transparent 100%)",
+            "linear-gradient(90deg, rgba(63,46,178,0.35) 0%, rgba(63,46,178,0.05) 60%, transparent 100%)",
           marginLeft: 6,
         }}
       />
@@ -334,7 +334,7 @@ function RecommendationCard({ anime }: { anime: AnimeResult }) {
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "translateY(-4px)"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = ""; }}
     >
-      <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "2/3", position: "relative", background: "#100e22" }}>
+      <div style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "2/3", position: "relative", background: "#0a0a0a" }}>
         <img
           src={anime.image}
           alt={title}
@@ -549,8 +549,8 @@ export default function AnimeDetail() {
   if (infoQuery.isLoading) {
     return (
       <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#000" }}>
-        <div className="flex flex-col items-center gap-3 text-[#4A4A6A]">
-          <div className="w-8 h-8 border-2 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-3 text-[#71717a]">
+          <div className="w-8 h-8 border-2 border-[#3f2eb2] border-t-transparent rounded-full animate-spin" />
           <p className="text-sm">Cargando...</p>
         </div>
       </div>
@@ -560,9 +560,9 @@ export default function AnimeDetail() {
   if (infoQuery.isError) {
     return (
       <div className="min-h-screen pt-14 flex items-center justify-center" style={{ background: "#000" }}>
-        <div className="text-center text-[#4A4A6A]">
+        <div className="text-center text-[#71717a]">
           <p className="text-[#F0F0FF] font-medium mb-2">No se pudo cargar el anime</p>
-          <button onClick={() => navigate("/")} className="text-sm text-[#DC2626] hover:underline">
+          <button onClick={() => navigate("/")} className="text-sm text-[#3f2eb2] hover:underline">
             Volver al inicio
           </button>
         </div>
@@ -589,20 +589,9 @@ export default function AnimeDetail() {
           style={{ objectPosition: "center 28%" }}
         />
         {/* Bottom fade to black — taller, smoother */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.55) 65%, #000 100%)" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.15) 30%, rgba(0,0,0,0.65) 65%, #000 100%)" }} />
         {/* Side fade for left-side info readability */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.4) 100%)" }} />
-        {/* Crimson glow top-right */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 78% 5%, rgba(220,38,38,0.35) 0%, transparent 55%)" }} />
-        {/* Orange accent bottom-left */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 8% 95%, rgba(249,115,22,0.18) 0%, transparent 45%)" }} />
-        {/* Subtle grid lines */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.07]" style={{ backgroundImage: "linear-gradient(rgba(220,38,38,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.4) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
-        <ScanLines color="rgba(220,38,38,0.05)" />
-        <CornerBrackets color="#DC2626" size={26} thickness={2} inset={14} />
-        <div className="absolute" style={{ top: 14, right: 16, zIndex: 4 }}>
-          <SystemTag color="#DC2626">[ EXPEDIENTE · ANIMEFLEX ]</SystemTag>
-        </div>
+        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.4) 100%)" }} />
 
         <motion.button
           onClick={() => navigate("/")}
@@ -631,7 +620,7 @@ export default function AnimeDetail() {
                   fontWeight: 800,
                   letterSpacing: 2,
                   textTransform: "uppercase",
-                  color: "#FCA5A5",
+                  color: "#a5b4fc",
                   marginBottom: 10,
                   fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                 }}
@@ -645,7 +634,7 @@ export default function AnimeDetail() {
                 fontSize: "clamp(28px, 5.5vw, 56px)",
                 lineHeight: 1.05,
                 letterSpacing: -0.5,
-                textShadow: "0 4px 24px rgba(0,0,0,0.85), 0 2px 8px rgba(220,38,38,0.35)",
+                textShadow: "0 4px 24px rgba(0,0,0,0.85), 0 2px 8px rgba(63,46,178,0.35)",
                 marginBottom: 12,
               }}
             >
@@ -677,7 +666,7 @@ export default function AnimeDetail() {
             transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
             className="w-28 md:w-44 flex-shrink-0 rounded-2xl overflow-hidden relative"
             style={{
-              boxShadow: "0 25px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(220,38,38,0.25), 0 0 40px rgba(220,38,38,0.15)",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(63,46,178,0.25), 0 0 40px rgba(63,46,178,0.15)",
             }}
           >
             <img src={image} alt={title} loading="lazy" className="w-full h-full object-cover block" />
@@ -745,7 +734,7 @@ export default function AnimeDetail() {
                     backdropFilter: "blur(8px)",
                   }}
                 >
-                  <Tv size={11} color="#9090B0" />
+                  <Tv size={11} color="#a1a1aa" />
                   <span style={{ color: "#F0F0FF", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{anime.type}</span>
                 </motion.div>
               )}
@@ -762,7 +751,7 @@ export default function AnimeDetail() {
                     backdropFilter: "blur(8px)",
                   }}
                 >
-                  <Film size={11} color="#9090B0" />
+                  <Film size={11} color="#a1a1aa" />
                   <span style={{ color: "#F0F0FF", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
                     {episodes.length > 0 && episodes.length < anime.totalEpisodes
                       ? `${episodes.length}/${anime.totalEpisodes}`
@@ -783,7 +772,7 @@ export default function AnimeDetail() {
                     backdropFilter: "blur(8px)",
                   }}
                 >
-                  <Calendar size={11} color="#9090B0" />
+                  <Calendar size={11} color="#a1a1aa" />
                   <span style={{ color: "#F0F0FF", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{anime.releaseDate}</span>
                 </motion.div>
               )}
@@ -806,17 +795,16 @@ export default function AnimeDetail() {
                 whileHover={{ y: -2, scale: 1.04 }}
                 style={{
                   fontSize: 10,
-                  fontWeight: 800,
+                  fontWeight: 700,
                   letterSpacing: 0.5,
                   padding: "5px 11px",
                   borderRadius: 999,
-                  color: "#FECACA",
-                  background: "linear-gradient(135deg, rgba(220,38,38,0.22), rgba(153,27,27,0.1))",
-                  border: "1px solid rgba(220,38,38,0.35)",
+                  color: "#e4e4e7",
+                  background: "rgba(255,255,255,0.07)",
+                  border: "1px solid rgba(255,255,255,0.12)",
                   backdropFilter: "blur(8px)",
                   textTransform: "uppercase",
                   cursor: "default",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
                 }}
               >
                 {g}
@@ -846,16 +834,15 @@ export default function AnimeDetail() {
                   handleEpisode(episodes[0]);
                 }
               }}
-              className="relative overflow-hidden w-full md:w-auto flex items-center justify-center gap-2.5 text-white mb-2.5"
+              className="relative overflow-hidden w-full md:w-auto flex items-center justify-center gap-2.5 text-black mb-2.5"
               style={{
                 height: 48,
-                padding: "0 22px",
-                borderRadius: 12,
+                padding: "0 24px",
+                borderRadius: 9999,
                 fontSize: 14,
-                fontWeight: 800,
-                letterSpacing: 0.4,
-                background: "linear-gradient(135deg,#FCA5A5 0%,#DC2626 45%,#991B1B 100%)",
-                boxShadow: "0 10px 28px rgba(220,38,38,0.45), 0 2px 6px rgba(220,38,38,0.3), inset 0 1px 0 rgba(255,255,255,0.25)",
+                fontWeight: 700,
+                letterSpacing: 0.2,
+                background: "#ffffff",
               }}
             >
               {/* Animated shine sweep */}
@@ -909,9 +896,9 @@ export default function AnimeDetail() {
                   height: 38,
                   padding: "0 14px",
                   borderRadius: 10,
-                  color: "#FECACA",
-                  borderColor: "rgba(220,38,38,0.4)",
-                  background: "rgba(220,38,38,0.1)",
+                  color: "#c7d2fe",
+                  borderColor: "rgba(63,46,178,0.4)",
+                  background: "rgba(63,46,178,0.1)",
                   backdropFilter: "blur(10px)",
                   whiteSpace: "nowrap",
                 }}
@@ -939,7 +926,7 @@ export default function AnimeDetail() {
                 borderRadius: 10,
                 whiteSpace: "nowrap",
                 ...(fav
-                  ? { color: "#FECACA", borderColor: "rgba(220,38,38,0.5)", background: "rgba(220,38,38,0.14)", backdropFilter: "blur(10px)" }
+                  ? { color: "#c7d2fe", borderColor: "rgba(63,46,178,0.5)", background: "rgba(63,46,178,0.14)", backdropFilter: "blur(10px)" }
                   : { color: "#B8B8D1", borderColor: "rgba(255,255,255,0.14)", background: "rgba(255,255,255,0.05)", backdropFilter: "blur(10px)" }),
               }}
             >
@@ -1001,8 +988,8 @@ export default function AnimeDetail() {
               padding: "20px 22px 18px",
               borderRadius: 16,
               background:
-                "linear-gradient(135deg, rgba(220,38,38,0.06) 0%, rgba(16,14,34,0.95) 30%, rgba(13,12,28,0.95) 100%)",
-              border: "1px solid rgba(220,38,38,0.15)",
+                "linear-gradient(135deg, rgba(63,46,178,0.06) 0%, rgba(16,14,34,0.95) 30%, rgba(13,12,28,0.95) 100%)",
+              border: "1px solid rgba(63,46,178,0.15)",
               boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.3)",
             }}
           >
@@ -1015,7 +1002,7 @@ export default function AnimeDetail() {
                 left: 8,
                 fontSize: 80,
                 lineHeight: 1,
-                color: "rgba(220,38,38,0.2)",
+                color: "rgba(63,46,178,0.2)",
                 fontFamily: "Georgia, serif",
                 fontWeight: 800,
                 pointerEvents: "none",
@@ -1040,7 +1027,7 @@ export default function AnimeDetail() {
                   fontWeight: 800,
                   letterSpacing: 2,
                   textTransform: "uppercase",
-                  color: "#FCA5A5",
+                  color: "#a5b4fc",
                   fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                 }}
               >
@@ -1058,11 +1045,11 @@ export default function AnimeDetail() {
                 onClick={() => setDescExpanded(!descExpanded)}
                 className="flex items-center gap-1 mt-3 text-xs font-bold transition-colors"
                 style={{
-                  color: "#FCA5A5",
+                  color: "#a5b4fc",
                   padding: "5px 11px",
                   borderRadius: 8,
-                  background: "rgba(220,38,38,0.1)",
-                  border: "1px solid rgba(220,38,38,0.3)",
+                  background: "rgba(63,46,178,0.1)",
+                  border: "1px solid rgba(63,46,178,0.3)",
                 }}
               >
                 {descExpanded ? <><ChevronUp size={12} />Mostrar menos</> : <><ChevronDown size={12} />Leer más</>}
@@ -1101,10 +1088,10 @@ export default function AnimeDetail() {
                       overflow: "hidden",
                       background: "linear-gradient(135deg,#1a1530,#0d0c1c)",
                       border: char.role === "MAIN"
-                        ? "1.5px solid rgba(220,38,38,0.45)"
+                        ? "1.5px solid rgba(63,46,178,0.45)"
                         : "1px solid rgba(255,255,255,0.08)",
                       boxShadow: char.role === "MAIN"
-                        ? "0 8px 22px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.05)"
+                        ? "0 8px 22px rgba(63,46,178,0.25), inset 0 1px 0 rgba(255,255,255,0.05)"
                         : "0 4px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)",
                     }}
                   >
@@ -1135,8 +1122,8 @@ export default function AnimeDetail() {
                           color: "#fff",
                           padding: "2px 6px",
                           borderRadius: 5,
-                          background: "linear-gradient(135deg,#DC2626,#991B1B)",
-                          boxShadow: "0 3px 8px rgba(220,38,38,0.5)",
+                          background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
+                          boxShadow: "0 3px 8px rgba(63,46,178,0.5)",
                           textTransform: "uppercase",
                         }}
                       >
@@ -1181,16 +1168,16 @@ export default function AnimeDetail() {
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
             <SectionHeader icon={<List size={13} />} label="Episodios" count={episodes.length} module="MOD-04" noBottomMargin />
             {watchedEps.size > 0 && (
-              <div className="flex rounded-lg overflow-hidden border border-[#1E1E32] text-xs">
+              <div className="flex rounded-lg overflow-hidden border border-[rgba(255,255,255,0.12)] text-xs">
                 <button
                   onClick={() => setEpFilter("all")}
-                  className={`px-3 py-1.5 transition-colors ${epFilter === "all" ? "bg-[#DC2626] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
+                  className={`px-3 py-1.5 transition-colors ${epFilter === "all" ? "bg-[#3f2eb2] text-white" : "text-[#a1a1aa] hover:text-[#F0F0FF]"}`}
                 >
                   Todos
                 </button>
                 <button
                   onClick={() => setEpFilter("unwatched")}
-                  className={`px-3 py-1.5 transition-colors ${epFilter === "unwatched" ? "bg-[#DC2626] text-white" : "text-[#9090B0] hover:text-[#F0F0FF]"}`}
+                  className={`px-3 py-1.5 transition-colors ${epFilter === "unwatched" ? "bg-[#3f2eb2] text-white" : "text-[#a1a1aa] hover:text-[#F0F0FF]"}`}
                 >
                   Sin ver
                 </button>
@@ -1205,12 +1192,12 @@ export default function AnimeDetail() {
                 onChange={(e) => setEpSearch(e.target.value)}
                 placeholder="Buscar episodio o número"
                 inputMode="numeric"
-                className="flex-1 min-w-0 rounded-xl border border-[#1E1E32] bg-[#100e22] px-3 py-2.5 text-sm text-[#F0F0FF] outline-none placeholder:text-[#4A4A6A] focus:border-[#DC262680]"
+                className="flex-1 min-w-0 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[#0a0a0a] px-3 py-2.5 text-sm text-[#F0F0FF] outline-none placeholder:text-[#71717a] focus:border-[#3f2eb280]"
               />
               {epSearch && (
                 <button
                   onClick={() => setEpSearch("")}
-                  className="rounded-xl border border-[#1E1E32] px-3 text-[#9090B0]"
+                  className="rounded-xl border border-[rgba(255,255,255,0.12)] px-3 text-[#a1a1aa]"
                 >
                   <X size={15} />
                 </button>
@@ -1219,14 +1206,14 @@ export default function AnimeDetail() {
           )}
 
           {paheQuery.isLoading && (
-            <div className="flex items-center gap-2 text-xs text-[#4A4A6A] mb-3">
-              <div className="w-3 h-3 border border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center gap-2 text-xs text-[#71717a] mb-3">
+              <div className="w-3 h-3 border border-[#3f2eb2] border-t-transparent rounded-full animate-spin" />
               Cargando fuentes...
             </div>
           )}
 
           {episodes.length === 0 ? (
-            <div className="py-10 text-center text-[#4A4A6A]">
+            <div className="py-10 text-center text-[#71717a]">
               <Film size={32} className="mx-auto mb-2 opacity-30" />
               <p className="text-sm">Sin episodios disponibles</p>
             </div>
@@ -1256,13 +1243,13 @@ export default function AnimeDetail() {
                       padding: "11px 12px 11px 14px",
                       borderRadius: 12,
                       background: inProgress
-                        ? "linear-gradient(135deg, rgba(220,38,38,0.16) 0%, rgba(17,13,32,0.95) 55%, rgba(13,12,28,0.95) 100%)"
+                        ? "linear-gradient(135deg, rgba(63,46,178,0.16) 0%, rgba(17,13,32,0.95) 55%, rgba(13,12,28,0.95) 100%)"
                         : "linear-gradient(135deg, rgba(20,16,40,0.7) 0%, rgba(12,11,26,0.9) 100%)",
                       border: inProgress
-                        ? "1px solid rgba(220,38,38,0.4)"
+                        ? "1px solid rgba(63,46,178,0.4)"
                         : "1px solid rgba(255,255,255,0.06)",
                       boxShadow: inProgress
-                        ? "0 0 0 1px rgba(220,38,38,0.15), 0 10px 28px rgba(220,38,38,0.18), inset 0 1px 0 rgba(255,255,255,0.04)"
+                        ? "0 0 0 1px rgba(63,46,178,0.15), 0 10px 28px rgba(63,46,178,0.18), inset 0 1px 0 rgba(255,255,255,0.04)"
                         : "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)",
                       transition: "border-color .2s, box-shadow .2s, background .2s, transform .2s",
                     }}
@@ -1280,7 +1267,7 @@ export default function AnimeDetail() {
                         background: watched
                           ? "rgba(34,197,94,0.6)"
                           : inProgress
-                            ? "linear-gradient(180deg,#FCA5A5,#DC2626)"
+                            ? "linear-gradient(180deg,#a5b4fc,#3f2eb2)"
                             : "transparent",
                         opacity: watched || inProgress ? 1 : 0,
                         transition: "opacity .2s",
@@ -1302,14 +1289,14 @@ export default function AnimeDetail() {
                           ? { background: "#171627", color: "#5A5A7A", border: "1px solid rgba(34,197,94,0.2)" }
                           : inProgress
                             ? {
-                                background: "linear-gradient(135deg,#DC2626,#991B1B)",
+                                background: "linear-gradient(135deg,#3f2eb2,#2e218a)",
                                 color: "#fff",
-                                boxShadow: "0 8px 22px rgba(220,38,38,0.5), inset 0 1px 0 rgba(255,255,255,0.3)",
+                                boxShadow: "0 8px 22px rgba(63,46,178,0.5), inset 0 1px 0 rgba(255,255,255,0.3)",
                               }
                             : {
-                                background: "linear-gradient(135deg, rgba(220,38,38,0.22), rgba(153,27,27,0.06))",
-                                color: "#FCA5A5",
-                                boxShadow: "inset 0 0 0 1px rgba(220,38,38,0.28)",
+                                background: "linear-gradient(135deg, rgba(63,46,178,0.22), rgba(46,33,138,0.06))",
+                                color: "#a5b4fc",
+                                boxShadow: "inset 0 0 0 1px rgba(63,46,178,0.28)",
                               }),
                       }}
                     >
@@ -1364,14 +1351,14 @@ export default function AnimeDetail() {
                           <span
                             style={{
                               fontSize: 9,
-                              color: "#FCA5A5",
+                              color: "#a5b4fc",
                               fontWeight: 800,
                               letterSpacing: 0.7,
                               textTransform: "uppercase",
                               padding: "2px 7px",
                               borderRadius: 4,
-                              background: "rgba(220,38,38,0.18)",
-                              border: "1px solid rgba(220,38,38,0.35)",
+                              background: "rgba(63,46,178,0.18)",
+                              border: "1px solid rgba(63,46,178,0.35)",
                             }}
                           >
                             ▶ En curso
@@ -1410,15 +1397,15 @@ export default function AnimeDetail() {
                         justifyContent: "center",
                         flexShrink: 0,
                         background: inProgress
-                          ? "linear-gradient(135deg,#fff,#FECACA)"
-                          : "linear-gradient(135deg,#FCA5A5,#DC2626 60%,#991B1B)",
+                          ? "linear-gradient(135deg,#fff,#c7d2fe)"
+                          : "linear-gradient(135deg,#a5b4fc,#3f2eb2 60%,#2e218a)",
                         boxShadow: inProgress
                           ? "0 6px 18px rgba(255,255,255,0.25)"
-                          : "0 6px 18px rgba(220,38,38,0.45)",
+                          : "0 6px 18px rgba(63,46,178,0.45)",
                         transition: "transform .2s",
                       }}
                     >
-                      <Play size={13} fill={inProgress ? "#991B1B" : "#fff"} color={inProgress ? "#991B1B" : "#fff"} style={{ marginLeft: 1 }} />
+                      <Play size={13} fill={inProgress ? "#2e218a" : "#fff"} color={inProgress ? "#2e218a" : "#fff"} style={{ marginLeft: 1 }} />
                     </div>
                   </motion.button>
                 );

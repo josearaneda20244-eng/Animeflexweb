@@ -32,15 +32,15 @@ export default function MangaRecentBanner() {
       style={{
         cursor: "pointer",
         borderRadius: 20,
-        background: "linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(249,115,22,0.15) 50%, rgba(220,38,38,0.1) 100%)",
-        border: "1px solid rgba(220,38,38,0.2)",
+        background: "linear-gradient(135deg, rgba(63,46,178,0.15) 0%, rgba(99,102,241,0.15) 50%, rgba(63,46,178,0.1) 100%)",
+        border: "1px solid rgba(63,46,178,0.2)",
         padding: "22px 24px",
         marginBottom: 24,
         transition: "transform 0.2s, box-shadow 0.2s",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px rgba(220,38,38,0.2)";
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 16px 40px rgba(63,46,178,0.2)";
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
@@ -63,8 +63,8 @@ export default function MangaRecentBanner() {
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: "linear-gradient(135deg, rgba(220,38,38,0.3), rgba(249,115,22,0.3))",
-              border: "1px solid rgba(220,38,38,0.3)",
+              background: "linear-gradient(135deg, rgba(63,46,178,0.3), rgba(99,102,241,0.3))",
+              border: "1px solid rgba(63,46,178,0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -84,7 +84,7 @@ export default function MangaRecentBanner() {
         </div>
         <div
           style={{
-            background: "linear-gradient(135deg, #DC2626, #F97316)",
+            background: "linear-gradient(135deg, #3f2eb2, #6366f1)",
             color: "#fff",
             fontSize: 13,
             fontWeight: 700,
@@ -93,7 +93,7 @@ export default function MangaRecentBanner() {
             display: "flex",
             alignItems: "center",
             gap: 5,
-            boxShadow: "0 6px 20px rgba(220,38,38,0.35)",
+            boxShadow: "0 6px 20px rgba(63,46,178,0.35)",
           }}
         >
           Explorar Manga <ChevronRight size={15} />
@@ -125,7 +125,7 @@ export default function MangaRecentBanner() {
                 cursor: "pointer",
                 transition: "border-color 0.18s",
               }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "rgba(249,115,22,0.45)")}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "rgba(99,102,241,0.45)")}
               onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.08)")}
             >
               <img
@@ -148,7 +148,7 @@ export default function MangaRecentBanner() {
                   {m.title}
                 </div>
                 {(m.latestChapter ?? m.chapter) != null && (
-                  <div style={{ color: "#FCA5A5", fontSize: 10, fontWeight: 600, marginTop: 2 }}>
+                  <div style={{ color: "#a5b4fc", fontSize: 10, fontWeight: 600, marginTop: 2 }}>
                     Cap. {m.latestChapter ?? m.chapter}
                   </div>
                 )}

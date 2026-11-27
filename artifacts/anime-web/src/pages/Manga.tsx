@@ -62,27 +62,26 @@ function MangaCard({ manga, onClick }: { manga: MangaResult; onClick: () => void
         )}
       </div>
       <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 6, position: "relative", zIndex: 2 }}>
-        <div style={{ color: "#FECACA", fontSize: 13, fontWeight: 800, lineHeight: 1.3, letterSpacing: 0.2 }} className="line-clamp-2">{title}</div>
+        <div style={{ color: "#c7d2fe", fontSize: 13, fontWeight: 800, lineHeight: 1.3, letterSpacing: 0.2 }} className="line-clamp-2">{title}</div>
         {manga.genres && manga.genres.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {manga.genres.slice(0, 2).map(g => (
               <span key={g} style={{
-                background: "rgba(220,38,38,0.18)",
-                color: "#FCA5A5",
+                background: "rgba(63,46,178,0.18)",
+                color: "#a5b4fc",
                 fontSize: 9.5,
                 fontWeight: 700,
                 padding: "2px 7px",
                 letterSpacing: 0.5,
                 textTransform: "uppercase",
                 fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                border: "1px solid rgba(220,38,38,0.3)",
-                clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-              }}>{g}</span>
+                border: "1px solid rgba(63,46,178,0.3)",
+                }}>{g}</span>
             ))}
           </div>
         )}
         {manga.chapters != null && (
-          <div style={{ color: "rgba(253,186,116,0.65)", fontSize: 10.5, marginTop: 2, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1 }}>
+          <div style={{ color: "rgba(165,180,252,0.65)", fontSize: 10.5, marginTop: 2, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1 }}>
             ✦ {manga.chapters} CAPS
           </div>
         )}
@@ -147,22 +146,22 @@ export default function Manga() {
       {/* HERO HEADER WITH MAGIC CIRCLE */}
       <div style={{
         position: "relative",
-        borderBottom: "1px solid rgba(220,38,38,0.25)",
+        borderBottom: "1px solid rgba(63,46,178,0.25)",
         padding: "calc(56px + 48px) 24px 48px",
         textAlign: "center",
         overflow: "hidden",
         background:
-          "radial-gradient(ellipse at center, rgba(220,38,38,0.18), transparent 60%), linear-gradient(180deg, #0a0307, #04030a)",
+          "radial-gradient(ellipse at center, rgba(63,46,178,0.18), transparent 60%), linear-gradient(180deg, #0a0307, #04030a)",
       }}>
         {/* Magic circle behind title */}
         <div style={{ position: "absolute", left: "50%", top: 60, transform: "translateX(-50%)", opacity: 0.55 }}>
-          <MagicCircle size={320} color="#DC2626" opacity={0.55} />
+          <MagicCircle size={320} color="#3f2eb2" opacity={0.55} />
         </div>
         {/* Hex grid */}
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage:
-            "linear-gradient(rgba(220,38,38,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(220,38,38,0.06) 1px, transparent 1px)",
+            "linear-gradient(rgba(63,46,178,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(63,46,178,0.06) 1px, transparent 1px)",
           backgroundSize: "44px 44px",
           maskImage: "radial-gradient(ellipse at center, black 30%, transparent 70%)",
           WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 70%)",
@@ -171,13 +170,13 @@ export default function Manga() {
 
         <div style={{ position: "relative", zIndex: 2, maxWidth: 720, margin: "0 auto" }}>
           <div style={{ marginBottom: 18 }}>
-            <SystemTag color="#F97316">[ SYSTEM ] BIBLIOTECA DE MANGA</SystemTag>
+            <SystemTag color="#6366f1">[ SYSTEM ] BIBLIOTECA DE MANGA</SystemTag>
           </div>
           <h1 className="sys-title" style={{ fontSize: 44, marginBottom: 16 }}>
             MANGA
           </h1>
           <p style={{
-            color: "rgba(252,165,165,0.75)",
+            color: "rgba(165,180,252,0.75)",
             fontSize: 14,
             margin: "20px 0 28px",
             fontFamily: "'JetBrains Mono', ui-monospace, monospace",
@@ -188,7 +187,7 @@ export default function Manga() {
 
           {/* SYSTEM SEARCH */}
           <div style={{ position: "relative", maxWidth: 540, margin: "0 auto" }}>
-            <Search size={16} color="#F97316" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", zIndex: 2, filter: "drop-shadow(0 0 4px #F97316)" }} />
+            <Search size={16} color="#6366f1" style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", zIndex: 2, filter: "drop-shadow(0 0 4px #6366f1)" }} />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -201,11 +200,10 @@ export default function Manga() {
                 onClick={() => setQuery("")}
                 style={{
                   position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
-                  background: "rgba(220,38,38,0.2)", border: "1px solid rgba(220,38,38,0.4)",
+                  background: "rgba(63,46,178,0.2)", border: "1px solid rgba(63,46,178,0.4)",
                   width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", color: "#FCA5A5", zIndex: 2,
-                  clipPath: "polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px)",
-                }}
+                  cursor: "pointer", color: "#a5b4fc", zIndex: 2,
+                  }}
               >
                 <X size={14} />
               </button>
@@ -237,13 +235,13 @@ export default function Manga() {
         {isSearching && (
           <div style={{
             marginBottom: 24,
-            color: "#FDBA74",
+            color: "#a5b4fc",
             fontSize: 12,
             fontFamily: "'JetBrains Mono', ui-monospace, monospace",
             letterSpacing: 1.5,
             display: "flex", alignItems: "center", gap: 10,
           }}>
-            <span style={{ width: 8, height: 8, background: "#F97316", boxShadow: "0 0 10px #F97316" }} />
+            <span style={{ width: 8, height: 8, background: "#6366f1", boxShadow: "0 0 10px #6366f1" }} />
             {searchQuery.isFetching ? "ESCANEANDO..." : `${mangas.length} RESULTADOS · "${debouncedQuery}"`}
           </div>
         )}
@@ -251,8 +249,8 @@ export default function Manga() {
         {/* Loading */}
         {active.isLoading && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "80px 0" }}>
-            <Loader2 size={36} color="#DC2626" style={{ animation: "spin 1s linear infinite", filter: "drop-shadow(0 0 12px #DC2626)" }} />
-            <div style={{ color: "#FCA5A5", fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11, letterSpacing: 2 }}>
+            <Loader2 size={36} color="#3f2eb2" style={{ animation: "spin 1s linear infinite", filter: "drop-shadow(0 0 12px #3f2eb2)" }} />
+            <div style={{ color: "#a5b4fc", fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11, letterSpacing: 2 }}>
               CARGANDO DATOS DEL SISTEMA...
             </div>
           </div>
@@ -260,9 +258,9 @@ export default function Manga() {
 
         {/* Error */}
         {active.isError && (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(252,165,165,0.7)" }}>
-            <BookOpen size={48} style={{ marginBottom: 16, opacity: 0.4, color: "#DC2626" }} />
-            <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, color: "#FCA5A5" }}>
+          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(165,180,252,0.7)" }}>
+            <BookOpen size={48} style={{ marginBottom: 16, opacity: 0.4, color: "#3f2eb2" }} />
+            <p style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1, color: "#a5b4fc" }}>
               ⚠ ERROR · NO SE PUDIERON CARGAR LOS DATOS
             </p>
             <button onClick={() => active.refetch()} className="sys-btn" style={{ marginTop: 20 }}>
@@ -289,8 +287,8 @@ export default function Manga() {
         )}
 
         {!active.isLoading && !active.isError && mangas.length === 0 && (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "rgba(252,165,165,0.4)" }}>
-            <BookOpen size={56} style={{ marginBottom: 16, opacity: 0.25, color: "#DC2626" }} />
+          <div style={{ textAlign: "center", padding: "80px 0", color: "rgba(165,180,252,0.4)" }}>
+            <BookOpen size={56} style={{ marginBottom: 16, opacity: 0.25, color: "#3f2eb2" }} />
             <p style={{ fontSize: 14, fontFamily: "'JetBrains Mono', ui-monospace, monospace", letterSpacing: 1.5 }}>
               ◇ SIN RESULTADOS EN LA BIBLIOTECA
             </p>
@@ -310,15 +308,14 @@ export default function Manga() {
             </button>
             <span style={{
               padding: "8px 18px",
-              color: "#FDBA74",
+              color: "#a5b4fc",
               fontSize: 12,
               fontWeight: 800,
               letterSpacing: 2,
               fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-              background: "rgba(220,38,38,0.08)",
-              border: "1px solid rgba(220,38,38,0.3)",
-              clipPath: "polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)",
-            }}>
+              background: "rgba(63,46,178,0.08)",
+              border: "1px solid rgba(63,46,178,0.3)",
+              }}>
               PÁG · {String(page).padStart(2, "0")}
             </span>
             <button

@@ -74,7 +74,7 @@ export default function ActiveDiscussions() {
               />
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ background: "rgba(220,38,38,0.18)", color: "#FCA5A5", fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 5, display: "flex", alignItems: "center", gap: 3 }}>
+                  <span style={{ background: "rgba(63,46,178,0.18)", color: "#a5b4fc", fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 5, display: "flex", alignItems: "center", gap: 3 }}>
                     <Flame size={9} /> {d.comment_count}
                   </span>
                   <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 600 }}>
