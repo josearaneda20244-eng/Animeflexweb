@@ -17,6 +17,8 @@ import {
 } from "@/lib/consumet";
 import { useWatchProgress } from "@/context/WatchProgressContext";
 import { useHistory } from "@/context/HistoryContext";
+import { WatchTogetherButton, WatchTogetherDrawer } from "@/components/WatchTogether";
+import { useRoomPlayerSync } from "@/hooks/useRoomPlayerSync";
 import { useAuth } from "@/context/AuthContext";
 import { CornerBrackets, SystemTag, ScanLines } from "@/components/SystemUI";
 import { apiClient } from "@/lib/apiClient";
@@ -465,6 +467,8 @@ interface PlyrPlayerProps {
   controlsRef?: React.MutableRefObject<PlyrControls | null>;
   onPlaybackError?: () => void;
   onFullscreenChange?: (isFs: boolean) => void;
+  /** Hay otros servidores a los que cambiar si este va lento */
+  hasAlternatives?: boolean;
 }
 
 /* ── Button style reused across player controls ── */
@@ -474,8 +478,10 @@ const _playerBtnStyle: React.CSSProperties = {
   lineHeight: 0, color: "#fff", flexShrink: 0,
 };
 
-function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef, onPlaybackError, onFullscreenChange }: PlyrPlayerProps) {
+function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, fullscreenContainer, onTimeUpdate, onEnded, onSubtitleTracks, activeHlsSubId, onSubtitleCue, controlsRef, onPlaybackError, onFullscreenChange, hasAlternatives }: PlyrPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hasAltRef = useRef(!!hasAlternatives);
+  hasAltRef.current = !!hasAlternatives;
   const hlsRef = useRef<Hls | null>(null);
   const startAtRef = useRef(startAt);
   const seekRestoredRef = useRef(false);
@@ -781,15 +787,48 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
       // If the video was playing before we sought, resume it
       if (wasPlayingRef.current && video.paused) video.play().catch(() => {});
     };
-    const onWaiting = () => setBuffering(true);
-    const onPlayingEv = () => { setBuffering(false); setPlaying(true); };
+    // Cambio automático de servidor lento (como la app): si la fuente se traba
+    // muchas veces o queda cargando demasiado, se pasa a la siguiente sin perder el minuto.
+    let waitStart = 0;
+    let longStalls: number[] = [];
+    let stuckTimer: ReturnType<typeof setTimeout> | null = null;
+    const onWaiting = () => {
+      setBuffering(true);
+      if (video.seeking || video.currentTime < 1) return;
+      waitStart = Date.now();
+      if (stuckTimer) clearTimeout(stuckTimer);
+      stuckTimer = setTimeout(() => {
+        if (hasAltRef.current && !video.paused && video.readyState < 3) { setError("Servidor lento. Cambiando de servidor..."); notifyErr(); }
+      }, 25_000);
+    };
+    const onPlayingEv = () => {
+      setBuffering(false); setPlaying(true);
+      if (stuckTimer) { clearTimeout(stuckTimer); stuckTimer = null; }
+      if (waitStart) {
+        const waited = Date.now() - waitStart;
+        waitStart = 0;
+        const now = Date.now();
+        if (waited > 6_000) longStalls = [...longStalls.filter((t) => now - t < 120_000), now];
+        if (longStalls.length >= 3 && hasAltRef.current) { longStalls = []; setError("Servidor lento. Cambiando de servidor..."); notifyErr(); }
+      }
+    };
 
     if (Hls.isSupported()) {
+      // Igual que la app (v0.10.45): precarga de hasta 2 minutos para que no se
+      // detenga con internet lento, y arranque en calidad adaptada a la red.
       const hls = new Hls({
         enableWorker: true,
-        maxBufferLength: 60,
-        maxMaxBufferLength: 240,
+        maxBufferLength: 120,
+        maxMaxBufferLength: 300,
+        maxBufferSize: 384 * 1024 * 1024,
+        backBufferLength: 30,
         startLevel: -1,
+        abrEwmaDefaultEstimate: 1_500_000,
+        abrBandWidthFactor: 0.8,
+        abrBandWidthUpFactor: 0.6,
+        capLevelToPlayerSize: true,
+        startFragPrefetch: true,
+        nudgeMaxRetry: 8,
         fragLoadingTimeOut: 30000,
         manifestLoadingTimeOut: 20000,
         levelLoadingTimeOut: 20000,
@@ -874,6 +913,7 @@ function PlyrPlayer({ m3u8Url, playbackRate, onPlaybackRateChange, startAt, full
 
       const origReturn_HLS = () => {
         clearInterval(stallInterval);
+        if (stuckTimer) clearTimeout(stuckTimer);
       };
       video.addEventListener("loadedmetadata", onMeta);
       video.addEventListener("timeupdate", onTimeUpd);
@@ -1520,6 +1560,8 @@ export default function Player() {
   const [activeHlsSubId, setActiveHlsSubId] = useState<number>(-1);
   const [hlsCueText, setHlsCueText] = useState<string | null>(null);
   const [theaterMode, setTheaterMode] = useState(false);
+  const [roomOpen, setRoomOpen] = useState(false);
+  useRoomPlayerSync({ animeId, episodeNum, title: animeTitle, image: animeImage });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [seekFeedback, setSeekFeedback] = useState<{ dir: "left" | "right"; secs: number; visible: boolean }>({ dir: "right", secs: 10, visible: false });
@@ -1635,7 +1677,8 @@ export default function Player() {
   const animeflvSources = animeflvQuery.data
     ? (animeflvQuery.data.sources ?? [])
         .map(s => normalizeEngineSource(s))
-        // Directos (HLS/MP4) primero; los reproductores web (iframe) como respaldo
+        // Sin anuncios: solo video directo (HLS/MP4) en nuestro reproductor, nunca iframes
+        .filter(s => !s.isEmbed)
         .sort((a, b) => sourceRank(a) - sourceRank(b))
     : [];
 
@@ -1644,7 +1687,7 @@ export default function Player() {
         .map(s => {
           // Si es una página de reproductor conocida (aunque venga envuelta en el proxy) → iframe
           const n = normalizeEngineSource(s);
-          if (n.isEmbed && EMBED_HOST_RE.test(n.url)) return n;
+          if (n.isEmbed && EMBED_HOST_RE.test(n.url)) return null;
           return {
             ...s,
             isDub: false,
@@ -1653,6 +1696,7 @@ export default function Player() {
             isEmbed: false,
           };
         })
+        .filter((s): s is NonNullable<typeof s> => s !== null)
         .sort((a, b) => sourceRank(a) - sourceRank(b))
     : [];
 
@@ -1928,6 +1972,7 @@ export default function Player() {
 
   return (
     <div style={{ background: "#000000", minHeight: "100vh" }}>
+      <WatchTogetherDrawer open={roomOpen} onClose={() => setRoomOpen(false)} />
       {/* Top bar */}
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: "#0a0a0a", overflow: "hidden" }}>
         <button onClick={() => animeId ? navigate(`/anime/${animeId}`) : navigate("/")}
@@ -2047,6 +2092,7 @@ export default function Player() {
                   <video
                     key={`mp4-${episodeId}-${selectedIdx}`}
                     src={proxyStreamUrl(selected.url, activeReferer)}
+                    preload="auto"
                     autoPlay
                     controls
                     playsInline
@@ -2074,6 +2120,7 @@ export default function Player() {
                     controlsRef={playerControlsRef}
                     onPlaybackError={handlePlaybackError}
                     onFullscreenChange={setIsFullscreen}
+                    hasAlternatives={selectedIdx + 1 < sources.length}
                   />
                 ) : null
               )
@@ -2180,6 +2227,8 @@ export default function Player() {
                 >
                   <HelpCircle size={14} />
                 </button>
+                {/* Ver juntos (salas privadas, igual que la app) */}
+                <WatchTogetherButton onClick={() => setRoomOpen(true)} />
                 {/* Theater mode */}
                 <button
                   onClick={() => setTheaterMode(v => !v)}

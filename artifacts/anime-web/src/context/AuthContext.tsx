@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { apiClient } from "@/lib/apiClient";
-import { iziffAuth } from "@/lib/iziffAuth";
+import { iziffAuth, saveIziffSession, clearIziffSession } from "@/lib/iziffAuth";
 
 export interface AuthUser {
   id: number;
@@ -57,10 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   // Cambia la sesión IZIFF (app) por la sesión de la web
-  const exchange = async (accessToken: string) => {
+  const exchange = async (session: { accessToken: string; refreshToken: string }) => {
     const { token: t, user: u } = await apiClient.post<{ token: string; user: AuthUser }>(
-      "/auth/iziff", { accessToken }
+      "/auth/iziff", { accessToken: session.accessToken }
     );
+    saveIziffSession(session);
     localStorage.setItem("af_token", t);
     setToken(t);
     setUser(u);
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (identifier: string, password: string) => {
     const s = await iziffAuth.login(identifier.trim(), password);
-    await exchange(s.accessToken);
+    await exchange(s);
   };
 
   const registerStart = async (username: string, email: string) => {
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (username: string, email: string, password: string, code: string) => {
     const s = await iziffAuth.register(username.trim(), email.trim(), password, code.trim());
-    await exchange(s.accessToken);
+    await exchange(s);
   };
 
   const forgotPassword = async (email: string) => {
@@ -88,10 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string, code: string, password: string) => {
     const s = await iziffAuth.reset(email.trim(), code.trim(), password);
-    await exchange(s.accessToken);
+    await exchange(s);
   };
 
   const logout = () => {
+    clearIziffSession();
     localStorage.removeItem("af_token");
     setToken(null);
     setUser(null);

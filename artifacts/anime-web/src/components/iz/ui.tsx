@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type CSSProperties, type SyntheticEvent } from "react";
 import { useLocation } from "wouter";
 import { ChevronLeft, ChevronRight, Play, Star, X } from "lucide-react";
 
@@ -97,12 +97,10 @@ export function PosterCard({ data, onClick }: { data: PosterData; onClick?: () =
     <button type="button" className="iz-poster" onClick={go} title={data.title}>
       <div className="iz-poster__frame">
         {data.image ? (
-          <img
+          <RetryImg
             src={data.image}
             alt={data.title}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setLoaded(true)}
+            onLoaded={() => setLoaded(true)}
             style={{ opacity: loaded ? 1 : 0 }}
           />
         ) : null}
@@ -139,7 +137,7 @@ export function WideCard({
   return (
     <div className="iz-wide" role="button" tabIndex={0} onClick={onClick} onKeyDown={(e) => { if (e.key === "Enter") onClick(); }}>
       <div className="iz-wide__frame">
-        {image && <img src={image} alt={title} loading="lazy" decoding="async" />}
+        {image && <RetryImg src={image} alt={title} />}
         <div className="iz-wide__shade" />
         {badges && badges.length > 0 && (
           <div className="iz-wide__badges">{badges.map((b) => <span key={b} className="iz-tag iz-tag--solid">{b}</span>)}</div>
@@ -210,6 +208,37 @@ export function toScore10(v?: number | null): number | null {
  *  - "poster": imagen vertical → póster nítido a la derecha + ambiente difuminado.
  * En móvil se prefiere el póster vertical, que encaja con la pantalla.
  */
+/**
+ * Imagen con reintento: si la carga falla (red lenta, CDN saturado), vuelve a
+ * intentarlo hasta 3 veces sin que haya que recargar la página.
+ */
+export function RetryImg({ src, alt, onLoaded, style, className }: {
+  src: string; alt: string; onLoaded?: () => void; style?: CSSProperties; className?: string;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const ref = useRef<HTMLImageElement>(null);
+  useEffect(() => { setAttempt(0); }, [src]);
+  useEffect(() => {
+    const img = ref.current;
+    if (img && img.complete && img.naturalWidth > 0) onLoaded?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, attempt]);
+  const finalSrc = attempt ? `${src}${src.includes("?") ? "&" : "?"}r=${attempt}` : src;
+  return (
+    <img
+      ref={ref}
+      src={finalSrc}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      decoding="async"
+      onLoad={() => onLoaded?.()}
+      onError={() => { if (attempt < 3) setTimeout(() => setAttempt((a) => a + 1), 700 * (attempt + 1)); }}
+      style={style}
+    />
+  );
+}
+
 export function HeroBackdrop({ banner, poster }: { banner?: string; poster?: string }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
   const [mode, setMode] = useState<"cover" | "banner" | "poster" | "pending">("pending");
@@ -223,10 +252,19 @@ export function HeroBackdrop({ banner, poster }: { banner?: string; poster?: str
   }, []);
 
   const src = (isMobile ? poster || banner : banner || poster) ?? "";
-  useEffect(() => { setMode("pending"); }, [src]);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [retry, setRetry] = useState(0);
+  // El modo se recalcula al cambiar la imagen. Se evalúa también si la imagen
+  // ya venía de caché (onLoad puede dispararse antes de que React lo escuche).
+  useEffect(() => {
+    setMode("pending");
+    setRetry(0);
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) measure(img);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]);
 
-  const onLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const img = e.currentTarget;
+  function measure(img: HTMLImageElement) {
     const w = img.naturalWidth, h = img.naturalHeight;
     const box = boxRef.current?.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -240,13 +278,21 @@ export function HeroBackdrop({ banner, poster }: { banner?: string; poster?: str
     else if (ratio < 1.2 && !isMobile) setMode("poster");
     else if (isMobile) setMode("cover");
     else setMode("banner");
+  }
+
+  const onLoad = (e: SyntheticEvent<HTMLImageElement>) => measure(e.currentTarget);
+  const onError = () => {
+    // Reintento con otra URL (evita una respuesta fallida en caché); si no, se muestra igual
+    if (retry < 2) setTimeout(() => setRetry((r) => r + 1), 800 * (retry + 1));
+    else setMode("cover");
   };
+  const finalSrc = retry ? `${src}${src.includes("?") ? "&" : "?"}r=${retry}` : src;
 
   if (!src) return null;
   return (
     <div ref={boxRef} className={`iz-hero__bg iz-hero__bg--${mode}`}>
-      {mode !== "cover" && mode !== "pending" && <img className="iz-hero__ambient" src={src} alt="" aria-hidden />}
-      <img className="iz-hero__main" src={src} alt="" decoding="async" onLoad={onLoad} />
+      {mode !== "cover" && mode !== "pending" && <img className="iz-hero__ambient" src={finalSrc} alt="" aria-hidden />}
+      <img ref={imgRef} className="iz-hero__main" src={finalSrc} alt="" decoding="async" onLoad={onLoad} onError={onError} />
     </div>
   );
 }

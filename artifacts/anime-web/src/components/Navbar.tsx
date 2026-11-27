@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   Search, Bookmark, Clock, Home, Film, Tv2, Calendar, Shuffle, ChevronDown, X, Star, ListVideo, Menu,
-  LogIn, LogOut, User, Crown, Shield, Settings, Rss, LayoutDashboard, BookOpen, Newspaper, Compass, Download, CornerDownLeft,
+  LogIn, LogOut, User, Crown, Shield, Settings, Rss, LayoutDashboard, BookOpen, Newspaper, Compass, Download, CornerDownLeft, Users,
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { consumet, resolveTitle, type AnimeResult } from "@/lib/consumet";
@@ -26,6 +26,7 @@ const MAIN_LINKS = [
 const MORE_LINKS = [
   { label: "OVAs y especiales", href: "/ovas", icon: Tv2 },
   { label: "Noticias", href: "/noticias", icon: Newspaper },
+  { label: "Ver juntos", href: "/sala", icon: Users },
   { label: "Comunidad", href: "/feed", icon: Rss },
 ];
 

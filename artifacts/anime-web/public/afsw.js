@@ -6,7 +6,7 @@
  * - Ya NO recarga las pestañas al actualizarse (antes cortaba el episodio en curso).
  * - Sigue bloqueando las notificaciones push de redes publicitarias.
  */
-const VERSION = "iz-v4";
+const VERSION = "iz-v5";
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const IMG_CACHE = `${VERSION}-img`;
@@ -109,7 +109,9 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Imágenes (pósters, portadas, páginas de manga): caché primero con límite
-  if (request.destination === "image") {
+  // Las imágenes de otros dominios (AniList, MangaDex…) van directo al navegador:
+  // son respuestas opacas que no se guardan y, si la red falla, el navegador reintenta.
+  if (request.destination === "image" && url.origin === self.location.origin) {
     event.respondWith((async () => {
       const cache = await caches.open(IMG_CACHE);
       const cached = await cache.match(request);

@@ -13,6 +13,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import AdScript from "@/components/AdScript";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import InstallPrompt from "@/components/InstallPrompt";
+import { WatchRoomDock } from "@/components/WatchTogether";
 import { useAuth } from "@/context/AuthContext";
 import { useLimitsConfig } from "@/hooks/use-limits-config";
 
@@ -40,6 +41,7 @@ const Dmca = lazy(() => import("@/pages/Dmca"));
 const MangaReader = lazy(() => import("@/pages/MangaReader"));
 const News = lazy(() => import("@/pages/News"));
 const NotFoundPage = lazy(() => import("@/pages/not-found"));
+const WatchRoomPage = lazy(() => import("@/pages/WatchRoom"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -540,6 +542,8 @@ function Router() {
         <Route path="/manga"><Manga /></Route>
         <Route path="/noticias"><News /></Route>
         <Route path="/news"><News /></Route>
+        <Route path="/sala"><WatchRoomPage /></Route>
+        <Route path="/sala/:code"><WatchRoomPage /></Route>
         <Route path="/manga/:id/leer/:chapterId"><MangaReader /></Route>
         <Route path="/manga/:id"><MangaDetail /></Route>
         <Route path="/legal/dmca"><Dmca /></Route>
@@ -558,6 +562,7 @@ function Layout() {
         <Router />
         <ScrollToTop />
         <InstallPrompt />
+        <WatchRoomDock />
       </MaintenanceGate>
     </main>
   );

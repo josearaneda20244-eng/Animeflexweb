@@ -2047,12 +2047,82 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
  */
 type DirectSource = { url: string; quality: string; isM3U8: boolean; isMp4: boolean; isEmbed: false; server: string; referer?: string };
 
+const EXTRACT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+async function fetchText(url: string, referer: string | undefined, signal: AbortSignal): Promise<string> {
+  const r = await fetch(url, {
+    headers: { "User-Agent": EXTRACT_UA, Accept: "text/html,application/xhtml+xml,*/*", ...(referer ? { Referer: referer } : {}) },
+    redirect: "follow",
+    signal,
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.text();
+}
+
+/** VOE: el video viene cifrado en un JSON (rot13 → limpiar → base64 → -3 → invertir → base64). */
+function voeDecode(encoded: string): { source?: string; direct_access_url?: string } | null {
+  try {
+    const rot = encoded.replace(/[a-zA-Z]/g, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      return String.fromCharCode(((c.charCodeAt(0) - base + 13) % 26) + base);
+    });
+    let cleaned = rot;
+    for (const pat of ["@$", "^^", "~@", "%?", "*~", "!!", "#&"]) cleaned = cleaned.split(pat).join("");
+    const step = Buffer.from(cleaned, "base64").toString("latin1");
+    const shifted = Array.from(step, (c) => String.fromCharCode(c.charCodeAt(0) - 3)).join("");
+    const reversed = shifted.split("").reverse().join("");
+    return JSON.parse(Buffer.from(reversed, "base64").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+async function extractVoe(embedUrl: string, signal: AbortSignal): Promise<{ url: string; isM3U8: boolean; referer: string } | null> {
+  let url = embedUrl;
+  let html = await fetchText(url, undefined, signal);
+  // VOE suele redirigir por JavaScript a un dominio espejo
+  const redirect = html.match(/window\.location\.href\s*=\s*['"]([^'"]+)['"]/);
+  if (redirect && /^https?:\/\//.test(redirect[1])) {
+    url = redirect[1];
+    html = await fetchText(url, embedUrl, signal);
+  }
+  const origin = new URL(url).origin + "/";
+  const json = html.match(/<script[^>]*type=["']application\/json["'][^>]*>\s*(\[?\s*"[^<]+)<\/script>/i);
+  if (json) {
+    let payload = json[1].trim();
+    try { const arr = JSON.parse(payload); payload = Array.isArray(arr) ? arr[0] : arr; } catch { payload = payload.replace(/^\[?"|"\]?$/g, ""); }
+    const data = typeof payload === "string" ? voeDecode(payload) : null;
+    const src = data?.source || data?.direct_access_url;
+    if (src) return { url: src, isM3U8: /\.m3u8/i.test(src), referer: origin };
+  }
+  // Formato antiguo
+  const hls = html.match(/['"]hls['"]\s*:\s*['"]([^'"]+)['"]/);
+  if (hls) {
+    let v = hls[1];
+    if (!/^https?:/.test(v)) { try { v = Buffer.from(v, "base64").toString("utf8"); } catch { /* */ } }
+    if (/^https?:/.test(v)) return { url: v, isM3U8: true, referer: origin };
+  }
+  return null;
+}
+
+/** Zilla (AnimeAV1): /play/<id> → /m3u8/<id> */
+function extractZilla(embedUrl: string): { url: string; referer: string } | null {
+  let u = embedUrl;
+  try {
+    const parsed = new URL(u);
+    const inner = parsed.searchParams.get("url");
+    if (inner && inner.includes("zilla-networks")) u = inner;
+  } catch { return null; }
+  const m = u.match(/^(https?:\/\/[^/]*zilla-networks\.com)\/(?:play|embed)\/([A-Za-z0-9]+)/);
+  return m ? { url: `${m[1]}/m3u8/${m[2]}`, referer: `${m[1]}/` } : null;
+}
+
 async function resolveDirectSources(embeds: Array<{ url: string; referer?: string; server: string }>): Promise<DirectSource[]> {
   const proxied = (u: string, referer?: string) =>
     `/api/anime/hls-proxy?url=${encodeURIComponent(u)}${referer ? `&referer=${encodeURIComponent(referer)}` : ""}`;
   const tasks = embeds.slice(0, 8).map(async (e): Promise<DirectSource[]> => {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 5_000);
+    const timer = setTimeout(() => ctrl.abort(), 6_000);
     try {
       const host = new URL(e.url).hostname;
       if (host.includes("mp4upload.com")) {
@@ -2066,6 +2136,18 @@ async function resolveDirectSources(embeds: Array<{ url: string; referer?: strin
       if (host.includes("luluvid") || host.includes("lulustream")) {
         const hls = await extractLuluvidDirectHls(e.url, ctrl.signal);
         return hls ? [{ url: proxied(hls, e.url), quality: "auto", isM3U8: true, isMp4: false, isEmbed: false, server: "Luluvid · HLS" }] : [];
+      }
+      if (e.url.includes("zilla-networks")) {
+        const z = extractZilla(e.url);
+        if (!z) return [];
+        // Comprobar que la lista exista antes de ofrecerla
+        const check = await fetch(z.url, { headers: { "User-Agent": EXTRACT_UA, Referer: z.referer }, signal: ctrl.signal });
+        const body = check.ok ? await check.text() : "";
+        return body.includes("#EXTM3U") ? [{ url: proxied(z.url, z.referer), quality: "auto", isM3U8: true, isMp4: false, isEmbed: false, server: "Zilla · HLS" }] : [];
+      }
+      if (/voe\.sx|voe\.|voeunblock|launchreliantcleaverriver|v-o-e/i.test(host)) {
+        const v = await extractVoe(e.url, ctrl.signal);
+        return v ? [{ url: proxied(v.url, v.referer), quality: "auto", isM3U8: v.isM3U8, isMp4: !v.isM3U8, isEmbed: false, server: "VOE · Directo" }] : [];
       }
       return [];
     } catch {
@@ -2153,8 +2235,10 @@ router.get("/anime/sources", async (req, res) => {
         // directo cuando se puede (Mp4Upload, OK.ru, Luluvid) → se reproduce en nuestro
         // reproductor, sin anuncios. Los iframes quedan solo como respaldo.
         const direct = await resolveDirectSources(sources.filter((s) => s.isEmbed).map((s) => ({ url: s.url, referer: s.referer, server: s.server })));
-        sources.unshift(...direct);
-        const data = { sources, subtitles: (stream.videoSources ?? []).flatMap((s) => s.subtitles ?? []), dub, provider: "engine" };
+        // Sin anuncios: nunca se envían páginas de reproductor (iframes) al cliente.
+        const playable = [...direct, ...sources.filter((s) => !s.isEmbed)];
+        if (playable.length === 0) throw new Error("no direct sources");
+        const data = { sources: playable, subtitles: (stream.videoSources ?? []).flatMap((s) => s.subtitles ?? []), dub, provider: "engine" };
         engineCache.set(key, { at: Date.now(), data });
         if (engineCache.size > ENGINE_CACHE_MAX) {
           const oldest = engineCache.keys().next().value;
