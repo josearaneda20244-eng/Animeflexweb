@@ -1,13 +1,19 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import pool from "../db.js";
+import pool, { userSchemaReady } from "../db.js";
 import { requireAuth, signToken, type AuthRequest } from "../middleware/authMiddleware.js";
 import { sendEmail, verificationEmailHtml, resetPasswordEmailHtml } from "../lib/email.js";
 import { validateEmail, validateUsername, validatePassword, validateSafeUrl } from "../lib/validation.js";
 import { checkLockout, registerFailure, clearAttempts } from "../lib/loginAttempts.js";
 
 const router = Router();
+
+// Asegura que la tabla users tenga todas las columnas antes de atender auth
+router.use("/auth", async (_req, _res, next) => {
+  await userSchemaReady;
+  next();
+});
 
 const BCRYPT_ROUNDS = 12;
 
@@ -143,7 +149,8 @@ router.post("/auth/login", async (req, res) => {
     const token = signToken(row.id as number, row.email as string);
     res.json({ token, user: safeUser(row) });
   } catch (err: any) {
-    req.log?.error({ err: err?.message }, "login error");
+    req.log?.error({ err: err?.message, code: err?.code }, "login error");
+    console.error("[auth/login]", err?.code, err?.message);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
