@@ -1486,7 +1486,7 @@ function normalizeEngineSource<T extends { url: string; isM3U8?: boolean; qualit
   const looksMp4 = /\.mp4(?:$|[?#])/i.test(inner) || (src as { isMp4?: boolean }).isMp4 === true;
   const isEmbed = declaredEmbed ?? (!looksM3u8 && !looksMp4);
   if (isEmbed) url = inner;
-  return { ...src, url, isDub: false, provider: "sub", isM3U8: !isEmbed && looksM3u8, isEmbed };
+  return { ...src, url, isDub: false, provider: "sub", origin: (src as { provider?: string }).provider ?? "", isM3U8: !isEmbed && looksM3u8, isEmbed };
 }
 const EMBED_HOST_RE = /(mp4upload|voe\.sx|byselapuix|zilla-networks|animeav1|streamwish|filemoon|ok\.ru|uqload|dsvplay|mega\.nz|lulu(vid|stream)|mxdrop|listeamed|yourupload|streamtape|vidhide|swhoi)/i;
 function sourceRank(s: { isM3U8?: boolean; isEmbed?: boolean }) {
@@ -1758,13 +1758,26 @@ export default function Player() {
 
   const allSourcesFailed = sources.length > 0 && playbackFailureCount >= sources.length;
 
+  // Informa al servidor qué proveedor reproduce bien o falla → el más estable queda primero
+  const reportedRef = useRef<string>("");
+  const reportSource = useCallback((ok: boolean) => {
+    const origin = (selected as { origin?: string } | null)?.origin;
+    if (!origin) return;
+    const key = `${episodeId}|${selectedIdx}|${ok}`;
+    if (reportedRef.current === key) return;
+    reportedRef.current = key;
+    consumet.reportSource(origin, ok);
+  }, [selected, episodeId, selectedIdx]);
+
   const handlePlaybackError = useCallback(() => {
+    reportSource(false);
     setPlaybackFailureCount((count) => count + 1);
     setSelectedIdx((idx) => (idx + 1 < sources.length ? idx + 1 : idx));
-  }, [sources.length]);
+  }, [sources.length, reportSource]);
 
   const handleTimeUpdate = useCallback((ct: number, duration: number) => {
     currentTimeRef.current = ct;
+    if (ct > 8) reportSource(true);
     if (duration > 0) {
       durationRef.current = duration;
       setVideoDuration(duration);
@@ -1789,7 +1802,7 @@ export default function Player() {
     }
     if (!animeId) return;
     saveProgress({ episodeId, episodeNum: parseInt(episodeNum) || 0, animeId, animeTitle, animeImage, currentTime: ct, duration });
-  }, [episodeId, episodeNum, animeId, animeTitle, animeImage, isMegaFan, user, saveProgress]);
+  }, [episodeId, episodeNum, animeId, animeTitle, animeImage, isMegaFan, user, saveProgress, reportSource]);
 
   const handleNextEpisode = useCallback(() => {
     if (!nextEpisodeId) return;

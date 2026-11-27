@@ -183,6 +183,17 @@ export const consumet = {
   recentEpisodes: (): Promise<SearchResult> => get<SearchResult>(`/anime/recent`),
   info: (id: string): Promise<AnimeInfo> => get<AnimeInfo>(`/anime/info?id=${encodeURIComponent(id)}`),
   anilistInfo: (id: string): Promise<AnimeInfo> => get<AnimeInfo>(`/anime/anilist-info?id=${encodeURIComponent(id)}`),
+  /** Informa si un servidor de un proveedor reprodujo bien o falló */
+  reportSource: (provider: string, ok: boolean) => {
+    try {
+      fetch(`${BASE_URL}/anime/source-report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, ok }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* */ }
+  },
   episodesById: (anilistId: string): Promise<AnimeInfo> =>
     get<AnimeInfo>(`/anime/episodes?anilistId=${encodeURIComponent(anilistId)}`),
   streaming: (episodeId: string, animeTitle?: string, episodeNum?: string, animeId?: string): Promise<StreamingData> => {

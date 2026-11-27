@@ -256,6 +256,42 @@ async function fetchSource(url: string, name: string, perSourceLimit: number): P
   }
 }
 
+/* Algunas fuentes (p. ej. Ramen Para Dos) no traen imagen en el RSS:
+ * se toma la imagen principal del artículo (og:image) y se guarda en caché. */
+const ogCache = new Map<string, string | null>();
+async function fetchOgImage(link: string): Promise<string | undefined> {
+  if (ogCache.has(link)) return ogCache.get(link) ?? undefined;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    const r = await fetch(link, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "es-ES,es;q=0.9",
+      },
+      signal: ctrl.signal,
+      redirect: "follow",
+    });
+    clearTimeout(timer);
+    if (!r.ok) { ogCache.set(link, null); return undefined; }
+    // Solo hace falta el <head>
+    const html = (await r.text()).slice(0, 200_000);
+    const meta =
+      html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+      html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    let img = meta ? decodeText(meta[1]) : undefined;
+    if (img && img.startsWith("//")) img = "https:" + img;
+    if (img && !/^https?:\/\//.test(img)) { try { img = new URL(img, link).toString(); } catch { img = undefined; } }
+    ogCache.set(link, img ?? null);
+    if (ogCache.size > 500) { const k = ogCache.keys().next().value; if (k) ogCache.delete(k); }
+    return img;
+  } catch {
+    return undefined;
+  }
+}
+
 /* ── GET /news/anime — aggregated Spanish anime news (cached 30min) ── */
 router.get("/news/anime", async (_req, res) => {
   if (cache && Date.now() - cache.timestamp < CACHE_TTL) {
@@ -281,6 +317,10 @@ router.get("/news/anime", async (_req, res) => {
   const seen = new Set<string>();
   const deduped = all.filter((n) => (seen.has(n.link) ? false : (seen.add(n.link), true)));
   const items = deduped.slice(0, 18);
+  // Completar las noticias que vinieron sin foto
+  await Promise.all(items.map(async (n) => {
+    if (!n.image && n.link) n.image = await fetchOgImage(n.link);
+  }));
   if (items.length > 0) {
     cache = { items, timestamp: Date.now() };
   }

@@ -12,6 +12,8 @@ export type Onlinestream_VideoSource = {
     quality: string
     type?: string
     subtitles?: Array<Onlinestream_Subtitle>
+    /** Proveedor de origen (JKAnime, AnimeFLV, AnimeAV1…) */
+    provider?: string
 }
 
 export type Onlinestream_EpisodeSource = {
@@ -2699,6 +2701,57 @@ function getVideoSourceReliabilityScore(source: Onlinestream_VideoSource): numbe
     return score
 }
 
+/* ── Salud de proveedores (el más estable va primero) ─────────────── */
+export type ProviderHealth = { ok: number; fail: number; playOk: number; playFail: number; lastOkAt: number }
+const providerHealth = new Map<string, ProviderHealth>()
+function healthOf(name: string): ProviderHealth {
+    let h = providerHealth.get(name)
+    if (!h) { h = { ok: 0, fail: 0, playOk: 0, playFail: 0, lastOkAt: 0 }; providerHealth.set(name, h) }
+    return h
+}
+/** Decae los contadores para que pese más lo reciente. */
+function decay(h: ProviderHealth) {
+    const total = h.ok + h.fail + h.playOk + h.playFail
+    if (total > 200) { h.ok *= 0.5; h.fail *= 0.5; h.playOk *= 0.5; h.playFail *= 0.5 }
+}
+export function recordProviderResult(name: string, ok: boolean) {
+    const h = healthOf(name)
+    if (ok) { h.ok += 1; h.lastOkAt = Date.now() } else h.fail += 1
+    decay(h)
+}
+/** El reproductor informa si un servidor de este proveedor reprodujo o falló. */
+export function recordProviderPlayback(name: string, ok: boolean) {
+    if (!providerHealth.has(name) && !PROVIDER_NAMES.includes(name)) return
+    const h = healthOf(name)
+    if (ok) h.playOk += 1; else h.playFail += 1
+    decay(h)
+}
+export const PROVIDER_NAMES = ["JKAnime", "AnimeFLV", "AnimeAV1", "AniPub", "Latanime", "TioAnime", "AnimeFenix"]
+/** Estabilidad 0..1 (con valor inicial neutro para proveedores sin datos). */
+export function providerStability(name: string): number {
+    const h = providerHealth.get(name)
+    if (!h) return 0.5
+    const fetchRate = (h.ok + 1) / (h.ok + h.fail + 2)
+    const playRate = (h.playOk + 1) / (h.playOk + h.playFail + 2)
+    return fetchRate * 0.4 + playRate * 0.6
+}
+export function getProviderHealthSnapshot() {
+    return PROVIDER_NAMES.map(name => {
+        const h = providerHealth.get(name)
+        return { provider: name, stability: Math.round(providerStability(name) * 100), ...(h ?? { ok: 0, fail: 0, playOk: 0, playFail: 0, lastOkAt: 0 }) }
+    }).sort((a, b) => b.stability - a.stability)
+}
+function tagProviderStream(stream: Onlinestream_EpisodeSource, provider: string): Onlinestream_EpisodeSource {
+    return {
+        ...stream,
+        videoSources: (stream.videoSources ?? []).map(source => ({
+            ...source,
+            provider,
+            server: source.server?.toLowerCase().startsWith(provider.toLowerCase()) ? source.server : `${provider} · ${source.server ?? "Servidor"}`,
+        })),
+    }
+}
+
 export async function getAnimeflexStream({
     anilistId,
     episodeNumber,
@@ -2742,21 +2795,35 @@ export async function getAnimeflexStream({
         })
     }
 
+    // Cada proveedor queda identificado y se registra si respondió o falló,
+    // para ordenar siempre primero el más estable.
+    const tracked = (name: string, attempt: Promise<Onlinestream_EpisodeSource>): Promise<Onlinestream_EpisodeSource> =>
+        attempt.then(
+            stream => {
+                recordProviderResult(name, (stream.videoSources?.length ?? 0) > 0)
+                return tagProviderStream(stream, name)
+            },
+            error => {
+                if (!raceSignal.aborted) recordProviderResult(name, false)
+                throw error
+            },
+        )
+
     if (dubbed) {
         const latinoAttempts: Array<Promise<Onlinestream_EpisodeSource>> = expectedTitles.length > 0
             ? [
-                withProviderTimeout(6_000, providerSignal => (
+                tracked("Latanime", withProviderTimeout(6_000, providerSignal => (
                     getLatanimeLatinoStream(episodeNumber, expectedTitles, providerSignal)
-                )),
-                withProviderTimeout(5_500, providerSignal => (
+                ))),
+                tracked("JKAnime", withProviderTimeout(5_500, providerSignal => (
                     getJkAnimeSpanishStream(anilistId, episodeNumber, expectedTitles, providerSignal, true)
-                )),
-                withProviderTimeout(5_500, providerSignal => (
+                ))),
+                tracked("TioAnime", withProviderTimeout(5_500, providerSignal => (
                     getTioAnimeLatinoStream(episodeNumber, expectedTitles, providerSignal)
-                )),
-                withProviderTimeout(5_000, providerSignal => (
+                ))),
+                tracked("AnimeFenix", withProviderTimeout(5_000, providerSignal => (
                     getAnimeFenixLatinoStream(episodeNumber, expectedTitles, providerSignal)
-                )),
+                ))),
             ]
             : []
 
@@ -2839,22 +2906,22 @@ export async function getAnimeflexStream({
 
     const spanishAttempts = expectedTitles.length > 0
         ? [
-            withProviderTimeout(8_500, providerSignal => (
+            tracked("AnimeFLV", withProviderTimeout(8_500, providerSignal => (
                 getAnimeFlvSpanishStream(episodeNumber, expectedTitles, providerSignal)
-            )),
-            withProviderTimeout(6_500, providerSignal => (
+            ))),
+            tracked("JKAnime", withProviderTimeout(6_500, providerSignal => (
                 getJkAnimeSpanishStream(anilistId, episodeNumber, expectedTitles, providerSignal)
-            )),
-            withProviderTimeout(9_000, providerSignal => (
+            ))),
+            tracked("AnimeAV1", withProviderTimeout(9_000, providerSignal => (
                 getAnimeAv1SpanishStream(episodeNumber, expectedTitles, providerSignal)
-            )),
+            ))),
         ]
         : []
     const exactAttempts = expectedTitles.length > 0
         ? [
-            withProviderTimeout(9_000, providerSignal => (
+            tracked("AniPub", withProviderTimeout(9_000, providerSignal => (
                 getAnipubStream(episodeNumber, expectedTitles, providerSignal)
-            )),
+            ))),
             ...legacyAttempts,
         ]
         : legacyAttempts

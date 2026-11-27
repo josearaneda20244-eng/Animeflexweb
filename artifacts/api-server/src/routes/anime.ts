@@ -1,7 +1,7 @@
 import { ANIME, META } from "@consumet/extensions";
 import { createDecipheriv } from "crypto";
 import { getJkAnimeWatch } from "../lib/jkanime.js";
-import { getAnimeflexStream, ENGINE_HOP_HEADER, extractMp4UploadDirectUrl, extractOkRuDirectStreams, extractLuluvidDirectHls } from "../lib/spanishStreamEngine.js";
+import { getAnimeflexStream, ENGINE_HOP_HEADER, providerStability, recordProviderPlayback, getProviderHealthSnapshot, PROVIDER_NAMES, extractMp4UploadDirectUrl, extractOkRuDirectStreams, extractLuluvidDirectHls } from "../lib/spanishStreamEngine.js";
 import { Readable } from "stream";
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import jwt from "jsonwebtoken";
@@ -2045,7 +2045,7 @@ router.get("/anime/animeflv-watch", optAuth, async (req: AuthReq, res) => {
  *   dub=1 → español latino (doblaje). Sin dub → subtitulado en español.
  * Respuesta: { sources: [{ url, quality, isM3U8, server, referer }], subtitles, dub }
  */
-type DirectSource = { url: string; quality: string; isM3U8: boolean; isMp4: boolean; isEmbed: false; server: string; referer?: string };
+type DirectSource = { url: string; quality: string; isM3U8: boolean; isMp4: boolean; isEmbed: false; server: string; referer?: string; provider?: string };
 
 const EXTRACT_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
@@ -2117,7 +2117,7 @@ function extractZilla(embedUrl: string): { url: string; referer: string } | null
   return m ? { url: `${m[1]}/m3u8/${m[2]}`, referer: `${m[1]}/` } : null;
 }
 
-async function resolveDirectSources(embeds: Array<{ url: string; referer?: string; server: string }>): Promise<DirectSource[]> {
+async function resolveDirectSources(embeds: Array<{ url: string; referer?: string; server: string; provider?: string }>): Promise<DirectSource[]> {
   const proxied = (u: string, referer?: string) =>
     `/api/anime/hls-proxy?url=${encodeURIComponent(u)}${referer ? `&referer=${encodeURIComponent(referer)}` : ""}`;
   const tasks = embeds.slice(0, 8).map(async (e): Promise<DirectSource[]> => {
@@ -2157,7 +2157,12 @@ async function resolveDirectSources(embeds: Array<{ url: string; referer?: strin
     }
   });
   const settled = await Promise.allSettled(tasks);
-  return settled.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+  return settled.flatMap((r, i) => {
+    if (r.status !== "fulfilled") return [];
+    const e = embeds[i];
+    const prov = e?.provider || "";
+    return r.value.map((d) => ({ ...d, provider: prov, server: prov && !d.server.startsWith(prov) ? `${prov} · ${d.server}` : d.server }));
+  });
 }
 
 type EngineCacheEntry = { at: number; data: unknown };
@@ -2165,6 +2170,32 @@ const engineCache = new Map<string, EngineCacheEntry>();
 const engineInflight = new Map<string, Promise<unknown>>();
 const ENGINE_CACHE_MS = 4 * 60 * 1000;
 const ENGINE_CACHE_MAX = 300;
+
+/** Ordena: primero el proveedor más estable (lo que más reproduce), luego HLS antes que MP4. */
+function rankByStability(data: unknown) {
+  const d = data as { sources?: Array<{ provider?: string; isM3U8?: boolean }> };
+  if (!d?.sources) return data;
+  const typeScore = (s: { isM3U8?: boolean }) => (s.isM3U8 ? 0.05 : 0);
+  const sources = d.sources
+    .map((s, i) => ({ s, i, score: providerStability(s.provider || "") + typeScore(s) }))
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .map((x) => x.s);
+  return { ...d, sources };
+}
+
+// El reproductor informa si un servidor reprodujo o falló → aprende cuál es el más estable
+router.post("/anime/source-report", (req, res) => {
+  const provider = String(req.body?.provider ?? "");
+  const ok = req.body?.ok === true;
+  if (PROVIDER_NAMES.includes(provider)) recordProviderPlayback(provider, ok);
+  res.status(204).end();
+});
+
+// Estado de los proveedores (los mismos de la app), ordenados por estabilidad
+router.get("/anime/providers-status", (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ providers: getProviderHealthSnapshot() });
+});
 
 router.get("/anime/sources", async (req, res) => {
   if (req.headers[ENGINE_HOP_HEADER]) {
@@ -2184,7 +2215,7 @@ router.get("/anime/sources", async (req, res) => {
   const hit = engineCache.get(key);
   if (hit && Date.now() - hit.at < ENGINE_CACHE_MS) {
     res.setHeader("X-Cache", "HIT");
-    res.json(hit.data);
+    res.json(rankByStability(hit.data));
     return;
   }
 
@@ -2202,7 +2233,7 @@ router.get("/anime/sources", async (req, res) => {
           animeTitle: title,
           animeTitles: [title, ...extraTitles],
           dubbed: dub,
-          collectWindowMs: 1_500,
+          collectWindowMs: 3_000,
         });
         const seen = new Set<string>();
         const sources = (stream.videoSources ?? [])
@@ -2227,6 +2258,7 @@ router.get("/anime/sources", async (req, res) => {
               isEmbed,
               server: s.server || s.label || "Servidor",
               referer: referer || undefined,
+              provider: s.provider || "",
             };
           });
         if (sources.length === 0) throw new Error("no sources");
@@ -2234,7 +2266,7 @@ router.get("/anime/sources", async (req, res) => {
         // Igual que la app: de los reproductores web (con anuncios) se extrae el video
         // directo cuando se puede (Mp4Upload, OK.ru, Luluvid) → se reproduce en nuestro
         // reproductor, sin anuncios. Los iframes quedan solo como respaldo.
-        const direct = await resolveDirectSources(sources.filter((s) => s.isEmbed).map((s) => ({ url: s.url, referer: s.referer, server: s.server })));
+        const direct = await resolveDirectSources(sources.filter((s) => s.isEmbed).map((s) => ({ url: s.url, referer: s.referer, server: s.server, provider: s.provider })));
         // Sin anuncios: nunca se envían páginas de reproductor (iframes) al cliente.
         const playable = [...direct, ...sources.filter((s) => !s.isEmbed)];
         if (playable.length === 0) throw new Error("no direct sources");
@@ -2250,7 +2282,7 @@ router.get("/anime/sources", async (req, res) => {
     }
     const data = await job;
     res.setHeader("X-Cache", "MISS");
-    res.json(data);
+    res.json(rankByStability(data));
   } catch (err) {
     req.log.warn({ err, title, episode, animeId, dub }, "Unified engine (/anime/sources) failed");
     res.status(404).json({ error: dub ? "No hay episodios en español latino para este anime" : "No se encontraron fuentes para este episodio" });

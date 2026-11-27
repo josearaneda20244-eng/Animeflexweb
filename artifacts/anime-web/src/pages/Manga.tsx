@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { Search, X, ChevronLeft, ChevronRight, RefreshCw, BookOpen } from "lucide-react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { Search, X, RefreshCw, BookOpen, Loader2 } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -33,34 +33,94 @@ function useDebounced<T>(value: T, ms: number): T {
   return v;
 }
 
+type MangaType = "manga" | "manhwa" | "manhua";
+const TYPES: Array<{ id: MangaType; label: string; hint: string }> = [
+  { id: "manga", label: "Manga", hint: "Japón" },
+  { id: "manhwa", label: "Manhwa", hint: "Corea" },
+  { id: "manhua", label: "Manhua", hint: "China" },
+];
+
+/* Portadas recordadas para "Continuar leyendo" (por si el progreso no la guardó) */
+const COVER_KEY = "iz_manga_covers";
+function readCovers(): Record<string, string> {
+  try { return JSON.parse(localStorage.getItem(COVER_KEY) || "{}"); } catch { return {}; }
+}
+function rememberCovers(list: Array<{ id: string; image?: string }>) {
+  try {
+    const map = readCovers();
+    for (const m of list) if (m.image) map[m.id] = m.image;
+    const keys = Object.keys(map);
+    if (keys.length > 600) for (const k of keys.slice(0, keys.length - 600)) delete map[k];
+    localStorage.setItem(COVER_KEY, JSON.stringify(map));
+  } catch { /* */ }
+}
+
 const STATUS_ES: Record<string, string> = { Ongoing: "EN CURSO", Completed: "COMPLETO", Hiatus: "PAUSA", Cancelled: "CANCELADO" };
 
 export default function Manga() {
   const [, navigate] = useLocation();
   const [tab, setTab] = useState<"trending" | "recent">("trending");
+  const [type, setType] = useState<MangaType>(() => {
+    try { const t = localStorage.getItem("iz_manga_type"); if (t === "manga" || t === "manhwa" || t === "manhua") return t; } catch { /* */ }
+    return "manga";
+  });
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
   const [reading, setReading] = useState<MangaProgress[]>(() => getAllMangaProgress());
+  const [covers, setCovers] = useState<Record<string, string>>(() => readCovers());
   const debounced = useDebounced(query.trim(), 400);
   const isSearching = debounced.length >= 2;
 
-  usePageMeta({ title: "Manga online en español HD", description: "Lee manga, manhwa y manhua online en HD y en español. Modo webtoon, capítulos al día y tu progreso guardado." });
+  usePageMeta({ title: "Manga, manhwa y manhua en español", description: "Lee manga, manhwa y manhua online en HD y en español. Modo webtoon, capítulos al día y tu progreso guardado." });
 
-  useEffect(() => { setPage(1); }, [tab, debounced]);
+  const chooseType = (t: MangaType) => { setType(t); try { localStorage.setItem("iz_manga_type", t); } catch { /* */ } };
 
-  const endpoint = isSearching ? `/manga/search?q=${encodeURIComponent(debounced)}&page=${page}` : `/manga/${tab}?page=${page}`;
-  const list = useQuery<MangaListResponse>({
-    queryKey: ["manga", isSearching ? "search" : tab, debounced, page],
-    queryFn: () => apiClient.get<MangaListResponse>(endpoint),
+  const list = useInfiniteQuery<MangaListResponse>({
+    queryKey: ["manga-list", isSearching ? "search" : tab, type, debounced],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => {
+      const page = Number(pageParam) || 1;
+      return apiClient.get<MangaListResponse>(
+        isSearching
+          ? `/manga/search?q=${encodeURIComponent(debounced)}&page=${page}`
+          : `/manga/${tab}?type=${type}&page=${page}`,
+      );
+    },
+    getNextPageParam: (last, all) => (last?.hasNextPage ? all.length + 1 : undefined),
     staleTime: 1000 * 60 * 5,
-    placeholderData: (prev) => prev,
     retry: 1,
   });
 
-  const mangas = list.data?.results ?? [];
-  const hasNext = list.data?.hasNextPage ?? false;
-  const loadingFresh = list.isLoading || (list.isFetching && list.isPlaceholderData);
+  // Igual que la app: se muestran dos páginas de entrada (≈48 títulos)
+  const pageCount = list.data?.pages.length ?? 0;
+  useEffect(() => {
+    if (pageCount === 1 && list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageCount, list.hasNextPage]);
 
+  const mangas = useMemo(() => {
+    const seen = new Set<string>();
+    return (list.data?.pages ?? []).flatMap((p) => p?.results ?? []).filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)));
+  }, [list.data]);
+
+  useEffect(() => {
+    if (!mangas.length) return;
+    rememberCovers(mangas.map((m) => ({ id: m.id, image: m.image })));
+    setCovers(readCovers());
+  }, [mangas]);
+
+  // Carga automática al llegar al final
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !("IntersectionObserver" in window)) return;
+    const obs = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage();
+    }, { rootMargin: "600px 0px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [list.hasNextPage, list.isFetchingNextPage, list.fetchNextPage]);
+
+  const loadingFresh = list.isLoading;
   const toPoster = (m: MangaResult) => ({
     id: m.id,
     title: resolveTitle(m.title),
@@ -72,7 +132,6 @@ export default function Manga() {
     meta: [m.chapters != null ? `${m.chapters} caps` : null, m.genres?.slice(0, 2).join(" · ")].filter(Boolean).join(" · ") || undefined,
   });
 
-  const changePage = (n: number) => { setPage(n); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const headline = useMemo(() => (isSearching ? <>Resultados para <span className="iz-serif">“{debounced}”</span></> : <>Manga <span className="iz-serif">al día</span></>), [isSearching, debounced]);
 
   return (
@@ -82,13 +141,23 @@ export default function Manga() {
         <header className="iz-pagehead">
           <div className="iz-head__eyebrow"><BookOpen size={13} /> Lector HD · Webtoon</div>
           <h1>{headline}</h1>
-          <p>Manga, manhwa y manhua en español. Tu último capítulo se guarda automáticamente.</p>
+          <p>Manga, manhwa y manhua en español, cada uno por separado. Tu último capítulo se guarda automáticamente.</p>
         </header>
+
+        <div role="tablist" aria-label="Tipo" style={{ display: isSearching ? "none" : "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          {TYPES.map((t) => (
+            <button key={t.id} type="button" role="tab" aria-selected={type === t.id}
+              className={`iz-btn iz-btn--sm ${type === t.id ? "iz-btn--primary" : "iz-btn--ghost"}`}
+              onClick={() => chooseType(t.id)}>
+              {t.label} <span style={{ opacity: 0.55, fontWeight: 500 }}>· {t.hint}</span>
+            </button>
+          ))}
+        </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
           <div style={{ position: "relative", flex: "1 1 300px", maxWidth: 520 }}>
             <Search size={17} color="#71717a" style={{ position: "absolute", left: 14, top: 13 }} />
-            <input className="iz-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Busca un manga…" style={{ paddingLeft: 42, paddingRight: 40 }} aria-label="Buscar manga" />
+            <input className="iz-input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Busca manga, manhwa o manhua…" style={{ paddingLeft: 42, paddingRight: 40 }} aria-label="Buscar manga" />
             {query && <button type="button" onClick={() => setQuery("")} aria-label="Limpiar" style={{ position: "absolute", right: 10, top: 10, background: "none", border: 0, color: "#a1a1aa", cursor: "pointer" }}><X size={18} /></button>}
           </div>
           {!isSearching && (
@@ -99,12 +168,12 @@ export default function Manga() {
           )}
         </div>
 
-        {!isSearching && reading.length > 0 && page === 1 && (
+        {!isSearching && reading.length > 0 && (
           <section className="iz-section" style={{ marginTop: 28 }}>
             <SectionHead eyebrow="Tu progreso" title="Continuar" serif="leyendo" />
             <Rail label="Continuar leyendo">
               {reading.slice(0, 12).map((r) => (
-                <WideCard key={r.mangaId} title={r.mangaTitle} image={r.mangaImage ?? ""}
+                <WideCard key={r.mangaId} title={r.mangaTitle} image={r.mangaImage || covers[r.mangaId] || ""}
                   meta={r.chapterNumber != null ? `Capítulo ${r.chapterNumber}` : "Continuar"}
                   right={r.totalPages ? `pág. ${r.page + 1}/${r.totalPages}` : undefined}
                   progress={r.totalPages ? (r.page + 1) / r.totalPages : undefined}
@@ -127,11 +196,13 @@ export default function Manga() {
             <div className="iz-grid">{mangas.map((m) => <PosterCard key={m.id} data={toPoster(m)} />)}</div>
           )}
 
-          {(page > 1 || hasNext) && (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 36 }}>
-              <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" disabled={page <= 1 || list.isFetching} onClick={() => changePage(page - 1)}><ChevronLeft size={16} /> Anterior</button>
-              <span style={{ fontFamily: "var(--iz-mono)", color: "var(--iz-muted)", fontSize: 13 }}>Página {page}</span>
-              <button type="button" className="iz-btn iz-btn--ghost iz-btn--sm" disabled={!hasNext || list.isFetching} onClick={() => changePage(page + 1)}>Siguiente <ChevronRight size={16} /></button>
+          <div ref={sentinelRef} style={{ height: 1 }} />
+          {list.isFetchingNextPage && (
+            <div style={{ display: "flex", justifyContent: "center", padding: 24, color: "var(--iz-muted)" }}><Loader2 size={20} className="iz-spin" /></div>
+          )}
+          {list.hasNextPage && !list.isFetchingNextPage && mangas.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
+              <button type="button" className="iz-btn iz-btn--ghost" onClick={() => list.fetchNextPage()}>Cargar más</button>
             </div>
           )}
         </section>

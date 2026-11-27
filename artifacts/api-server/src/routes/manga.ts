@@ -138,14 +138,22 @@ function parseLibrary(html: string, page: number) {
   return { results: results.slice(0, PAGE_SIZE), hasNextPage: page < lastPage, currentPage: page };
 }
 
-async function fetchLibrary(page: number, options?: { query?: string; order?: string }) {
+const MANGA_TYPES = new Set(["manga", "manhwa", "manhua", "one_shot", "doujinshi", "novel"]);
+function readType(req: Request): string | undefined {
+  const t = String(req.query.type ?? "").toLowerCase();
+  return MANGA_TYPES.has(t) ? t : undefined;
+}
+
+async function fetchLibrary(page: number, options?: { query?: string; order?: string; type?: string }) {
   const params = new URLSearchParams({
     page: String(page),
     _pg: String(page),
     order_item: options?.order ?? "likes_count",
     order_dir: "desc",
   });
-  if (options?.query) params.set("title", options.query);
+  if (options?.query) { params.set("title", options.query); params.set("filter_by", "title"); }
+  // Separar Manga (Japón), Manhwa (Corea) y Manhua (China), igual que la app
+  if (options?.type) params.set("type", options.type);
   return parseLibrary(await fetchText(`${TMO}/biblioteca?${params.toString()}`), page);
 }
 
@@ -183,7 +191,8 @@ function parseDetail(id: string, html: string) {
   const parsed = parseMangaId(id);
   const title = stripTags(html.match(/<h1\b[^>]*class=["'][^"']*element-title[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? "");
   const imageTag = html.match(/<img\b[^>]*class=["'][^"']*book-thumbnail[^"']*["'][^>]*>/i)?.[0] ?? "";
-  const image = proxyImage(attr(imageTag, "src"));
+  const ogImage = html.match(/<meta\b[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)?.[1] ?? null;
+  const image = proxyImage(attr(imageTag, "src") ?? attr(imageTag, "data-src") ?? ogImage);
   const description = stripTags(html.match(/<p\b[^>]*id=["']manga-synopsis["'][^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? "");
   const status = normalizeStatus(stripTags(html.match(/<span\b[^>]*class=["'][^"']*book-status[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1] ?? ""));
   const rating = Number.parseFloat(stripTags(html.match(/<div\b[^>]*class=["']score["'][^>]*>[\s\S]*?<span>([\s\S]*?)<\/span>/i)?.[1] ?? ""));
@@ -219,11 +228,12 @@ router.get("/manga/image-proxy", (req, res) => res.redirect(`/api/manga/img-prox
 
 async function sendLibrary(req: Request, res: Response, kind: "trending" | "recent") {
   const page = Math.max(1, Number.parseInt(String(req.query.page ?? "1"), 10) || 1);
-  const key = `tmo:${kind}:${page}`;
+  const type = readType(req);
+  const key = `tmo:${kind}:${type ?? "all"}:${page}`;
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
-    const result = await fetchLibrary(page, { order: kind === "recent" ? "creation" : "likes_count" });
+    const result = await fetchLibrary(page, { order: kind === "recent" ? "creation" : "likes_count", type });
     setCache(key, result);
     res.json(result);
   } catch (error: any) {
@@ -239,11 +249,12 @@ router.get("/manga/search", async (req: Request, res: Response) => {
   const query = String(req.query.q ?? "").trim();
   const page = Math.max(1, Number.parseInt(String(req.query.page ?? "1"), 10) || 1);
   if (!query) { res.status(400).json({ error: "'q' es requerido" }); return; }
-  const key = `tmo:search:${query.toLowerCase()}:${page}`;
+  const type = readType(req);
+  const key = `tmo:search:${type ?? "all"}:${query.toLowerCase()}:${page}`;
   const hit = cached(key);
   if (hit) { res.json(hit); return; }
   try {
-    const result = await fetchLibrary(page, { query });
+    const result = await fetchLibrary(page, { query, type });
     setCache(key, result);
     res.json(result);
   } catch (error: any) {
