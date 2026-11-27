@@ -2,9 +2,18 @@ import pg from "pg";
 
 const { Pool } = pg;
 
+const connectionString =
+  process.env.DATABASE_URL ||
+  process.env.DATABASE_PRIVATE_URL ||
+  process.env.DATABASE_PUBLIC_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRESQL_URL;
+
+const isLocalhost = connectionString?.includes("localhost") || connectionString?.includes("127.0.0.1");
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  connectionString: connectionString || undefined,
+  ssl: connectionString && !isLocalhost ? { rejectUnauthorized: false } : false,
 });
 
 /**
@@ -14,7 +23,10 @@ const pool = new Pool({
  * (idempotente, no borra ni modifica datos).
  */
 export const userSchemaReady: Promise<void> = (async () => {
-  if (!process.env.DATABASE_URL) return;
+  if (!connectionString) {
+    console.warn("[db] AVISO: No se detectó DATABASE_URL ni variables de PostgreSQL en Railway.");
+    return;
+  }
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (

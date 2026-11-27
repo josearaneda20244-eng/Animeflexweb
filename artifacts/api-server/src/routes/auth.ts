@@ -126,13 +126,28 @@ async function linkLocalUser(app: IziffUser): Promise<Record<string, unknown>> {
 
 // Diagnóstico sin datos personales: ¿la tabla users tiene lo que la web necesita?
 router.get("/auth/status", async (_req, res) => {
+  const hasDb = !!(
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_PRIVATE_URL ||
+    process.env.DATABASE_PUBLIC_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRESQL_URL
+  );
+  if (!hasDb) {
+    res.status(503).json({
+      db: "missing_env",
+      message: "DATABASE_URL no está configurada en las Variables de Railway.",
+      iziffAuth: IZIFF_AUTH_URL,
+    });
+    return;
+  }
   try {
     const cols = await pool.query(
       `SELECT column_name FROM information_schema.columns WHERE table_name = 'users' ORDER BY column_name`,
     );
     res.json({ db: "ok", usersColumns: cols.rows.map((r) => r.column_name), iziffAuth: IZIFF_AUTH_URL });
   } catch (err: any) {
-    res.status(500).json({ db: "error", code: err?.code ?? null, message: String(err?.message ?? "").slice(0, 200) });
+    res.status(500).json({ db: "error", code: err?.code ?? null, message: String(err?.message ?? "").slice(0, 200), iziffAuth: IZIFF_AUTH_URL });
   }
 });
 
